@@ -100,7 +100,7 @@ export default function EventsManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
         {events.map((event) => (
-          <div key={event.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
+          <div key={event.id} className="bg-black border border-theme-primary/20 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
                 <Calendar size={24} />
@@ -131,7 +131,7 @@ export default function EventsManagement() {
       {/* Event Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
+          <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white">Novo Evento</h2>
               <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
@@ -198,7 +198,7 @@ export default function EventsManagement() {
       {/* Lineup Modal */}
       {isLineupOpen && selectedEvent && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
+          <div className="bg-black border border-theme-primary/20 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800 no-print">
               <div>
                 <h2 className="text-xl font-bold text-white uppercase">Escalação: {selectedEvent.name}</h2>

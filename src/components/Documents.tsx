@@ -31,7 +31,7 @@ export default function Documents() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
         {/* Travel Authorization Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
               <FileText size={24} />
@@ -44,14 +44,14 @@ export default function Documents() {
           <div className="space-y-4">
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === parseInt(e.target.value)) || null)}
+              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
             >
               <option value="">Selecionar Atleta</option>
               {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-              onChange={(e) => setSelectedEvent(events.find(ev => ev.id === parseInt(e.target.value)) || null)}
+              onChange={(e) => setSelectedEvent(events.find(ev => ev.id === e.target.value) || null)}
             >
               <option value="">Selecionar Evento</option>
               {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
@@ -68,7 +68,7 @@ export default function Documents() {
         </div>
 
         {/* Responsibility Term Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
               <FileText size={24} />
@@ -81,7 +81,7 @@ export default function Documents() {
           <div className="space-y-4">
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === parseInt(e.target.value)) || null)}
+              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
             >
               <option value="">Selecionar Atleta</option>
               {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}

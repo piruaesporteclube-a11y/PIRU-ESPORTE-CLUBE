@@ -75,7 +75,7 @@ export default function ProfessorManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {professors.map((p) => (
-          <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col items-center text-center group relative shadow-xl">
+          <div key={p.id} className="bg-black border border-theme-primary/20 rounded-3xl p-6 flex flex-col items-center text-center group relative shadow-xl">
             <div className="w-24 h-24 bg-zinc-800 rounded-full border-2 border-zinc-700 overflow-hidden mb-4 group-hover:border-theme-primary transition-colors">
               {p.photo ? (
                 <img src={p.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -97,7 +97,7 @@ export default function ProfessorManagement() {
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
+          <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white">Novo Professor</h2>
               <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">

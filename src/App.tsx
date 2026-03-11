@@ -105,7 +105,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/30 transition-all group flex flex-col items-center text-center gap-4">
+                  <button onClick={() => setActiveTab('my-data')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-theme-primary/10 text-theme-primary rounded-3xl group-hover:scale-110 transition-transform">
                       <UserPlus size={32} />
                     </div>
@@ -115,7 +115,7 @@ export default function App() {
                     </div>
                   </button>
 
-                  <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-xl hover:border-green-500/30 transition-all group flex flex-col items-center text-center gap-4">
+                  <button onClick={() => setActiveTab('my-anamnesis')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-green-500/10 text-green-500 rounded-3xl group-hover:scale-110 transition-transform">
                       <ClipboardCheck size={32} />
                     </div>
@@ -125,7 +125,7 @@ export default function App() {
                     </div>
                   </button>
 
-                  <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-xl hover:border-blue-500/30 transition-all group flex flex-col items-center text-center gap-4">
+                  <button onClick={() => setActiveTab('my-card')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-blue-500/10 text-blue-500 rounded-3xl group-hover:scale-110 transition-transform">
                       <CreditCard size={32} />
                     </div>
@@ -152,7 +152,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl hover:border-theme-primary/30 transition-all group">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
                       <Users size={24} />
@@ -161,7 +161,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.athletes}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl hover:border-green-500/30 transition-all group">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <UserCheck size={24} />
@@ -170,7 +170,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.active}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl hover:border-blue-500/30 transition-all group">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <Calendar size={24} />
@@ -179,7 +179,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.events}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl hover:border-purple-500/30 transition-all group">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <Trophy size={24} />
@@ -191,7 +191,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl">
+                <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl">
                   <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
                     <Activity size={20} className="text-theme-primary" />
                     Ações Rápidas
@@ -216,7 +216,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl overflow-hidden relative">
+                <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-8 opacity-10">
                     <Cake size={120} />
                   </div>
@@ -237,7 +237,7 @@ export default function App() {
                 onEdit={(a) => { setEditingAthlete(a); setIsAthleteFormOpen(true); }} 
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
                   <h3 className="text-lg font-bold text-white mb-4 uppercase flex items-center gap-2">
                     <Activity size={20} className="text-theme-primary" />
                     Ficha de Anamnese
@@ -259,7 +259,7 @@ export default function App() {
                     </select>
                   </div>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl">
+                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
                   <h3 className="text-lg font-bold text-white mb-4 uppercase flex items-center gap-2">
                     <CreditCard size={20} className="text-theme-primary" />
                     Carteirinha
@@ -312,7 +312,7 @@ export default function App() {
                         <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
                       </button>
                     </div>
-                    <div className="bg-zinc-900 p-8 rounded-3xl border border-zinc-800">
+                    <div className="bg-black p-8 rounded-3xl border border-theme-primary/20">
                       <MembershipCard athlete={selectedAthleteForCard} />
                     </div>
                   </div>
@@ -353,7 +353,7 @@ export default function App() {
           );
         case 'my-card':
           return (
-            <div className="max-w-2xl mx-auto bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
+            <div className="max-w-2xl mx-auto bg-black p-8 rounded-[2.5rem] border border-theme-primary/20 shadow-2xl">
               {myAthleteData ? (
                 <MembershipCard athlete={myAthleteData} />
               ) : (

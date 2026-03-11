@@ -40,8 +40,8 @@ export default function SettingsComponent() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Visual Identity */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl space-y-8">
-          <div className="flex items-center gap-3 text-yellow-500 mb-6">
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
             <Palette size={24} />
             <h3 className="text-lg font-bold uppercase tracking-widest">Identidade Visual</h3>
           </div>
@@ -108,8 +108,8 @@ export default function SettingsComponent() {
         </div>
 
         {/* Social Media */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl space-y-8">
-          <div className="flex items-center gap-3 text-yellow-500 mb-6">
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
             <MessageCircle size={24} />
             <h3 className="text-lg font-bold uppercase tracking-widest">Redes Sociais</h3>
           </div>
@@ -153,7 +153,7 @@ export default function SettingsComponent() {
           )}
           <button 
             type="submit"
-            className="ml-auto px-12 py-4 bg-yellow-500 hover:bg-yellow-600 text-black rounded-2xl font-black transition-all shadow-lg shadow-yellow-500/20 flex items-center gap-2"
+            className="ml-auto px-12 py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
           >
             <Save size={20} />
             Salvar Configurações

@@ -74,7 +74,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
           <input 
             type="text" 
             placeholder="Buscar por nome ou documento..." 
-            className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -82,7 +82,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
@@ -93,7 +93,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -104,7 +104,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">

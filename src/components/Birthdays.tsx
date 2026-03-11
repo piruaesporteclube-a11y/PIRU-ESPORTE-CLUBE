@@ -45,7 +45,7 @@ export default function Birthdays() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {todayBirthdays.map((person) => (
-            <div key={person.id} className="bg-zinc-900 border border-theme-primary/30 p-4 rounded-2xl flex items-center gap-4 shadow-lg shadow-theme-primary/5">
+            <div key={person.id} className="bg-black border border-theme-primary/30 p-4 rounded-2xl flex items-center gap-4 shadow-lg shadow-theme-primary/5">
               <div className="w-16 h-16 bg-zinc-800 rounded-full border-2 border-theme-primary overflow-hidden flex-shrink-0">
                 {person.photo ? (
                   <img src={person.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -69,7 +69,7 @@ export default function Birthdays() {
             </div>
           ))}
           {todayBirthdays.length === 0 && (
-            <div className="col-span-full p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-center text-zinc-500 italic">
+            <div className="col-span-full p-8 bg-black border border-theme-primary/20 rounded-2xl text-center text-zinc-500 italic">
               Nenhum aniversariante hoje.
             </div>
           )}
@@ -84,7 +84,7 @@ export default function Birthdays() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {monthBirthdays.map((person) => (
-            <div key={person.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-3">
+            <div key={person.id} className="bg-black border border-theme-primary/20 p-4 rounded-2xl flex items-center gap-3">
               <div className="w-10 h-10 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0">
                 {person.photo ? (
                   <img src={person.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />

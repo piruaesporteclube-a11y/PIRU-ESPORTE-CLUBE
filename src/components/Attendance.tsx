@@ -81,7 +81,7 @@ export default function Attendance() {
         <div className="flex items-center gap-3">
           <input 
             type="date" 
-            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+            className="px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -116,7 +116,7 @@ export default function Attendance() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 appearance-none"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 appearance-none"
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
@@ -126,7 +126,7 @@ export default function Attendance() {
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">

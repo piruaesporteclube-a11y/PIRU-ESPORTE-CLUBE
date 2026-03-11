@@ -58,7 +58,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
   const filteredNavItems = navItems.filter(item => user && item.roles.includes(user.role));
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-theme-primary selection:text-black">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-theme-primary selection:text-black">
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-zinc-950 p-4 lg:p-8">
+        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

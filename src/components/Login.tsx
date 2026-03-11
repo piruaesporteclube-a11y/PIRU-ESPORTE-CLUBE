@@ -53,7 +53,7 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-4 bg-zinc-900 border border-zinc-800 rounded-3xl mb-6 shadow-2xl">
+          <div className="inline-flex items-center justify-center p-4 bg-black border border-theme-primary/20 rounded-3xl mb-6 shadow-2xl">
             {settings?.schoolCrest ? (
               <img src={settings.schoolCrest} className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
             ) : (
@@ -64,7 +64,7 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
           <p className="text-zinc-500 font-bold uppercase text-xs tracking-[0.2em]">Sistema de Gestão Esportiva</p>
         </div>
 
-        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl">
+        <div className="bg-black backdrop-blur-xl border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">Usuário (CPF)</label>
@@ -117,7 +117,7 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
 
             <button
               type="submit"
-              disabled={loading || !isSupabaseConfigured}
+              disabled={loading}
               className="w-full py-4 bg-theme-primary hover:opacity-90 text-black font-black rounded-2xl transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2 group disabled:opacity-50"
             >
               {loading ? 'Entrando...' : (
