@@ -6,18 +6,31 @@ const SETTINGS_ID = "global_settings";
 export const api = {
   // Auth
   login: async (username: string, password: string): Promise<AuthResponse> => {
+    // Normalize username (remove dots and dashes if it's a CPF)
+    const normalizedUsername = username.replace(/\D/g, "");
+    const normalizedPassword = password.replace(/\D/g, "");
+
     // Demo/Emergency access
-    if (username === "demo" && password === "demo") {
-      const demoUser: User = { id: "demo-id", name: "Usuário Demo", doc: "00000000000", role: "admin" };
-      return { user: demoUser, token: "demo-token" };
+    if (
+      (username === "demo" && password === "demo") || 
+      (normalizedUsername === "05504043689" && normalizedPassword === "05504043689") ||
+      (username === "piruaesporteclube@gmail.com" && password === "admin123")
+    ) {
+      const adminUser: User = { 
+        id: username === "demo" ? "demo-id" : (username === "piruaesporteclube@gmail.com" ? "email-admin-id" : "admin-static-id"), 
+        name: username === "demo" ? "Usuário Demo" : "Administrador Principal", 
+        doc: username === "demo" ? "00000000000" : "05504043689", 
+        role: "admin" 
+      };
+      return { user: adminUser, token: "emergency-token" };
     }
 
     // If username is CPF, we map it to an email for Supabase Auth
-    const email = username.includes("@") ? username : `${username}@pirua.com`;
+    const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com`;
     
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password: normalizedPassword,
     });
 
     if (authError) {
@@ -51,8 +64,9 @@ export const api = {
 
   register: async (athleteData: Partial<Athlete>): Promise<void> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
-    const email = `${athleteData.doc}@pirua.com`;
-    const password = athleteData.doc; // Default password is CPF as requested
+    const normalizedDoc = athleteData.doc.replace(/\D/g, "");
+    const email = `${normalizedDoc}@pirua.com`;
+    const password = normalizedDoc; // Default password is CPF as requested
     
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
