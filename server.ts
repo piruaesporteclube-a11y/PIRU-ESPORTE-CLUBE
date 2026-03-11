@@ -2,34 +2,9 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import admin from "firebase-admin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-  try {
-    const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (serviceAccountVar && serviceAccountVar.trim().startsWith('{')) {
-      const serviceAccount = JSON.parse(serviceAccountVar);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      console.log("Firebase Admin initialized successfully with service account");
-    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.K_SERVICE) {
-      // Fallback to application default credentials if in Cloud Run or if path is set
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault()
-      });
-      console.log("Firebase Admin initialized with Application Default Credentials");
-    } else {
-      console.warn("FIREBASE_SERVICE_ACCOUNT not found or invalid JSON. Firebase Admin not initialized.");
-    }
-  } catch (error) {
-    console.error("Error initializing Firebase Admin. Ensure FIREBASE_SERVICE_ACCOUNT is a valid JSON string starting with '{':", error);
-  }
-}
 
 async function startServer() {
   const app = express();

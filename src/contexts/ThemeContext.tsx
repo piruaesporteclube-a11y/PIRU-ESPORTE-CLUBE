@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { Settings } from '../types';
 
 interface ThemeContextType {
@@ -21,15 +20,43 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", SETTINGS_ID), (docSnap) => {
-      if (docSnap.exists()) {
-        setSettings(docSnap.data() as Settings);
+    // Initial fetch
+    const fetchSettings = async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('id', SETTINGS_ID)
+        .single();
+      
+      if (data) {
+        setSettings(data as Settings);
       }
-    }, (error) => {
-      console.warn("Settings sync error (likely offline):", error.message);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchSettings();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'settings',
+          filter: `id=eq.${SETTINGS_ID}`
+        },
+        (payload) => {
+          if (payload.new) {
+            setSettings(payload.new as Settings);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {

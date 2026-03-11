@@ -13,8 +13,9 @@ import MembershipCard from './components/MembershipCard';
 import Login from './components/Login';
 import { Athlete, User } from './types';
 import { api } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
+import { isSupabaseConfigured } from './lib/supabase';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -399,6 +400,19 @@ export default function App() {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
+      {!isSupabaseConfigured && (
+        <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-4 animate-pulse">
+          <div className="p-2 bg-amber-500/20 text-amber-500 rounded-xl">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-amber-500 uppercase tracking-widest">Configuração Necessária</h4>
+            <p className="text-xs text-amber-200/60 mt-1">
+              As chaves do Supabase não foram encontradas. Por favor, configure <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> nas configurações do projeto para habilitar o banco de dados.
+            </p>
+          </div>
+        </div>
+      )}
       {renderContent()}
       {isAthleteFormOpen && (
         <AthleteForm 

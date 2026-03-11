@@ -1,23 +1,4 @@
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  where, 
-  getDoc, 
-  setDoc,
-  serverTimestamp
-} from "firebase/firestore";
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut,
-  onAuthStateChanged
-} from "firebase/auth";
-import { auth, db } from "./lib/firebase";
+import { supabase } from "./lib/supabase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User } from "./types";
 
 const SETTINGS_ID = "global_settings";
@@ -25,79 +6,47 @@ const SETTINGS_ID = "global_settings";
 export const api = {
   // Auth
   login: async (username: string, password: string): Promise<AuthResponse> => {
-    // If username is CPF, we map it to an email for Firebase Auth
+    // Demo/Emergency access
+    if (username === "demo" && password === "demo") {
+      const demoUser: User = { id: "demo-id", name: "Usuário Demo", doc: "00000000000", role: "admin" };
+      return { user: demoUser, token: "demo-token" };
+    }
+
+    // If username is CPF, we map it to an email for Supabase Auth
     const email = username.includes("@") ? username : `${username}@pirua.com`;
     
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      
-      // Get user role from Firestore
-      let userDoc;
-      try {
-        userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-      } catch (docError: any) {
-        if (docError.message?.includes('offline') || docError.code === 'unavailable') {
-          // If offline, we might not have the user doc in cache. 
-          // For admin, we can try to guess based on the username if we are desperate,
-          // but it's better to just let it fail with a friendly message.
-          throw new Error("Você está offline e seus dados de acesso não estão salvos localmente. Conecte-se à internet para entrar.");
-        }
-        throw docError;
-      }
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (!userDoc.exists()) {
-        // Fallback for ADM if not in Firestore yet
-        if (username === "05504043689") {
-          const adminUser: User = { id: firebaseUser.uid, name: "Administrador", doc: "05504043689", role: "admin" };
-          try {
-            await setDoc(doc(db, "users", firebaseUser.uid), adminUser);
-          } catch (e) {
-            console.warn("Could not save admin doc (offline?)", e);
-          }
-          return { user: adminUser, token: await firebaseUser.getIdToken() };
-        }
-        throw new Error("Usuário não encontrado no banco de dados.");
-      }
-      
-      return { 
-        user: userDoc.data() as User, 
-        token: await firebaseUser.getIdToken() 
-      };
-    } catch (error: any) {
-      // Handle offline error from signInWithEmailAndPassword
-      if (error.code === 'auth/network-request-failed' || error.message?.includes('offline')) {
-        throw new Error("Sem conexão com a internet. Verifique sua rede.");
-      }
-
-      // Special case: If admin doesn't exist in Auth yet, try to create it
-      if (username === "05504043689" && password === "05504043689" && 
-          (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const firebaseUser = userCredential.user;
-          const adminUser: User = { id: firebaseUser.uid, name: "Administrador", doc: "05504043689", role: "admin" };
-          await setDoc(doc(db, "users", firebaseUser.uid), adminUser);
-          return { user: adminUser, token: await firebaseUser.getIdToken() };
-        } catch (createError: any) {
-          console.error("Error creating admin:", createError);
-          throw new Error("Erro ao configurar acesso administrativo. Verifique se o login por E-mail/Senha está ativo no Firebase.");
-        }
-      }
-
-      // Map Firebase errors to user-friendly messages
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+    if (authError) {
+      if (authError.message.includes("Invalid login credentials")) {
         throw new Error("CPF ou senha incorretos.");
-      } else if (error.code === 'auth/wrong-password') {
-        throw new Error("Senha incorreta.");
-      } else if (error.code === 'auth/operation-not-allowed') {
-        throw new Error("O login por e-mail/senha não está ativado no Firebase.");
-      } else if (error.code === 'auth/too-many-requests') {
-        throw new Error("Muitas tentativas falhas. Tente novamente mais tarde.");
       }
-      
-      throw error;
+      throw authError;
     }
+
+    const { data: userDoc, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (userError || !userDoc) {
+      // Fallback for ADM if not in database yet
+      if (username === "05504043689") {
+        const adminUser: User = { id: authData.user.id, name: "Administrador", doc: "05504043689", role: "admin" };
+        await supabase.from("users").upsert(adminUser);
+        return { user: adminUser, token: authData.session?.access_token || "" };
+      }
+      throw new Error("Usuário não encontrado no banco de dados.");
+    }
+
+    return { 
+      user: userDoc as User, 
+      token: authData.session?.access_token || ""
+    };
   },
 
   register: async (athleteData: Partial<Athlete>): Promise<void> => {
@@ -105,43 +54,53 @@ export const api = {
     const email = `${athleteData.doc}@pirua.com`;
     const password = athleteData.doc; // Default password is CPF as requested
     
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    
-    // Create Athlete in Firestore
-    const athleteRef = await addDoc(collection(db, "athletes"), {
-      ...athleteData,
-      status: "Ativo",
-      createdAt: serverTimestamp()
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
     });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("Erro ao criar usuário.");
+
+    // Create Athlete in Supabase
+    const { data: athleteRef, error: athleteError } = await supabase
+      .from("athletes")
+      .insert({
+        ...athleteData,
+        status: "Ativo",
+      })
+      .select()
+      .single();
+
+    if (athleteError) throw athleteError;
     
-    // Create User in Firestore
+    // Create User in Supabase
     const newUser: User = {
-      id: firebaseUser.uid,
+      id: authData.user.id,
       name: athleteData.name || "Novo Aluno",
       doc: athleteData.doc,
       role: "student",
       athlete_id: athleteRef.id
     };
     
-    await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-    
-    // Also update athlete with its own ID (optional but helpful)
-    await updateDoc(athleteRef, { id: athleteRef.id });
+    const { error: userError } = await supabase.from("users").insert(newUser);
+    if (userError) throw userError;
   },
 
-  logout: () => signOut(auth),
+  logout: () => supabase.auth.signOut(),
 
   // Settings
   getSettings: async (): Promise<Settings> => {
     try {
-      const docSnap = await getDoc(doc(db, "settings", SETTINGS_ID));
-      if (docSnap.exists()) return docSnap.data() as Settings;
+      const { data, error } = await supabase
+        .from("settings")
+        .select("*")
+        .eq("id", SETTINGS_ID)
+        .single();
+      
+      if (data) return data as Settings;
     } catch (error: any) {
-      // Only log if it's not an offline error
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching settings:", error);
-      }
+      console.error("Error fetching settings:", error);
     }
     return {
       primaryColor: "#EAB308",
@@ -152,241 +111,148 @@ export const api = {
     };
   },
   saveSettings: async (settings: Partial<Settings>) => {
-    try {
-      await setDoc(doc(db, "settings", SETTINGS_ID), settings, { merge: true });
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save settings queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase
+      .from("settings")
+      .upsert({ id: SETTINGS_ID, ...settings });
+    if (error) throw error;
   },
 
   // Athletes
   getAthletes: async (): Promise<Athlete[]> => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "athletes"));
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching athletes:", error);
-      }
+    const { data, error } = await supabase.from("athletes").select("*");
+    if (error) {
+      console.error("Error fetching athletes:", error);
       return [];
     }
+    return data as Athlete[];
   },
   saveAthlete: async (athlete: Partial<Athlete>) => {
-    try {
-      if (athlete.id) {
-        const { id, ...data } = athlete;
-        await updateDoc(doc(db, "athletes", id), data);
-      } else {
-        const docRef = await addDoc(collection(db, "athletes"), { ...athlete, status: "Ativo" });
-        await updateDoc(docRef, { id: docRef.id });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save athlete queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("athletes").upsert(athlete);
+    if (error) throw error;
   },
   deleteAthlete: async (id: string) => {
-    try {
-      await deleteDoc(doc(db, "athletes", id));
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Delete athlete queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("athletes").delete().eq("id", id);
+    if (error) throw error;
   },
 
   // Professors
   getProfessors: async (): Promise<Professor[]> => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "professors"));
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Professor));
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching professors:", error);
-      }
+    const { data, error } = await supabase.from("professors").select("*");
+    if (error) {
+      console.error("Error fetching professors:", error);
       return [];
     }
+    return data as Professor[];
   },
   saveProfessor: async (professor: Partial<Professor>) => {
-    try {
-      if (professor.id) {
-        const { id, ...data } = professor;
-        await updateDoc(doc(db, "professors", id), data);
-      } else {
-        const docRef = await addDoc(collection(db, "professors"), professor);
-        await updateDoc(docRef, { id: docRef.id });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save professor queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("professors").upsert(professor);
+    if (error) throw error;
   },
 
   // Events
   getEvents: async (): Promise<Event[]> => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "events"));
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Event));
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching events:", error);
-      }
+    const { data, error } = await supabase.from("events").select("*");
+    if (error) {
+      console.error("Error fetching events:", error);
       return [];
     }
+    return data as Event[];
   },
   saveEvent: async (event: Partial<Event>) => {
-    try {
-      if (event.id) {
-        const { id, ...data } = event;
-        await updateDoc(doc(db, "events", id), data);
-      } else {
-        const docRef = await addDoc(collection(db, "events"), event);
-        await updateDoc(docRef, { id: docRef.id });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save event queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("events").upsert(event);
+    if (error) throw error;
   },
 
   // Attendance
   getAttendance: async (date?: string, athlete_id?: string): Promise<Attendance[]> => {
-    try {
-      let q = query(collection(db, "attendance"));
-      if (date) q = query(q, where("date", "==", date));
-      if (athlete_id) q = query(q, where("athlete_id", "==", athlete_id));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Attendance));
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching attendance:", error);
-      }
+    let query = supabase.from("attendance").select("*");
+    if (date) query = query.eq("date", date);
+    if (athlete_id) query = query.eq("athlete_id", athlete_id);
+    
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error fetching attendance:", error);
       return [];
     }
+    return data as Attendance[];
   },
   saveAttendance: async (attendance: Partial<Attendance>) => {
-    try {
-      if (attendance.id) {
-        const { id, ...data } = attendance;
-        await updateDoc(doc(db, "attendance", id), data);
-      } else {
-        const docRef = await addDoc(collection(db, "attendance"), attendance);
-        await updateDoc(docRef, { id: docRef.id });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save attendance queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("attendance").upsert(attendance);
+    if (error) throw error;
   },
 
   // Anamnesis
   getAnamnesis: async (athlete_id: string): Promise<Anamnesis> => {
-    try {
-      const docSnap = await getDoc(doc(db, "anamnesis", athlete_id));
-      if (docSnap.exists()) return docSnap.data() as Anamnesis;
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching anamnesis:", error);
-      }
+    const { data, error } = await supabase
+      .from("anamnesis")
+      .select("*")
+      .eq("athlete_id", athlete_id)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      console.error("Error fetching anamnesis:", error);
     }
-    return { athlete_id } as Anamnesis;
+    return (data as Anamnesis) || { athlete_id } as Anamnesis;
   },
   saveAnamnesis: async (anamnesis: Partial<Anamnesis>) => {
     if (!anamnesis.athlete_id) throw new Error("ID do atleta é obrigatório");
-    try {
-      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), anamnesis, { merge: true });
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save anamnesis queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase.from("anamnesis").upsert(anamnesis);
+    if (error) throw error;
   },
 
   // Lineups
   getLineup: async (event_id: string): Promise<Athlete[]> => {
-    try {
-      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
-      const querySnapshot = await getDocs(q);
-      const athleteIds = querySnapshot.docs.map(d => d.data().athlete_id);
-      if (athleteIds.length === 0) return [];
-      
-      // Fetch athletes
-      const athletes = await api.getAthletes();
-      const lineup = athletes.filter(a => athleteIds.includes(a.id));
-      
-      // Add confirmation from event_lineups
-      return lineup.map(a => {
-        const el = querySnapshot.docs.find(d => d.data().athlete_id === a.id);
-        return { ...a, confirmation: el?.data().confirmation || "Pendente" };
-      });
-    } catch (error: any) {
-      if (!error.message?.includes('offline') && error.code !== 'unavailable') {
-        console.error("Error fetching lineup:", error);
-      }
+    const { data: lineupData, error: lineupError } = await supabase
+      .from("event_lineups")
+      .select("*")
+      .eq("event_id", event_id);
+    
+    if (lineupError) {
+      console.error("Error fetching lineup:", lineupError);
       return [];
     }
+
+    const athleteIds = lineupData.map(d => d.athlete_id);
+    if (athleteIds.length === 0) return [];
+    
+    const athletes = await api.getAthletes();
+    const lineup = athletes.filter(a => athleteIds.includes(a.id));
+    
+    return lineup.map(a => {
+      const el = lineupData.find(d => d.athlete_id === a.id);
+      return { ...a, confirmation: el?.confirmation || "Pendente" };
+    });
   },
   saveLineup: async (event_id: string, athlete_ids: string[]) => {
-    try {
-      // Delete existing
-      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
-      const querySnapshot = await getDocs(q);
-      for (const d of querySnapshot.docs) {
-        await deleteDoc(doc(db, "event_lineups", d.id));
-      }
-      
-      // Add new
-      for (const aid of athlete_ids) {
-        await addDoc(collection(db, "event_lineups"), {
-          event_id,
-          athlete_id: aid,
-          confirmation: "Pendente"
-        });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Save lineup queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    // Delete existing
+    await supabase.from("event_lineups").delete().eq("event_id", event_id);
+    
+    // Add new
+    const newRows = athlete_ids.map(aid => ({
+      event_id,
+      athlete_id: aid,
+      confirmation: "Pendente"
+    }));
+    
+    const { error } = await supabase.from("event_lineups").insert(newRows);
+    if (error) throw error;
   },
   confirmLineup: async (event_id: string, athlete_id: string, confirmation: string) => {
-    try {
-      const q = query(collection(db, "event_lineups"), 
-        where("event_id", "==", event_id), 
-        where("athlete_id", "==", athlete_id)
-      );
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        await updateDoc(doc(db, "event_lineups", querySnapshot.docs[0].id), { confirmation });
-      }
-    } catch (error: any) {
-      if (error.message?.includes('offline') || error.code === 'unavailable') {
-        console.warn("Confirm lineup queued (offline)");
-      } else {
-        throw error;
-      }
-    }
+    const { error } = await supabase
+      .from("event_lineups")
+      .update({ confirmation })
+      .eq("event_id", event_id)
+      .eq("athlete_id", athlete_id);
+    if (error) throw error;
+  },
+
+  loginGuest: async (): Promise<AuthResponse> => {
+    const guestUser: User = { 
+      id: "guest-" + Math.random().toString(36).substr(2, 9), 
+      name: "Visitante (Offline)", 
+      doc: "00000000000", 
+      role: "admin" 
+    };
+    return { user: guestUser, token: "guest-token" };
   },
 };

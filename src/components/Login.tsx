@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { User, AuthResponse } from '../types';
-import { Trophy, User as UserIcon, Lock, UserPlus, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Trophy, User as UserIcon, Lock, UserPlus, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface LoginProps {
   onLogin: (auth: AuthResponse) => void;
@@ -25,6 +26,18 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
       onLogin(res);
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    try {
+      const res = await api.loginGuest();
+      onLogin(res);
+    } catch (err: any) {
+      setError('Erro ao entrar como visitante.');
     } finally {
       setLoading(false);
     }
@@ -93,9 +106,18 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
               </div>
             )}
 
+            {!isSupabaseConfigured && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
+                <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-200/70 leading-relaxed">
+                  <strong>Banco de dados não configurado.</strong> Por favor, adicione as chaves <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> nas configurações do projeto.
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isSupabaseConfigured}
               className="w-full py-4 bg-theme-primary hover:opacity-90 text-black font-black rounded-2xl transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2 group disabled:opacity-50"
             >
               {loading ? 'Entrando...' : (
@@ -105,6 +127,15 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
                 </>
               )}
             </button>
+
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={loading}
+              className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border border-zinc-700/50"
+            >
+              Entrar como Visitante (Demo)
+            </button>
           </form>
 
           <div className="mt-8 pt-8 border-t border-zinc-800 flex flex-col gap-4">
@@ -112,11 +143,15 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Acesso Administrativo Padrão:</p>
               <p className="text-[10px] text-zinc-400">CPF: <span className="text-theme-primary">05504043689</span></p>
               <p className="text-[10px] text-zinc-400">Senha: <span className="text-theme-primary">05504043689</span></p>
+              <div className="mt-2 pt-2 border-t border-zinc-800/50">
+                <p className="text-[10px] text-zinc-500 italic">Dica: Use <span className="text-theme-primary">demo / demo</span> para acesso de emergência offline.</p>
+              </div>
             </div>
 
             <button
               onClick={onRegisterClick}
-              className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group"
+              disabled={!isSupabaseConfigured}
+              className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
             >
               <UserPlus size={20} className="text-theme-primary" />
               Cadastre aqui
