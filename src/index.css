@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --primary-color: #EAB308;
+  --secondary-color: #000000;
+}
+
+@theme {
+  --color-primary: var(--primary-color);
+  --color-secondary: var(--secondary-color);
+}
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+}
+
+@layer utilities {
+  .bg-theme-primary {
+    background-color: var(--primary-color);
+  }
+  .text-theme-primary {
+    color: var(--primary-color);
+  }
+  .border-theme-primary {
+    border-color: var(--primary-color);
+  }
+  .bg-theme-secondary {
+    background-color: var(--secondary-color);
+  }
+  .text-theme-secondary {
+    color: var(--secondary-color);
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

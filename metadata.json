@@ -1,0 +1,7 @@
+{
+  "name": "Piruá Esporte Clube - Gestão",
+  "description": "Sistema completo de gestão para escolinha de futebol com cadastro de atletas, chamada por QR Code, relatórios e geração de documentos.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
