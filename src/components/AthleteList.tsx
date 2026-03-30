@@ -27,8 +27,12 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este atleta?')) {
-      await api.deleteAthlete(id);
-      loadAthletes();
+      try {
+        await api.deleteAthlete(id);
+        loadAthletes();
+      } catch (err: any) {
+        alert(`Erro ao excluir atleta: ${err.message}`);
+      }
     }
   };
 

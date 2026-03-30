@@ -38,9 +38,16 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 500 * 1024) { // 500KB limit
+        alert("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo da foto.");
       };
       reader.readAsDataURL(file);
     }

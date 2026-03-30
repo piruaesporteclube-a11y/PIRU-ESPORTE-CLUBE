@@ -31,9 +31,16 @@ export default function ProfessorManagement() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 500 * 1024) { // 500KB limit
+        alert("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo da foto.");
       };
       reader.readAsDataURL(file);
     }
@@ -41,11 +48,15 @@ export default function ProfessorManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.saveProfessor(formData);
-    setIsFormOpen(false);
-    setEditingProfessor(null);
-    setFormData({ name: '', birth_date: '', doc: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
-    loadProfessors();
+    try {
+      await api.saveProfessor(formData);
+      setIsFormOpen(false);
+      setEditingProfessor(null);
+      setFormData({ name: '', birth_date: '', doc: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
+      loadProfessors();
+    } catch (err: any) {
+      alert(`Erro ao salvar professor: ${err.message}`);
+    }
   };
 
   return (

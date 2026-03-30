@@ -2,7 +2,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signInAnonymously
 } from "firebase/auth";
 import { 
   doc, 
@@ -51,7 +52,25 @@ interface FirestoreErrorInfo {
   }
 }
 
+function sanitizeData(data: any): any {
+  if (data === null || data === undefined) return null;
+  if (typeof data !== 'object') return data;
+  if (Array.isArray(data)) return data.map(sanitizeData);
+  
+  const sanitized: any = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const value = data[key];
+      if (value !== undefined) {
+        sanitized[key] = sanitizeData(value);
+      }
+    }
+  }
+  return sanitized;
+}
+
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  console.error('Original Firestore Error Object:', error);
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -70,8 +89,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.error('Firestore Error Info:', JSON.stringify(errInfo));
+  throw new Error(errInfo.error);
 }
 
 // Test connection
@@ -98,13 +117,29 @@ export const api = {
       (normalizedUsername === "05504043689" && normalizedPassword === "05504043689") ||
       (username === "piruaesporteclube@gmail.com" && password === "admin123")
     ) {
-      const adminUser: User = { 
-        id: username === "demo" ? "demo-id" : (username === "piruaesporteclube@gmail.com" ? "email-admin-id" : "admin-static-id"), 
-        name: username === "demo" ? "Usuário Demo" : "Administrador Principal", 
-        doc: username === "demo" ? "00000000000" : "05504043689", 
-        role: "admin" 
-      };
-      return { user: adminUser, token: "emergency-token" };
+      try {
+        const userCredential = await signInAnonymously(auth);
+        const firebaseUser = userCredential.user;
+        const adminUser: User = { 
+          id: firebaseUser.uid, 
+          name: username === "demo" ? "Usuário Demo" : "Administrador Principal", 
+          doc: username === "demo" ? "00000000000" : "05504043689", 
+          role: "admin" 
+        };
+        // Save the admin user doc so rules can check it
+        await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(adminUser));
+        return { user: adminUser, token: await firebaseUser.getIdToken() };
+      } catch (error) {
+        console.error("Error during anonymous login:", error);
+        // Fallback to static if anonymous fails
+        const adminUser: User = { 
+          id: username === "demo" ? "demo-id" : (username === "piruaesporteclube@gmail.com" ? "email-admin-id" : "admin-static-id"), 
+          name: username === "demo" ? "Usuário Demo" : "Administrador Principal", 
+          doc: username === "demo" ? "00000000000" : "05504043689", 
+          role: "admin" 
+        };
+        return { user: adminUser, token: "emergency-token" };
+      }
     }
 
     const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com`;
@@ -120,7 +155,7 @@ export const api = {
         // Fallback for ADM
         if (username === "05504043689") {
           const adminUser: User = { id: firebaseUser.uid, name: "Administrador", doc: "05504043689", role: "admin" };
-          await setDoc(userDocRef, adminUser);
+          await setDoc(userDocRef, sanitizeData(adminUser));
           return { user: adminUser, token: await firebaseUser.getIdToken() };
         }
         throw new Error("Usuário não encontrado no banco de dados.");
@@ -156,7 +191,7 @@ export const api = {
         status: "Ativo",
       } as Athlete;
       
-      await setDoc(doc(db, "athletes", athleteId), newAthlete);
+      await setDoc(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
       
       // Create User
       const newUser: User = {
@@ -167,7 +202,7 @@ export const api = {
         athlete_id: athleteId
       };
       
-      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+      await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "athletes/users");
     }
@@ -193,7 +228,7 @@ export const api = {
   },
   saveSettings: async (settings: Partial<Settings>) => {
     try {
-      await setDoc(doc(db, "settings", SETTINGS_ID), settings, { merge: true });
+      await setDoc(doc(db, "settings", SETTINGS_ID), sanitizeData(settings), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `settings/${SETTINGS_ID}`);
     }
@@ -212,7 +247,7 @@ export const api = {
   saveAthlete: async (athlete: Partial<Athlete>) => {
     if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
     try {
-      await setDoc(doc(db, "athletes", athlete.id), athlete, { merge: true });
+      await setDoc(doc(db, "athletes", athlete.id), sanitizeData(athlete), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
     }
@@ -238,7 +273,7 @@ export const api = {
   saveProfessor: async (professor: Partial<Professor>) => {
     if (!professor.id) professor.id = doc(collection(db, "professors")).id;
     try {
-      await setDoc(doc(db, "professors", professor.id), professor, { merge: true });
+      await setDoc(doc(db, "professors", professor.id), sanitizeData(professor), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `professors/${professor.id}`);
     }
@@ -257,7 +292,7 @@ export const api = {
   saveEvent: async (event: Partial<Event>) => {
     if (!event.id) event.id = doc(collection(db, "events")).id;
     try {
-      await setDoc(doc(db, "events", event.id), event, { merge: true });
+      await setDoc(doc(db, "events", event.id), sanitizeData(event), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `events/${event.id}`);
     }
@@ -280,7 +315,7 @@ export const api = {
   saveAttendance: async (attendance: Partial<Attendance>) => {
     if (!attendance.id) attendance.id = doc(collection(db, "attendance")).id;
     try {
-      await setDoc(doc(db, "attendance", attendance.id), attendance, { merge: true });
+      await setDoc(doc(db, "attendance", attendance.id), sanitizeData(attendance), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `attendance/${attendance.id}`);
     }
@@ -299,7 +334,7 @@ export const api = {
   saveAnamnesis: async (anamnesis: Partial<Anamnesis>) => {
     if (!anamnesis.athlete_id) throw new Error("ID do atleta é obrigatório");
     try {
-      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), anamnesis, { merge: true });
+      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), sanitizeData(anamnesis), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `anamnesis/${anamnesis.athlete_id}`);
     }

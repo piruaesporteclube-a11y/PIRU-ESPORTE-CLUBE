@@ -39,25 +39,37 @@ export default function EventsManagement() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.saveEvent(formData);
-    setIsFormOpen(false);
-    setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
-    loadEvents();
+    try {
+      await api.saveEvent(formData);
+      setIsFormOpen(false);
+      setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
+      loadEvents();
+    } catch (err: any) {
+      alert(`Erro ao salvar evento: ${err.message}`);
+    }
   };
 
   const handleOpenLineup = async (event: Event) => {
-    setSelectedEvent(event);
-    const lineup = await api.getLineup(event.id);
-    setLineupAthletes(lineup);
-    setSelectedAthletes(lineup.map(a => a.id));
-    setIsLineupOpen(true);
+    try {
+      setSelectedEvent(event);
+      const lineup = await api.getLineup(event.id);
+      setLineupAthletes(lineup);
+      setSelectedAthletes(lineup.map(a => a.id));
+      setIsLineupOpen(true);
+    } catch (err: any) {
+      alert(`Erro ao carregar escalação: ${err.message}`);
+    }
   };
 
   const handleConfirmAthlete = async (athleteId: string, status: string) => {
     if (selectedEvent) {
-      await api.confirmLineup(selectedEvent.id, athleteId, status);
-      const updatedLineup = await api.getLineup(selectedEvent.id);
-      setLineupAthletes(updatedLineup);
+      try {
+        await api.confirmLineup(selectedEvent.id, athleteId, status);
+        const updatedLineup = await api.getLineup(selectedEvent.id);
+        setLineupAthletes(updatedLineup);
+      } catch (err: any) {
+        alert(`Erro ao confirmar atleta: ${err.message}`);
+      }
     }
   };
 
@@ -73,10 +85,14 @@ export default function EventsManagement() {
 
   const handleSaveLineup = async () => {
     if (selectedEvent) {
-      await api.saveLineup(selectedEvent.id, selectedAthletes);
-      const updatedLineup = await api.getLineup(selectedEvent.id);
-      setLineupAthletes(updatedLineup);
-      // Optional: show a success message or just keep modal open
+      try {
+        await api.saveLineup(selectedEvent.id, selectedAthletes);
+        const updatedLineup = await api.getLineup(selectedEvent.id);
+        setLineupAthletes(updatedLineup);
+        alert('Escalação salva com sucesso!');
+      } catch (err: any) {
+        alert(`Erro ao salvar escalação: ${err.message}`);
+      }
     }
   };
 

@@ -67,8 +67,12 @@ export default function Attendance() {
   };
 
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '') => {
-    await api.saveAttendance({ athlete_id: athleteId, date, status, justification });
-    setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
+    try {
+      await api.saveAttendance({ athlete_id: athleteId, date, status, justification });
+      setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
+    } catch (err: any) {
+      alert(`Erro ao salvar presença: ${err.message}`);
+    }
   };
 
   const filteredAthletes = athletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);

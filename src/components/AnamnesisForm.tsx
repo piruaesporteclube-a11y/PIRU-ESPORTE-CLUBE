@@ -56,8 +56,12 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.saveAnamnesis(formData);
-    onSave();
+    try {
+      await api.saveAnamnesis(formData);
+      onSave();
+    } catch (err: any) {
+      alert(`Erro ao salvar anamnese: ${err.message}`);
+    }
   };
 
   return (
