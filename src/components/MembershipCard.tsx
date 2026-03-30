@@ -180,13 +180,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <div className="w-6 h-6 bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
               )}
               <div className="leading-none">
-                <h3 className="text-[10px] font-black uppercase tracking-tighter text-black">Piruá E.C.</h3>
-                <p className="text-[6px] text-zinc-400 uppercase font-bold">Futebol de Base</p>
+                <h3 className="text-[11px] font-black uppercase tracking-tighter text-black">Piruá E.C.</h3>
+                <p className="text-[7px] text-zinc-400 uppercase font-bold">Futebol de Base</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[6px] text-zinc-400 uppercase font-bold">Matrícula</p>
-              <p className="text-[10px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
+              <p className="text-[7px] text-zinc-400 uppercase font-bold">Matrícula</p>
+              <p className="text-[11px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
             </div>
           </div>
 
@@ -216,25 +216,25 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
                 <h4 className={`font-black uppercase leading-[1.1] text-black tracking-tight line-clamp-2 mb-1 min-h-[20px] ${
-                  athlete.name.length > 30 ? 'text-[6px]' : athlete.name.length > 20 ? 'text-[7px]' : 'text-[9px]'
+                  athlete.name.length > 30 ? 'text-[7px]' : athlete.name.length > 20 ? 'text-[8px]' : 'text-[10px]'
                 }`}>
                   {athlete.name}
                 </h4>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
                   <div>
-                    <p className="text-[5px] text-zinc-400 uppercase font-black">Nascimento</p>
-                    <p className="text-[8px] font-bold text-black">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
+                    <p className="text-[6px] text-zinc-400 uppercase font-black">Nascimento</p>
+                    <p className="text-[9px] font-bold text-black">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
                   </div>
                   <div>
-                    <p className="text-[5px] text-zinc-400 uppercase font-black">RG/CPF</p>
-                    <p className="text-[8px] font-bold text-black truncate">{athlete.doc || '--'}</p>
+                    <p className="text-[6px] text-zinc-400 uppercase font-black">RG/CPF</p>
+                    <p className="text-[9px] font-bold text-black">{athlete.doc || '--'}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-[5px] text-zinc-400 uppercase font-black">Endereço</p>
-                    <p className="text-[7px] font-medium text-zinc-600 truncate leading-tight">
+                    <p className="text-[6px] text-zinc-400 uppercase font-black">Endereço</p>
+                    <p className="text-[8px] font-medium text-zinc-600 leading-tight">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood}
                     </p>
-                    <p className="text-[7px] font-bold text-theme-primary truncate uppercase">
+                    <p className="text-[8px] font-bold text-theme-primary uppercase">
                       {athlete.city || 'Cidade'} / {athlete.uf || 'UF'}
                     </p>
                   </div>
@@ -244,12 +244,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               <div className="space-y-0.5 bg-zinc-50 p-1.5 rounded-lg border border-zinc-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[5px] text-zinc-400 uppercase font-black">Responsável</p>
-                    <p className="text-[8px] font-bold text-zinc-800 uppercase truncate max-w-[100px]">{athlete.guardian_name}</p>
+                    <p className="text-[6px] text-zinc-400 uppercase font-black">Responsável</p>
+                    <p className="text-[9px] font-bold text-zinc-800 uppercase truncate max-w-[120px]">{athlete.guardian_name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[5px] text-zinc-400 uppercase font-black">Telefone</p>
-                    <p className="text-[8px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
+                    <p className="text-[6px] text-zinc-400 uppercase font-black">Telefone</p>
+                    <p className="text-[9px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
                   </div>
                 </div>
               </div>
@@ -262,11 +262,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               <div className="bg-white p-0.5 rounded-[4px] border border-zinc-100">
                 <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={24} />
               </div>
-              <p className="text-[6px] text-zinc-400 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
+              <p className="text-[7px] text-zinc-400 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
             </div>
             <div className="text-right">
               <div className="inline-block px-2 py-0.5 bg-theme-primary/10 border border-theme-primary/20 rounded-full">
-                <p className="text-[7px] font-black text-theme-primary uppercase tracking-widest">Atleta Oficial</p>
+                <p className="text-[8px] font-black text-theme-primary uppercase tracking-widest">Atleta Oficial</p>
               </div>
             </div>
           </div>
