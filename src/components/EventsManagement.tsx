@@ -3,8 +3,10 @@ import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
 import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight } from 'lucide-react';
 import { cn } from '../utils';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EventsManagement() {
+  const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLineupOpen, setIsLineupOpen] = useState(false);
@@ -418,50 +420,56 @@ export default function EventsManagement() {
             </div>
 
             {/* Print View */}
-            <div className="hidden print-only p-12 text-black bg-white">
-              <div className="text-center mb-8 border-b-4 border-black pb-4">
-                <h1 className="text-4xl font-black uppercase">Piruá Esporte Clube</h1>
-                <h2 className="text-2xl font-bold uppercase mt-2">Folha de Escalação Oficial</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                <div>
-                  <p className="font-black uppercase text-xs text-zinc-500">Evento:</p>
-                  <p className="text-xl font-bold uppercase">{selectedEvent.name}</p>
-                  <p className="text-sm text-zinc-600 mt-1">{selectedEvent.city}/{selectedEvent.uf} - {selectedEvent.neighborhood}</p>
+            <div className="hidden print-only p-6 text-black bg-white min-h-screen">
+              <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+                <div className="flex items-center gap-4">
+                  {settings?.schoolCrest && (
+                    <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+                  )}
+                  <div className="text-left">
+                    <h1 className="text-xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
+                    <h2 className="text-sm font-bold uppercase text-zinc-600">Folha de Escalação Oficial</h2>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-black uppercase text-xs text-zinc-500">Data e Horário:</p>
-                  <p className="text-xl font-bold">{selectedEvent.start_date} às {selectedEvent.start_time}</p>
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Data e Horário:</p>
+                  <p className="text-sm font-bold">{selectedEvent.start_date} às {selectedEvent.start_time}</p>
                 </div>
               </div>
 
-              <div className="space-y-8">
+              <div className="mb-4">
+                <p className="font-black uppercase text-[10px] text-zinc-500">Evento:</p>
+                <p className="text-lg font-bold uppercase leading-tight">{selectedEvent.name}</p>
+                <p className="text-xs text-zinc-600">{selectedEvent.city}/{selectedEvent.uf} - {selectedEvent.neighborhood}</p>
+              </div>
+
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-black uppercase mb-2 border-b-2 border-black pb-1">Comissão Técnica</h3>
-                  <table className="w-full border-collapse border-2 border-black">
+                  <h3 className="text-[10px] font-black uppercase mb-1 border-b border-black pb-0.5">Comissão Técnica</h3>
+                  <table className="w-full border-collapse border border-black text-[10px]">
                     <thead>
                       <tr className="bg-zinc-100">
-                        <th className="border-2 border-black p-2 text-center w-12">Nº</th>
-                        <th className="border-2 border-black p-2 text-left">Nome Completo</th>
-                        <th className="border-2 border-black p-2 text-center w-32">Nasc.</th>
-                        <th className="border-2 border-black p-2 text-center w-40">RG/CPF</th>
+                        <th className="border border-black p-1 text-center w-8">Nº</th>
+                        <th className="border border-black p-1 text-left">Nome Completo</th>
+                        <th className="border border-black p-1 text-center w-24">Nasc.</th>
+                        <th className="border border-black p-1 text-center w-32">RG/CPF</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lineupStaff.map((s, idx) => (
                         <tr key={s.id}>
-                          <td className="border-2 border-black p-2 text-center">{idx + 1}</td>
-                          <td className="border-2 border-black p-2 font-bold uppercase">{s.name}</td>
-                          <td className="border-2 border-black p-2 text-center">{s.birth_date}</td>
-                          <td className="border-2 border-black p-2 text-center">{s.doc}</td>
+                          <td className="border border-black p-1 text-center">{idx + 1}</td>
+                          <td className="border border-black p-1 font-bold uppercase">{s.name}</td>
+                          <td className="border border-black p-1 text-center">{s.birth_date}</td>
+                          <td className="border border-black p-1 text-center">{s.doc}</td>
                         </tr>
                       ))}
                       {Array.from({ length: Math.max(0, 3 - lineupStaff.length) }).map((_, i) => (
-                        <tr key={`empty-staff-${i}`} className="h-10">
-                          <td className="border-2 border-black p-2 text-center">{lineupStaff.length + i + 1}</td>
-                          <td className="border-2 border-black p-2"></td>
-                          <td className="border-2 border-black p-2"></td>
-                          <td className="border-2 border-black p-2"></td>
+                        <tr key={`empty-staff-${i}`} className="h-6">
+                          <td className="border border-black p-1 text-center">{lineupStaff.length + i + 1}</td>
+                          <td className="border border-black p-1"></td>
+                          <td className="border border-black p-1"></td>
+                          <td className="border border-black p-1"></td>
                         </tr>
                       ))}
                     </tbody>
@@ -469,34 +477,34 @@ export default function EventsManagement() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-black uppercase mb-2 border-b-2 border-black pb-1">Atletas Escalados</h3>
-                  <table className="w-full border-collapse border-2 border-black">
+                  <h3 className="text-[10px] font-black uppercase mb-1 border-b border-black pb-0.5">Atletas Escalados</h3>
+                  <table className="w-full border-collapse border border-black text-[10px]">
                     <thead>
                       <tr className="bg-zinc-100">
-                        <th className="border-2 border-black p-2 text-center w-12">Nº</th>
-                        <th className="border-2 border-black p-2 text-left">Nome Completo</th>
-                        <th className="border-2 border-black p-2 text-center w-32">Nasc.</th>
-                        <th className="border-2 border-black p-2 text-center w-40">RG/CPF</th>
-                        <th className="border-2 border-black p-2 text-center w-16">Uniforme</th>
+                        <th className="border border-black p-1 text-center w-8">Nº</th>
+                        <th className="border border-black p-1 text-left">Nome Completo</th>
+                        <th className="border border-black p-1 text-center w-24">Nasc.</th>
+                        <th className="border border-black p-1 text-center w-32">RG/CPF</th>
+                        <th className="border border-black p-1 text-center w-16">Uniforme</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lineupAthletes.map((a, idx) => (
                         <tr key={a.id}>
-                          <td className="border-2 border-black p-2 text-center">{idx + 1}</td>
-                          <td className="border-2 border-black p-2 font-bold uppercase">{a.name}</td>
-                          <td className="border-2 border-black p-2 text-center">{a.birth_date}</td>
-                          <td className="border-2 border-black p-2 text-center">{a.doc}</td>
-                          <td className="border-2 border-black p-2 text-center font-bold">#{a.jersey_number}</td>
+                          <td className="border border-black p-1 text-center">{idx + 1}</td>
+                          <td className="border border-black p-1 font-bold uppercase">{a.name}</td>
+                          <td className="border border-black p-1 text-center">{a.birth_date}</td>
+                          <td className="border border-black p-1 text-center">{a.doc}</td>
+                          <td className="border border-black p-1 text-center font-bold">#{a.jersey_number}</td>
                         </tr>
                       ))}
                       {Array.from({ length: Math.max(0, 22 - lineupAthletes.length) }).map((_, i) => (
-                        <tr key={`empty-athlete-${i}`} className="h-10">
-                          <td className="border-2 border-black p-2 text-center">{lineupAthletes.length + i + 1}</td>
-                          <td className="border-2 border-black p-2"></td>
-                          <td className="border-2 border-black p-2"></td>
-                          <td className="border-2 border-black p-2"></td>
-                          <td className="border-2 border-black p-2"></td>
+                        <tr key={`empty-athlete-${i}`} className="h-6">
+                          <td className="border border-black p-1 text-center">{lineupAthletes.length + i + 1}</td>
+                          <td className="border border-black p-1"></td>
+                          <td className="border border-black p-1"></td>
+                          <td className="border border-black p-1"></td>
+                          <td className="border border-black p-1"></td>
                         </tr>
                       ))}
                     </tbody>
@@ -504,15 +512,15 @@ export default function EventsManagement() {
                 </div>
               </div>
 
-              <div className="mt-16 grid grid-cols-2 gap-12">
+              <div className="mt-8 grid grid-cols-2 gap-8">
                 <div className="text-center">
-                  <div className="border-t-2 border-black pt-2 font-bold uppercase text-xs">Assinatura do Responsável Técnico</div>
+                  <div className="border-t border-black pt-1 font-bold uppercase text-[8px]">Assinatura do Responsável Técnico</div>
                 </div>
                 <div className="text-center">
-                  <div className="border-t-2 border-black pt-2 font-bold uppercase text-xs">Assinatura da Diretoria</div>
+                  <div className="border-t border-black pt-1 font-bold uppercase text-[8px]">Assinatura da Diretoria</div>
                 </div>
               </div>
-              <div className="mt-8 text-[10px] text-zinc-400 text-center uppercase tracking-widest">
+              <div className="mt-4 text-[8px] text-zinc-400 text-center uppercase tracking-widest">
                 Documento gerado eletronicamente pelo Sistema de Gestão Piruá E.C.
               </div>
             </div>

@@ -30,7 +30,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin', 'student'] },
   { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'] },
-  { id: 'professors', label: 'Professores', icon: UserCheck, roles: ['admin'] },
+  { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },
   { id: 'attendance', label: 'Chamada', icon: ClipboardCheck, roles: ['admin'] },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin'] },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },

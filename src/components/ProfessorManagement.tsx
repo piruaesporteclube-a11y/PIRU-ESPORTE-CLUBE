@@ -63,7 +63,7 @@ export default function ProfessorManagement() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
-          <h2 className="text-2xl font-bold text-white">Cadastro de Professores</h2>
+          <h2 className="text-2xl font-bold text-white">Cadastro de Comissão Técnica</h2>
           <p className="text-zinc-400 text-sm">Gerencie a equipe técnica da escolinha</p>
         </div>
         <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export default function ProfessorManagement() {
             className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors shadow-lg shadow-theme-primary/20"
           >
             <Plus size={18} />
-            Novo Professor
+            Novo Membro
           </button>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function ProfessorManagement() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-auto">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-bold text-white">Novo Professor</h2>
+              <h2 className="text-xl font-bold text-white">Novo Membro</h2>
               <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
@@ -217,7 +217,7 @@ export default function ProfessorManagement() {
                   className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
                 >
                   <Save size={20} />
-                  Salvar Professor
+                  Salvar Membro
                 </button>
               </div>
             </form>

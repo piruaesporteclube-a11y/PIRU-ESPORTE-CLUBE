@@ -34,7 +34,7 @@ export default function Birthdays() {
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-white">Aniversariantes</h2>
-        <p className="text-zinc-400 text-sm">Comemore o aniversário dos nossos atletas e professores</p>
+        <p className="text-zinc-400 text-sm">Comemore o aniversário dos nossos atletas e membros da comissão técnica</p>
       </div>
 
       {/* Today's Birthdays */}
