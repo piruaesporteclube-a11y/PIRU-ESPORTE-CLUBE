@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, Event, Settings } from '../types';
-import { FileText, Download, Printer, ChevronRight, User, Calendar } from 'lucide-react';
+import { FileText, Download, Printer, ChevronRight, User, Calendar, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function Documents() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -12,6 +14,8 @@ export default function Documents() {
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [docType, setDocType] = useState<'travel' | 'responsibility' | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const documentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.getAthletes().then(setAthletes);
@@ -20,6 +24,34 @@ export default function Documents() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!documentRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      const element = documentRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${docType}_${selectedAthlete?.name.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -97,12 +129,12 @@ export default function Documents() {
           </div>
         </div>
       </div>
-
+      
       {/* Document View Modal */}
       {docType && selectedAthlete && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex items-center justify-center p-4 overflow-y-auto no-print">
           <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-8 p-12 relative">
-            <div className="flex justify-between items-center mb-8 no-print">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-8 no-print">
               <button 
                 onClick={() => setDocType(null)}
                 className="flex items-center gap-2 px-6 py-3 bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-black rounded-xl transition-all group font-bold uppercase text-xs tracking-widest"
@@ -111,17 +143,28 @@ export default function Documents() {
                 Voltar
               </button>
               
-              <button 
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-6 py-3 bg-black text-white font-black rounded-xl hover:bg-zinc-800 transition-colors shadow-lg"
-              >
-                <Printer size={20} />
-                Imprimir Documento
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all shadow-lg disabled:opacity-50"
+                >
+                  <FileDown size={20} />
+                  {isGeneratingPDF ? 'Gerando...' : 'Salvar em PDF'}
+                </button>
+
+                <button 
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 px-6 py-3 bg-black text-white font-black rounded-xl hover:bg-zinc-800 transition-colors shadow-lg"
+                >
+                  <Printer size={20} />
+                  Imprimir Documento
+                </button>
+              </div>
             </div>
 
             {/* Document Content */}
-            <div className="document-content text-justify leading-relaxed">
+            <div ref={documentRef} className="document-content text-justify leading-relaxed p-4 bg-white">
               <div className="text-center mb-10 border-b-4 border-black pb-6">
                 {settings?.schoolCrest && (
                   <img src={settings.schoolCrest} className="w-24 h-24 object-contain mx-auto mb-4" referrerPolicy="no-referrer" />
@@ -152,7 +195,9 @@ export default function Documents() {
 
               {docType === 'responsibility' && (
                 <div className="space-y-4 text-xs">
-                  <p>Declaramos e autorizamos o quanto segue abaixo:</p>
+                  <p>
+                    Eu, <strong>{selectedAthlete.guardian_name}</strong>, portador(a) do RG/CPF nº <strong>{selectedAthlete.guardian_doc}</strong>, na qualidade de responsável legal pelo atleta menor <strong>{selectedAthlete.name}</strong>, nascido em <strong>{selectedAthlete.birth_date}</strong>, inscrito sob o RG/CPF nº <strong>{selectedAthlete.doc}</strong>, venho por meio deste TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO declarar e autorizar o quanto segue abaixo:
+                  </p>
                   <p>
                     Autorizo o menor acima mencionado, <strong>{selectedAthlete.name}</strong>, a treinar e realizar testes/avaliação de futebol no ESTÁDIO MUNICIPAL QUINZINHO NERY, situado ao endereço Av. Newton Ferreira de Paiva, nº ___, Bairro Nossa Senhora Aparecida, Cidade de Campos Altos, Estado de Minas Gerais, CEP 38970-000, ou (37) 99124-3101, sob a supervisão de Marcos Vinícius Machado e, pelo período mínimo de 12 meses (1 ano) a contar a partir da data deste documento, e sobre todas as normas estabelecidas nesse TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO como segue abaixo:
                   </p>
@@ -202,7 +247,6 @@ export default function Documents() {
 
       {/* Actual Print View (Hidden in UI) */}
       <div className="hidden print-only bg-white text-black p-12">
-        {/* Same content as above but always visible when printing */}
         {docType && selectedAthlete && (
           <div className="document-content text-justify leading-relaxed">
             <div className="text-center mb-10 border-b-4 border-black pb-6">
@@ -215,8 +259,60 @@ export default function Documents() {
                 {docType === 'travel' ? 'Autorização de Viagem e Participação em Evento' : 'Termo de Responsabilidade e Autorização'}
               </h2>
             </div>
-            {/* ... rest of content ... */}
-            <p className="mt-8">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
+            
+            {docType === 'travel' && selectedEvent && (
+              <div className="space-y-6">
+                <p>
+                  Eu, <strong>{selectedAthlete.guardian_name}</strong>, portador(a) do RG/CPF nº <strong>{selectedAthlete.guardian_doc}</strong>, na qualidade de responsável legal pelo atleta menor <strong>{selectedAthlete.name}</strong>, nascido em <strong>{selectedAthlete.birth_date}</strong>, inscrito sob o RG/CPF nº <strong>{selectedAthlete.doc}</strong>, residente e domiciliado em <strong>{selectedAthlete.street}, {selectedAthlete.number}, {selectedAthlete.neighborhood}, {selectedAthlete.city}-{selectedAthlete.uf}</strong>, venho por meio desta AUTORIZAR sua participação no evento denominado <strong>{selectedEvent.name}</strong>.
+                </p>
+                <p>
+                  O referido evento realizar-se-á na cidade de <strong>{selectedEvent.city}-{selectedEvent.uf}</strong>, no endereço <strong>{selectedEvent.street}, {selectedEvent.number}</strong>, com início previsto para o dia <strong>{selectedEvent.start_date}</strong> e término em <strong>{selectedEvent.end_date}</strong>.
+                </p>
+                <p>
+                  Autorizo ainda que o atleta seja transportado em veículo gentilmente cedido pela Prefeitura Municipal de Campos Altos, através da Secretaria de Esporte e Lazer juntamente com a Secretaria de Administração do Município, ou por outros meios designados pelo Piruá Esporte Clube.
+                </p>
+                <p className="italic">
+                  "Isento os organizadores do Evento de qualquer responsabilidade por danos eventualmente causados ao menor acima citado no decorrer da competição. Ressaltamos que prestaremos toda atenção necessária durante a viagem, como também durante os jogos. No caso de lesões ou até mesmo fraturas, enfatizamos que prestaremos todo apoio necessário ao atleta de acordo com as nossas condições."
+                </p>
+              </div>
+            )}
+
+            {docType === 'responsibility' && (
+              <div className="space-y-4 text-xs">
+                <p>
+                  Eu, <strong>{selectedAthlete.guardian_name}</strong>, portador(a) do RG/CPF nº <strong>{selectedAthlete.guardian_doc}</strong>, na qualidade de responsável legal pelo atleta menor <strong>{selectedAthlete.name}</strong>, nascido em <strong>{selectedAthlete.birth_date}</strong>, inscrito sob o RG/CPF nº <strong>{selectedAthlete.doc}</strong>, venho por meio deste TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO declarar e autorizar o quanto segue abaixo:
+                </p>
+                <p>
+                  Autorizo o menor acima mencionado, <strong>{selectedAthlete.name}</strong>, a treinar e realizar testes/avaliação de futebol no ESTÁDIO MUNICIPAL QUINZINHO NERY, situado ao endereço Av. Newton Ferreira de Paiva, nº ___, Bairro Nossa Senhora Aparecida, Cidade de Campos Altos, Estado de Minas Gerais, CEP 38970-000, ou (37) 99124-3101, sob a supervisão de Marcos Vinícius Machado e, pelo período mínimo de 12 meses (1 ano) a contar a partir da data deste documento, e sobre todas as normas estabelecidas nesse TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO como segue abaixo:
+                </p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>O RESPONSÁVEL declara ter pleno conhecimento de que o treinamento envolve testes físicos, treinamentos com bola, coletivos e trabalho técnico.</li>
+                  <li>O RESPONSÁVEL assume ainda integral responsabilidade, civil e criminal, pela autenticidade dos documentos ora apresentados, na eventualidade dos mesmos conterem qualquer vício.</li>
+                  <li>O RESPONSÁVEL declara que o ATLETA possui documentação original regularizada devidamente, e prática regularmente atividades esportivas, não sofrendo de nenhuma doença ou limitação física que desaconselhe ou impeça a prática do mesmo nos treinos futebolísticos.</li>
+                  <li>O RESPONSÁVEL declara estar ciente de que, como em qualquer outra atividade física, podem ocorrer lesões e ferimentos no ATLETA durante o período de treinamento.</li>
+                  <li>Sendo desejo do ATLETA e do RESPONSÁVEL que o primeiro participe dos treinamentos a serem realizados no Estádio Municipal Quinzinho Nery, ambos isentam os TREINADORES de toda e qualquer responsabilidade por eventuais lesões físicas, fraturas, acidentes em geral ou danos de qualquer natureza que venham a ocorrer no período de testes. Nestes casos prestaremos todo apoio necessário para melhora do atleta, condução ao hospital ou PAM, e também em casa para os primeiros atendimentos. Este termo se faz necessário pois nós instrutores não somos remunerados e não temos condições de custear nenhum tratamento pois somos voluntários interessados em ajudar no desenvolvimento do seu filho, seja no âmbito esportivo e social, salvo que tentaremos ajudar da melhor forma possível se algo acontecer.</li>
+                  <li>O RESPONSÁVEL declara estar ciente de que o ATLETA deverá trazer de casa para treinar a chuteira, caneleira, um tênis para corrida, chinelo. Caso falte um dos itens, o ATLETA não treinará até que providencie tal item, cumprindo esta norma.</li>
+                  <li>O RESPONSÁVEL declara estar ciente de que deve anexar uma cópia da Cédula de Identidade RG do ATLETA e do RESPONSÁVEL, e que se esse item não for 100% cumprido até o início dos treinamentos, o ATLETA não iniciará os treinos enquanto não cumprir em 100% tal exigência.</li>
+                  <li>O RESPONSÁVEL declara estar ciente e concordar que nesse período de treinamento e também em caso de teste/avaliação, qualquer dano causado ao patrimônio deverá ser por ele imediatamente custeado, e o cumprimento em 100% do Regulamento.</li>
+                  <li>O RESPONSÁVEL declara estar ciente e autoriza a organização do projeto a realizar postagem de fotos, vídeos "conteúdos de mídia", em redes sociais como Facebook, YouTube, Instagram e WhatsApp a fim de promover o trabalho desenvolvido na escolinha, como também envio de vídeos e fotos a profissionais ligados ao futebol como avaliadores, olheiros que com o intuito de projetar seu filho(a) ao mercado futebolístico.</li>
+                </ol>
+              </div>
+            )}
+
+            <div className="mt-16 space-y-12">
+              <div className="flex justify-between items-end">
+                <div className="text-center">
+                  <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">{selectedAthlete.guardian_name}</div>
+                  <p className="text-[10px] uppercase">Assinatura do Responsável Legal</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">Piruá Esporte Clube</div>
+                  <p className="text-[10px] uppercase">Carimbo e Assinatura da Diretoria</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-8 text-[10px] text-zinc-500 italic">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
           </div>
         )}
       </div>
