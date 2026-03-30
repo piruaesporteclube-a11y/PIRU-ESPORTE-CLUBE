@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
 import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn } from '../utils';
 import { toast } from 'sonner';
@@ -34,19 +34,48 @@ export default function Attendance() {
   };
 
   useEffect(() => {
+    let html5QrCode: Html5Qrcode | null = null;
+
     if (isScanning) {
-      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-      scanner.render((decodedText) => {
-        handleScan(decodedText);
-        scanner.clear();
+      html5QrCode = new Html5Qrcode("reader");
+      
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      html5QrCode.start(
+        { facingMode: "environment" }, 
+        config, 
+        (decodedText) => {
+          handleScan(decodedText);
+          setIsScanning(false);
+        },
+        (errorMessage) => {
+          // Only log actual errors, not "no QR code found" warnings
+          if (typeof errorMessage === 'string' && !errorMessage.includes("NotFoundException")) {
+            console.warn("Aviso no scanner:", errorMessage);
+          }
+        }
+      ).catch((err) => {
+        console.error("Erro ao iniciar scanner:", err);
+        if (err?.message?.includes("Permission denied")) {
+          toast.error("Permissão de câmera negada. Por favor, autorize o acesso nas configurações do navegador.");
+        } else if (err?.message?.includes("NotFoundException")) {
+           // Ignore
+        } else {
+          toast.error("Não foi possível abrir a câmera. Verifique se ela está sendo usada por outro app.");
+        }
         setIsScanning(false);
-      }, (error) => {
-        // console.warn(error);
       });
-      return () => {
-        scanner.clear().catch(console.error);
-      };
     }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode?.clear();
+        }).catch(err => {
+          console.error("Erro ao parar scanner:", err);
+        });
+      }
+    };
   }, [isScanning]);
 
   const handleScan = async (data: string) => {

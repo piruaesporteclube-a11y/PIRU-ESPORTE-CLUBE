@@ -26,29 +26,42 @@ export default function Birthdays() {
     setProfessors(p);
   };
 
-  const selectedDate = parseISO(filterDate);
+  const isValidDate = (dateStr: string | undefined | null) => {
+    if (!dateStr) return false;
+    try {
+      const d = parseISO(dateStr);
+      return !isNaN(d.getTime());
+    } catch {
+      return false;
+    }
+  };
+
+  const selectedDate = isValidDate(filterDate) ? parseISO(filterDate) : new Date();
   
   const isBirthday = (dateStr: string, target: Date) => {
+    if (!isValidDate(dateStr)) return false;
     const d = parseISO(dateStr);
     return d.getDate() === target.getDate() && d.getMonth() === target.getMonth();
   };
 
   const isBirthdayMonth = (dateStr: string, target: Date) => {
+    if (!isValidDate(dateStr)) return false;
     const d = parseISO(dateStr);
     return d.getMonth() === target.getMonth();
   };
 
   const todayBirthdays = [...athletes, ...professors].filter(p => {
     const isActive = 'status' in p ? p.status === 'Ativo' : true;
-    return isActive && isBirthday(p.birth_date, selectedDate);
+    return isActive && p.birth_date && isValidDate(p.birth_date) && isBirthday(p.birth_date, selectedDate);
   });
 
   const monthBirthdays = [...athletes, ...professors].filter(p => {
     const isActive = 'status' in p ? p.status === 'Ativo' : true;
-    return isActive && isBirthdayMonth(p.birth_date, selectedDate) && !isBirthday(p.birth_date, selectedDate);
+    return isActive && p.birth_date && isValidDate(p.birth_date) && isBirthdayMonth(p.birth_date, selectedDate) && !isBirthday(p.birth_date, selectedDate);
   });
 
   const getAge = (birthDate: string) => {
+    if (!isValidDate(birthDate)) return 0;
     const d = parseISO(birthDate);
     const today = new Date();
     let age = today.getFullYear() - d.getFullYear();
@@ -136,7 +149,7 @@ export default function Birthdays() {
               <div className="flex-1">
                 <h4 className="font-bold text-white">{person.name}</h4>
                 <p className="text-xs text-zinc-400">
-                  {getAge(person.birth_date)} anos • {format(parseISO(person.birth_date), 'dd/MM/yyyy')}
+                  {getAge(person.birth_date)} anos • {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd/MM/yyyy') : 'Data inválida'}
                 </p>
               </div>
               <button 
@@ -177,7 +190,7 @@ export default function Birthdays() {
               <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-white truncate text-sm">{person.name}</h4>
                 <p className="text-[10px] text-zinc-500">
-                  Dia {format(parseISO(person.birth_date), 'dd')} • {getAge(person.birth_date)} anos
+                  Dia {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd') : '--'} • {getAge(person.birth_date)} anos
                 </p>
               </div>
             </div>
@@ -207,7 +220,7 @@ export default function Birthdays() {
               <div className="grid grid-cols-2 gap-4">
                 {todayBirthdays.map(p => (
                   <div key={p.id} className="flex items-center gap-3 border p-2 rounded">
-                    <div className="font-bold">{format(parseISO(p.birth_date), 'dd/MM')}</div>
+                    <div className="font-bold">{isValidDate(p.birth_date) ? format(parseISO(p.birth_date), 'dd/MM') : '--/--'}</div>
                     <div>
                       <div className="font-bold uppercase text-sm">{p.name}</div>
                       <div className="text-xs">{getAge(p.birth_date)} anos</div>
@@ -221,7 +234,10 @@ export default function Birthdays() {
           <div>
             <h3 className="text-lg font-bold border-b border-zinc-300 mb-4 uppercase">Outros Aniversariantes do Mês</h3>
             <div className="grid grid-cols-2 gap-4">
-              {monthBirthdays.sort((a, b) => parseISO(a.birth_date).getDate() - parseISO(b.birth_date).getDate()).map(p => (
+              {monthBirthdays
+                .filter(p => isValidDate(p.birth_date))
+                .sort((a, b) => parseISO(a.birth_date).getDate() - parseISO(b.birth_date).getDate())
+                .map(p => (
                 <div key={p.id} className="flex items-center gap-3 border p-2 rounded">
                   <div className="font-bold">{format(parseISO(p.birth_date), 'dd/MM')}</div>
                   <div>
