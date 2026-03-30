@@ -38,11 +38,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
           (request.auth.token.email == "piruaesporteclube@gmail.com" && request.auth.token.email_verified == true) ||
           (request.auth.token.firebase.sign_in_provider == 'anonymous' && 
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "05504043689"));
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "05504043689" || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "00000000000"))
+        );
     }
 
     function isOwner(userId) {
@@ -51,7 +54,8 @@ service cloud.firestore {
 
     function isAthleteOwner(athleteId) {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.athlete_id == athleteId;
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') == athleteId;
     }
 
     function hasRequiredFields(fields) {
@@ -91,7 +95,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    (isOwner(userId) && (request.resource.data.role == 'student' || request.resource.data.doc == "05504043689") || isAdmin());
+                    (isOwner(userId) && (request.resource.data.role == 'student' || request.resource.data.doc == "05504043689" || request.resource.data.doc == "00000000000") || isAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
                     ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
       allow delete: if isAdmin();

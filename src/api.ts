@@ -3,7 +3,9 @@ import {
   createUserWithEmailAndPassword, 
   signOut,
   onAuthStateChanged,
-  signInAnonymously
+  signInAnonymously,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { 
   doc, 
@@ -129,8 +131,11 @@ export const api = {
         // Save the admin user doc so rules can check it
         await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(adminUser));
         return { user: adminUser, token: await firebaseUser.getIdToken() };
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error during anonymous login:", error);
+        if (error.code === 'auth/admin-restricted-operation') {
+          console.warn("Anonymous authentication is disabled in Firebase Console. Please enable it in Authentication -> Sign-in method.");
+        }
         // Fallback to static if anonymous fails
         const adminUser: User = { 
           id: username === "demo" ? "demo-id" : (username === "piruaesporteclube@gmail.com" ? "email-admin-id" : "admin-static-id"), 
@@ -173,6 +178,36 @@ export const api = {
     }
   },
 
+  loginWithGoogle: async (): Promise<AuthResponse> => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+      
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      let userData: User;
+      if (userDocSnap.exists()) {
+        userData = userDocSnap.data() as User;
+      } else {
+        // Create new user doc
+        userData = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || "Usuário Google",
+          doc: "",
+          role: firebaseUser.email === "piruaesporteclube@gmail.com" ? "admin" : "student"
+        };
+        await setDoc(userDocRef, sanitizeData(userData));
+      }
+      
+      return { user: userData, token: await firebaseUser.getIdToken() };
+    } catch (error) {
+      console.error("Error during Google login:", error);
+      throw error;
+    }
+  },
+
   register: async (athleteData: Partial<Athlete>): Promise<void> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
     const normalizedDoc = athleteData.doc.replace(/\D/g, "");
@@ -205,6 +240,19 @@ export const api = {
       await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "athletes/users");
+    }
+  },
+
+  loginGuest: async (): Promise<AuthResponse> => {
+    try {
+      const userCredential = await signInAnonymously(auth);
+      const firebaseUser = userCredential.user;
+      const guestUser: User = { id: firebaseUser.uid, name: "Visitante", doc: "", role: "student" };
+      return { user: guestUser, token: await firebaseUser.getIdToken() };
+    } catch (error) {
+      console.error("Error during guest login:", error);
+      const guestUser: User = { id: "guest-id", name: "Visitante", doc: "", role: "student" };
+      return { user: guestUser, token: "guest-token" };
     }
   },
 

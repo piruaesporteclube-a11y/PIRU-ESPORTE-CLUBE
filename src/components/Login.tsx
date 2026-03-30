@@ -55,6 +55,19 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.loginWithGoogle();
+      onLogin(res);
+    } catch (err: any) {
+      setError('Erro ao entrar com Google. Verifique sua conta.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Effects */}
@@ -129,6 +142,16 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full py-4 bg-white hover:bg-zinc-100 text-black font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 group disabled:opacity-50"
+            >
+              <img src="https://www.google.com/favicon.ico" className="w-5 h-5" />
+              Entrar com Google
             </button>
 
             <div className="grid grid-cols-2 gap-4">

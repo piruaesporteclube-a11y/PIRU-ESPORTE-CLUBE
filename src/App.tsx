@@ -20,13 +20,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('pirua_user');
     if (saved) return JSON.parse(saved);
-    // Default admin for "free access" as requested
-    return { 
-      id: "admin-static-id", 
-      name: "Administrador Principal", 
-      doc: "05504043689", 
-      role: "admin" 
-    };
+    return null;
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const { settings } = useTheme();
@@ -37,6 +31,26 @@ export default function App() {
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
   const [stats, setStats] = useState({ athletes: 0, active: 0, events: 0 });
   const [myAthleteData, setMyAthleteData] = useState<Athlete | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      if (!user) {
+        try {
+          // Auto-login as admin for "free access"
+          const res = await api.login('05504043689', '05504043689');
+          if (res.token !== "emergency-token") {
+            setUser(res.user);
+            localStorage.setItem('pirua_user', JSON.stringify(res.user));
+          }
+        } catch (err) {
+          console.error("Auto-login failed:", err);
+        }
+      }
+      setIsAuthLoading(false);
+    };
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -385,6 +399,25 @@ export default function App() {
       </div>
     );
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-theme-primary animate-pulse font-black uppercase tracking-widest">
+          Iniciando Sistema...
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Login 
+        onLogin={handleLogin} 
+        onRegisterClick={() => setIsRegistering(true)} 
+      />
+    );
+  }
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
