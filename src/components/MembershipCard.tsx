@@ -17,28 +17,56 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handlePrint = () => {
-    window.print();
+    // Small delay to ensure any dynamic styles or images are ready
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   const handleSavePDF = async () => {
     if (!cardRef.current) return;
     setIsGeneratingPDF(true);
     try {
+      // Ensure all images are loaded
+      const images = cardRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       const canvas = await html2canvas(cardRef.current, {
-        scale: 3, // Higher scale for better quality
+        scale: 4, // High scale for professional quality
         useCORS: true,
-        backgroundColor: null,
+        allowTaint: false, // Safer than allowTaint: true
+        backgroundColor: '#09090b', // zinc-950 hex
+        logging: false,
+        width: 340,
+        height: 215,
+        onclone: (clonedDoc) => {
+          // Ensure cloned element is visible for capture
+          const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
+          if (clonedCard) {
+            clonedCard.style.visibility = 'visible';
+            clonedCard.style.display = 'flex';
+          }
+        }
       });
-      const imgData = canvas.toDataURL('image/png');
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [85.6, 54], // Standard credit card size in mm
+        format: [85.6, 54],
       });
-      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54);
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
+      alert('Erro ao gerar PDF. Por favor, tente novamente.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -54,8 +82,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             disabled={isGeneratingPDF}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
           >
-            {isGeneratingPDF ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-            Salvar em PDF
+            {isGeneratingPDF ? <Loader2 size={18} className="animate-spin text-theme-primary" /> : <FileDown size={18} />}
+            {isGeneratingPDF ? 'Gerando...' : 'Salvar em PDF'}
           </button>
           <button 
             onClick={handlePrint}
@@ -71,20 +99,25 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800 print:shadow-none print:border-zinc-700"
+          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800 print:border-zinc-700"
           style={{ 
             fontFamily: "'Inter', sans-serif",
-            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}15 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}15 0%, transparent 50%)`,
+            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}20 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}20 0%, transparent 50%)`,
             WebkitPrintColorAdjust: 'exact',
             printColorAdjust: 'exact'
           }}
         >
           <style>{`
             @media print {
-              /* Force hide everything else */
+              @page {
+                size: 85.6mm 54mm;
+                margin: 0;
+              }
+              /* Hide everything by default */
               body * {
                 visibility: hidden !important;
               }
+              /* Show ONLY the card container and its contents */
               .card-print-container, .card-print-container * {
                 visibility: visible !important;
               }
@@ -94,26 +127,29 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 left: 0 !important;
                 width: 100vw !important;
                 height: 100vh !important;
-                background: white !important;
-                z-index: 999999 !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              /* Specifically hide the list table and documents during card print */
-              .list-print-only, .document-content, .no-print, aside, header, nav {
-                display: none !important;
+                background: white !important;
+                z-index: 999999 !important;
               }
               .card {
+                width: 85.6mm !important;
+                height: 54mm !important;
+                border-radius: 4mm !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                background-color: #09090b !important; /* Force background color */
+                background-image: none !important; /* Remove gradient for print to avoid black issues */
                 color: white !important;
                 box-shadow: none !important;
-                border: 1px solid #333 !important;
                 display: flex !important;
                 flex-direction: column !important;
+                border: none !important;
+              }
+              .card img {
+                display: block !important;
+                opacity: 1 !important;
               }
               .text-theme-primary {
                 color: ${settings.primaryColor} !important;
