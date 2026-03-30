@@ -30,79 +30,100 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       </div>
 
       <div className="flex justify-center p-4">
-        {/* The Card Layout */}
-        <div className="w-[400px] h-[250px] bg-white text-black rounded-2xl overflow-hidden shadow-2xl flex border-2 border-black relative card">
-          {/* Left Side - School Identity */}
-          <div className="w-1/3 flex flex-col items-center justify-center p-4 text-white text-center" style={{ backgroundColor: settings.secondaryColor }}>
-            {settings?.schoolCrest ? (
-              <div className="w-[60px] h-[80px] mb-2 flex items-center justify-center bg-white/10 rounded-lg overflow-hidden">
-                <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+        {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
+        <div 
+          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800"
+          style={{ 
+            fontFamily: "'Inter', sans-serif",
+            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}15 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}15 0%, transparent 50%)`
+          }}
+        >
+          {/* Header / Top Bar */}
+          <div className="h-12 px-4 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              {settings?.schoolCrest ? (
+                <img src={settings.schoolCrest} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-6 h-6 bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
+              )}
+              <div className="leading-none">
+                <h3 className="text-[10px] font-black uppercase tracking-tighter">Piruá E.C.</h3>
+                <p className="text-[6px] text-zinc-500 uppercase font-bold">Futebol de Base</p>
               </div>
-            ) : (
-              <div className="w-[60px] h-[80px] rounded-lg flex items-center justify-center text-black font-black text-2xl mb-2" style={{ backgroundColor: settings.primaryColor }}>P</div>
-            )}
-            <h3 className="text-xs font-black uppercase leading-tight">Piruá Esporte Clube</h3>
-            <p className="text-[8px] mt-2 opacity-70">Departamento de Futebol de Base</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[6px] text-zinc-500 uppercase font-bold">Matrícula</p>
+              <p className="text-[10px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
+            </div>
           </div>
 
-          {/* Right Side - Athlete Info */}
-          <div className="flex-1 p-4 flex flex-col overflow-hidden">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1 min-w-0">
-                <h4 className="text-[8px] font-bold text-zinc-500 uppercase">Nome do Atleta</h4>
-                <p className="text-[11px] font-black uppercase leading-tight truncate">{athlete.name}</p>
-              </div>
-              <div className="w-[60px] h-[80px] bg-zinc-100 rounded-lg border border-zinc-200 overflow-hidden ml-2 flex-shrink-0">
+          {/* Main Content Area */}
+          <div className="flex-1 p-4 flex gap-4">
+            {/* Photo Section */}
+            <div className="relative group">
+              <div className="w-[85px] h-[105px] bg-zinc-900 rounded-xl border-2 border-theme-primary/30 overflow-hidden shadow-lg relative z-10">
                 {athlete.photo ? (
                   <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-300">
-                    <UserCircle size={32} />
+                  <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-zinc-900">
+                    <UserCircle size={40} strokeWidth={1} />
                   </div>
                 )}
               </div>
+              {/* Decorative elements behind photo */}
+              <div className="absolute -inset-1 bg-theme-primary/20 blur-md rounded-xl -z-0"></div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-2">
-              <div>
-                <h4 className="text-[7px] font-bold text-zinc-500 uppercase">CPF/RG Atleta</h4>
-                <p className="text-[9px] font-bold">{athlete.doc || '--'}</p>
+            {/* Info Section */}
+            <div className="flex-1 flex flex-col justify-between min-w-0">
+              <div className="space-y-0.5">
+                <h4 className="text-[14px] font-black uppercase leading-tight truncate text-white tracking-tight">
+                  {athlete.name.split(' ')[0]} <span className="text-theme-primary">{athlete.name.split(' ').slice(1).join(' ')}</span>
+                </h4>
+                <div className="flex gap-3">
+                  <div>
+                    <p className="text-[6px] text-zinc-500 uppercase font-bold">Nascimento</p>
+                    <p className="text-[9px] font-bold">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[6px] text-zinc-500 uppercase font-bold">Camisa</p>
+                    <p className="text-[9px] font-bold text-theme-primary">#{athlete.jersey_number || '--'}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h4 className="text-[7px] font-bold text-zinc-500 uppercase">Data de Nasc.</h4>
-                <p className="text-[9px] font-bold">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
-              </div>
-              <div>
-                <h4 className="text-[7px] font-bold text-zinc-500 uppercase">Matrícula</h4>
-                <p className="text-[9px] font-bold">#{athlete.id.slice(-6).toUpperCase()}</p>
-              </div>
-              <div>
-                <h4 className="text-[7px] font-bold text-zinc-500 uppercase">Camisa</h4>
-                <p className="text-[9px] font-bold">#{athlete.jersey_number || '--'}</p>
-              </div>
-            </div>
 
-            <div className="mb-2">
-              <h4 className="text-[7px] font-bold text-zinc-500 uppercase">Responsável Legal</h4>
-              <p className="text-[9px] font-bold uppercase truncate">{athlete.guardian_name}</p>
-              <p className="text-[8px] text-zinc-600">{athlete.guardian_phone}</p>
-            </div>
-
-            <div className="mt-auto flex justify-between items-end">
-              <div className="text-[7px] text-zinc-500 leading-tight max-w-[140px]">
-                <h4 className="text-[6px] font-bold text-zinc-400 uppercase mb-0.5">Endereço</h4>
-                <p className="truncate">{athlete.street}, {athlete.number}</p>
-                <p className="truncate">{athlete.neighborhood}</p>
-                <p className="truncate">{athlete.city}/{athlete.uf}</p>
-              </div>
-              <div className="bg-white p-1 rounded border border-zinc-200 ml-2">
-                <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={36} />
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                  <p className="text-[8px] font-bold text-zinc-300 uppercase truncate">{athlete.guardian_name}</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-zinc-600"></div>
+                  <p className="text-[7px] text-zinc-500 font-medium">{athlete.guardian_phone}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Decorative stripe */}
-          <div className="absolute top-0 right-0 w-1 h-full" style={{ backgroundColor: settings.primaryColor }}></div>
+          {/* Footer / Bottom Bar */}
+          <div className="h-10 px-4 flex items-center justify-between bg-zinc-900/50 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="bg-white p-0.5 rounded-[4px]">
+                <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={24} />
+              </div>
+              <p className="text-[6px] text-zinc-500 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
+            </div>
+            <div className="text-right">
+              <div className="inline-block px-2 py-0.5 bg-theme-primary/10 border border-theme-primary/20 rounded-full">
+                <p className="text-[7px] font-black text-theme-primary uppercase tracking-widest">Atleta Oficial</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Hologram Effect (Decorative) */}
+          <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden rounded-[16px]">
+            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-transparent via-white/5 to-transparent rotate-45 transform translate-x-[-20%] translate-y-[-20%]"></div>
+          </div>
         </div>
       </div>
 

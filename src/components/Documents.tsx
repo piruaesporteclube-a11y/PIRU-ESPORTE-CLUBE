@@ -133,8 +133,8 @@ export default function Documents() {
       {/* Document View Modal */}
       {docType && selectedAthlete && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex items-center justify-center p-4 overflow-y-auto no-print">
-          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-8 p-12 relative">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-8 no-print">
+          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-4 p-8 relative">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4 no-print">
               <button 
                 onClick={() => setDocType(null)}
                 className="flex items-center gap-2 px-6 py-3 bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-black rounded-xl transition-all group font-bold uppercase text-xs tracking-widest"
@@ -164,14 +164,14 @@ export default function Documents() {
             </div>
 
             {/* Document Content */}
-            <div ref={documentRef} className="document-content text-justify leading-relaxed p-4 bg-white">
-              <div className="text-center mb-10 border-b-4 border-black pb-6">
+            <div ref={documentRef} className="document-content text-justify leading-relaxed p-2 bg-white">
+              <div className="text-center mb-6 border-b-2 border-black pb-4">
                 {settings?.schoolCrest && (
-                  <img src={settings.schoolCrest} className="w-24 h-24 object-contain mx-auto mb-4" referrerPolicy="no-referrer" />
+                  <img src={settings.schoolCrest} className="w-16 h-16 object-contain mx-auto mb-2" referrerPolicy="no-referrer" />
                 )}
-                <h1 className="text-3xl font-black uppercase">Piruá Esporte Clube</h1>
-                <p className="text-lg font-bold uppercase">Departamento de Futebol de Base</p>
-                <h2 className="text-xl font-black mt-4 uppercase underline">
+                <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+                <p className="text-base font-bold uppercase">Departamento de Futebol de Base</p>
+                <h2 className="text-lg font-black mt-2 uppercase underline">
                   {docType === 'travel' ? 'Autorização de Viagem e Participação em Evento' : 'Termo de Responsabilidade e Autorização'}
                 </h2>
               </div>
@@ -194,14 +194,14 @@ export default function Documents() {
               )}
 
               {docType === 'responsibility' && (
-                <div className="space-y-4 text-xs">
+                <div className="space-y-2 text-[10px]">
                   <p>
                     Eu, <strong>{selectedAthlete.guardian_name}</strong>, portador(a) do RG/CPF nº <strong>{selectedAthlete.guardian_doc}</strong>, na qualidade de responsável legal pelo atleta menor <strong>{selectedAthlete.name}</strong>, nascido em <strong>{selectedAthlete.birth_date}</strong>, inscrito sob o RG/CPF nº <strong>{selectedAthlete.doc}</strong>, venho por meio deste TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO declarar e autorizar o quanto segue abaixo:
                   </p>
                   <p>
                     Autorizo o menor acima mencionado, <strong>{selectedAthlete.name}</strong>, a treinar e realizar testes/avaliação de futebol no ESTÁDIO MUNICIPAL QUINZINHO NERY, situado ao endereço Av. Newton Ferreira de Paiva, nº ___, Bairro Nossa Senhora Aparecida, Cidade de Campos Altos, Estado de Minas Gerais, CEP 38970-000, ou (37) 99124-3101, sob a supervisão de Marcos Vinícius Machado e, pelo período mínimo de 12 meses (1 ano) a contar a partir da data deste documento, e sobre todas as normas estabelecidas nesse TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO como segue abaixo:
                   </p>
-                  <ol className="list-decimal pl-5 space-y-2">
+                  <ol className="list-decimal pl-5 space-y-1">
                     <li>O RESPONSÁVEL declara ter pleno conhecimento de que o treinamento envolve testes físicos, treinamentos com bola, coletivos e trabalho técnico.</li>
                     <li>O RESPONSÁVEL assume ainda integral responsabilidade, civil e criminal, pela autenticidade dos documentos ora apresentados, na eventualidade dos mesmos conterem qualquer vício.</li>
                     <li>O RESPONSÁVEL declara que o ATLETA possui documentação original regularizada devidamente, e prática regularmente atividades esportivas, não sofrendo de nenhuma doença ou limitação física que desaconselhe ou impeça a prática do mesmo nos treinos futebolísticos.</li>
@@ -215,18 +215,18 @@ export default function Documents() {
                 </div>
               )}
 
-              <div className="mt-16 space-y-12">
+              <div className="mt-8 space-y-8">
                 <div className="flex justify-between items-end">
                   <div className="text-center">
-                    <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">{selectedAthlete.guardian_name}</div>
-                    <p className="text-[10px] uppercase">Assinatura do Responsável Legal</p>
+                    <div className="w-56 border-t-2 border-black pt-1 font-bold uppercase text-[10px]">{selectedAthlete.guardian_name}</div>
+                    <p className="text-[9px] uppercase">Assinatura do Responsável Legal</p>
                   </div>
                   <div className="text-center">
-                    <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">Piruá Esporte Clube</div>
-                    <p className="text-[10px] uppercase">Carimbo e Assinatura da Diretoria</p>
+                    <div className="w-56 border-t-2 border-black pt-1 font-bold uppercase text-[10px]">Piruá Esporte Clube</div>
+                    <p className="text-[9px] uppercase">Carimbo e Assinatura da Diretoria</p>
                   </div>
                 </div>
-                <div className="text-right text-[10px] text-zinc-500 italic">
+                <div className="text-right text-[9px] text-zinc-500 italic">
                   Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}
                 </div>
               </div>
@@ -246,16 +246,16 @@ export default function Documents() {
       )}
 
       {/* Actual Print View (Hidden in UI) */}
-      <div className="hidden print-only bg-white text-black p-12">
+      <div className="hidden print-only bg-white text-black p-8">
         {docType && selectedAthlete && (
           <div className="document-content text-justify leading-relaxed">
-            <div className="text-center mb-10 border-b-4 border-black pb-6">
+            <div className="text-center mb-6 border-b-2 border-black pb-4">
               {settings?.schoolCrest && (
-                <img src={settings.schoolCrest} className="w-24 h-24 object-contain mx-auto mb-4" referrerPolicy="no-referrer" />
+                <img src={settings.schoolCrest} className="w-16 h-16 object-contain mx-auto mb-2" referrerPolicy="no-referrer" />
               )}
-              <h1 className="text-3xl font-black uppercase">Piruá Esporte Clube</h1>
-              <p className="text-lg font-bold uppercase">Departamento de Futebol de Base</p>
-              <h2 className="text-xl font-black mt-4 uppercase underline">
+              <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+              <p className="text-base font-bold uppercase">Departamento de Futebol de Base</p>
+              <h2 className="text-lg font-black mt-2 uppercase underline">
                 {docType === 'travel' ? 'Autorização de Viagem e Participação em Evento' : 'Termo de Responsabilidade e Autorização'}
               </h2>
             </div>
@@ -278,14 +278,14 @@ export default function Documents() {
             )}
 
             {docType === 'responsibility' && (
-              <div className="space-y-4 text-xs">
+              <div className="space-y-2 text-[10px]">
                 <p>
                   Eu, <strong>{selectedAthlete.guardian_name}</strong>, portador(a) do RG/CPF nº <strong>{selectedAthlete.guardian_doc}</strong>, na qualidade de responsável legal pelo atleta menor <strong>{selectedAthlete.name}</strong>, nascido em <strong>{selectedAthlete.birth_date}</strong>, inscrito sob o RG/CPF nº <strong>{selectedAthlete.doc}</strong>, venho por meio deste TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO declarar e autorizar o quanto segue abaixo:
                 </p>
                 <p>
                   Autorizo o menor acima mencionado, <strong>{selectedAthlete.name}</strong>, a treinar e realizar testes/avaliação de futebol no ESTÁDIO MUNICIPAL QUINZINHO NERY, situado ao endereço Av. Newton Ferreira de Paiva, nº ___, Bairro Nossa Senhora Aparecida, Cidade de Campos Altos, Estado de Minas Gerais, CEP 38970-000, ou (37) 99124-3101, sob a supervisão de Marcos Vinícius Machado e, pelo período mínimo de 12 meses (1 ano) a contar a partir da data deste documento, e sobre todas as normas estabelecidas nesse TERMO DE RESPONSABILIDADE E AUTORIZAÇÃO como segue abaixo:
                 </p>
-                <ol className="list-decimal pl-5 space-y-2">
+                <ol className="list-decimal pl-5 space-y-1">
                   <li>O RESPONSÁVEL declara ter pleno conhecimento de que o treinamento envolve testes físicos, treinamentos com bola, coletivos e trabalho técnico.</li>
                   <li>O RESPONSÁVEL assume ainda integral responsabilidade, civil e criminal, pela autenticidade dos documentos ora apresentados, na eventualidade dos mesmos conterem qualquer vício.</li>
                   <li>O RESPONSÁVEL declara que o ATLETA possui documentação original regularizada devidamente, e prática regularmente atividades esportivas, não sofrendo de nenhuma doença ou limitação física que desaconselhe ou impeça a prática do mesmo nos treinos futebolísticos.</li>
@@ -299,20 +299,20 @@ export default function Documents() {
               </div>
             )}
 
-            <div className="mt-16 space-y-12">
+            <div className="mt-8 space-y-8">
               <div className="flex justify-between items-end">
                 <div className="text-center">
-                  <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">{selectedAthlete.guardian_name}</div>
-                  <p className="text-[10px] uppercase">Assinatura do Responsável Legal</p>
+                  <div className="w-56 border-t-2 border-black pt-1 font-bold uppercase text-[10px]">{selectedAthlete.guardian_name}</div>
+                  <p className="text-[9px] uppercase">Assinatura do Responsável Legal</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-64 border-t-2 border-black pt-2 font-bold uppercase text-sm">Piruá Esporte Clube</div>
-                  <p className="text-[10px] uppercase">Carimbo e Assinatura da Diretoria</p>
+                  <div className="w-56 border-t-2 border-black pt-1 font-bold uppercase text-[10px]">Piruá Esporte Clube</div>
+                  <p className="text-[9px] uppercase">Carimbo e Assinatura da Diretoria</p>
                 </div>
               </div>
             </div>
 
-            <p className="mt-8 text-[10px] text-zinc-500 italic">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
+            <p className="mt-4 text-[9px] text-zinc-500 italic">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
           </div>
         )}
       </div>
