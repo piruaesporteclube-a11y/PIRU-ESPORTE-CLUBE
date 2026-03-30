@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
 import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User } from 'lucide-react';
@@ -14,6 +14,8 @@ export default function Attendance() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const lastScannedCode = useRef<string | null>(null);
+  const lastScanTime = useRef<number>(0);
 
   useEffect(() => {
     loadData();
@@ -45,8 +47,16 @@ export default function Attendance() {
         { facingMode: "environment" }, 
         config, 
         (decodedText) => {
+          const now = Date.now();
+          // Prevent scanning the same code multiple times within 3 seconds
+          if (decodedText === lastScannedCode.current && (now - lastScanTime.current) < 3000) {
+            return;
+          }
+          
+          lastScannedCode.current = decodedText;
+          lastScanTime.current = now;
           handleScan(decodedText);
-          setIsScanning(false);
+          // Removed setIsScanning(false) to allow continuous scanning
         },
         (errorMessage) => {
           // Only log actual errors, not "no QR code found" warnings
@@ -78,6 +88,27 @@ export default function Attendance() {
     };
   }, [isScanning]);
 
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+      console.warn("Audio feedback failed", e);
+    }
+  };
+
   const handleScan = async (data: string) => {
     // Expected format: PIRUA-ATHLETE-ID
     const match = data.match(/PIRUA-ATHLETE-([a-zA-Z0-9_-]+)/);
@@ -85,6 +116,7 @@ export default function Attendance() {
       const athleteId = match[1];
       const athlete = athletes.find(a => a.id === athleteId);
       if (athlete) {
+        playBeep();
         await markAttendance(athleteId, 'Presente');
         
         // Check for events today
@@ -122,6 +154,16 @@ export default function Attendance() {
     }
   };
 
+  const toggleScanning = () => {
+    if (isScanning) {
+      setIsScanning(false);
+    } else {
+      lastScannedCode.current = null;
+      lastScanTime.current = 0;
+      setIsScanning(true);
+    }
+  };
+
   const filteredAthletes = athletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);
 
   return (
@@ -139,7 +181,7 @@ export default function Attendance() {
             onChange={(e) => setDate(e.target.value)}
           />
           <button 
-            onClick={() => setIsScanning(!isScanning)}
+            onClick={toggleScanning}
             className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors shadow-lg shadow-theme-primary/20"
           >
             <Camera size={18} />

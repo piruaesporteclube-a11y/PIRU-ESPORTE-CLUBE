@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings } from '../types';
 import { api } from '../api';
-import { QRCodeSVG } from 'qrcode.react';
-import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -15,6 +15,41 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   const { settings } = useTheme();
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (athlete.photo) {
+      if (athlete.photo.startsWith('data:')) {
+        setPhotoDataUrl(athlete.photo);
+      } else {
+        // Try to convert to data URL to bypass CORS issues with html2canvas
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              setPhotoDataUrl(canvas.toDataURL());
+            }
+          } catch (e) {
+            console.warn('Failed to convert image to data URL', e);
+            setPhotoDataUrl(athlete.photo);
+          }
+        };
+        img.onerror = () => {
+          console.warn('Failed to load photo with CORS, falling back to direct URL');
+          setPhotoDataUrl(athlete.photo);
+        };
+        img.src = athlete.photo;
+      }
+    } else {
+      setPhotoDataUrl(null);
+    }
+  }, [athlete.photo]);
 
   const handlePrint = () => {
     if (!cardRef.current) return;
@@ -41,25 +76,28 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     if (!cardRef.current) return;
     setIsGeneratingPDF(true);
     try {
-      // Create a clone for PDF generation to avoid modifying the UI
+      // Ensure images are loaded before capturing
+      const images = cardRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       const canvas = await html2canvas(cardRef.current, {
         scale: 4,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 340,
-        height: 215,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
           if (clonedCard) {
             clonedCard.style.visibility = 'visible';
             clonedCard.style.display = 'flex';
-            // Ensure all images in the clone have crossOrigin set
-            const images = clonedCard.getElementsByTagName('img');
-            for (let i = 0; i < images.length; i++) {
-              images[i].crossOrigin = 'anonymous';
-            }
+            clonedCard.style.boxShadow = 'none';
           }
         }
       });
@@ -75,7 +113,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Erro ao gerar PDF. Isso pode ser devido a restrições de segurança das imagens. Tente imprimir e salvar como PDF pelo navegador.');
+      alert('Erro ao gerar PDF. Tente imprimir e salvar como PDF pelo navegador.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -108,7 +146,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[340px] h-[215px] min-w-[340px] bg-white text-black rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
+          className="w-[324px] h-[204px] min-w-[324px] bg-white text-black rounded-[12px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}10 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}10 0%, transparent 50%)`,
@@ -119,46 +157,42 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <style>{`
             @media print {
               @page {
-                size: 85.6mm 54mm;
-                margin: 0;
+                size: A4;
+                margin: 10mm;
               }
-              /* Hide everything by default */
-              body * {
-                visibility: hidden !important;
+              body {
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
-              /* Show ONLY the card container and its contents */
-              .card-print-container, .card-print-container * {
-                visibility: visible !important;
+              .no-print {
+                display: none !important;
               }
               .card-print-container {
-                position: fixed !important;
+                position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
+                width: 100% !important;
+                height: 100% !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 background: white !important;
-                z-index: 999999 !important;
+                z-index: 9999 !important;
               }
               .card {
                 width: 85.6mm !important;
                 height: 54mm !important;
+                border: 1px solid #ddd !important;
                 border-radius: 4mm !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                background-color: white !important; /* Force background color */
-                background-image: none !important; /* Remove gradient for print to avoid black issues */
-                color: black !important;
                 box-shadow: none !important;
+                overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
-                border: none !important;
+                background-color: white !important;
+                background-image: none !important;
               }
-              .card img {
-                display: block !important;
-                opacity: 1 !important;
+              .card * {
                 visibility: visible !important;
               }
               .text-theme-primary {
@@ -167,56 +201,53 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             }
           `}</style>
           {/* Header / Top Bar */}
-          <div className="h-12 px-4 flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 backdrop-blur-sm">
+          <div className="h-10 px-4 flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               {settings?.schoolCrest ? (
                 <img 
                   src={settings.schoolCrest} 
                   className="w-6 h-6 object-contain" 
-                  referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
                 />
               ) : (
                 <div className="w-6 h-6 bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
               )}
               <div className="leading-none">
-                <h3 className="text-[11px] font-black uppercase tracking-tighter text-black">Piruá E.C.</h3>
-                <p className="text-[7px] text-zinc-400 uppercase font-bold">Futebol de Base</p>
+                <h3 className="text-[10px] font-black uppercase tracking-tighter text-black">Piruá E.C.</h3>
+                <p className="text-[6px] text-zinc-400 uppercase font-bold">Futebol de Base</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[7px] text-zinc-400 uppercase font-bold">Matrícula</p>
-              <p className="text-[11px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
+              <p className="text-[6px] text-zinc-400 uppercase font-bold">Matrícula</p>
+              <p className="text-[10px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 p-4 flex gap-4">
+          <div className="flex-1 p-3 flex gap-3 overflow-hidden">
             {/* Photo Section */}
-            <div className="relative group">
-              <div className="w-[85px] h-[105px] bg-zinc-50 rounded-xl border-2 border-theme-primary overflow-hidden shadow-lg relative z-10">
-                {athlete.photo ? (
+            <div className="relative flex-shrink-0">
+              <div className="w-[75px] h-[95px] bg-zinc-50 rounded-lg border-2 border-theme-primary overflow-hidden shadow-md relative z-10">
+                {photoDataUrl ? (
                   <img 
-                    src={athlete.photo} 
+                    src={photoDataUrl} 
                     className="w-full h-full object-cover" 
-                    referrerPolicy="no-referrer"
                     crossOrigin="anonymous"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-zinc-50">
-                    <UserCircle size={40} strokeWidth={1} />
+                    <UserCircle size={36} strokeWidth={1} />
                   </div>
                 )}
               </div>
-              {/* Decorative elements behind photo */}
-              <div className="absolute -inset-1 bg-theme-primary/10 blur-md rounded-xl -z-0"></div>
+              <div className="absolute -inset-1 bg-theme-primary/5 blur-md rounded-lg -z-0"></div>
             </div>
 
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
-                <h4 className={`font-black uppercase leading-[1.1] text-black tracking-tight line-clamp-2 mb-1 min-h-[20px] ${
-                  athlete.name.length > 30 ? 'text-[7px]' : athlete.name.length > 20 ? 'text-[8px]' : 'text-[10px]'
+                <h4 className={`font-black uppercase leading-[1.1] text-black tracking-tight line-clamp-2 mb-1 min-h-[22px] ${
+                  athlete.name.length > 40 ? 'text-[8px]' : athlete.name.length > 25 ? 'text-[10px]' : 'text-[12px]'
                 }`}>
                   {athlete.name}
                 </h4>
@@ -231,25 +262,25 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   </div>
                   <div className="col-span-2">
                     <p className="text-[6px] text-zinc-400 uppercase font-black">Endereço</p>
-                    <p className="text-[8px] font-medium text-zinc-600 leading-tight">
+                    <p className="text-[8px] font-medium text-zinc-600 leading-tight line-clamp-2">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood}
                     </p>
-                    <p className="text-[8px] font-bold text-theme-primary uppercase">
+                    <p className="text-[8px] font-bold text-theme-primary uppercase truncate">
                       {athlete.city || 'Cidade'} / {athlete.uf || 'UF'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-0.5 bg-zinc-50 p-1.5 rounded-lg border border-zinc-100">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div className="space-y-0.5 bg-zinc-50 p-1 rounded-lg border border-zinc-100">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[6px] text-zinc-400 uppercase font-black">Responsável</p>
-                    <p className="text-[9px] font-bold text-zinc-800 uppercase truncate max-w-[120px]">{athlete.guardian_name}</p>
+                    <p className="text-[8px] font-bold text-zinc-800 uppercase truncate">{athlete.guardian_name}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className="text-[6px] text-zinc-400 uppercase font-black">Telefone</p>
-                    <p className="text-[9px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
+                    <p className="text-[8px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
                   </div>
                 </div>
               </div>
@@ -257,16 +288,16 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer / Bottom Bar */}
-          <div className="h-10 px-4 flex items-center justify-between bg-zinc-50 border-t border-zinc-100">
+          <div className="h-8 px-4 flex items-center justify-between bg-zinc-50 border-t border-zinc-100">
             <div className="flex items-center gap-2">
               <div className="bg-white p-0.5 rounded-[4px] border border-zinc-100">
-                <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={24} />
+                <QRCodeCanvas value={`PIRUA-ATHLETE-${athlete.id}`} size={20} />
               </div>
-              <p className="text-[7px] text-zinc-400 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
+              <p className="text-[6px] text-zinc-400 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
             </div>
             <div className="text-right">
               <div className="inline-block px-2 py-0.5 bg-theme-primary/10 border border-theme-primary/20 rounded-full">
-                <p className="text-[8px] font-black text-theme-primary uppercase tracking-widest">Atleta Oficial</p>
+                <p className="text-[7px] font-black text-theme-primary uppercase tracking-widest">Atleta Oficial</p>
               </div>
             </div>
           </div>
@@ -280,7 +311,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 text-zinc-400 text-sm no-print">
         <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-          <AlertCircle size={18} className="text-theme-primary" />
+          <AlertCircleIcon size={18} className="text-theme-primary" />
           Dica de Impressão
         </h3>
         <p>Para melhores resultados, utilize papel fotográfico ou PVC. O QR Code gerado é único para cada atleta e será utilizado para o registro de presença automático via aplicativo.</p>
@@ -289,7 +320,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   );
 }
 
-function AlertCircle(props: any) {
+function AlertCircleIcon(props: any) {
   return (
     <svg
       {...props}
