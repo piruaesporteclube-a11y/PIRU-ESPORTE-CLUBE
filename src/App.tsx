@@ -35,6 +35,16 @@ export default function App() {
 
   useEffect(() => {
     const initAuth = async () => {
+      const storedUser = localStorage.getItem('pirua_user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.token !== 'emergency-token') {
+          setUser(parsedUser);
+          setIsAuthLoading(false);
+          return;
+        }
+      }
+
       if (!user) {
         try {
           // Auto-login as admin for "free access"

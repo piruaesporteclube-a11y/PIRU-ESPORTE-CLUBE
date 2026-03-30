@@ -71,7 +71,7 @@ function sanitizeData(data: any): any {
   return sanitized;
 }
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   console.error('Original Firestore Error Object:', error);
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -129,19 +129,22 @@ export const api = {
           role: "admin" 
         };
         // Save the admin user doc so rules can check it
-        await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(adminUser));
+        await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(adminUser), { merge: true });
         return { user: adminUser, token: await firebaseUser.getIdToken() };
       } catch (error: any) {
         console.error("Error during anonymous login:", error);
+        
+        // If anonymous login is disabled in Firebase Console, we provide a clear error
         if (error.code === 'auth/admin-restricted-operation') {
-          console.warn("Anonymous authentication is disabled in Firebase Console. Please enable it in Authentication -> Sign-in method.");
+          throw new Error("O Login Anônimo está desativado no Console do Firebase. Por favor, habilite-o em Authentication > Sign-in method > Anonymous.");
         }
+
         // Fallback to static if anonymous fails
         const adminUser: User = { 
           id: username === "demo" ? "demo-id" : (username === "piruaesporteclube@gmail.com" ? "email-admin-id" : "admin-static-id"), 
           name: username === "demo" ? "Usuário Demo" : "Administrador Principal", 
           doc: username === "demo" ? "00000000000" : "05504043689", 
-          role: "admin" 
+          role: "admin"
         };
         return { user: adminUser, token: "emergency-token" };
       }
@@ -174,7 +177,7 @@ export const api = {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         throw new Error("CPF ou senha incorretos.");
       }
-      throw error;
+      handleFirestoreError(error, OperationType.GET, "auth/login");
     }
   },
 
@@ -203,8 +206,7 @@ export const api = {
       
       return { user: userData, token: await firebaseUser.getIdToken() };
     } catch (error) {
-      console.error("Error during Google login:", error);
-      throw error;
+      handleFirestoreError(error, OperationType.GET, "auth/google");
     }
   },
 
@@ -250,9 +252,7 @@ export const api = {
       const guestUser: User = { id: firebaseUser.uid, name: "Visitante", doc: "", role: "student" };
       return { user: guestUser, token: await firebaseUser.getIdToken() };
     } catch (error) {
-      console.error("Error during guest login:", error);
-      const guestUser: User = { id: "guest-id", name: "Visitante", doc: "", role: "student" };
-      return { user: guestUser, token: "guest-token" };
+      handleFirestoreError(error, OperationType.GET, "auth/guest");
     }
   },
 
@@ -443,15 +443,5 @@ export const api = {
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${athlete_id}`);
     }
-  },
-
-  loginGuest: async (): Promise<AuthResponse> => {
-    const guestUser: User = { 
-      id: "guest-" + Math.random().toString(36).substr(2, 9), 
-      name: "Visitante (Offline)", 
-      doc: "00000000000", 
-      role: "admin" 
-    };
-    return { user: guestUser, token: "guest-token" };
   },
 };
