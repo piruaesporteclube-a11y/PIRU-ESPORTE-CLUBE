@@ -132,8 +132,8 @@ export default function Documents() {
       
       {/* Document View Modal */}
       {docType && selectedAthlete && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex items-center justify-center p-4 overflow-y-auto no-print">
-          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-4 p-8 relative">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex items-start justify-center p-2 sm:p-4 overflow-y-auto no-print py-4 sm:py-8">
+          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-auto p-4 sm:p-8 relative">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4 no-print">
               <button 
                 onClick={() => setDocType(null)}

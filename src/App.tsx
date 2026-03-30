@@ -116,34 +116,34 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
-                    <div className="p-4 bg-theme-primary/10 text-theme-primary rounded-3xl group-hover:scale-110 transition-transform">
-                      <UserPlus size={32} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                    <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <div className="p-3 lg:p-4 bg-theme-primary/10 text-theme-primary rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <UserPlus size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-1">Meus Dados</h3>
-                      <p className="text-xs text-zinc-500">Atualize suas informações cadastrais</p>
+                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Meus Dados</h3>
+                      <p className="text-[10px] lg:text-xs text-zinc-500">Atualize suas informações cadastrais</p>
                     </div>
                   </button>
-
-                    <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
-                    <div className="p-4 bg-green-500/10 text-green-500 rounded-3xl group-hover:scale-110 transition-transform">
-                      <ClipboardCheck size={32} />
+ 
+                    <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <div className="p-3 lg:p-4 bg-green-500/10 text-green-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <ClipboardCheck size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-1">Minha Saúde</h3>
-                      <p className="text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
+                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Minha Saúde</h3>
+                      <p className="text-[10px] lg:text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
                     </div>
                   </button>
-
-                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
-                    <div className="p-4 bg-blue-500/10 text-blue-500 rounded-3xl group-hover:scale-110 transition-transform">
-                      <CreditCard size={32} />
+ 
+                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <div className="p-3 lg:p-4 bg-blue-500/10 text-blue-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <CreditCard size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white uppercase tracking-widest mb-1">Carteirinha</h3>
-                      <p className="text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
+                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Carteirinha</h3>
+                      <p className="text-[10px] lg:text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
                     </div>
                   </button>
                 </div>

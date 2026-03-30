@@ -270,7 +270,7 @@ export default function EventsManagement() {
                 </div>
 
                 {/* Confirmation Area */}
-                <div className="space-y-6 border-l border-zinc-800 pl-8">
+                <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
                   <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação de Atletas</h3>
                   <div className="space-y-4">
                     {lineupAthletes.length === 0 ? (

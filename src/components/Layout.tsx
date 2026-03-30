@@ -63,37 +63,47 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
       <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black sticky top-0 z-50">
         <div className="flex items-center gap-3">
           {settings?.schoolCrest ? (
-            <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+            <img src={settings.schoolCrest} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
           ) : (
-            <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold">P</div>
+            <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-sm">P</div>
           )}
-          <h1 className="font-bold text-lg tracking-tight">Piruá E.C.</h1>
+          <h1 className="font-bold text-base tracking-tight">Piruá E.C.</h1>
         </div>
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-        >
-          {isMenuOpen ? <X /> : <Menu />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar Desktop */}
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Sidebar Desktop / Mobile Drawer */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto",
+          "fixed inset-y-0 left-0 z-[60] w-72 bg-black border-r border-zinc-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:w-64",
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}>
-          <div className="flex flex-col h-full p-4">
-            <div className="hidden lg:flex items-center gap-3 mb-8 px-2">
-              {settings?.schoolCrest ? (
-                <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl">P</div>
-              )}
-              <div>
-                <h1 className="font-bold text-xl tracking-tight">Piruá E.C.</h1>
-                <p className="text-xs text-zinc-500">{user?.role === 'admin' ? 'Gestão de Base' : 'Portal do Aluno'}</p>
+          <div className="flex flex-col h-full p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-8 px-2">
+              <div className="flex items-center gap-3">
+                {settings?.schoolCrest ? (
+                  <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 lg:w-12 lg:h-12 object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg lg:text-xl">P</div>
+                )}
+                <div>
+                  <h1 className="font-bold text-lg lg:text-xl tracking-tight">Piruá E.C.</h1>
+                  <p className="text-[10px] lg:text-xs text-zinc-500">{user?.role === 'admin' ? 'Gestão de Base' : 'Portal do Aluno'}</p>
+                </div>
               </div>
+              <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="lg:hidden p-2 hover:bg-zinc-800 rounded-lg text-zinc-500"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <div className="mb-6 px-2 py-3 bg-zinc-900/30 rounded-2xl border border-theme-primary/20">
@@ -139,7 +149,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 lg:p-8">
+        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 sm:p-6 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -147,7 +157,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="max-w-6xl mx-auto"
+              className="max-w-6xl mx-auto pb-20 lg:pb-0"
             >
               {children}
             </motion.div>
@@ -158,7 +168,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
       {/* Overlay for mobile menu */}
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden"
           onClick={() => setIsMenuOpen(false)}
         />
       )}

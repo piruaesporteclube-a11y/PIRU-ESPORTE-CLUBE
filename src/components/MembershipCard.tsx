@@ -104,11 +104,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         </div>
       </div>
 
-      <div className="flex justify-center p-4 print:p-0 card-print-container">
+      <div className="flex justify-center p-4 print:p-0 card-print-container overflow-x-auto">
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[340px] h-[215px] bg-white text-black rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
+          className="w-[340px] h-[215px] min-w-[340px] bg-white text-black rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}10 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}10 0%, transparent 50%)`,

@@ -91,7 +91,7 @@ export default function SettingsComponent() {
             <h3 className="text-lg font-bold uppercase tracking-widest">Identidade Visual</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
             {/* Crest Upload */}
             <div className="space-y-4">
               <label className="block text-xs font-bold text-zinc-400 uppercase">Brasão da Escolinha</label>
@@ -227,12 +227,12 @@ export default function SettingsComponent() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4">
-          <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 pt-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button 
               type="button"
               onClick={handleResetTheme}
-              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center gap-2"
+              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
               title="Restaurar cores padrão (Preto e Amarelo)"
             >
               <RotateCcw size={20} />
@@ -241,22 +241,22 @@ export default function SettingsComponent() {
             <button 
               type="button"
               onClick={handleBackup}
-              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center gap-2"
+              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
             >
               <Download size={20} />
               Backup de Dados
             </button>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             {saved && (
-              <div className="flex items-center gap-2 text-green-500 font-bold animate-fade-in">
+              <div className="flex items-center justify-center gap-2 text-green-500 font-bold animate-fade-in">
                 <CheckCircle2 size={20} />
                 Configurações salvas!
               </div>
             )}
             <button 
               type="submit"
-              className="px-12 py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
+              className="px-12 py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2"
             >
               <Save size={20} />
               Salvar
