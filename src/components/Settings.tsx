@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Settings } from '../types';
-import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
+import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function SettingsComponent() {
@@ -21,6 +21,51 @@ export default function SettingsComponent() {
         setSettings(prev => ({ ...prev, schoolCrest: reader.result as string }));
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleResetTheme = async () => {
+    const defaultSettings = {
+      ...settings,
+      primaryColor: '#EAB308',
+      secondaryColor: '#000000'
+    };
+    setSettings(defaultSettings);
+    await api.saveSettings(defaultSettings);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleBackup = async () => {
+    try {
+      const [athletes, professors, events, attendance] = await Promise.all([
+        api.getAthletes(),
+        api.getProfessors(),
+        api.getEvents(),
+        api.getAttendance()
+      ]);
+
+      const backupData = {
+        athletes,
+        professors,
+        events,
+        attendance,
+        settings: globalSettings,
+        exportDate: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pirua_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao gerar backup:', error);
+      alert('Erro ao gerar backup. Tente novamente.');
     }
   };
 
@@ -50,7 +95,7 @@ export default function SettingsComponent() {
             {/* Crest Upload */}
             <div className="space-y-4">
               <label className="block text-xs font-bold text-zinc-400 uppercase">Brasão da Escolinha</label>
-              <div className="flex flex-col items-center gap-4 p-6 bg-black rounded-2xl border-2 border-dashed border-zinc-800 hover:border-yellow-500 transition-colors group relative">
+              <div className="flex flex-col items-center gap-4 p-6 bg-black rounded-2xl border-2 border-dashed border-zinc-800 hover:border-theme-primary transition-colors group relative">
                 {settings.schoolCrest ? (
                   <img src={settings.schoolCrest} className="w-32 h-32 object-contain" referrerPolicy="no-referrer" />
                 ) : (
@@ -122,7 +167,7 @@ export default function SettingsComponent() {
               </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="@piruaec"
                 value={settings.instagram}
                 onChange={e => setSettings({...settings, instagram: e.target.value})}
@@ -135,7 +180,7 @@ export default function SettingsComponent() {
               </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="(37) 99999-9999"
                 value={settings.whatsapp}
                 onChange={e => setSettings({...settings, whatsapp: e.target.value})}
@@ -144,20 +189,79 @@ export default function SettingsComponent() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4">
-          {saved && (
-            <div className="flex items-center gap-2 text-green-500 font-bold animate-fade-in">
-              <CheckCircle2 size={20} />
-              Configurações salvas com sucesso!
+        {/* Data Management */}
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
+            <Download size={24} />
+            <h3 className="text-lg font-bold uppercase tracking-widest">Gestão de Dados & Backup</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-white uppercase">Exportar Backup</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Baixe uma cópia completa de todos os dados do sistema (atletas, professores, eventos e chamadas) em formato JSON.
+              </p>
+              <button 
+                type="button"
+                onClick={handleBackup}
+                className="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={20} className="text-theme-primary" />
+                Gerar Backup Agora
+              </button>
             </div>
-          )}
-          <button 
-            type="submit"
-            className="ml-auto px-12 py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
-          >
-            <Save size={20} />
-            Salvar Configurações
-          </button>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-white uppercase">Local de Salvamento</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Por segurança do navegador, os arquivos (PDFs, Backups) são salvos automaticamente na sua pasta de <strong>Downloads</strong> padrão do Windows/Mac/Linux.
+              </p>
+              <div className="p-4 bg-theme-primary/5 border border-theme-primary/20 rounded-2xl">
+                <p className="text-[10px] text-theme-primary font-bold uppercase tracking-tighter">Dica de Software PC:</p>
+                <p className="text-[10px] text-zinc-400 mt-1">
+                  Para escolher onde salvar, ative a opção "Perguntar onde salvar cada arquivo antes de fazer download" nas configurações do seu navegador (Chrome/Edge).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-4">
+          <div className="flex gap-4">
+            <button 
+              type="button"
+              onClick={handleResetTheme}
+              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center gap-2"
+              title="Restaurar cores padrão (Preto e Amarelo)"
+            >
+              <RotateCcw size={20} />
+              Resetar Cores
+            </button>
+            <button 
+              type="button"
+              onClick={handleBackup}
+              className="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all flex items-center gap-2"
+            >
+              <Download size={20} />
+              Backup de Dados
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            {saved && (
+              <div className="flex items-center gap-2 text-green-500 font-bold animate-fade-in">
+                <CheckCircle2 size={20} />
+                Configurações salvas!
+              </div>
+            )}
+            <button 
+              type="submit"
+              className="px-12 py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
+            >
+              <Save size={20} />
+              Salvar
+            </button>
+          </div>
         </div>
       </form>
     </div>

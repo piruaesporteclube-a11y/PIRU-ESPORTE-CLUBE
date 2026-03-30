@@ -96,12 +96,12 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
               </div>
             </div>
 
-            <div className="mb-6 px-2 py-3 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+            <div className="mb-6 px-2 py-3 bg-zinc-900/30 rounded-2xl border border-theme-primary/20">
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Usuário</p>
               <p className="text-sm font-bold truncate text-theme-primary">{user?.name}</p>
             </div>
 
-            <nav className="flex-1 space-y-1">
+            <nav className="flex-1 space-y-2">
               {filteredNavItems.map((item) => (
                 <button
                   key={item.id}
@@ -112,8 +112,8 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     activeTab === item.id 
-                      ? "bg-theme-primary text-black font-semibold shadow-lg shadow-theme-primary/20" 
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                      ? "bg-theme-primary text-black font-bold shadow-lg shadow-theme-primary/30" 
+                      : "text-zinc-400 hover:bg-theme-primary/10 hover:text-theme-primary"
                   )}
                 >
                   <item.icon size={20} className={cn(

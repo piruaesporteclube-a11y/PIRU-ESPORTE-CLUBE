@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { User, AuthResponse } from '../types';
-import { Trophy, User as UserIcon, Lock, UserPlus, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Trophy, User as UserIcon, Lock, UserPlus, ArrowRight, ShieldCheck, AlertTriangle, Unlock } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -38,6 +38,19 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
       onLogin(res);
     } catch (err: any) {
       setError('Erro ao entrar como visitante.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBypassLogin = async () => {
+    setLoading(true);
+    try {
+      // Login as the default admin
+      const res = await api.login('05504043689', '05504043689');
+      onLogin(res);
+    } catch (err: any) {
+      setError('Erro ao acessar o sistema sem login.');
     } finally {
       setLoading(false);
     }
@@ -128,14 +141,25 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleGuestLogin}
-              disabled={loading}
-              className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border border-zinc-700/50"
-            >
-              Entrar como Visitante (Demo)
-            </button>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={handleBypassLogin}
+                disabled={loading}
+                className="py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border border-zinc-700/50"
+              >
+                <Unlock size={18} className="text-theme-primary" />
+                Sem Login
+              </button>
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                disabled={loading}
+                className="py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border border-zinc-700/50"
+              >
+                Visitante
+              </button>
+            </div>
           </form>
 
           <div className="mt-8 pt-8 border-t border-zinc-800 flex flex-col gap-4">

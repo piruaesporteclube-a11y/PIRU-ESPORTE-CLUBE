@@ -20,7 +20,14 @@ import { isSupabaseConfigured } from './lib/supabase';
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('pirua_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) return JSON.parse(saved);
+    // Default admin for "free access" as requested
+    return { 
+      id: "admin-static-id", 
+      name: "Administrador Principal", 
+      doc: "05504043689", 
+      role: "admin" 
+    };
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const { settings } = useTheme();
@@ -65,30 +72,12 @@ export default function App() {
 
   const handleLogout = async () => {
     await api.logout();
-    setUser(null);
+    // Instead of null, we keep the default admin or just clear storage
     localStorage.removeItem('pirua_user');
-    setActiveTab('dashboard');
+    window.location.reload(); // Reload to reset state to default admin
   };
 
-  if (!user) {
-    return (
-      <>
-        <Login onLogin={handleLogin} onRegisterClick={() => setIsRegistering(true)} />
-        {isRegistering && (
-          <AthleteForm 
-            athlete={null} 
-            onClose={() => setIsRegistering(false)} 
-            onSave={() => {}} 
-            isRegistration={true}
-            onRegisterSuccess={() => {
-              setIsRegistering(false);
-              alert('Cadastro realizado com sucesso! Agora você pode entrar com seu CPF.');
-            }}
-          />
-        )}
-      </>
-    );
-  }
+  // Removed login check for "free access"
 
   const renderContent = () => {
     const content = (() => {
@@ -105,7 +94,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <button onClick={() => setActiveTab('my-data')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-theme-primary/10 text-theme-primary rounded-3xl group-hover:scale-110 transition-transform">
                       <UserPlus size={32} />
                     </div>
@@ -115,7 +104,7 @@ export default function App() {
                     </div>
                   </button>
 
-                  <button onClick={() => setActiveTab('my-anamnesis')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-green-500/10 text-green-500 rounded-3xl group-hover:scale-110 transition-transform">
                       <ClipboardCheck size={32} />
                     </div>
@@ -125,7 +114,7 @@ export default function App() {
                     </div>
                   </button>
 
-                  <button onClick={() => setActiveTab('my-card')} className="bg-black border border-theme-primary/20 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/50 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-8 rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
                     <div className="p-4 bg-blue-500/10 text-blue-500 rounded-3xl group-hover:scale-110 transition-transform">
                       <CreditCard size={32} />
                     </div>
@@ -152,7 +141,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
                       <Users size={24} />
@@ -161,7 +150,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.athletes}</p>
                 </div>
-                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <UserCheck size={24} />
@@ -170,7 +159,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.active}</p>
                 </div>
-                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <Calendar size={24} />
@@ -179,7 +168,7 @@ export default function App() {
                   </div>
                   <p className="text-4xl font-black text-white">{stats.events}</p>
                 </div>
-                <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl hover:border-theme-primary/50 transition-all group">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
                       <Trophy size={24} />
@@ -191,7 +180,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl">
                   <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
                     <Activity size={20} className="text-theme-primary" />
                     Ações Rápidas
@@ -216,7 +205,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl overflow-hidden relative">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-8 opacity-10">
                     <Cake size={120} />
                   </div>
@@ -333,7 +322,7 @@ export default function App() {
                   }} 
                 />
               ) : (
-                <div className="p-12 text-center bg-zinc-900 rounded-3xl border border-zinc-800">
+                <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
                   <p className="text-zinc-500">Carregando seus dados...</p>
                 </div>
               )}
@@ -345,7 +334,7 @@ export default function App() {
               {myAthleteData ? (
                 <AnamnesisForm athlete={myAthleteData} onSave={() => setActiveTab('dashboard')} />
               ) : (
-                <div className="p-12 text-center bg-zinc-900 rounded-3xl border border-zinc-800">
+                <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
                   <p className="text-zinc-500">Carregando seus dados...</p>
                 </div>
               )}
@@ -385,10 +374,10 @@ export default function App() {
     return (
       <div className="space-y-6">
         <div className="no-print">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
-          >
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-black border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
+            >
             <Trophy size={18} className="group-hover:scale-110 transition-transform" />
             <span className="font-bold uppercase text-xs tracking-widest">Voltar ao Início</span>
           </button>

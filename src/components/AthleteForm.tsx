@@ -66,7 +66,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl rounded-3xl shadow-2xl my-8">
+      <div className="bg-black border border-zinc-800 w-full max-w-4xl rounded-3xl shadow-2xl my-8">
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
           <h2 className="text-xl font-bold text-white flex items-center gap-3">
             <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 md:hidden">

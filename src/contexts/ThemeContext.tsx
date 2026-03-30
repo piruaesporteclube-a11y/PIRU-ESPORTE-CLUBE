@@ -61,8 +61,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Apply colors to CSS variables
-    document.documentElement.style.setProperty('--primary-color', settings.primaryColor);
-    document.documentElement.style.setProperty('--secondary-color', settings.secondaryColor);
+    document.documentElement.style.setProperty('--theme-primary', settings.primaryColor);
+    document.documentElement.style.setProperty('--theme-secondary', settings.secondaryColor);
   }, [settings]);
 
   return (

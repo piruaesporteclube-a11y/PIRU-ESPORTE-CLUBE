@@ -136,7 +136,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-md">
+                    <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-bold rounded-md">
                       {getSubCategory(athlete.birth_date)}
                     </span>
                   </td>
@@ -201,16 +201,16 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                 </span>
               </div>
               
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 uppercase text-[10px] font-bold tracking-wider">Categoria:</span>
-                  <span className="text-zinc-300">{getSubCategory(athlete.birth_date)}</span>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">Categoria:</span>
+                    <span className="text-theme-primary font-bold">{getSubCategory(athlete.birth_date)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">Camisa:</span>
+                    <span className="text-theme-primary font-mono font-bold">#{athlete.jersey_number || '--'}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 uppercase text-[10px] font-bold tracking-wider">Camisa:</span>
-                  <span className="text-theme-primary font-mono font-bold">#{athlete.jersey_number || '--'}</span>
-                </div>
-              </div>
 
               <div className="flex items-center gap-2 pt-2">
                 <button 

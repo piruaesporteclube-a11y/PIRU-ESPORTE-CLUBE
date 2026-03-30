@@ -92,7 +92,7 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+      <form onSubmit={handleSubmit} className="bg-black border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Habits */}
           <div className="space-y-4">
