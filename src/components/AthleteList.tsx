@@ -244,7 +244,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
       </div>
 
       {/* Print Header (Visible only when printing) */}
-      <div className="hidden print-only p-8 text-black bg-white">
+      <div className="hidden list-print-only p-8 text-black bg-white">
         <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
           <h1 className="text-3xl font-black uppercase">Piruá Esporte Clube</h1>
           <div className="text-right">

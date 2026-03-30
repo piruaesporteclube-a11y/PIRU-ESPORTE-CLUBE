@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings } from '../types';
 import { api } from '../api';
 import { QRCodeSVG } from 'qrcode.react';
-import { Printer, Download, UserCircle, MapPin, Phone, Hash } from 'lucide-react';
+import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface MembershipCardProps {
   athlete: Athlete;
@@ -11,27 +13,64 @@ interface MembershipCardProps {
 
 export default function MembershipCard({ athlete }: MembershipCardProps) {
   const { settings } = useTheme();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSavePDF = async () => {
+    if (!cardRef.current) return;
+    setIsGeneratingPDF(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 3, // Higher scale for better quality
+        useCORS: true,
+        backgroundColor: null,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: [85.6, 54], // Standard credit card size in mm
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54);
+      pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between no-print">
         <h2 className="text-2xl font-bold text-white">Carteirinha do Atleta</h2>
-        <button 
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors"
-        >
-          <Printer size={18} />
-          Imprimir Carteirinha
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleSavePDF}
+            disabled={isGeneratingPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+          >
+            {isGeneratingPDF ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
+            Salvar em PDF
+          </button>
+          <button 
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors"
+          >
+            <Printer size={18} />
+            Imprimir
+          </button>
+        </div>
       </div>
 
-      <div className="flex justify-center p-4 print:p-0 card-print-container print-only">
+      <div className="flex justify-center p-4 print:p-0 card-print-container">
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
+          ref={cardRef}
           className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800 print:shadow-none print:border-zinc-700"
           style={{ 
             fontFamily: "'Inter', sans-serif",
@@ -42,23 +81,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         >
           <style>{`
             @media print {
+              /* Force hide everything else */
+              body * {
+                visibility: hidden !important;
+              }
+              .card-print-container, .card-print-container * {
+                visibility: visible !important;
+              }
               .card-print-container {
-                display: block !important;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
                 background: white !important;
-                z-index: 9999;
+                z-index: 999999 !important;
                 display: flex !important;
-                align-items: center;
-                justify-content: center;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              /* Specifically hide the list table and documents during card print */
+              .list-print-only, .document-content, .no-print, aside, header, nav {
+                display: none !important;
               }
               .card {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color: white !important;
+                box-shadow: none !important;
+                border: 1px solid #333 !important;
+                display: flex !important;
+                flex-direction: column !important;
               }
               .text-theme-primary {
                 color: ${settings.primaryColor} !important;
@@ -104,7 +159,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
-                <h4 className="text-[10px] font-black uppercase leading-[1.1] text-white tracking-tight line-clamp-2 mb-1 min-h-[22px]">
+                <h4 className={`font-black uppercase leading-[1.1] text-white tracking-tight line-clamp-2 mb-1 min-h-[20px] ${
+                  athlete.name.length > 30 ? 'text-[6px]' : athlete.name.length > 20 ? 'text-[7px]' : 'text-[9px]'
+                }`}>
                   {athlete.name}
                 </h4>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">

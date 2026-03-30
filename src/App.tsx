@@ -313,9 +313,9 @@ export default function App() {
               )}
 
               {selectedAthleteForCard && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 overflow-y-auto no-print">
-                  <div className="relative w-full max-w-2xl">
-                    <div className="flex justify-end mb-4">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 overflow-y-auto">
+                  <div className="relative w-full max-w-2xl no-print-container">
+                    <div className="flex justify-end mb-4 no-print">
                       <button 
                         onClick={() => setSelectedAthleteForCard(null)} 
                         className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"

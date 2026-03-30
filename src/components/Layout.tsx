@@ -175,7 +175,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             background: white !important;
             color: black !important;
           }
-          .print-only {
+          .print-only, .list-print-only {
             display: block !important;
           }
           .card {
