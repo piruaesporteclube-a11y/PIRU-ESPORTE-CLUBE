@@ -389,30 +389,39 @@ export const api = {
   },
 
   // Lineups (using a subcollection or separate collection)
-  // In the original code, event_lineups was a separate table.
-  // I'll use a collection "event_lineups" where doc ID is event_id + "_" + athlete_id
-  getLineup: async (event_id: string): Promise<Athlete[]> => {
+  getLineup: async (event_id: string): Promise<{ athletes: Athlete[], staff: Professor[] }> => {
     try {
       const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
       const querySnapshot = await getDocs(q);
       const lineupData = querySnapshot.docs.map(doc => doc.data());
       
-      const athleteIds = lineupData.map(d => d.athlete_id);
-      if (athleteIds.length === 0) return [];
+      const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
+      const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
       
-      const athletes = await api.getAthletes();
-      const lineup = athletes.filter(a => athleteIds.includes(a.id));
+      const allAthletes = await api.getAthletes();
+      const allProfessors = await api.getProfessors();
+
+      const athletes = allAthletes
+        .filter(a => athleteIds.includes(a.id))
+        .map(a => {
+          const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
+          return { ...a, confirmation: el?.confirmation || "Pendente" };
+        });
+
+      const staff = allProfessors
+        .filter(p => staffIds.includes(p.id))
+        .map(p => {
+          const el = lineupData.find(d => d.person_id === p.id && d.type === 'staff');
+          return { ...p, confirmation: el?.confirmation || "Pendente" };
+        });
       
-      return lineup.map(a => {
-        const el = lineupData.find(d => d.athlete_id === a.id);
-        return { ...a, confirmation: el?.confirmation || "Pendente" };
-      });
+      return { athletes, staff };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "event_lineups");
-      return [];
+      return { athletes: [], staff: [] };
     }
   },
-  saveLineup: async (event_id: string, athlete_ids: string[]) => {
+  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = []) => {
     try {
       const batch = writeBatch(db);
       
@@ -421,12 +430,24 @@ export const api = {
       const querySnapshot = await getDocs(q);
       querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
       
-      // Add new
+      // Add athletes
       athlete_ids.forEach(aid => {
-        const id = `${event_id}_${aid}`;
+        const id = `${event_id}_athlete_${aid}`;
         batch.set(doc(db, "event_lineups", id), {
           event_id,
-          athlete_id: aid,
+          person_id: aid,
+          type: 'athlete',
+          confirmation: "Pendente"
+        });
+      });
+
+      // Add staff
+      staff_ids.forEach(sid => {
+        const id = `${event_id}_staff_${sid}`;
+        batch.set(doc(db, "event_lineups", id), {
+          event_id,
+          person_id: sid,
+          type: 'staff',
           confirmation: "Pendente"
         });
       });
@@ -436,12 +457,22 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
   },
-  confirmLineup: async (event_id: string, athlete_id: string, confirmation: string) => {
+  confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string) => {
     try {
-      const id = `${event_id}_${athlete_id}`;
-      await updateDoc(doc(db, "event_lineups", id), { confirmation });
+      const id = `${event_id}_${type}_${person_id}`;
+      // Check if doc exists with new ID format, fallback to old if needed for athletes
+      const docRef = doc(db, "event_lineups", id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        await updateDoc(docRef, { confirmation });
+      } else if (type === 'athlete') {
+        // Fallback for old athlete ID format
+        const oldId = `${event_id}_${person_id}`;
+        await updateDoc(doc(db, "event_lineups", oldId), { confirmation });
+      }
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${athlete_id}`);
+      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${type}_${person_id}`);
     }
   },
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Event, Athlete, getSubCategory, categories } from '../types';
+import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
 import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight } from 'lucide-react';
 import { cn } from '../utils';
 
@@ -10,8 +10,11 @@ export default function EventsManagement() {
   const [isLineupOpen, setIsLineupOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>([]);
   const [lineupAthletes, setLineupAthletes] = useState<Athlete[]>([]);
+  const [lineupStaff, setLineupStaff] = useState<Professor[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [filterSub, setFilterSub] = useState('Todos');
 
   const [formData, setFormData] = useState<Partial<Event>>({
@@ -30,6 +33,7 @@ export default function EventsManagement() {
   useEffect(() => {
     loadEvents();
     api.getAthletes().then(setAthletes);
+    api.getProfessors().then(setProfessors);
   }, []);
 
   const loadEvents = async () => {
@@ -52,23 +56,26 @@ export default function EventsManagement() {
   const handleOpenLineup = async (event: Event) => {
     try {
       setSelectedEvent(event);
-      const lineup = await api.getLineup(event.id);
+      const { athletes: lineup, staff } = await api.getLineup(event.id);
       setLineupAthletes(lineup);
+      setLineupStaff(staff);
       setSelectedAthletes(lineup.map(a => a.id));
+      setSelectedStaff(staff.map(s => s.id));
       setIsLineupOpen(true);
     } catch (err: any) {
       alert(`Erro ao carregar escalação: ${err.message}`);
     }
   };
 
-  const handleConfirmAthlete = async (athleteId: string, status: string) => {
+  const handleConfirmAthlete = async (athleteId: string, type: 'athlete' | 'staff', status: string) => {
     if (selectedEvent) {
       try {
-        await api.confirmLineup(selectedEvent.id, athleteId, status);
-        const updatedLineup = await api.getLineup(selectedEvent.id);
+        await api.confirmLineup(selectedEvent.id, athleteId, type, status);
+        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
         setLineupAthletes(updatedLineup);
+        setLineupStaff(updatedStaff);
       } catch (err: any) {
-        alert(`Erro ao confirmar atleta: ${err.message}`);
+        alert(`Erro ao confirmar: ${err.message}`);
       }
     }
   };
@@ -83,12 +90,23 @@ export default function EventsManagement() {
     }
   };
 
+  const toggleStaff = (id: string) => {
+    if (selectedStaff.includes(id)) {
+      setSelectedStaff(selectedStaff.filter(sid => sid !== id));
+    } else if (selectedStaff.length < 3) {
+      setSelectedStaff([...selectedStaff, id]);
+    } else {
+      alert('Limite máximo de 3 membros da comissão atingido.');
+    }
+  };
+
   const handleSaveLineup = async () => {
     if (selectedEvent) {
       try {
-        await api.saveLineup(selectedEvent.id, selectedAthletes);
-        const updatedLineup = await api.getLineup(selectedEvent.id);
+        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff);
+        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
         setLineupAthletes(updatedLineup);
+        setLineupStaff(updatedStaff);
         alert('Escalação salva com sucesso!');
       } catch (err: any) {
         alert(`Erro ao salvar escalação: ${err.message}`);
@@ -232,98 +250,156 @@ export default function EventsManagement() {
             <div className="flex-1 overflow-y-auto p-6 no-print">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Selection Area */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Atletas</h3>
-                    <select 
-                      className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none"
-                      value={filterSub}
-                      onChange={(e) => setFilterSub(e.target.value)}
-                    >
-                      <option value="Todos">Todas as Categorias</option>
-                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                <div className="lg:col-span-2 space-y-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Atletas ({selectedAthletes.length}/22)</h3>
+                      <select 
+                        className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none"
+                        value={filterSub}
+                        onChange={(e) => setFilterSub(e.target.value)}
+                      >
+                        <option value="Todos">Todas as Categorias</option>
+                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {filteredAthletes.map(a => (
+                        <button
+                          key={a.id}
+                          onClick={() => toggleAthlete(a.id)}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+                            selectedAthletes.includes(a.id) 
+                              ? "bg-theme-primary/10 border-theme-primary text-theme-primary" 
+                              : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                          )}
+                        >
+                          <div className="w-10 h-10 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
+                            {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate text-sm uppercase">{a.name}</p>
+                            <p className="text-[10px] opacity-70">#{a.jersey_number} - {getSubCategory(a.birth_date)}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {filteredAthletes.map(a => (
-                      <button
-                        key={a.id}
-                        onClick={() => toggleAthlete(a.id)}
-                        className={cn(
-                          "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
-                          selectedAthletes.includes(a.id) 
-                            ? "bg-theme-primary/10 border-theme-primary text-theme-primary" 
-                            : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                        )}
-                      >
-                        <div className="w-10 h-10 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
-                          {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold truncate text-sm uppercase">{a.name}</p>
-                          <p className="text-[10px] opacity-70">#{a.jersey_number} - {getSubCategory(a.birth_date)}</p>
-                        </div>
-                      </button>
-                    ))}
+                  <div className="space-y-4 pt-6 border-t border-zinc-800">
+                    <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Comissão Técnica ({selectedStaff.length}/3)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {professors.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => toggleStaff(p.id)}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+                            selectedStaff.includes(p.id) 
+                              ? "bg-theme-primary/10 border-theme-primary text-theme-primary" 
+                              : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                          )}
+                        >
+                          <div className="w-10 h-10 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
+                            {p.photo && <img src={p.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate text-sm uppercase">{p.name}</p>
+                            <p className="text-[10px] opacity-70">{p.doc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Confirmation Area */}
                 <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
-                  <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação de Atletas</h3>
+                  <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
                   <div className="space-y-4">
-                    {lineupAthletes.length === 0 ? (
+                    {(lineupAthletes.length === 0 && lineupStaff.length === 0) ? (
                       <p className="text-zinc-500 text-xs italic">Salve a escalação para gerenciar as confirmações.</p>
                     ) : (
-                      lineupAthletes.map(a => (
-                        <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
-                              {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                      <>
+                        {lineupStaff.map(s => (
+                          <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
+                                {s.photo && <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold truncate text-xs uppercase">{s.name}</p>
+                                <p className="text-[10px] text-theme-primary font-bold">COMISSÃO</p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold truncate text-xs uppercase">{a.name}</p>
-                              <p className="text-[10px] text-zinc-500">#{a.jersey_number}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            <div className="flex-1 flex flex-col gap-1">
-                              <span className="text-[8px] text-zinc-500 uppercase text-center">Vai?</span>
-                              <div className="flex gap-1">
-                                <button 
-                                  onClick={() => handleConfirmAthlete(a.id, 'Confirmado')}
-                                  className={cn(
-                                    "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                    a.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                  )}
-                                >
-                                  Sim
-                                </button>
-                                <button 
-                                  onClick={() => handleConfirmAthlete(a.id, 'Recusado')}
-                                  className={cn(
-                                    "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                    a.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                  )}
-                                >
-                                  Não
-                                </button>
-                                <button 
-                                  onClick={() => handleConfirmAthlete(a.id, 'Pendente')}
-                                  className={cn(
-                                    "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                    a.confirmation === 'Pendente' ? "bg-zinc-600 text-white" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                  )}
-                                >
-                                  ?
-                                </button>
+                            
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
+                                    className={cn(
+                                      "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                      s.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                    )}
+                                  >
+                                    Sim
+                                  </button>
+                                  <button 
+                                    onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
+                                    className={cn(
+                                      "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                      s.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                    )}
+                                  >
+                                    Não
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                        {lineupAthletes.map(a => (
+                          <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
+                                {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold truncate text-xs uppercase">{a.name}</p>
+                                <p className="text-[10px] text-zinc-500">#{a.jersey_number}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                    className={cn(
+                                      "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                      a.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                    )}
+                                  >
+                                    Sim
+                                  </button>
+                                  <button 
+                                    onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                    className={cn(
+                                      "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                      a.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                    )}
+                                  >
+                                    Não
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>
@@ -345,54 +421,99 @@ export default function EventsManagement() {
             <div className="hidden print-only p-12 text-black bg-white">
               <div className="text-center mb-8 border-b-4 border-black pb-4">
                 <h1 className="text-4xl font-black uppercase">Piruá Esporte Clube</h1>
-                <h2 className="text-2xl font-bold uppercase mt-2">Folha de Escalação</h2>
+                <h2 className="text-2xl font-bold uppercase mt-2">Folha de Escalação Oficial</h2>
               </div>
               <div className="grid grid-cols-2 gap-8 mb-8">
                 <div>
-                  <p className="font-black uppercase text-sm">Evento:</p>
-                  <p className="text-xl font-bold">{selectedEvent.name}</p>
+                  <p className="font-black uppercase text-xs text-zinc-500">Evento:</p>
+                  <p className="text-xl font-bold uppercase">{selectedEvent.name}</p>
+                  <p className="text-sm text-zinc-600 mt-1">{selectedEvent.city}/{selectedEvent.uf} - {selectedEvent.neighborhood}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black uppercase text-sm">Data:</p>
-                  <p className="text-xl font-bold">{selectedEvent.start_date}</p>
+                  <p className="font-black uppercase text-xs text-zinc-500">Data e Horário:</p>
+                  <p className="text-xl font-bold">{selectedEvent.start_date} às {selectedEvent.start_time}</p>
                 </div>
               </div>
-              <table className="w-full border-collapse border-2 border-black">
-                <thead>
-                  <tr className="bg-zinc-200">
-                    <th className="border-2 border-black p-2 text-center w-12">Nº</th>
-                    <th className="border-2 border-black p-2 text-left">Nome Completo</th>
-                    <th className="border-2 border-black p-2 text-center w-32">Nasc.</th>
-                    <th className="border-2 border-black p-2 text-center w-32">RG/CPF</th>
-                    <th className="border-2 border-black p-2 text-center w-16">Camisa</th>
-                    <th className="border-2 border-black p-2 text-center w-24">Confirmado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lineupAthletes.map((a, idx) => (
-                    <tr key={a.id}>
-                      <td className="border-2 border-black p-2 text-center">{idx + 1}</td>
-                      <td className="border-2 border-black p-2 font-bold uppercase">{a.name}</td>
-                      <td className="border-2 border-black p-2 text-center">{a.birth_date}</td>
-                      <td className="border-2 border-black p-2 text-center">{a.doc}</td>
-                      <td className="border-2 border-black p-2 text-center font-bold">#{a.jersey_number}</td>
-                      <td className="border-2 border-black p-2 text-center text-[10px] font-bold uppercase">{a.confirmation}</td>
-                    </tr>
-                  ))}
-                  {Array.from({ length: Math.max(0, 22 - lineupAthletes.length) }).map((_, i) => (
-                    <tr key={`empty-${i}`} className="h-10">
-                      <td className="border-2 border-black p-2 text-center">{lineupAthletes.length + i + 1}</td>
-                      <td className="border-2 border-black p-2"></td>
-                      <td className="border-2 border-black p-2"></td>
-                      <td className="border-2 border-black p-2"></td>
-                      <td className="border-2 border-black p-2"></td>
-                      <td className="border-2 border-black p-2"></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="mt-12 text-center">
-                <div className="w-64 border-t-2 border-black mx-auto pt-2 font-bold uppercase">Assinatura do Responsável Técnico</div>
+
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-sm font-black uppercase mb-2 border-b-2 border-black pb-1">Comissão Técnica</h3>
+                  <table className="w-full border-collapse border-2 border-black">
+                    <thead>
+                      <tr className="bg-zinc-100">
+                        <th className="border-2 border-black p-2 text-center w-12">Nº</th>
+                        <th className="border-2 border-black p-2 text-left">Nome Completo</th>
+                        <th className="border-2 border-black p-2 text-center w-32">Nasc.</th>
+                        <th className="border-2 border-black p-2 text-center w-40">RG/CPF</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineupStaff.map((s, idx) => (
+                        <tr key={s.id}>
+                          <td className="border-2 border-black p-2 text-center">{idx + 1}</td>
+                          <td className="border-2 border-black p-2 font-bold uppercase">{s.name}</td>
+                          <td className="border-2 border-black p-2 text-center">{s.birth_date}</td>
+                          <td className="border-2 border-black p-2 text-center">{s.doc}</td>
+                        </tr>
+                      ))}
+                      {Array.from({ length: Math.max(0, 3 - lineupStaff.length) }).map((_, i) => (
+                        <tr key={`empty-staff-${i}`} className="h-10">
+                          <td className="border-2 border-black p-2 text-center">{lineupStaff.length + i + 1}</td>
+                          <td className="border-2 border-black p-2"></td>
+                          <td className="border-2 border-black p-2"></td>
+                          <td className="border-2 border-black p-2"></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-black uppercase mb-2 border-b-2 border-black pb-1">Atletas Escalados</h3>
+                  <table className="w-full border-collapse border-2 border-black">
+                    <thead>
+                      <tr className="bg-zinc-100">
+                        <th className="border-2 border-black p-2 text-center w-12">Nº</th>
+                        <th className="border-2 border-black p-2 text-left">Nome Completo</th>
+                        <th className="border-2 border-black p-2 text-center w-32">Nasc.</th>
+                        <th className="border-2 border-black p-2 text-center w-40">RG/CPF</th>
+                        <th className="border-2 border-black p-2 text-center w-16">Uniforme</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineupAthletes.map((a, idx) => (
+                        <tr key={a.id}>
+                          <td className="border-2 border-black p-2 text-center">{idx + 1}</td>
+                          <td className="border-2 border-black p-2 font-bold uppercase">{a.name}</td>
+                          <td className="border-2 border-black p-2 text-center">{a.birth_date}</td>
+                          <td className="border-2 border-black p-2 text-center">{a.doc}</td>
+                          <td className="border-2 border-black p-2 text-center font-bold">#{a.jersey_number}</td>
+                        </tr>
+                      ))}
+                      {Array.from({ length: Math.max(0, 22 - lineupAthletes.length) }).map((_, i) => (
+                        <tr key={`empty-athlete-${i}`} className="h-10">
+                          <td className="border-2 border-black p-2 text-center">{lineupAthletes.length + i + 1}</td>
+                          <td className="border-2 border-black p-2"></td>
+                          <td className="border-2 border-black p-2"></td>
+                          <td className="border-2 border-black p-2"></td>
+                          <td className="border-2 border-black p-2"></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="mt-16 grid grid-cols-2 gap-12">
+                <div className="text-center">
+                  <div className="border-t-2 border-black pt-2 font-bold uppercase text-xs">Assinatura do Responsável Técnico</div>
+                </div>
+                <div className="text-center">
+                  <div className="border-t-2 border-black pt-2 font-bold uppercase text-xs">Assinatura da Diretoria</div>
+                </div>
+              </div>
+              <div className="mt-8 text-[10px] text-zinc-400 text-center uppercase tracking-widest">
+                Documento gerado eletronicamente pelo Sistema de Gestão Piruá E.C.
               </div>
             </div>
           </div>

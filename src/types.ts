@@ -31,6 +31,7 @@ export type Professor = {
   city: string;
   uf: string;
   photo: string;
+  confirmation?: "Pendente" | "Confirmado" | "Recusado";
 };
 
 export type Event = {
