@@ -5,6 +5,7 @@ import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User } from
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn } from '../utils';
+import { toast } from 'sonner';
 
 export default function Attendance() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -88,7 +89,7 @@ export default function Attendance() {
       await api.saveAttendance({ athlete_id: athleteId, date, status, justification });
       setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
     } catch (err: any) {
-      alert(`Erro ao salvar presença: ${err.message}`);
+      toast.error(`Erro ao salvar presença: ${err.message}`);
     }
   };
 

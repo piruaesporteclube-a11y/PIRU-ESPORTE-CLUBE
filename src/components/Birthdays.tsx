@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, Professor } from '../types';
-import { Cake, Instagram, Share2, Download, UserCircle, Calendar } from 'lucide-react';
+import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer } from 'lucide-react';
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
+import { toast } from 'sonner';
 
 export default function Birthdays() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -13,6 +14,7 @@ export default function Birthdays() {
   const { settings } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
     loadData();
@@ -24,9 +26,38 @@ export default function Birthdays() {
     setProfessors(p);
   };
 
-  const today = new Date();
-  const todayBirthdays = [...athletes, ...professors].filter(p => isSameDay(parseISO(p.birth_date), today));
-  const monthBirthdays = [...athletes, ...professors].filter(p => isSameMonth(parseISO(p.birth_date), today) && !isSameDay(parseISO(p.birth_date), today));
+  const selectedDate = parseISO(filterDate);
+  
+  const isBirthday = (dateStr: string, target: Date) => {
+    const d = parseISO(dateStr);
+    return d.getDate() === target.getDate() && d.getMonth() === target.getMonth();
+  };
+
+  const isBirthdayMonth = (dateStr: string, target: Date) => {
+    const d = parseISO(dateStr);
+    return d.getMonth() === target.getMonth();
+  };
+
+  const todayBirthdays = [...athletes, ...professors].filter(p => {
+    const isActive = 'status' in p ? p.status === 'Ativo' : true;
+    return isActive && isBirthday(p.birth_date, selectedDate);
+  });
+
+  const monthBirthdays = [...athletes, ...professors].filter(p => {
+    const isActive = 'status' in p ? p.status === 'Ativo' : true;
+    return isActive && isBirthdayMonth(p.birth_date, selectedDate) && !isBirthday(p.birth_date, selectedDate);
+  });
+
+  const getAge = (birthDate: string) => {
+    const d = parseISO(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - d.getFullYear();
+    const m = today.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const handleShare = (person: Athlete | Professor) => {
     setSelectedPerson(person);
@@ -47,9 +78,10 @@ export default function Birthdays() {
       link.download = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      toast.success("Imagem gerada com sucesso!");
     } catch (err) {
       console.error('Erro ao gerar imagem:', err);
-      alert('Erro ao gerar imagem. Tente novamente.');
+      toast.error('Erro ao gerar imagem. Tente novamente.');
     } finally {
       setIsGenerating(false);
     }
@@ -57,16 +89,37 @@ export default function Birthdays() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Aniversariantes</h2>
-        <p className="text-zinc-400 text-sm">Comemore o aniversário dos nossos atletas e membros da comissão técnica</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Aniversariantes</h2>
+          <p className="text-zinc-400 text-sm">Comemore o aniversário dos nossos atletas e membros da comissão técnica</p>
+        </div>
+        
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Filtrar por Data</label>
+            <input 
+              type="date" 
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-primary/50 transition-all"
+            />
+          </div>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors font-bold uppercase text-xs tracking-widest no-print"
+          >
+            <Printer size={16} />
+            Imprimir Lista
+          </button>
+        </div>
       </div>
 
       {/* Today's Birthdays */}
       <section className="space-y-4">
         <h3 className="text-lg font-bold text-theme-primary flex items-center gap-2 uppercase tracking-widest">
           <Cake size={20} />
-          Aniversariantes do Dia
+          Aniversariantes de {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {todayBirthdays.map((person) => (
@@ -82,7 +135,9 @@ export default function Birthdays() {
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-white">{person.name}</h4>
-                <p className="text-xs text-zinc-400">Parabéns pelo seu dia!</p>
+                <p className="text-xs text-zinc-400">
+                  {getAge(person.birth_date)} anos • {format(parseISO(person.birth_date), 'dd/MM/yyyy')}
+                </p>
               </div>
               <button 
                 onClick={() => handleShare(person)}
@@ -105,7 +160,7 @@ export default function Birthdays() {
       <section className="space-y-4">
         <h3 className="text-lg font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
           <Calendar size={20} />
-          Aniversariantes do Mês ({format(today, 'MMMM', { locale: ptBR })})
+          Aniversariantes de {format(selectedDate, 'MMMM', { locale: ptBR })}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {monthBirthdays.map((person) => (
@@ -121,12 +176,64 @@ export default function Birthdays() {
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-white truncate text-sm">{person.name}</h4>
-                <p className="text-[10px] text-zinc-500">Dia {format(parseISO(person.birth_date), 'dd')}</p>
+                <p className="text-[10px] text-zinc-500">
+                  Dia {format(parseISO(person.birth_date), 'dd')} • {getAge(person.birth_date)} anos
+                </p>
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      {/* Print View for Birthdays */}
+      <div className="hidden print:block fixed inset-0 bg-white text-black p-12 z-[100]">
+        <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+          <div className="flex items-center gap-4">
+            {settings.schoolCrest && (
+              <img src={settings.schoolCrest} className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+            )}
+            <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+          </div>
+          <div className="text-right">
+            <h2 className="font-bold uppercase">Aniversariantes do Mês</h2>
+            <p className="text-sm uppercase">{format(selectedDate, 'MMMM yyyy', { locale: ptBR })}</p>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-lg font-bold border-b border-zinc-300 mb-4 uppercase">Aniversariantes de Hoje ({format(selectedDate, 'dd/MM')})</h3>
+            {todayBirthdays.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                {todayBirthdays.map(p => (
+                  <div key={p.id} className="flex items-center gap-3 border p-2 rounded">
+                    <div className="font-bold">{format(parseISO(p.birth_date), 'dd/MM')}</div>
+                    <div>
+                      <div className="font-bold uppercase text-sm">{p.name}</div>
+                      <div className="text-xs">{getAge(p.birth_date)} anos</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm italic">Nenhum aniversariante hoje.</p>}
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold border-b border-zinc-300 mb-4 uppercase">Outros Aniversariantes do Mês</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {monthBirthdays.sort((a, b) => parseISO(a.birth_date).getDate() - parseISO(b.birth_date).getDate()).map(p => (
+                <div key={p.id} className="flex items-center gap-3 border p-2 rounded">
+                  <div className="font-bold">{format(parseISO(p.birth_date), 'dd/MM')}</div>
+                  <div>
+                    <div className="font-bold uppercase text-sm">{p.name}</div>
+                    <div className="text-xs">{getAge(p.birth_date)} anos</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Instagram Post Modal */}
       {selectedPerson && (

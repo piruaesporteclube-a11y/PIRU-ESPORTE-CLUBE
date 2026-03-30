@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Professor } from '../types';
 import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ProfessorManagement() {
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -32,7 +33,7 @@ export default function ProfessorManagement() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 500 * 1024) { // 500KB limit
-        alert("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
         return;
       }
       const reader = new FileReader();
@@ -40,7 +41,7 @@ export default function ProfessorManagement() {
         setFormData(prev => ({ ...prev, photo: reader.result as string }));
       };
       reader.onerror = () => {
-        alert("Erro ao ler o arquivo da foto.");
+        toast.error("Erro ao ler o arquivo da foto.");
       };
       reader.readAsDataURL(file);
     }
@@ -50,12 +51,13 @@ export default function ProfessorManagement() {
     e.preventDefault();
     try {
       await api.saveProfessor(formData);
+      toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
       setEditingProfessor(null);
       setFormData({ name: '', birth_date: '', doc: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
       loadProfessors();
     } catch (err: any) {
-      alert(`Erro ao salvar professor: ${err.message}`);
+      toast.error(`Erro ao salvar professor: ${err.message}`);
     }
   };
 

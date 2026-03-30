@@ -15,6 +15,7 @@ import { Athlete, User } from './types';
 import { api } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
+import { Toaster } from 'sonner';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -439,6 +440,7 @@ export default function App() {
           onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); loadStats(); }} 
         />
       )}
+      <Toaster position="top-right" richColors />
     </Layout>
   );
 }

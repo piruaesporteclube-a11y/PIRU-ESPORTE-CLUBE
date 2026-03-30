@@ -4,6 +4,8 @@ import { Athlete, getSubCategory, categories } from '../types';
 import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
+import { useTheme } from '../contexts/ThemeContext';
+import { toast } from 'sonner';
 
 interface AthleteListProps {
   onEdit: (athlete: Athlete) => void;
@@ -11,6 +13,7 @@ interface AthleteListProps {
 }
 
 export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
+  const { settings } = useTheme();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('Todos');
@@ -29,9 +32,10 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
     if (confirm('Tem certeza que deseja excluir este atleta?')) {
       try {
         await api.deleteAthlete(id);
+        toast.success("Atleta excluído com sucesso!");
         loadAthletes();
       } catch (err: any) {
-        alert(`Erro ao excluir atleta: ${err.message}`);
+        toast.error(`Erro ao excluir atleta: ${err.message}`);
       }
     }
   };
@@ -246,7 +250,12 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
       {/* Print Header (Visible only when printing) */}
       <div className="hidden list-print-only p-8 text-black bg-white">
         <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-3xl font-black uppercase">Piruá Esporte Clube</h1>
+          <div className="flex items-center gap-4">
+            {settings.schoolCrest && (
+              <img src={settings.schoolCrest} className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+            )}
+            <h1 className="text-3xl font-black uppercase">Piruá Esporte Clube</h1>
+          </div>
           <div className="text-right">
             <p className="font-bold">Lista Geral de Atletas</p>
             <p className="text-sm">Data: {new Date().toLocaleDateString()}</p>

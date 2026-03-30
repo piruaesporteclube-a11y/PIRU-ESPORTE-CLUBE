@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Settings } from '../types';
 import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { toast } from 'sonner';
 
 export default function SettingsComponent() {
   const { settings: globalSettings } = useTheme();
@@ -63,9 +64,10 @@ export default function SettingsComponent() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success('Backup gerado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar backup:', error);
-      alert('Erro ao gerar backup. Tente novamente.');
+      toast.error('Erro ao gerar backup. Tente novamente.');
     }
   };
 

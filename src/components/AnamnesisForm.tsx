@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Athlete, Anamnesis } from '../types';
 import { Save, ClipboardList, AlertCircle, X } from 'lucide-react';
 import { cn } from '../utils';
+import { toast } from 'sonner';
 
 interface AnamnesisFormProps {
   athlete: Athlete;
@@ -58,9 +59,10 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
     e.preventDefault();
     try {
       await api.saveAnamnesis(formData);
+      toast.success("Anamnese salva com sucesso!");
       onSave();
     } catch (err: any) {
-      alert(`Erro ao salvar anamnese: ${err.message}`);
+      toast.error(`Erro ao salvar anamnese: ${err.message}`);
     }
   };
 

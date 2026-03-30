@@ -4,6 +4,7 @@ import { Event, Athlete, Professor, getSubCategory, categories } from '../types'
 import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight } from 'lucide-react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
+import { toast } from 'sonner';
 
 export default function EventsManagement() {
   const { settings } = useTheme();
@@ -47,11 +48,12 @@ export default function EventsManagement() {
     e.preventDefault();
     try {
       await api.saveEvent(formData);
+      toast.success("Evento salvo com sucesso!");
       setIsFormOpen(false);
       setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
       loadEvents();
     } catch (err: any) {
-      alert(`Erro ao salvar evento: ${err.message}`);
+      toast.error(`Erro ao salvar evento: ${err.message}`);
     }
   };
 
@@ -65,7 +67,7 @@ export default function EventsManagement() {
       setSelectedStaff(staff.map(s => s.id));
       setIsLineupOpen(true);
     } catch (err: any) {
-      alert(`Erro ao carregar escalação: ${err.message}`);
+      toast.error(`Erro ao carregar escalação: ${err.message}`);
     }
   };
 
@@ -76,8 +78,9 @@ export default function EventsManagement() {
         const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
+        toast.success("Confirmação registrada!");
       } catch (err: any) {
-        alert(`Erro ao confirmar: ${err.message}`);
+        toast.error(`Erro ao confirmar: ${err.message}`);
       }
     }
   };
@@ -88,7 +91,7 @@ export default function EventsManagement() {
     } else if (selectedAthletes.length < 22) {
       setSelectedAthletes([...selectedAthletes, id]);
     } else {
-      alert('Limite máximo de 22 atletas atingido.');
+      toast.warning('Limite máximo de 22 atletas atingido.');
     }
   };
 
@@ -98,7 +101,7 @@ export default function EventsManagement() {
     } else if (selectedStaff.length < 3) {
       setSelectedStaff([...selectedStaff, id]);
     } else {
-      alert('Limite máximo de 3 membros da comissão atingido.');
+      toast.warning('Limite máximo de 3 membros da comissão atingido.');
     }
   };
 
@@ -109,9 +112,9 @@ export default function EventsManagement() {
         const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
-        alert('Escalação salva com sucesso!');
+        toast.success('Escalação salva com sucesso!');
       } catch (err: any) {
-        alert(`Erro ao salvar escalação: ${err.message}`);
+        toast.error(`Erro ao salvar escalação: ${err.message}`);
       }
     }
   };

@@ -31,12 +31,25 @@
   .print-only {
     display: block !important;
   }
+  .list-print-only {
+    display: block !important;
+    font-size: 9px !important;
+    color: black !important;
+    background: white !important;
+  }
+  .list-print-only h1 {
+    font-size: 16px !important;
+  }
+  .list-print-only th, .list-print-only td {
+    padding: 3px 6px !important;
+    border: 1px solid black !important;
+  }
   body {
     background: white !important;
     color: black !important;
   }
 }
 
-.print-only {
+.print-only, .list-print-only {
   display: none;
 }

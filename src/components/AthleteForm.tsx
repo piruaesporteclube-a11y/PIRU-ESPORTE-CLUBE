@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete } from '../types';
 import { X, Upload, Save, UserCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AthleteFormProps {
   athlete?: Athlete | null;
@@ -39,7 +40,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 500 * 1024) { // 500KB limit
-        alert("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
         return;
       }
       const reader = new FileReader();
@@ -47,7 +48,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         setFormData(prev => ({ ...prev, photo: reader.result as string }));
       };
       reader.onerror = () => {
-        alert("Erro ao ler o arquivo da foto.");
+        toast.error("Erro ao ler o arquivo da foto.");
       };
       reader.readAsDataURL(file);
     }
@@ -59,13 +60,15 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     try {
       if (isRegistration) {
         await api.register(formData);
+        toast.success("Cadastro realizado com sucesso!");
         onRegisterSuccess?.();
       } else {
         await api.saveAthlete(formData);
+        toast.success("Atleta salvo com sucesso!");
         onSave();
       }
     } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+      toast.error(`Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
