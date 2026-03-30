@@ -41,7 +41,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         scale: 4, // High scale for professional quality
         useCORS: true,
         allowTaint: false, // Safer than allowTaint: true
-        backgroundColor: '#09090b', // zinc-950 hex
+        backgroundColor: '#ffffff', // White background for PDF
         logging: false,
         width: 340,
         height: 215,
@@ -99,10 +99,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800 print:border-zinc-700"
+          className="w-[340px] h-[215px] bg-white text-black rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
           style={{ 
             fontFamily: "'Inter', sans-serif",
-            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}20 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}20 0%, transparent 50%)`,
+            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}10 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}10 0%, transparent 50%)`,
             WebkitPrintColorAdjust: 'exact',
             printColorAdjust: 'exact'
           }}
@@ -139,9 +139,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 border-radius: 4mm !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                background-color: #09090b !important; /* Force background color */
+                background-color: white !important; /* Force background color */
                 background-image: none !important; /* Remove gradient for print to avoid black issues */
-                color: white !important;
+                color: black !important;
                 box-shadow: none !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -157,7 +157,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             }
           `}</style>
           {/* Header / Top Bar */}
-          <div className="h-12 px-4 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-sm">
+          <div className="h-12 px-4 flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               {settings?.schoolCrest ? (
                 <img src={settings.schoolCrest} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
@@ -165,12 +165,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <div className="w-6 h-6 bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
               )}
               <div className="leading-none">
-                <h3 className="text-[10px] font-black uppercase tracking-tighter">Piruá E.C.</h3>
-                <p className="text-[6px] text-zinc-500 uppercase font-bold">Futebol de Base</p>
+                <h3 className="text-[10px] font-black uppercase tracking-tighter text-black">Piruá E.C.</h3>
+                <p className="text-[6px] text-zinc-400 uppercase font-bold">Futebol de Base</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[6px] text-zinc-500 uppercase font-bold">Matrícula</p>
+              <p className="text-[6px] text-zinc-400 uppercase font-bold">Matrícula</p>
               <p className="text-[10px] font-mono font-bold text-theme-primary">#{athlete.id.slice(-6).toUpperCase()}</p>
             </div>
           </div>
@@ -179,39 +179,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="flex-1 p-4 flex gap-4">
             {/* Photo Section */}
             <div className="relative group">
-              <div className="w-[85px] h-[105px] bg-zinc-900 rounded-xl border-2 border-theme-primary/30 overflow-hidden shadow-lg relative z-10">
+              <div className="w-[85px] h-[105px] bg-zinc-50 rounded-xl border-2 border-theme-primary overflow-hidden shadow-lg relative z-10">
                 {athlete.photo ? (
                   <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-zinc-900">
+                  <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-zinc-50">
                     <UserCircle size={40} strokeWidth={1} />
                   </div>
                 )}
               </div>
               {/* Decorative elements behind photo */}
-              <div className="absolute -inset-1 bg-theme-primary/20 blur-md rounded-xl -z-0"></div>
+              <div className="absolute -inset-1 bg-theme-primary/10 blur-md rounded-xl -z-0"></div>
             </div>
 
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
-                <h4 className={`font-black uppercase leading-[1.1] text-white tracking-tight line-clamp-2 mb-1 min-h-[20px] ${
+                <h4 className={`font-black uppercase leading-[1.1] text-black tracking-tight line-clamp-2 mb-1 min-h-[20px] ${
                   athlete.name.length > 30 ? 'text-[6px]' : athlete.name.length > 20 ? 'text-[7px]' : 'text-[9px]'
                 }`}>
                   {athlete.name}
                 </h4>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
                   <div>
-                    <p className="text-[5px] text-zinc-500 uppercase font-black">Nascimento</p>
-                    <p className="text-[8px] font-bold">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
+                    <p className="text-[5px] text-zinc-400 uppercase font-black">Nascimento</p>
+                    <p className="text-[8px] font-bold text-black">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
                   </div>
                   <div>
-                    <p className="text-[5px] text-zinc-500 uppercase font-black">RG/CPF</p>
-                    <p className="text-[8px] font-bold truncate">{athlete.doc || '--'}</p>
+                    <p className="text-[5px] text-zinc-400 uppercase font-black">RG/CPF</p>
+                    <p className="text-[8px] font-bold text-black truncate">{athlete.doc || '--'}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-[5px] text-zinc-500 uppercase font-black">Endereço</p>
-                    <p className="text-[7px] font-medium text-zinc-300 truncate leading-tight">
+                    <p className="text-[5px] text-zinc-400 uppercase font-black">Endereço</p>
+                    <p className="text-[7px] font-medium text-zinc-600 truncate leading-tight">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood}
                     </p>
                     <p className="text-[7px] font-bold text-theme-primary truncate uppercase">
@@ -221,14 +221,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 </div>
               </div>
 
-              <div className="space-y-0.5 bg-white/5 p-1.5 rounded-lg border border-white/5">
+              <div className="space-y-0.5 bg-zinc-50 p-1.5 rounded-lg border border-zinc-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[5px] text-zinc-500 uppercase font-black">Responsável</p>
-                    <p className="text-[8px] font-bold text-zinc-200 uppercase truncate max-w-[100px]">{athlete.guardian_name}</p>
+                    <p className="text-[5px] text-zinc-400 uppercase font-black">Responsável</p>
+                    <p className="text-[8px] font-bold text-zinc-800 uppercase truncate max-w-[100px]">{athlete.guardian_name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[5px] text-zinc-500 uppercase font-black">Telefone</p>
+                    <p className="text-[5px] text-zinc-400 uppercase font-black">Telefone</p>
                     <p className="text-[8px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
                   </div>
                 </div>
@@ -237,12 +237,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer / Bottom Bar */}
-          <div className="h-10 px-4 flex items-center justify-between bg-zinc-900/50 border-t border-white/5">
+          <div className="h-10 px-4 flex items-center justify-between bg-zinc-50 border-t border-zinc-100">
             <div className="flex items-center gap-2">
-              <div className="bg-white p-0.5 rounded-[4px]">
+              <div className="bg-white p-0.5 rounded-[4px] border border-zinc-100">
                 <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={24} />
               </div>
-              <p className="text-[6px] text-zinc-500 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
+              <p className="text-[6px] text-zinc-400 font-mono leading-none">VALIDA EM TODO<br/>TERRITÓRIO NACIONAL</p>
             </div>
             <div className="text-right">
               <div className="inline-block px-2 py-0.5 bg-theme-primary/10 border border-theme-primary/20 rounded-full">
@@ -253,7 +253,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
           {/* Security Hologram Effect (Decorative) */}
           <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden rounded-[16px]">
-            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-transparent via-white/5 to-transparent rotate-45 transform translate-x-[-20%] translate-y-[-20%]"></div>
+            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-transparent via-black/5 to-transparent rotate-45 transform translate-x-[-20%] translate-y-[-20%]"></div>
           </div>
         </div>
       </div>
