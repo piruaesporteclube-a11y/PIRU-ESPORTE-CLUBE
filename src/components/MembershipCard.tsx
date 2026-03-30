@@ -29,15 +29,42 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         </button>
       </div>
 
-      <div className="flex justify-center p-4">
+      <div className="flex justify-center p-4 print:p-0 card-print-container print-only">
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
-          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800"
+          className="w-[340px] h-[215px] bg-zinc-950 text-white rounded-[16px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800 print:shadow-none print:border-zinc-700"
           style={{ 
             fontFamily: "'Inter', sans-serif",
-            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}15 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}15 0%, transparent 50%)`
+            backgroundImage: `radial-gradient(circle at 0% 0%, ${settings.primaryColor}15 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${settings.secondaryColor}15 0%, transparent 50%)`,
+            WebkitPrintColorAdjust: 'exact',
+            printColorAdjust: 'exact'
           }}
         >
+          <style>{`
+            @media print {
+              .card-print-container {
+                display: block !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white !important;
+                z-index: 9999;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+              }
+              .card {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: white !important;
+              }
+              .text-theme-primary {
+                color: ${settings.primaryColor} !important;
+              }
+            }
+          `}</style>
           {/* Header / Top Bar */}
           <div className="h-12 px-4 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center gap-2">
@@ -77,8 +104,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
-                <h4 className="text-[13px] font-black uppercase leading-tight truncate text-white tracking-tight">
-                  {athlete.name.split(' ')[0]} <span className="text-theme-primary">{athlete.name.split(' ').slice(1).join(' ')}</span>
+                <h4 className="text-[10px] font-black uppercase leading-[1.1] text-white tracking-tight line-clamp-2 mb-1 min-h-[22px]">
+                  {athlete.name}
                 </h4>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
                   <div>
@@ -93,6 +120,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     <p className="text-[5px] text-zinc-500 uppercase font-black">Endereço</p>
                     <p className="text-[7px] font-medium text-zinc-300 truncate leading-tight">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood}
+                    </p>
+                    <p className="text-[7px] font-bold text-theme-primary truncate uppercase">
+                      {athlete.city || 'Cidade'} / {athlete.uf || 'UF'}
                     </p>
                   </div>
                 </div>
