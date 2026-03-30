@@ -17,40 +17,49 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handlePrint = () => {
-    // Small delay to ensure any dynamic styles or images are ready
-    setTimeout(() => {
-      window.print();
-    }, 500);
+    if (!cardRef.current) return;
+    
+    // Ensure all images are loaded before printing
+    const images = cardRef.current.getElementsByTagName('img');
+    const promises = Array.from(images).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    });
+
+    Promise.all(promises).then(() => {
+      // Small delay to ensure any dynamic styles or images are ready
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    });
   };
 
   const handleSavePDF = async () => {
     if (!cardRef.current) return;
     setIsGeneratingPDF(true);
     try {
-      // Ensure all images are loaded
-      const images = cardRef.current.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      }));
-
+      // Create a clone for PDF generation to avoid modifying the UI
       const canvas = await html2canvas(cardRef.current, {
-        scale: 4, // High scale for professional quality
+        scale: 4,
         useCORS: true,
-        allowTaint: false, // Safer than allowTaint: true
-        backgroundColor: '#ffffff', // White background for PDF
+        allowTaint: false,
+        backgroundColor: '#ffffff',
         logging: false,
         width: 340,
         height: 215,
         onclone: (clonedDoc) => {
-          // Ensure cloned element is visible for capture
           const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
           if (clonedCard) {
             clonedCard.style.visibility = 'visible';
             clonedCard.style.display = 'flex';
+            // Ensure all images in the clone have crossOrigin set
+            const images = clonedCard.getElementsByTagName('img');
+            for (let i = 0; i < images.length; i++) {
+              images[i].crossOrigin = 'anonymous';
+            }
           }
         }
       });
@@ -66,7 +75,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Erro ao gerar PDF. Por favor, tente novamente.');
+      alert('Erro ao gerar PDF. Isso pode ser devido a restrições de segurança das imagens. Tente imprimir e salvar como PDF pelo navegador.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -150,6 +159,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               .card img {
                 display: block !important;
                 opacity: 1 !important;
+                visibility: visible !important;
               }
               .text-theme-primary {
                 color: ${settings.primaryColor} !important;
@@ -160,7 +170,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="h-12 px-4 flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               {settings?.schoolCrest ? (
-                <img src={settings.schoolCrest} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+                <img 
+                  src={settings.schoolCrest} 
+                  className="w-6 h-6 object-contain" 
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                />
               ) : (
                 <div className="w-6 h-6 bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
               )}
@@ -181,7 +196,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="relative group">
               <div className="w-[85px] h-[105px] bg-zinc-50 rounded-xl border-2 border-theme-primary overflow-hidden shadow-lg relative z-10">
                 {athlete.photo ? (
-                  <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img 
+                    src={athlete.photo} 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-zinc-50">
                     <UserCircle size={40} strokeWidth={1} />
