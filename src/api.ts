@@ -1,12 +1,94 @@
-import { supabase } from "./lib/supabase";
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut,
+  onAuthStateChanged
+} from "firebase/auth";
+import { 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  collection, 
+  query, 
+  where, 
+  onSnapshot,
+  getDocFromServer,
+  writeBatch
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Test connection
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. ");
+    }
+  }
+}
+testConnection();
+
 export const api = {
   // Auth
   login: async (username: string, password: string): Promise<AuthResponse> => {
-    // Normalize username (remove dots and dashes if it's a CPF)
     const normalizedUsername = username.replace(/\D/g, "");
     const normalizedPassword = password.replace(/\D/g, "");
 
@@ -25,96 +107,81 @@ export const api = {
       return { user: adminUser, token: "emergency-token" };
     }
 
-    // If username is CPF, we map it to an email for Supabase Auth
     const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com`;
     
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password: normalizedPassword,
-    });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
+      const firebaseUser = userCredential.user;
 
-    if (authError) {
-      if (authError.message.includes("Invalid login credentials")) {
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        // Fallback for ADM
+        if (username === "05504043689") {
+          const adminUser: User = { id: firebaseUser.uid, name: "Administrador", doc: "05504043689", role: "admin" };
+          await setDoc(userDocRef, adminUser);
+          return { user: adminUser, token: await firebaseUser.getIdToken() };
+        }
+        throw new Error("Usuário não encontrado no banco de dados.");
+      }
+
+      return { 
+        user: userDocSnap.data() as User, 
+        token: await firebaseUser.getIdToken()
+      };
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         throw new Error("CPF ou senha incorretos.");
       }
-      throw authError;
+      throw error;
     }
-
-    const { data: userDoc, error: userError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", authData.user.id)
-      .single();
-
-    if (userError || !userDoc) {
-      // Fallback for ADM if not in database yet
-      if (username === "05504043689") {
-        const adminUser: User = { id: authData.user.id, name: "Administrador", doc: "05504043689", role: "admin" };
-        await supabase.from("users").upsert(adminUser);
-        return { user: adminUser, token: authData.session?.access_token || "" };
-      }
-      throw new Error("Usuário não encontrado no banco de dados.");
-    }
-
-    return { 
-      user: userDoc as User, 
-      token: authData.session?.access_token || ""
-    };
   },
 
   register: async (athleteData: Partial<Athlete>): Promise<void> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
     const normalizedDoc = athleteData.doc.replace(/\D/g, "");
     const email = `${normalizedDoc}@pirua.com`;
-    const password = normalizedDoc; // Default password is CPF as requested
+    const password = normalizedDoc;
     
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error("Erro ao criar usuário.");
-
-    // Create Athlete in Supabase
-    const { data: athleteRef, error: athleteError } = await supabase
-      .from("athletes")
-      .insert({
+      // Create Athlete
+      const athleteId = doc(collection(db, "athletes")).id;
+      const newAthlete = {
         ...athleteData,
+        id: athleteId,
         status: "Ativo",
-      })
-      .select()
-      .single();
-
-    if (athleteError) throw athleteError;
-    
-    // Create User in Supabase
-    const newUser: User = {
-      id: authData.user.id,
-      name: athleteData.name || "Novo Aluno",
-      doc: athleteData.doc,
-      role: "student",
-      athlete_id: athleteRef.id
-    };
-    
-    const { error: userError } = await supabase.from("users").insert(newUser);
-    if (userError) throw userError;
+      } as Athlete;
+      
+      await setDoc(doc(db, "athletes", athleteId), newAthlete);
+      
+      // Create User
+      const newUser: User = {
+        id: firebaseUser.uid,
+        name: athleteData.name || "Novo Aluno",
+        doc: athleteData.doc,
+        role: "student",
+        athlete_id: athleteId
+      };
+      
+      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "athletes/users");
+    }
   },
 
-  logout: () => supabase.auth.signOut(),
+  logout: () => signOut(auth),
 
   // Settings
   getSettings: async (): Promise<Settings> => {
     try {
-      const { data, error } = await supabase
-        .from("settings")
-        .select("*")
-        .eq("id", SETTINGS_ID)
-        .single();
-      
-      if (data) return data as Settings;
-    } catch (error: any) {
-      console.error("Error fetching settings:", error);
+      const docSnap = await getDoc(doc(db, "settings", SETTINGS_ID));
+      if (docSnap.exists()) return docSnap.data() as Settings;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `settings/${SETTINGS_ID}`);
     }
     return {
       primaryColor: "#EAB308",
@@ -125,139 +192,174 @@ export const api = {
     };
   },
   saveSettings: async (settings: Partial<Settings>) => {
-    const { error } = await supabase
-      .from("settings")
-      .upsert({ id: SETTINGS_ID, ...settings });
-    if (error) throw error;
+    try {
+      await setDoc(doc(db, "settings", SETTINGS_ID), settings, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `settings/${SETTINGS_ID}`);
+    }
   },
 
   // Athletes
   getAthletes: async (): Promise<Athlete[]> => {
-    const { data, error } = await supabase.from("athletes").select("*");
-    if (error) {
-      console.error("Error fetching athletes:", error);
+    try {
+      const querySnapshot = await getDocs(collection(db, "athletes"));
+      return querySnapshot.docs.map(doc => doc.data() as Athlete);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "athletes");
       return [];
     }
-    return data as Athlete[];
   },
   saveAthlete: async (athlete: Partial<Athlete>) => {
-    const { error } = await supabase.from("athletes").upsert(athlete);
-    if (error) throw error;
+    if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
+    try {
+      await setDoc(doc(db, "athletes", athlete.id), athlete, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
+    }
   },
   deleteAthlete: async (id: string) => {
-    const { error } = await supabase.from("athletes").delete().eq("id", id);
-    if (error) throw error;
+    try {
+      await deleteDoc(doc(db, "athletes", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `athletes/${id}`);
+    }
   },
 
   // Professors
   getProfessors: async (): Promise<Professor[]> => {
-    const { data, error } = await supabase.from("professors").select("*");
-    if (error) {
-      console.error("Error fetching professors:", error);
+    try {
+      const querySnapshot = await getDocs(collection(db, "professors"));
+      return querySnapshot.docs.map(doc => doc.data() as Professor);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "professors");
       return [];
     }
-    return data as Professor[];
   },
   saveProfessor: async (professor: Partial<Professor>) => {
-    const { error } = await supabase.from("professors").upsert(professor);
-    if (error) throw error;
+    if (!professor.id) professor.id = doc(collection(db, "professors")).id;
+    try {
+      await setDoc(doc(db, "professors", professor.id), professor, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `professors/${professor.id}`);
+    }
   },
 
   // Events
   getEvents: async (): Promise<Event[]> => {
-    const { data, error } = await supabase.from("events").select("*");
-    if (error) {
-      console.error("Error fetching events:", error);
+    try {
+      const querySnapshot = await getDocs(collection(db, "events"));
+      return querySnapshot.docs.map(doc => doc.data() as Event);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "events");
       return [];
     }
-    return data as Event[];
   },
   saveEvent: async (event: Partial<Event>) => {
-    const { error } = await supabase.from("events").upsert(event);
-    if (error) throw error;
+    if (!event.id) event.id = doc(collection(db, "events")).id;
+    try {
+      await setDoc(doc(db, "events", event.id), event, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `events/${event.id}`);
+    }
   },
 
   // Attendance
   getAttendance: async (date?: string, athlete_id?: string): Promise<Attendance[]> => {
-    let query = supabase.from("attendance").select("*");
-    if (date) query = query.eq("date", date);
-    if (athlete_id) query = query.eq("athlete_id", athlete_id);
-    
-    const { data, error } = await query;
-    if (error) {
-      console.error("Error fetching attendance:", error);
+    try {
+      let q = query(collection(db, "attendance"));
+      if (date) q = query(q, where("date", "==", date));
+      if (athlete_id) q = query(q, where("athlete_id", "==", athlete_id));
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as Attendance);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "attendance");
       return [];
     }
-    return data as Attendance[];
   },
   saveAttendance: async (attendance: Partial<Attendance>) => {
-    const { error } = await supabase.from("attendance").upsert(attendance);
-    if (error) throw error;
+    if (!attendance.id) attendance.id = doc(collection(db, "attendance")).id;
+    try {
+      await setDoc(doc(db, "attendance", attendance.id), attendance, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `attendance/${attendance.id}`);
+    }
   },
 
   // Anamnesis
   getAnamnesis: async (athlete_id: string): Promise<Anamnesis> => {
-    const { data, error } = await supabase
-      .from("anamnesis")
-      .select("*")
-      .eq("athlete_id", athlete_id)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-      console.error("Error fetching anamnesis:", error);
+    try {
+      const docSnap = await getDoc(doc(db, "anamnesis", athlete_id));
+      if (docSnap.exists()) return docSnap.data() as Anamnesis;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `anamnesis/${athlete_id}`);
     }
-    return (data as Anamnesis) || { athlete_id } as Anamnesis;
+    return { athlete_id } as Anamnesis;
   },
   saveAnamnesis: async (anamnesis: Partial<Anamnesis>) => {
     if (!anamnesis.athlete_id) throw new Error("ID do atleta é obrigatório");
-    const { error } = await supabase.from("anamnesis").upsert(anamnesis);
-    if (error) throw error;
+    try {
+      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), anamnesis, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `anamnesis/${anamnesis.athlete_id}`);
+    }
   },
 
-  // Lineups
+  // Lineups (using a subcollection or separate collection)
+  // In the original code, event_lineups was a separate table.
+  // I'll use a collection "event_lineups" where doc ID is event_id + "_" + athlete_id
   getLineup: async (event_id: string): Promise<Athlete[]> => {
-    const { data: lineupData, error: lineupError } = await supabase
-      .from("event_lineups")
-      .select("*")
-      .eq("event_id", event_id);
-    
-    if (lineupError) {
-      console.error("Error fetching lineup:", lineupError);
+    try {
+      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+      const querySnapshot = await getDocs(q);
+      const lineupData = querySnapshot.docs.map(doc => doc.data());
+      
+      const athleteIds = lineupData.map(d => d.athlete_id);
+      if (athleteIds.length === 0) return [];
+      
+      const athletes = await api.getAthletes();
+      const lineup = athletes.filter(a => athleteIds.includes(a.id));
+      
+      return lineup.map(a => {
+        const el = lineupData.find(d => d.athlete_id === a.id);
+        return { ...a, confirmation: el?.confirmation || "Pendente" };
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "event_lineups");
       return [];
     }
-
-    const athleteIds = lineupData.map(d => d.athlete_id);
-    if (athleteIds.length === 0) return [];
-    
-    const athletes = await api.getAthletes();
-    const lineup = athletes.filter(a => athleteIds.includes(a.id));
-    
-    return lineup.map(a => {
-      const el = lineupData.find(d => d.athlete_id === a.id);
-      return { ...a, confirmation: el?.confirmation || "Pendente" };
-    });
   },
   saveLineup: async (event_id: string, athlete_ids: string[]) => {
-    // Delete existing
-    await supabase.from("event_lineups").delete().eq("event_id", event_id);
-    
-    // Add new
-    const newRows = athlete_ids.map(aid => ({
-      event_id,
-      athlete_id: aid,
-      confirmation: "Pendente"
-    }));
-    
-    const { error } = await supabase.from("event_lineups").insert(newRows);
-    if (error) throw error;
+    try {
+      const batch = writeBatch(db);
+      
+      // Delete existing
+      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      
+      // Add new
+      athlete_ids.forEach(aid => {
+        const id = `${event_id}_${aid}`;
+        batch.set(doc(db, "event_lineups", id), {
+          event_id,
+          athlete_id: aid,
+          confirmation: "Pendente"
+        });
+      });
+      
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "event_lineups");
+    }
   },
   confirmLineup: async (event_id: string, athlete_id: string, confirmation: string) => {
-    const { error } = await supabase
-      .from("event_lineups")
-      .update({ confirmation })
-      .eq("event_id", event_id)
-      .eq("athlete_id", athlete_id);
-    if (error) throw error;
+    try {
+      const id = `${event_id}_${athlete_id}`;
+      await updateDoc(doc(db, "event_lineups", id), { confirmation });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${athlete_id}`);
+    }
   },
 
   loginGuest: async (): Promise<AuthResponse> => {

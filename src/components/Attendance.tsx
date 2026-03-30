@@ -42,7 +42,9 @@ export default function Attendance() {
       }, (error) => {
         // console.warn(error);
       });
-      return () => scanner.clear();
+      return () => {
+        scanner.clear().catch(console.error);
+      };
     }
   }, [isScanning]);
 

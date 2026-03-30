@@ -3,7 +3,6 @@ import { api } from '../api';
 import { User, AuthResponse } from '../types';
 import { Trophy, User as UserIcon, Lock, UserPlus, ArrowRight, ShieldCheck, AlertTriangle, Unlock } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 interface LoginProps {
   onLogin: (auth: AuthResponse) => void;
@@ -119,15 +118,6 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
               </div>
             )}
 
-            {!isSupabaseConfigured && (
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
-                <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-amber-200/70 leading-relaxed">
-                  <strong>Banco de dados não configurado.</strong> Por favor, adicione as chaves <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> nas configurações do projeto.
-                </p>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -174,7 +164,6 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
 
             <button
               onClick={onRegisterClick}
-              disabled={!isSupabaseConfigured}
               className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
             >
               <UserPlus size={20} className="text-theme-primary" />

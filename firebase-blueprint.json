@@ -1,0 +1,159 @@
+{
+  "entities": {
+    "Athlete": {
+      "title": "Athlete",
+      "description": "Athlete data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "birth_date": { "type": "string" },
+        "doc": { "type": "string" },
+        "street": { "type": "string" },
+        "number": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "city": { "type": "string" },
+        "uf": { "type": "string" },
+        "jersey_number": { "type": "string" },
+        "photo": { "type": "string" },
+        "contact": { "type": "string" },
+        "guardian_name": { "type": "string" },
+        "guardian_doc": { "type": "string" },
+        "guardian_phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
+        "confirmation": { "type": "string", "enum": ["Pendente", "Confirmado", "Recusado"] }
+      },
+      "required": ["id", "name", "birth_date", "doc", "status"]
+    },
+    "Professor": {
+      "title": "Professor",
+      "description": "Professor data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "birth_date": { "type": "string" },
+        "doc": { "type": "string" },
+        "street": { "type": "string" },
+        "number": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "city": { "type": "string" },
+        "uf": { "type": "string" },
+        "photo": { "type": "string" }
+      },
+      "required": ["id", "name", "doc"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Event data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "street": { "type": "string" },
+        "number": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "city": { "type": "string" },
+        "uf": { "type": "string" },
+        "start_date": { "type": "string" },
+        "end_date": { "type": "string" },
+        "start_time": { "type": "string" },
+        "end_time": { "type": "string" }
+      },
+      "required": ["id", "name", "start_date", "end_date"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Attendance data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "athlete_id": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["Presente", "Faltou"] },
+        "justification": { "type": "string" }
+      },
+      "required": ["id", "athlete_id", "date", "status"]
+    },
+    "Anamnesis": {
+      "title": "Anamnesis",
+      "description": "Anamnesis data model",
+      "type": "object",
+      "properties": {
+        "athlete_id": { "type": "string" },
+        "sleep_time": { "type": "string" },
+        "wake_up_difficulty": { "type": "string" },
+        "fractures": { "type": "string" },
+        "medical_treatment": { "type": "string" },
+        "controlled_medication": { "type": "string" },
+        "other_exercises": { "type": "string" },
+        "respiratory_problems": { "type": "string" },
+        "cardiac_problems": { "type": "string" },
+        "allergies": { "type": "string" },
+        "hypertension": { "type": "string" },
+        "hypotension": { "type": "string" },
+        "epilepsy": { "type": "string" },
+        "diabetes": { "type": "string" },
+        "food_restriction": { "type": "string" },
+        "medication_restriction": { "type": "string" },
+        "pathologies": { "type": "string" }
+      },
+      "required": ["athlete_id"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Settings data model",
+      "type": "object",
+      "properties": {
+        "primaryColor": { "type": "string" },
+        "secondaryColor": { "type": "string" },
+        "instagram": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "schoolCrest": { "type": "string" }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "User data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "doc": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "student"] },
+        "athlete_id": { "type": "string" }
+      },
+      "required": ["id", "name", "doc", "role"]
+    }
+  },
+  "firestore": {
+    "/athletes/{athleteId}": {
+      "schema": "Athlete",
+      "description": "Athletes collection"
+    },
+    "/professors/{professorId}": {
+      "schema": "Professor",
+      "description": "Professors collection"
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Events collection"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Attendance records"
+    },
+    "/anamnesis/{athleteId}": {
+      "schema": "Anamnesis",
+      "description": "Anamnesis records indexed by athlete ID"
+    },
+    "/settings/global_settings": {
+      "schema": "Settings",
+      "description": "Global application settings"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    }
+  }
+}

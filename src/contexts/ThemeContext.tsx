@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import { Settings } from '../types';
 
 interface ThemeContextType {
@@ -20,42 +21,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // Initial fetch
-    const fetchSettings = async () => {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('id', SETTINGS_ID)
-        .single();
-      
-      if (data) {
-        setSettings(data as Settings);
-      }
-    };
-
-    fetchSettings();
-
     // Real-time subscription
-    const channel = supabase
-      .channel('settings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'settings',
-          filter: `id=eq.${SETTINGS_ID}`
-        },
-        (payload) => {
-          if (payload.new) {
-            setSettings(payload.new as Settings);
-          }
-        }
-      )
-      .subscribe();
+    const unsubscribe = onSnapshot(doc(db, 'settings', SETTINGS_ID), (snapshot) => {
+      if (snapshot.exists()) {
+        setSettings(snapshot.data() as Settings);
+      }
+    }, (error) => {
+      console.error("Error listening to settings changes:", error);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, []);
 
