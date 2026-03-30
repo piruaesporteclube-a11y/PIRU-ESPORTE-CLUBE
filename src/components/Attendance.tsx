@@ -56,6 +56,23 @@ export default function Attendance() {
       const athlete = athletes.find(a => a.id === athleteId);
       if (athlete) {
         await markAttendance(athleteId, 'Presente');
+        
+        // Check for events today
+        try {
+          const events = await api.getEvents();
+          const today = format(new Date(), 'yyyy-MM-dd');
+          const todayEvents = events.filter(e => e.start_date === today);
+          
+          for (const event of todayEvents) {
+            const { athletes: lineup } = await api.getLineup(event.id);
+            if (lineup.some(a => a.id === athleteId)) {
+              await api.confirmLineup(event.id, athleteId, 'athlete', 'Confirmado');
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao registrar presença em evento:", err);
+        }
+
         setScanResult(`Presença registrada: ${athlete.name}`);
         setTimeout(() => setScanResult(null), 3000);
       } else {
