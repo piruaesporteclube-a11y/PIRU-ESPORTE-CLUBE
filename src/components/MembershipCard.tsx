@@ -77,29 +77,37 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div className="space-y-0.5">
-                <h4 className="text-[14px] font-black uppercase leading-tight truncate text-white tracking-tight">
+                <h4 className="text-[13px] font-black uppercase leading-tight truncate text-white tracking-tight">
                   {athlete.name.split(' ')[0]} <span className="text-theme-primary">{athlete.name.split(' ').slice(1).join(' ')}</span>
                 </h4>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
                   <div>
-                    <p className="text-[6px] text-zinc-500 uppercase font-bold">Nascimento</p>
-                    <p className="text-[9px] font-bold">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
+                    <p className="text-[5px] text-zinc-500 uppercase font-black">Nascimento</p>
+                    <p className="text-[8px] font-bold">{athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</p>
                   </div>
                   <div>
-                    <p className="text-[6px] text-zinc-500 uppercase font-bold">Camisa</p>
-                    <p className="text-[9px] font-bold text-theme-primary">#{athlete.jersey_number || '--'}</p>
+                    <p className="text-[5px] text-zinc-500 uppercase font-black">RG/CPF</p>
+                    <p className="text-[8px] font-bold truncate">{athlete.doc || '--'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[5px] text-zinc-500 uppercase font-black">Endereço</p>
+                    <p className="text-[7px] font-medium text-zinc-300 truncate leading-tight">
+                      {athlete.street}, {athlete.number} - {athlete.neighborhood}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                  <p className="text-[8px] font-bold text-zinc-300 uppercase truncate">{athlete.guardian_name}</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1 h-1 rounded-full bg-zinc-600"></div>
-                  <p className="text-[7px] text-zinc-500 font-medium">{athlete.guardian_phone}</p>
+              <div className="space-y-0.5 bg-white/5 p-1.5 rounded-lg border border-white/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[5px] text-zinc-500 uppercase font-black">Responsável</p>
+                    <p className="text-[8px] font-bold text-zinc-200 uppercase truncate max-w-[100px]">{athlete.guardian_name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[5px] text-zinc-500 uppercase font-black">Telefone</p>
+                    <p className="text-[8px] font-bold text-theme-primary">{athlete.guardian_phone}</p>
+                  </div>
                 </div>
               </div>
             </div>
