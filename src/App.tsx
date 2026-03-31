@@ -11,6 +11,7 @@ import Documents from './components/Documents';
 import SettingsComponent from './components/Settings';
 import MembershipCard from './components/MembershipCard';
 import Login from './components/Login';
+import PublicRegistration from './components/PublicRegistration';
 import { Athlete, User } from './types';
 import { api } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle } from 'lucide-react';
@@ -411,6 +412,13 @@ export default function App() {
     );
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('register') === 'true') {
+      setIsRegistering(true);
+    }
+  }, []);
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -418,6 +426,19 @@ export default function App() {
           Iniciando Sistema...
         </div>
       </div>
+    );
+  }
+
+  if (isRegistering) {
+    return (
+      <PublicRegistration 
+        onCancel={() => setIsRegistering(false)} 
+        onComplete={() => {
+          setIsRegistering(false);
+          // Clear query param
+          window.history.replaceState({}, '', window.location.pathname);
+        }} 
+      />
     );
   }
 

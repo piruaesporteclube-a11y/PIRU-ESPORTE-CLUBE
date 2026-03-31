@@ -25,6 +25,7 @@ export type Professor = {
   name: string;
   birth_date: string;
   doc: string;
+  phone: string;
   street: string;
   number: string;
   neighborhood: string;

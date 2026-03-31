@@ -3,16 +3,18 @@ import { api } from '../api';
 import { Athlete } from '../types';
 import { X, Upload, Save, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '../utils';
 
 interface AthleteFormProps {
   athlete?: Athlete | null;
   onClose: () => void;
   onSave: () => void;
   isRegistration?: boolean;
-  onRegisterSuccess?: () => void;
+  onRegisterSuccess?: (athlete: Athlete) => void;
+  standalone?: boolean;
 }
 
-export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess }: AthleteFormProps) {
+export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone }: AthleteFormProps) {
   const [formData, setFormData] = useState<Partial<Athlete>>({
     name: '',
     birth_date: '',
@@ -59,9 +61,9 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     setLoading(true);
     try {
       if (isRegistration) {
-        await api.register(formData);
+        const result = await api.register(formData);
         toast.success("Cadastro realizado com sucesso!");
-        onRegisterSuccess?.();
+        onRegisterSuccess?.(result);
       } else {
         await api.saveAthlete(formData);
         toast.success("Atleta salvo com sucesso!");
@@ -74,24 +76,30 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
-      <div className="bg-black border border-zinc-800 w-full max-w-4xl rounded-3xl shadow-2xl my-auto">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+  const formContent = (
+    <div className={cn(
+      "bg-black border border-zinc-800 w-full rounded-3xl shadow-2xl",
+      !standalone && "max-w-4xl my-auto"
+    )}>
+      <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+        <h2 className="text-xl font-bold text-white flex items-center gap-3">
+          {!standalone && (
             <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 md:hidden">
               <X size={20} />
             </button>
-            {isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta')}
-          </h2>
+          )}
+          {isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta')}
+        </h2>
+        {!standalone && (
           <button onClick={onClose} className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
             <X size={18} className="group-hover:rotate-90 transition-transform" />
             <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
           </button>
-        </div>
+        )}
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Photo Upload Section */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-8">
+        {/* Photo Upload Section */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative group">
               {formData.photo ? (
@@ -275,14 +283,16 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
-            <button 
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors disabled:opacity-50"
-            >
-              Cancelar
-            </button>
+            {!standalone && (
+              <button 
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            )}
             <button 
               type="submit"
               disabled={loading}
@@ -298,6 +308,13 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
           </div>
         </form>
       </div>
+    );
+
+  if (standalone) return formContent;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
+      {formContent}
     </div>
   );
 }

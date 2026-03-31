@@ -12,6 +12,7 @@ export default function ProfessorManagement() {
     name: '',
     birth_date: '',
     doc: '',
+    phone: '',
     street: '',
     number: '',
     neighborhood: '',
@@ -54,10 +55,28 @@ export default function ProfessorManagement() {
       toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
       setEditingProfessor(null);
-      setFormData({ name: '', birth_date: '', doc: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
+      setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
       loadProfessors();
     } catch (err: any) {
       toast.error(`Erro ao salvar professor: ${err.message}`);
+    }
+  };
+
+  const handleEdit = (p: Professor) => {
+    setEditingProfessor(p);
+    setFormData(p);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este membro?")) {
+      try {
+        await api.deleteProfessor(id);
+        toast.success("Membro excluído com sucesso!");
+        loadProfessors();
+      } catch (err: any) {
+        toast.error(`Erro ao excluir: ${err.message}`);
+      }
     }
   };
 
@@ -99,10 +118,25 @@ export default function ProfessorManagement() {
               )}
             </div>
             <h3 className="text-lg font-bold text-white uppercase">{p.name}</h3>
-            <p className="text-xs text-zinc-500 mb-4">{p.doc}</p>
+            <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
+            <p className="text-xs text-theme-primary font-bold mb-4">{p.phone}</p>
             <div className="text-xs text-zinc-400 space-y-1">
               <p>{p.street}, {p.number}</p>
               <p>{p.neighborhood} - {p.city}/{p.uf}</p>
+            </div>
+            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+              <button 
+                onClick={() => handleEdit(p)}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button 
+                onClick={() => handleDelete(p.id)}
+                className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-lg transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}
@@ -112,8 +146,8 @@ export default function ProfessorManagement() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-auto">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-bold text-white">Novo Membro</h2>
-              <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+              <h2 className="text-xl font-bold text-white">{editingProfessor ? 'Editar Membro' : 'Novo Membro'}</h2>
+              <button onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
               </button>
@@ -166,6 +200,17 @@ export default function ProfessorManagement() {
                     onChange={e => setFormData({...formData, doc: e.target.value})}
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Telefone</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="(37) 99999-9999"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
                 <div className="md:col-span-2 grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Rua</label>
@@ -209,7 +254,7 @@ export default function ProfessorManagement() {
               <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <button 
                   type="button"
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }}
                   className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
                 >
                   Cancelar
@@ -219,7 +264,7 @@ export default function ProfessorManagement() {
                   className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
                 >
                   <Save size={20} />
-                  Salvar Membro
+                  {editingProfessor ? 'Salvar Alterações' : 'Salvar Membro'}
                 </button>
               </div>
             </form>

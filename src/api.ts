@@ -210,7 +210,7 @@ export const api = {
     }
   },
 
-  register: async (athleteData: Partial<Athlete>): Promise<void> => {
+  register: async (athleteData: Partial<Athlete>): Promise<Athlete> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
     const normalizedDoc = athleteData.doc.replace(/\D/g, "");
     const email = `${normalizedDoc}@pirua.com`;
@@ -240,6 +240,7 @@ export const api = {
       };
       
       await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
+      return newAthlete;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "athletes/users");
     }
@@ -324,6 +325,13 @@ export const api = {
       await setDoc(doc(db, "professors", professor.id), sanitizeData(professor), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `professors/${professor.id}`);
+    }
+  },
+  deleteProfessor: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "professors", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `professors/${id}`);
     }
   },
 
