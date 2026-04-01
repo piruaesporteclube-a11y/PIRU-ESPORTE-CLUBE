@@ -19,6 +19,9 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
   const [filterSub, setFilterSub] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
 
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [athleteToDelete, setAthleteToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     loadAthletes();
   }, []);
@@ -28,15 +31,21 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
     setAthletes(data);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este atleta?')) {
-      try {
-        await api.deleteAthlete(id);
-        toast.success("Atleta excluído com sucesso!");
-        loadAthletes();
-      } catch (err: any) {
-        toast.error(`Erro ao excluir atleta: ${err.message}`);
-      }
+  const handleDelete = (id: string) => {
+    setAthleteToDelete(id);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!athleteToDelete) return;
+    try {
+      await api.deleteAthlete(athleteToDelete);
+      toast.success("Atleta excluído com sucesso!");
+      loadAthletes();
+      setIsDeleteConfirmOpen(false);
+      setAthleteToDelete(null);
+    } catch (err: any) {
+      toast.error(`Erro ao excluir atleta: ${err.message}`);
     }
   };
 
@@ -311,6 +320,32 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
           </tbody>
         </table>
       </div>
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-black border border-red-900/30 w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-widest">Excluir Atleta</h3>
+            <p className="text-zinc-400 mb-8">Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors uppercase text-xs tracking-widest"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors uppercase text-xs tracking-widest"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

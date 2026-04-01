@@ -288,7 +288,7 @@ export const api = {
   getAthletes: async (): Promise<Athlete[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, "athletes"));
-      return querySnapshot.docs.map(doc => doc.data() as Athlete);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "athletes");
       return [];
@@ -314,7 +314,7 @@ export const api = {
   getProfessors: async (): Promise<Professor[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, "professors"));
-      return querySnapshot.docs.map(doc => doc.data() as Professor);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Professor));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "professors");
       return [];
@@ -340,7 +340,7 @@ export const api = {
   getEvents: async (): Promise<Event[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, "events"));
-      return querySnapshot.docs.map(doc => doc.data() as Event);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Event));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "events");
       return [];
