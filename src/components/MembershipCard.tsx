@@ -100,10 +100,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [85.6, 54],
+        format: [105, 75],
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54, undefined, 'FAST');
+      pdf.addImage(imgData, 'PNG', 0, 0, 105, 75, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -137,10 +137,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       </div>
 
       <div className="flex justify-center p-4 print:p-0 card-print-container overflow-x-auto">
-        {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
+        {/* The Card Layout - Custom Size (10.5cm x 7.5cm) */}
         <div 
           ref={cardRef}
-          className="w-[450px] h-[280px] min-w-[450px] bg-zinc-950 text-white rounded-[24px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800/50 print:border-zinc-300"
+          className="w-[450px] h-[321px] min-w-[450px] bg-zinc-950 text-white rounded-[24px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800/50 print:border-zinc-300"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -176,8 +176,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 margin: 0 !important;
               }
               .card {
-                width: 85.6mm !important;
-                height: 54mm !important;
+                width: 105mm !important;
+                height: 75mm !important;
                 border: 1px solid #eee !important;
                 border-radius: 4mm !important;
                 box-shadow: none !important;
@@ -213,9 +213,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute top-0 left-0 w-full h-1.5 bg-theme-primary z-20"></div>
 
           {/* Header */}
-          <div className="h-16 px-6 flex items-center justify-between relative z-10">
+          <div className="h-20 px-6 flex items-center justify-between relative z-10">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center p-1 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl">
+              <div className="w-14 h-14 flex items-center justify-center p-1 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl">
                 {crestDataUrl ? (
                   <img 
                     src={crestDataUrl} 
@@ -227,13 +227,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 )}
               </div>
               <div className="leading-tight">
-                <h3 className="text-base font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
-                <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
+                <p className="text-sm text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-0.5">Matrícula</p>
-              <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
+              <p className="text-[17rem] text-zinc-500 uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+              <p className="text-xl font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
             </div>
           </div>
 
@@ -241,7 +241,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="flex-1 flex p-6 gap-6 relative z-10">
             {/* Photo Section */}
             <div className="relative group">
-              <div className="w-[110px] h-[140px] bg-zinc-900 rounded-[2rem] border-2 border-theme-primary/30 overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
+              <div className="w-[130px] h-[170px] bg-zinc-900 rounded-[2rem] border-2 border-theme-primary/30 overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
                 {photoDataUrl ? (
                   <img 
                     src={photoDataUrl} 
@@ -261,8 +261,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               ></div>
               
               {/* Status Badge on Photo */}
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-3 py-1 rounded-full shadow-lg">
-                <p className="text-[8px] font-black uppercase tracking-widest">Ativo</p>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-4 py-1.5 rounded-full shadow-lg">
+                <p className="text-[16rem] font-black uppercase tracking-widest">Ativo</p>
               </div>
             </div>
 
@@ -270,39 +270,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
               <div className="space-y-4">
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                     Nome Completo do Atleta
                   </div>
-                  <h4 className="text-xl font-black uppercase leading-none text-white tracking-tight truncate">
+                  <h4 className="text-3xl font-black uppercase leading-tight text-white tracking-tight">
                     {athlete.name}
                   </h4>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                       Nascimento
                     </div>
-                    <p className="text-sm font-black text-white">
+                    <p className="text-lg font-black text-white">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
                     </p>
                   </div>
                   <div>
-                    <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                       Documento
                     </div>
-                    <p className="text-sm font-black text-white">{athlete.doc || '--'}</p>
+                    <p className="text-lg font-black text-white">{athlete.doc || '--'}</p>
                   </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/5">
-                  <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5">Responsável & Contato</p>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-zinc-300 uppercase truncate pr-4">{athlete.guardian_name}</p>
-                    <p className="text-xs font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/5">
+                  <p className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5">Responsável & Contato</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-base font-bold text-zinc-300 uppercase leading-tight">{athlete.guardian_name}</p>
+                    <p className="text-base font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
                   </div>
                 </div>
               </div>
@@ -312,23 +312,23 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           {/* Footer */}
           <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-black/40 border-t border-white/5">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-2 rounded-xl shadow-xl">
+              <div className="bg-white p-2.5 rounded-xl shadow-xl">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={48} 
+                  size={64} 
                   level="H"
                   includeMargin={false}
                 />
               </div>
               <div className="leading-tight">
-                <p className="text-[10px] text-white font-black uppercase tracking-widest">Identificação Digital</p>
-                <p className="text-[8px] text-zinc-500 font-bold uppercase">Válida em todo território nacional</p>
+                <p className="text-lg text-white font-black uppercase tracking-widest">Identificação Digital</p>
+                <p className="text-[16rem] text-zinc-500 font-bold uppercase">Válida em todo território nacional</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Categoria</p>
-                <p className="text-sm font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
+                <p className="text-[17rem] text-zinc-500 uppercase font-black tracking-widest">Categoria</p>
+                <p className="text-xl font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
               </div>
               <div className="w-px h-8 bg-white/10"></div>
               <ShieldCheck size={28} className="text-theme-primary" />
@@ -337,7 +337,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
           {/* Security Micro-text (Decorative) */}
           <div className="absolute bottom-0 left-0 w-full overflow-hidden whitespace-nowrap opacity-5 pointer-events-none">
-            <p className="text-[4px] font-mono uppercase tracking-[0.5em]">
+            <p className="text-[24px] font-mono uppercase tracking-[0.5em]">
               PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL
             </p>
           </div>

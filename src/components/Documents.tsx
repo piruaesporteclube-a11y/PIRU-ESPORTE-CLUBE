@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Athlete, Event, Settings } from '../types';
-import { FileText, Download, Printer, ChevronRight, User, Calendar, FileDown } from 'lucide-react';
+import { Athlete, Event, Settings, getSubCategory, categories } from '../types';
+import { FileText, Download, Printer, ChevronRight, User, Calendar, FileDown, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 import jsPDF from 'jspdf';
@@ -15,12 +15,20 @@ export default function Documents() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [docType, setDocType] = useState<'travel' | 'responsibility' | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const documentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.getAthletes().then(setAthletes);
     api.getEvents().then(setEvents);
   }, []);
+
+  const filteredAthletes = athletes.filter(a => {
+    const matchesName = a.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || getSubCategory(a.birth_date) === selectedCategory;
+    return matchesName && matchesCategory;
+  });
 
   const handlePrint = () => {
     window.print();
@@ -74,16 +82,46 @@ export default function Documents() {
             </div>
           </div>
           <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Nome do Atleta..."
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <select 
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">Todas as Categorias</option>
+                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+            </div>
+
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
               onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
+              value={selectedAthlete?.id || ''}
             >
-              <option value="">Selecionar Atleta</option>
-              {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
+              {filteredAthletes.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({getSubCategory(a.birth_date)})
+                </option>
+              ))}
             </select>
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
               onChange={(e) => setSelectedEvent(events.find(ev => ev.id === e.target.value) || null)}
+              value={selectedEvent?.id || ''}
             >
               <option value="">Selecionar Evento</option>
               {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
@@ -111,12 +149,41 @@ export default function Documents() {
             </div>
           </div>
           <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Nome do Atleta..."
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <select 
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">Todas as Categorias</option>
+                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+            </div>
+
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
               onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
+              value={selectedAthlete?.id || ''}
             >
-              <option value="">Selecionar Atleta</option>
-              {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
+              {filteredAthletes.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({getSubCategory(a.birth_date)})
+                </option>
+              ))}
             </select>
             <button 
               disabled={!selectedAthlete}
