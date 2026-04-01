@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Athlete, Settings } from '../types';
+import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
@@ -150,43 +150,43 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <style>{`
             @media print {
               @page {
-                size: A4;
-                margin: 0;
+                size: A4 landscape;
+                margin: 10mm;
               }
               body {
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                margin: 0 !important;
+                padding: 0 !important;
               }
               .no-print {
                 display: none !important;
               }
               .card-print-container {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
+                position: relative !important;
+                width: 100% !important;
+                height: auto !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 background: white !important;
-                z-index: 9999 !important;
-                padding: 0 !important;
+                padding: 20mm 0 !important;
                 margin: 0 !important;
               }
               .card {
                 width: 105mm !important;
                 height: 75mm !important;
-                border: 1px solid #eee !important;
+                border: 0.5pt solid rgba(0,0,0,0.1) !important;
                 border-radius: 4mm !important;
                 box-shadow: none !important;
                 overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
                 background-color: #050505 !important;
-                transform: scale(1) !important;
-                margin: 0 !important;
+                transform: none !important;
+                margin: 0 auto !important;
+                page-break-inside: avoid !important;
               }
               .card * {
                 visibility: visible !important;
@@ -227,13 +227,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 )}
               </div>
               <div className="leading-tight">
-                <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
-                <p className="text-base text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
+                <p className="text-[10px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[13px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Número da Matrícula</p>
-              <p className="text-2xl font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
+              <p className="text-[10px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+              <p className="text-lg font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
             </div>
           </div>
 
@@ -268,52 +268,52 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
             {/* Info Section */}
             <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <div className="text-[12px] text-[#71717a] uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                  <div className="text-[10px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                    <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome Completo do Aluno
                   </div>
-                  <h4 className="text-4xl font-black uppercase leading-tight text-white tracking-tight">
+                  <h4 className="text-2xl font-black uppercase leading-tight text-white tracking-tight truncate">
                     {athlete.name}
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <div className="text-[11px] text-[#71717a] uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
-                      Data de Nascimento
+                    <div className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                      Nascimento
                     </div>
-                    <p className="text-lg font-black text-white">
+                    <p className="text-sm font-black text-white">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
                     </p>
                   </div>
                   <div>
-                    <div className="text-[11px] text-[#71717a] uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                    <div className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                       RG/CPF
                     </div>
-                    <p className="text-lg font-black text-white">{athlete.doc || '--'}</p>
+                    <p className="text-sm font-black text-white truncate">{athlete.doc || '--'}</p>
                   </div>
                   <div>
-                    <div className="text-[11px] text-[#71717a] uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
-                      Número do Uniforme
+                    <div className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                      Uniforme
                     </div>
-                    <p className="text-lg font-black text-white">#{athlete.jersey_number || '--'}</p>
+                    <p className="text-sm font-black text-white">#{athlete.jersey_number || '--'}</p>
                   </div>
                 </div>
 
-                <div className="bg-[rgba(255,255,255,0.05)] backdrop-blur-md p-4 rounded-2xl border border-[rgba(255,255,255,0.05)]">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[rgba(255,255,255,0.05)] backdrop-blur-md p-3 rounded-xl border border-[rgba(255,255,255,0.05)]">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-[#71717a] uppercase font-black tracking-widest mb-1">Nome do Responsável</p>
-                      <p className="text-base font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
+                      <p className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável</p>
+                      <p className="text-xs font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] text-[#71717a] uppercase font-black tracking-widest mb-1">Telefone do Responsável</p>
-                      <p className="text-base font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                      <p className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
+                      <p className="text-xs font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
                     </div>
                   </div>
                 </div>
@@ -322,28 +322,28 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.4)] border-t border-[rgba(255,255,255,0.05)]">
+          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-2.5 rounded-xl shadow-xl">
+              <div className="bg-white p-1.5 rounded-lg shadow-xl">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={64} 
+                  size={56} 
                   level="H"
                   includeMargin={false}
                 />
               </div>
               <div className="leading-tight">
-                <p className="text-xl text-white font-black uppercase tracking-widest">Identificação Digital</p>
-                <p className="text-[12px] text-[#71717a] font-bold uppercase">Válida em todo território nacional</p>
+                <p className="text-lg text-white font-black uppercase tracking-widest">QR CODE OFICIAL</p>
+                <p className="text-[10px] text-[#71717a] font-bold uppercase">Acesse o perfil completo do atleta</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-[13px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
-                <p className="text-2xl font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
+                <p className="text-[11px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
+                <p className="text-xl font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
               </div>
               <div className="w-px h-8 bg-[rgba(255,255,255,0.1)]"></div>
-              <ShieldCheck size={28} className="text-theme-primary" />
+              <ShieldCheck size={24} className="text-theme-primary" />
             </div>
           </div>
 
