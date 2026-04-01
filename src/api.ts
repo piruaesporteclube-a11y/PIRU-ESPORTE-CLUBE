@@ -214,7 +214,6 @@ export const api = {
   register: async (athleteData: Partial<Athlete>): Promise<{ athlete: Athlete, user: User }> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
     
-    // Normalize CPF for email and password
     const normalizedDoc = athleteData.doc.replace(/\D/g, "");
     if (normalizedDoc.length < 11) {
       throw new Error("CPF inválido. Deve conter pelo menos 11 dígitos.");
@@ -224,51 +223,45 @@ export const api = {
     const password = normalizedDoc;
     
     try {
-      // Ensure we are signed out before creating a new public user
-      // to avoid session conflicts with auto-logged in admin
+      // 1. Ensure we are signed out first
       await signOut(auth);
 
-      // 1. Create Auth User
+      // 2. Create Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // 2. Create Athlete Doc
+      // 3. Prepare Batch for atomic write
+      const batch = writeBatch(db);
+      
       const athleteId = doc(collection(db, "athletes")).id;
       const newAthlete = {
         ...athleteData,
         id: athleteId,
-        doc: normalizedDoc, // Store normalized CPF
+        doc: normalizedDoc,
         status: "Ativo",
+        created_at: new Date().toISOString()
       } as Athlete;
       
-      await setDoc(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
-      
-      // 3. Create User Doc
       const newUser: User = {
         id: firebaseUser.uid,
         name: athleteData.name || "Novo Aluno",
-        doc: normalizedDoc, // Store normalized CPF
+        doc: normalizedDoc,
         role: "student",
         athlete_id: athleteId
       };
+
+      batch.set(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
+      batch.set(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
       
-      await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
+      await batch.commit();
       
       return { athlete: newAthlete, user: newUser };
     } catch (error: any) {
       console.error("Detailed Registration Error:", error);
-      
       if (error.code === 'auth/email-already-in-use') {
         throw new Error("Este CPF já está cadastrado no sistema.");
       }
-      if (error.code === 'auth/weak-password') {
-        throw new Error("A senha (CPF) é muito curta.");
-      }
-      if (error.code === 'auth/invalid-email') {
-        throw new Error("Erro ao gerar credenciais de acesso. Verifique o CPF.");
-      }
-      
-      handleFirestoreError(error, OperationType.WRITE, "athletes/users");
+      handleFirestoreError(error, OperationType.WRITE, "registration/batch");
     }
   },
 
