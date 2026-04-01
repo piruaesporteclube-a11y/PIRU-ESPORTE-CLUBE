@@ -38,16 +38,16 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     if (athlete) setFormData(athlete);
   }, [athlete]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'doc_photo') => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit
-        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 1MB.");
+      if (file.size > 400 * 1024) { // Reduced to 400KB to avoid Firestore document size limits
+        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 400KB.");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, [field]: reader.result as string }));
+        setFormData(prev => ({ ...prev, photo: reader.result as string }));
       };
       reader.onerror = () => {
         toast.error("Erro ao ler o arquivo.");
@@ -99,9 +99,9 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-8">
-        {/* Photo & Document Upload Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl">
+        {/* Photo Upload Section */}
+          <div className="flex justify-center mb-8">
+            <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl w-full max-w-sm">
               <div className="relative group">
                 {formData.photo ? (
                   <img src={formData.photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
@@ -113,35 +113,10 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 )}
                 <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
                   <Upload className="text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photo')} />
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e)} />
                 </label>
               </div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Foto do Atleta (3x4)</p>
-            </div>
-
-            <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl">
-              <div className="relative group">
-                {formData.doc_photo ? (
-                  formData.doc_photo.startsWith('data:image') ? (
-                    <img src={formData.doc_photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-[120px] h-[160px] bg-zinc-800/50 rounded-xl flex flex-col items-center justify-center text-theme-primary border-2 border-theme-primary shadow-lg shadow-theme-primary/20">
-                      <ClipboardCheck size={48} />
-                      <span className="text-[10px] mt-2 font-bold uppercase">Doc Enviado</span>
-                    </div>
-                  )
-                ) : (
-                  <div className="w-[120px] h-[160px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-700 group-hover:border-theme-primary transition-colors">
-                    <Upload size={48} />
-                    <span className="text-[10px] mt-2 font-bold uppercase">Doc (RG/CPF)</span>
-                  </div>
-                )}
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
-                  <Upload className="text-white" />
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, 'doc_photo')} />
-                </label>
-              </div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Documento (RG/CPF)</p>
             </div>
           </div>
 

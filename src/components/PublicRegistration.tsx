@@ -73,7 +73,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     setAnamnesisData({ ...anamnesisData, pathologies: JSON.stringify(next) });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'doc_photo') => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 400 * 1024) { // Reduced to 400KB to avoid Firestore document size limits
@@ -82,7 +82,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAthleteData(prev => ({ ...prev, [field]: reader.result as string }));
+        setAthleteData(prev => ({ ...prev, photo: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
@@ -228,9 +228,9 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             </div>
             
             <div className="p-8 space-y-8">
-              {/* Photo & Document Upload */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl">
+              {/* Photo Upload */}
+              <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl w-full max-w-sm">
                   <div className="relative group">
                     {athleteData.photo ? (
                       <img src={athleteData.photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
@@ -242,35 +242,10 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     )}
                     <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
                       <Upload className="text-white" />
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photo')} />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e)} />
                     </label>
                   </div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Foto do Atleta (3x4)</p>
-                </div>
-
-                <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl">
-                  <div className="relative group">
-                    {athleteData.doc_photo ? (
-                      athleteData.doc_photo.startsWith('data:image') ? (
-                        <img src={athleteData.doc_photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-[120px] h-[160px] bg-zinc-800/50 rounded-xl flex flex-col items-center justify-center text-theme-primary border-2 border-theme-primary shadow-lg shadow-theme-primary/20">
-                          <ClipboardCheck size={48} />
-                          <span className="text-[10px] mt-2 font-bold uppercase">Doc Enviado</span>
-                        </div>
-                      )
-                    ) : (
-                      <div className="w-[120px] h-[160px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-700 group-hover:border-theme-primary transition-colors">
-                        <Upload size={48} />
-                        <span className="text-[10px] mt-2 font-bold uppercase">Doc (RG/CPF)</span>
-                      </div>
-                    )}
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
-                      <Upload className="text-white" />
-                      <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileUpload(e, 'doc_photo')} />
-                    </label>
-                  </div>
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Documento (RG/CPF)</p>
                 </div>
               </div>
 

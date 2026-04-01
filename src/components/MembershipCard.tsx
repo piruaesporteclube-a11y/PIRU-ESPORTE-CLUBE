@@ -245,7 +245,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="flex-1 flex p-5 gap-5 relative z-10 overflow-hidden">
             {/* Photo Section */}
             <div className="relative group flex-shrink-0">
-              <div className="w-[110px] h-[145px] bg-[#09090b] rounded-[1.5rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
+              <div className="w-[100px] h-[135px] bg-[#09090b] rounded-[1.5rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
                 {photoDataUrl ? (
                   <img 
                     src={photoDataUrl} 
@@ -278,7 +278,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome Completo do Aluno
                   </div>
-                  <h4 className="text-base font-black uppercase leading-tight text-white tracking-tight">
+                  <h4 className="text-sm font-black uppercase leading-tight text-white tracking-tight">
                     {athlete.name}
                   </h4>
                 </div>
@@ -313,7 +313,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável</p>
-                      <p className="text-[9px] font-bold text-[#d4d4d8] uppercase leading-tight">{athlete.guardian_name}</p>
+                      <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
@@ -331,7 +331,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               <div className="bg-white p-1 rounded-md shadow-xl">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={44} 
+                  size={48} 
                   level="H"
                   includeMargin={false}
                 />

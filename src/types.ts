@@ -12,7 +12,6 @@ export type Athlete = {
   uf: string;
   jersey_number: string;
   photo: string;
-  doc_photo?: string;
   contact: string;
   guardian_name: string;
   guardian_doc: string;
