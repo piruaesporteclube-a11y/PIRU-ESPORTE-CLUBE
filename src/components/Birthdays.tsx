@@ -279,7 +279,7 @@ export default function Birthdays() {
             <div 
               id="birthday-card" 
               className="w-[350px] h-[350px] md:w-[600px] md:h-[600px] overflow-hidden relative shadow-2xl flex flex-col group" 
-              style={{ backgroundColor: settings.secondaryColor }}
+              style={{ backgroundColor: settings.secondaryColor || '#000000' }}
             >
               {/* Background Layers */}
               <div className="absolute inset-0 pointer-events-none">
@@ -383,7 +383,7 @@ export default function Birthdays() {
               <div className="relative flex-1 flex flex-col items-center justify-between p-6 md:p-10 z-10">
                 {/* Header: Crest & School Name */}
                 <div className="w-full flex items-center justify-between">
-                  <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl p-2 md:p-3 rounded-2xl border border-white/10 shadow-2xl">
+                  <div className="flex items-center gap-3 bg-[rgba(0,0,0,0.4)] backdrop-blur-xl p-2 md:p-3 rounded-2xl border border-[rgba(255,255,255,0.1)] shadow-2xl">
                     <div className="w-10 h-10 md:w-14 md:h-14 bg-white p-1.5 rounded-xl shadow-inner">
                       {settings.schoolCrest ? (
                         <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -397,7 +397,7 @@ export default function Birthdays() {
                     </div>
                   </div>
 
-                  <div className="bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-2xl">
+                  <div className="bg-[rgba(0,0,0,0.4)] backdrop-blur-xl px-4 py-2 rounded-2xl border border-[rgba(255,255,255,0.1)] shadow-2xl">
                     <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">#ANIVERSARIANTE</p>
                   </div>
                 </div>
@@ -411,18 +411,18 @@ export default function Birthdays() {
 
                   <div className="relative mb-6 md:mb-10">
                     {/* Decorative Hexagon Frame */}
-                    <div className="absolute -inset-4 md:-inset-8 border-2 border-white/10 rotate-45 rounded-[40px]"></div>
-                    <div className="absolute -inset-4 md:-inset-8 border-2 border-white/10 -rotate-45 rounded-[40px]"></div>
+                    <div className="absolute -inset-4 md:-inset-8 border-2 border-[rgba(255,255,255,0.1)] rotate-45 rounded-[40px]"></div>
+                    <div className="absolute -inset-4 md:-inset-8 border-2 border-[rgba(255,255,255,0.1)] -rotate-45 rounded-[40px]"></div>
                     
                     {/* Main Photo Container with Modern Mask */}
                     <div 
-                      className="w-48 h-48 md:w-72 md:h-72 bg-zinc-900 rounded-[48px] border-[8px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] relative z-10 rotate-3 group-hover:rotate-0 transition-transform duration-500" 
+                      className="w-48 h-48 md:w-72 md:h-72 bg-[#18181b] rounded-[48px] border-[8px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] relative z-10 rotate-3 group-hover:rotate-0 transition-transform duration-500" 
                       style={{ borderColor: 'white' }}
                     >
                       {selectedPerson.photo ? (
                         <img src={selectedPerson.photo} className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700" referrerPolicy="no-referrer" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                        <div className="w-full h-full flex items-center justify-center text-[#3f3f46]">
                           <UserCircle size={120} strokeWidth={1} />
                         </div>
                       )}
@@ -447,11 +447,11 @@ export default function Birthdays() {
                     </h2>
                     
                     <div className="flex items-center gap-4 justify-center">
-                      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/20"></div>
-                      <h3 className="text-xl md:text-4xl font-black text-white uppercase tracking-tight bg-black/40 backdrop-blur-md px-6 py-2 rounded-xl border border-white/10 shadow-xl">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[rgba(255,255,255,0.2)]"></div>
+                      <h3 className="text-xl md:text-4xl font-black text-white uppercase tracking-tight bg-[rgba(0,0,0,0.4)] backdrop-blur-md px-6 py-2 rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl">
                         {selectedPerson.name}
                       </h3>
-                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/20"></div>
+                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[rgba(255,255,255,0.2)]"></div>
                     </div>
                   </div>
                 </div>
@@ -459,21 +459,21 @@ export default function Birthdays() {
                 {/* Footer: Message */}
                 <div className="w-full relative">
                   {/* Decorative Field Lines */}
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 border border-white/5 rounded-full"></div>
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 border border-[rgba(255,255,255,0.05)] rounded-full"></div>
 
-                  <div className="w-full text-center bg-black/40 backdrop-blur-xl p-4 md:p-6 rounded-[32px] border border-white/10 shadow-2xl relative overflow-hidden">
+                  <div className="w-full text-center bg-[rgba(0,0,0,0.4)] backdrop-blur-xl p-4 md:p-6 rounded-[32px] border border-[rgba(255,255,255,0.1)] shadow-2xl relative overflow-hidden">
                     {/* Corner Accents */}
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-theme-primary/30 rounded-tl-2xl"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-theme-primary/30 rounded-br-2xl"></div>
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[rgba(234,179,8,0.3)] rounded-tl-2xl"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[rgba(234,179,8,0.3)] rounded-br-2xl"></div>
 
-                    <p className="text-xs md:text-base text-zinc-100 font-bold max-w-[90%] mx-auto italic leading-tight relative z-10">
+                    <p className="text-xs md:text-base text-[#f4f4f5] font-bold max-w-[90%] mx-auto italic leading-tight relative z-10">
                       "QUE SEU NOVO CICLO SEJA REPLETO DE VITÓRIAS, SAÚDE E MUITOS GOLS DENTRO E FORA DE CAMPO!"
                     </p>
                     
                     <div className="mt-4 flex items-center justify-center gap-2 md:gap-3">
-                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-white/5 rounded-lg border border-white/5">#PiruáEC</span>
-                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-white/5 rounded-lg border border-white/5">#BaseForte</span>
-                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-white/5 rounded-lg border border-white/5">#FamíliaPiruá</span>
+                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-[rgba(255,255,255,0.05)] rounded-lg border border-[rgba(255,255,255,0.05)]">#PiruáEC</span>
+                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-[rgba(255,255,255,0.05)] rounded-lg border border-[rgba(255,255,255,0.05)]">#BaseForte</span>
+                      <span className="text-[8px] md:text-[10px] font-black text-theme-primary uppercase tracking-widest px-3 py-1 bg-[rgba(255,255,255,0.05)] rounded-lg border border-[rgba(255,255,255,0.05)]">#FamíliaPiruá</span>
                     </div>
                   </div>
                 </div>

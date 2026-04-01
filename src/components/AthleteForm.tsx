@@ -184,7 +184,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nº Camisa</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">NUMERO DO UNIFORME</label>
                     <input 
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"

@@ -154,7 +154,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
               <tr className="bg-black/50 border-b border-zinc-800">
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Jersey</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">UNIFORME</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right no-print">Ações</th>
               </tr>
@@ -305,7 +305,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                     <span className="text-theme-primary font-bold">{getSubCategory(athlete.birth_date)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">Camisa:</span>
+                    <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">UNIFORME:</span>
                     <span className="text-theme-primary font-mono font-bold">#{athlete.jersey_number || '--'}</span>
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
               <th className="border border-black p-2 text-left">Doc</th>
               <th className="border border-black p-2 text-left">Nasc.</th>
               <th className="border border-black p-2 text-left">Cat.</th>
-              <th className="border border-black p-2 text-left">Jersey</th>
+              <th className="border border-black p-2 text-left">UNIFORME</th>
               <th className="border border-black p-2 text-left">Status</th>
             </tr>
           </thead>

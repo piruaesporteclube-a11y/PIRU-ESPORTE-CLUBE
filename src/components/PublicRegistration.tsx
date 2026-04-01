@@ -228,9 +228,13 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                         <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.birth_date} onChange={e => setAthleteData({...athleteData, birth_date: e.target.value})} />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF/RG</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.doc} onChange={e => setAthleteData({...athleteData, doc: e.target.value})} />
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">NUMERO DO UNIFORME</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.jersey_number} onChange={e => setAthleteData({...athleteData, jersey_number: e.target.value})} />
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF/RG</label>
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.doc} onChange={e => setAthleteData({...athleteData, doc: e.target.value})} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>

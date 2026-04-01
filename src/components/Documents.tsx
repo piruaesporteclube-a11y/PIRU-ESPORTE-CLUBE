@@ -436,12 +436,12 @@ export default function Documents() {
                     <p className="text-[9px] uppercase">Carimbo e Assinatura da Diretoria</p>
                   </div>
                 </div>
-                <div className="text-right text-[9px] text-zinc-500 italic">
+                <div className="text-right text-[9px] text-[#71717a] italic">
                   Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}
                 </div>
               </div>
 
-              <div className="mt-12 pt-8 border-t border-zinc-100 flex justify-center no-print">
+              <div className="mt-12 pt-8 border-t border-[#f4f4f5] flex justify-center no-print">
                 <button 
                   onClick={() => setDocType(null)}
                   className="flex items-center gap-2 px-8 py-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-black rounded-2xl transition-all font-bold uppercase tracking-widest"
@@ -522,7 +522,7 @@ export default function Documents() {
               </div>
             </div>
 
-            <p className="mt-4 text-[9px] text-zinc-500 italic">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
+            <p className="mt-4 text-[9px] text-[#71717a] italic">Documento gerado pelo Sistema de Gestão Piruá E.C. em {format(new Date(), 'dd/MM/yyyy, HH:mm:ss')}</p>
           </div>
         )}
       </div>
