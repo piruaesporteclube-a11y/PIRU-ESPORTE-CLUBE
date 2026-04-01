@@ -140,7 +140,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Modern Credit Card Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[400px] h-[250px] min-w-[400px] bg-white text-black rounded-[20px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-200 print:border-zinc-300"
+          className="w-[450px] h-[280px] min-w-[450px] bg-zinc-950 text-white rounded-[24px] overflow-hidden shadow-2xl flex flex-col relative card border border-zinc-800/50 print:border-zinc-300"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -184,7 +184,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
-                background-color: white !important;
+                background-color: #050505 !important;
                 transform: scale(1) !important;
                 margin: 0 !important;
               }
@@ -195,27 +195,27 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               }
             }
 
-            .card-bg-pattern {
-              background-image: radial-gradient(${settings.primaryColor}20 1px, transparent 1px);
-              background-size: 10px 10px;
+            .card-grid-pattern {
+              background-image: linear-gradient(${settings.primaryColor}10 1px, transparent 1px), linear-gradient(90deg, ${settings.primaryColor}10 1px, transparent 1px);
+              background-size: 20px 20px;
+            }
+
+            .card-diagonal-split {
+              background: linear-gradient(135deg, #050505 0%, #050505 60%, ${settings.primaryColor}20 60%, ${settings.primaryColor}20 100%);
             }
           `}</style>
 
           {/* Background Elements */}
-          <div className="absolute inset-0 card-bg-pattern opacity-30 pointer-events-none"></div>
-          <div 
-            className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ backgroundColor: settings.primaryColor }}
-          ></div>
-          <div 
-            className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ backgroundColor: settings.secondaryColor }}
-          ></div>
+          <div className="absolute inset-0 card-diagonal-split pointer-events-none"></div>
+          <div className="absolute inset-0 card-grid-pattern opacity-40 pointer-events-none"></div>
+          
+          {/* Top Accent Bar */}
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-theme-primary z-20"></div>
 
           {/* Header */}
-          <div className="h-14 px-5 flex items-center justify-between relative z-10 border-b border-zinc-100/50 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 flex items-center justify-center">
+          <div className="h-16 px-6 flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 flex items-center justify-center p-1 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl">
                 {crestDataUrl ? (
                   <img 
                     src={crestDataUrl} 
@@ -223,29 +223,25 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     crossOrigin="anonymous"
                   />
                 ) : (
-                  <div className="w-10 h-10 bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-lg shadow-sm">P</div>
+                  <div className="w-full h-full bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-xl">P</div>
                 )}
               </div>
               <div className="leading-tight">
-                <h3 className="text-sm font-black uppercase tracking-tighter text-black">Piruá Esporte Clube</h3>
-                <p className="text-[8px] text-zinc-500 uppercase font-black tracking-[0.2em]">Futebol de Base • Oficial</p>
+                <h3 className="text-base font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
+                <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
             <div className="text-right">
-              <div 
-                className="inline-block px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest"
-                style={{ backgroundColor: `${settings.primaryColor}15`, color: settings.primaryColor }}
-              >
-                Atleta Base
-              </div>
+              <p className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+              <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
             </div>
           </div>
 
           {/* Body */}
-          <div className="flex-1 flex p-5 gap-5 relative z-10">
-            {/* Photo */}
+          <div className="flex-1 flex p-6 gap-6 relative z-10">
+            {/* Photo Section */}
             <div className="relative group">
-              <div className="w-[100px] h-[125px] bg-zinc-50 rounded-2xl border-2 border-zinc-100 overflow-hidden shadow-lg relative z-10">
+              <div className="w-[110px] h-[140px] bg-zinc-900 rounded-[2rem] border-2 border-theme-primary/30 overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
                 {photoDataUrl ? (
                   <img 
                     src={photoDataUrl} 
@@ -253,89 +249,97 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     crossOrigin="anonymous"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-200 bg-zinc-50">
-                    <UserCircle size={48} strokeWidth={1} />
+                  <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-zinc-900">
+                    <UserCircle size={56} strokeWidth={1} />
                   </div>
                 )}
               </div>
+              {/* Photo Glow */}
               <div 
-                className="absolute -inset-1 blur-lg opacity-20 rounded-2xl -z-0"
+                className="absolute -inset-2 blur-2xl opacity-20 rounded-[2rem] -z-0"
                 style={{ backgroundColor: settings.primaryColor }}
               ></div>
+              
+              {/* Status Badge on Photo */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-3 py-1 rounded-full shadow-lg">
+                <p className="text-[8px] font-black uppercase tracking-widest">Ativo</p>
+              </div>
             </div>
 
-            {/* Info */}
-            <div className="flex-1 flex flex-col justify-between min-w-0">
-              <div className="space-y-3">
+            {/* Info Section */}
+            <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+              <div className="space-y-4">
                 <div>
-                  <p className="text-[7px] text-zinc-400 uppercase font-black tracking-widest mb-0.5">Nome do Atleta</p>
-                  <h4 className="text-sm font-black uppercase leading-none text-black tracking-tight truncate">
+                  <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                    Nome Completo do Atleta
+                  </div>
+                  <h4 className="text-xl font-black uppercase leading-none text-white tracking-tight truncate">
                     {athlete.name}
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-[7px] text-zinc-400 uppercase font-black tracking-widest mb-0.5">Nascimento</p>
-                    <p className="text-[10px] font-bold text-black">
+                    <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                      Nascimento
+                    </div>
+                    <p className="text-sm font-black text-white">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[7px] text-zinc-400 uppercase font-black tracking-widest mb-0.5">Documento</p>
-                    <p className="text-[10px] font-bold text-black">{athlete.doc || '--'}</p>
+                    <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                      Documento
+                    </div>
+                    <p className="text-sm font-black text-white">{athlete.doc || '--'}</p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-[7px] text-zinc-400 uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
+                <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/5">
+                  <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1.5">Responsável & Contato</p>
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-bold text-zinc-800 uppercase truncate pr-2">{athlete.guardian_name}</p>
-                    <p className="text-[9px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                    <p className="text-xs font-bold text-zinc-300 uppercase truncate pr-4">{athlete.guardian_name}</p>
+                    <p className="text-xs font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex items-end justify-between pt-2">
-                <div>
-                  <p className="text-[7px] text-zinc-400 uppercase font-black tracking-widest mb-0.5">ID Matrícula</p>
-                  <p className="text-[10px] font-mono font-black text-zinc-400">#{athlete.id.slice(-8).toUpperCase()}</p>
-                </div>
-                <div className="flex items-center gap-2 text-zinc-300">
-                  <ShieldCheck size={14} />
-                  <span className="text-[7px] font-black uppercase tracking-widest">Verificado</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div 
-            className="h-10 px-5 flex items-center justify-between relative z-10"
-            style={{ backgroundColor: `${settings.primaryColor}05` }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-1 rounded-lg shadow-sm border border-zinc-100">
+          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-black/40 border-t border-white/5">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-2 rounded-xl shadow-xl">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={24} 
+                  size={48} 
                   level="H"
                   includeMargin={false}
                 />
               </div>
-              <p className="text-[7px] text-zinc-400 font-bold leading-tight uppercase">
-                Válida para acesso<br/>e identificação oficial
-              </p>
+              <div className="leading-tight">
+                <p className="text-[10px] text-white font-black uppercase tracking-widest">Identificação Digital</p>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase">Válida em todo território nacional</p>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <QrCode size={10} className="text-zinc-300" />
-              <p className="text-[8px] font-black text-zinc-300 uppercase tracking-tighter">Temporada 2026</p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Categoria</p>
+                <p className="text-sm font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
+              </div>
+              <div className="w-px h-8 bg-white/10"></div>
+              <ShieldCheck size={28} className="text-theme-primary" />
             </div>
           </div>
 
-          {/* Hologram Overlay */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay">
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-transparent via-white to-transparent transform rotate-12 scale-150"></div>
+          {/* Security Micro-text (Decorative) */}
+          <div className="absolute bottom-0 left-0 w-full overflow-hidden whitespace-nowrap opacity-5 pointer-events-none">
+            <p className="text-[4px] font-mono uppercase tracking-[0.5em]">
+              PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL
+            </p>
           </div>
         </div>
       </div>

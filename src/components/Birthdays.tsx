@@ -266,69 +266,139 @@ export default function Birthdays() {
 
       {/* Instagram Post Modal */}
       {selectedPerson && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-          <div className="relative">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="relative py-8">
             <button 
               onClick={() => setSelectedPerson(null)}
-              className="absolute -top-12 right-0 text-white hover:text-theme-primary transition-colors"
+              className="absolute top-0 right-0 text-white hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-xs"
             >
-              Fechar
+              Fechar [X]
             </button>
             
-            {/* The Post Layout (1080x1080 aspect) */}
-            <div id="birthday-card" className="w-[350px] h-[450px] md:w-[500px] md:h-[650px] border-4 rounded-3xl overflow-hidden relative shadow-2xl flex flex-col" style={{ backgroundColor: settings.secondaryColor, borderColor: settings.primaryColor }}>
-              {/* Background Elements */}
-              <div className="absolute inset-0 opacity-30 pointer-events-none">
-                <div className="absolute top-0 left-0 w-full h-full" style={{ background: `radial-gradient(circle at 50% 30%, ${settings.primaryColor}44, transparent, transparent)` }}></div>
-                <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full blur-[120px]" style={{ backgroundColor: settings.primaryColor }}></div>
-                <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full blur-[120px]" style={{ backgroundColor: settings.primaryColor }}></div>
+            {/* The Post Layout (1080x1080 aspect for Instagram) */}
+            <div 
+              id="birthday-card" 
+              className="w-[350px] h-[350px] md:w-[600px] md:h-[600px] overflow-hidden relative shadow-2xl flex flex-col" 
+              style={{ backgroundColor: settings.secondaryColor }}
+            >
+              {/* Background Layers */}
+              <div className="absolute inset-0 pointer-events-none">
+                {/* Main Gradient */}
+                <div 
+                  className="absolute inset-0 opacity-60" 
+                  style={{ 
+                    background: `radial-gradient(circle at center, ${settings.primaryColor}33, transparent, ${settings.secondaryColor}44)` 
+                  }}
+                ></div>
                 
-                {/* Decorative dots/stars */}
-                <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(${settings.primaryColor}33 1px, transparent 1px)`, backgroundSize: '20px 20px' }}></div>
-              </div>
+                {/* Animated Blobs */}
+                <div 
+                  className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full blur-[100px] opacity-40 animate-pulse" 
+                  style={{ backgroundColor: settings.primaryColor }}
+                ></div>
+                <div 
+                  className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full blur-[100px] opacity-40 animate-pulse" 
+                  style={{ backgroundColor: settings.primaryColor }}
+                ></div>
 
-              <div className="relative flex-1 flex flex-col items-center justify-center p-8 text-center z-10">
-                {/* School Crest at top */}
-                <div className="mb-6">
-                  {settings.schoolCrest ? (
-                    <img src={settings.schoolCrest} className="w-16 h-16 md:w-24 md:h-24 object-contain mx-auto" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-theme-primary flex items-center justify-center text-black font-black text-2xl">P</div>
-                  )}
+                {/* Pattern Overlay */}
+                <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: `radial-gradient(${settings.primaryColor} 2px, transparent 2px)`, backgroundSize: '24px 24px' }}></div>
+                
+                {/* Large Decorative Text (Background) */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-10deg] opacity-[0.05] whitespace-nowrap select-none">
+                  <p className="text-[250px] font-black uppercase leading-none tracking-tighter">GOOOL!</p>
                 </div>
 
-                <div className="relative mb-8">
-                  <div className="w-40 h-40 md:w-64 md:h-64 bg-zinc-800 rounded-full border-8 overflow-hidden shadow-2xl relative z-10" style={{ borderColor: settings.primaryColor, boxShadow: `0 0 50px ${settings.primaryColor}44` }}>
-                    {selectedPerson.photo ? (
-                      <img src={selectedPerson.photo} className="w-full h-full object-cover scale-110" referrerPolicy="no-referrer" />
+                {/* Floating Elements (Decorative) */}
+                <div className="absolute top-10 right-20 w-8 h-8 rounded-full border-4 border-white/10 rotate-12"></div>
+                <div className="absolute bottom-20 left-10 w-12 h-12 rounded-full border-2 border-dashed border-white/10 animate-spin-slow"></div>
+                <div className="absolute top-1/3 left-10 w-4 h-4 bg-theme-primary/20 rounded-sm rotate-45"></div>
+              </div>
+
+              <div className="relative flex-1 flex flex-col items-center justify-between p-8 md:p-12 z-10">
+                {/* Header: Crest & School Name */}
+                <div className="flex items-center gap-4 self-start bg-black/20 backdrop-blur-md p-3 rounded-2xl border border-white/5">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-white p-2 rounded-xl shadow-xl">
+                    {settings.schoolCrest ? (
+                      <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-500">
-                        <UserCircle size={100} />
-                      </div>
+                      <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
                     )}
                   </div>
-                  {/* Decorative ring */}
-                  <div className="absolute -inset-4 border-2 border-dashed rounded-full animate-spin-slow opacity-50" style={{ borderColor: settings.primaryColor }}></div>
+                  <div className="text-left">
+                    <h4 className="text-white font-black uppercase tracking-tighter text-sm md:text-base leading-none">Piruá Esporte Clube</h4>
+                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em]" style={{ color: settings.primaryColor }}>Formando Campeões</p>
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic leading-none" style={{ color: settings.primaryColor }}>
-                    Feliz<br />Aniversário!
-                  </h2>
-                  <div className="h-1 w-24 mx-auto my-4" style={{ backgroundColor: settings.primaryColor }}></div>
-                  <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight">{selectedPerson.name}</h3>
+
+                {/* Center: Photo & Name */}
+                <div className="flex flex-col items-center w-full">
+                  <div className="relative mb-8">
+                    {/* Decorative Rings */}
+                    <div className="absolute -inset-6 border-4 border-dashed rounded-full opacity-30 animate-spin-slow" style={{ borderColor: settings.primaryColor }}></div>
+                    <div className="absolute -inset-10 border-2 border-dotted rounded-full opacity-20 animate-spin-slow-reverse" style={{ borderColor: settings.primaryColor }}></div>
+                    
+                    {/* Main Photo Container */}
+                    <div 
+                      className="w-52 h-52 md:w-80 md:h-80 bg-zinc-800 rounded-full border-[12px] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.6)] relative z-10" 
+                      style={{ borderColor: 'white' }}
+                    >
+                      {selectedPerson.photo ? (
+                        <img src={selectedPerson.photo} className="w-full h-full object-cover scale-110" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                          <UserCircle size={140} strokeWidth={1} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Birthday Badge */}
+                    <div 
+                      className="absolute -bottom-2 -right-2 w-20 h-20 md:w-28 md:h-28 rounded-full flex flex-col items-center justify-center shadow-2xl z-20 rotate-12 border-4 border-white"
+                      style={{ backgroundColor: settings.primaryColor }}
+                    >
+                      <Cake size={32} className="text-black mb-1" />
+                      <p className="text-[10px] md:text-xs font-black text-black uppercase leading-none">PARABÉNS!</p>
+                    </div>
+                  </div>
+
+                  <div className="text-center space-y-3 w-full">
+                    <div className="relative inline-block">
+                      <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-[0.75] text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+                        FELIZ<br />
+                        <span style={{ color: settings.primaryColor }}>ANIVERSÁRIO</span>
+                      </h2>
+                    </div>
+                    
+                    <div className="flex items-center gap-6 justify-center py-4">
+                      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: settings.primaryColor }}></div>
+                      <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight drop-shadow-lg">{selectedPerson.name}</h3>
+                      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: settings.primaryColor }}></div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="mt-8 space-y-1">
-                  <p className="text-sm md:text-lg text-zinc-400 font-bold uppercase tracking-[0.3em]">Piruá Esporte Clube</p>
-                  <p className="text-xs md:text-sm text-zinc-500 italic">"Desejamos muita saúde, paz e muitos gols na sua vida!"</p>
+
+                {/* Footer: Message */}
+                <div className="w-full text-center bg-black/30 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+                  <p className="text-sm md:text-lg text-zinc-100 font-bold max-w-[90%] mx-auto italic leading-tight">
+                    "Que seu novo ciclo seja repleto de vitórias, saúde e muitos gols dentro e fora de campo!"
+                  </p>
+                  <div className="mt-4 flex items-center justify-center gap-3">
+                    <div className="px-4 py-1.5 bg-white/10 rounded-full border border-white/10">
+                      <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">#PiruáEC</p>
+                    </div>
+                    <div className="px-4 py-1.5 bg-white/10 rounded-full border border-white/10">
+                      <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">#BaseForte</p>
+                    </div>
+                    <div className="px-4 py-1.5 bg-white/10 rounded-full border border-white/10">
+                      <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">#FamíliaPiruá</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Bottom Banner */}
-              <div className="h-16 flex items-center justify-center font-black uppercase tracking-widest text-xs md:text-sm" style={{ backgroundColor: settings.primaryColor, color: settings.secondaryColor }}>
-                Comemore com a gente! #PiruáEC
-              </div>
+              {/* Side Accent */}
+              <div className="absolute top-0 right-0 w-2 h-full" style={{ backgroundColor: settings.primaryColor }}></div>
             </div>
 
             <div className="mt-6 flex justify-center gap-4">
