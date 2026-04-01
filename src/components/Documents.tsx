@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, Event, Settings, getSubCategory, categories } from '../types';
-import { FileText, Download, Printer, ChevronRight, User, Calendar, FileDown, Search, Filter } from 'lucide-react';
+import { FileText, Download, Printer, ChevronRight, User, Calendar, FileDown, Search, Filter, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { toast } from 'sonner';
 
 export default function Documents() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -17,6 +18,19 @@ export default function Documents() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [manualEntry, setManualEntry] = useState(false);
+  const [manualData, setManualData] = useState({
+    name: '',
+    birth_date: format(new Date(), 'yyyy-MM-dd'),
+    doc: '',
+    guardian_name: '',
+    guardian_doc: '',
+    street: '',
+    number: '',
+    neighborhood: '',
+    city: 'Campos Altos',
+    uf: 'MG'
+  });
   const documentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,42 +96,96 @@ export default function Documents() {
             </div>
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                <input 
-                  type="text"
-                  placeholder="Nome do Atleta..."
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                <select 
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="">Todas as Categorias</option>
-                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Modo de Seleção</label>
+              <button 
+                onClick={() => setManualEntry(!manualEntry)}
+                className="text-[10px] font-black text-theme-primary uppercase hover:underline"
+              >
+                {manualEntry ? 'Usar Banco de Dados' : 'Digitar Nome Manualmente'}
+              </button>
             </div>
 
-            <select 
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
-              value={selectedAthlete?.id || ''}
-            >
-              <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
-              {filteredAthletes.map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.name} ({getSubCategory(a.birth_date)})
-                </option>
-              ))}
-            </select>
+            {!manualEntry ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <input 
+                      type="text"
+                      placeholder="Nome do Atleta..."
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <select 
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                      <option value="">Todas as Categorias</option>
+                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <select 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
+                  value={selectedAthlete?.id || ''}
+                >
+                  <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
+                  {filteredAthletes.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({getSubCategory(a.birth_date)})
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <input 
+                  type="text"
+                  placeholder="Nome Completo do Atleta"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.name}
+                  onChange={(e) => setManualData({...manualData, name: e.target.value})}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input 
+                    type="date"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={manualData.birth_date}
+                    onChange={(e) => setManualData({...manualData, birth_date: e.target.value})}
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Documento (RG/CPF)"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={manualData.doc}
+                    onChange={(e) => setManualData({...manualData, doc: e.target.value})}
+                  />
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Nome do Responsável"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.guardian_name}
+                  onChange={(e) => setManualData({...manualData, guardian_name: e.target.value})}
+                />
+                <input 
+                  type="text"
+                  placeholder="Documento do Responsável"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.guardian_doc}
+                  onChange={(e) => setManualData({...manualData, guardian_doc: e.target.value})}
+                />
+              </div>
+            )}
+
             <select 
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
               onChange={(e) => setSelectedEvent(events.find(ev => ev.id === e.target.value) || null)}
@@ -127,8 +195,13 @@ export default function Documents() {
               {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
             </select>
             <button 
-              disabled={!selectedAthlete || !selectedEvent}
-              onClick={() => setDocType('travel')}
+              disabled={(!manualEntry && !selectedAthlete) || (manualEntry && !manualData.name) || !selectedEvent}
+              onClick={() => {
+                if (manualEntry) {
+                  setSelectedAthlete(manualData as any);
+                }
+                setDocType('travel');
+              }}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-theme-primary disabled:opacity-50 disabled:cursor-not-allowed text-black font-black rounded-xl transition-all"
             >
               Gerar Autorização
@@ -149,45 +222,104 @@ export default function Documents() {
             </div>
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                <input 
-                  type="text"
-                  placeholder="Nome do Atleta..."
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                <select 
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="">Todas as Categorias</option>
-                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Modo de Seleção</label>
+              <button 
+                onClick={() => setManualEntry(!manualEntry)}
+                className="text-[10px] font-black text-theme-primary uppercase hover:underline"
+              >
+                {manualEntry ? 'Usar Banco de Dados' : 'Digitar Nome Manualmente'}
+              </button>
             </div>
 
-            <select 
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-              onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
-              value={selectedAthlete?.id || ''}
-            >
-              <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
-              {filteredAthletes.map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.name} ({getSubCategory(a.birth_date)})
-                </option>
-              ))}
-            </select>
+            {!manualEntry ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <input 
+                      type="text"
+                      placeholder="Nome do Atleta..."
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <select 
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm appearance-none"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                      <option value="">Todas as Categorias</option>
+                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <select 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  onChange={(e) => setSelectedAthlete(athletes.find(a => a.id === e.target.value) || null)}
+                  value={selectedAthlete?.id || ''}
+                >
+                  <option value="">{filteredAthletes.length > 0 ? 'Selecionar Atleta' : 'Nenhum atleta encontrado'}</option>
+                  {filteredAthletes.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({getSubCategory(a.birth_date)})
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <input 
+                  type="text"
+                  placeholder="Nome Completo do Atleta"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.name}
+                  onChange={(e) => setManualData({...manualData, name: e.target.value})}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input 
+                    type="date"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={manualData.birth_date}
+                    onChange={(e) => setManualData({...manualData, birth_date: e.target.value})}
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Documento (RG/CPF)"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={manualData.doc}
+                    onChange={(e) => setManualData({...manualData, doc: e.target.value})}
+                  />
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Nome do Responsável"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.guardian_name}
+                  onChange={(e) => setManualData({...manualData, guardian_name: e.target.value})}
+                />
+                <input 
+                  type="text"
+                  placeholder="Documento do Responsável"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={manualData.guardian_doc}
+                  onChange={(e) => setManualData({...manualData, guardian_doc: e.target.value})}
+                />
+              </div>
+            )}
+
             <button 
-              disabled={!selectedAthlete}
-              onClick={() => setDocType('responsibility')}
+              disabled={(!manualEntry && !selectedAthlete) || (manualEntry && !manualData.name)}
+              onClick={() => {
+                if (manualEntry) {
+                  setSelectedAthlete(manualData as any);
+                }
+                setDocType('responsibility');
+              }}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-theme-primary disabled:opacity-50 disabled:cursor-not-allowed text-black font-black rounded-xl transition-all"
             >
               Gerar Termo
@@ -211,6 +343,17 @@ export default function Documents() {
               </button>
               
               <div className="flex gap-3">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success('Link copiado para compartilhar!');
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:text-black transition-all shadow-lg"
+                >
+                  <Share2 size={20} />
+                  Compartilhar
+                </button>
+
                 <button 
                   onClick={handleDownloadPDF}
                   disabled={isGeneratingPDF}

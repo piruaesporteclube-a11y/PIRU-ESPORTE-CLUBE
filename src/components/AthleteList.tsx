@@ -188,6 +188,9 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                         </div>
                         <div className="text-xs text-zinc-500 flex items-center gap-2">
                           {athlete.doc}
+                          {athlete.doc_photo && (
+                            <span className="text-[8px] bg-theme-primary/20 text-theme-primary px-1 rounded font-black uppercase">DOC</span>
+                          )}
                           {athlete.guardian_phone && (
                             <a 
                               href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
@@ -272,6 +275,9 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                     </div>
                     <div className="text-xs text-zinc-500 flex items-center gap-2">
                       {athlete.doc}
+                      {athlete.doc_photo && (
+                        <span className="text-[8px] bg-theme-primary/20 text-theme-primary px-1 rounded font-black uppercase">DOC</span>
+                      )}
                       {athlete.guardian_phone && (
                         <a 
                           href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}

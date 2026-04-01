@@ -227,13 +227,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 )}
               </div>
               <div className="leading-tight">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
-                <p className="text-sm text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
+                <p className="text-base text-theme-primary uppercase font-black tracking-[0.3em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[17rem] text-zinc-500 uppercase font-black tracking-widest mb-0.5">Matrícula</p>
-              <p className="text-xl font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
+              <p className="text-[13px] text-zinc-500 uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+              <p className="text-2xl font-mono font-black text-white">#{athlete.id.slice(-8).toUpperCase()}</p>
             </div>
           </div>
 
@@ -261,8 +261,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               ></div>
               
               {/* Status Badge on Photo */}
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-4 py-1.5 rounded-full shadow-lg">
-                <p className="text-[16rem] font-black uppercase tracking-widest">Ativo</p>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-5 py-2 rounded-full shadow-lg">
+                <p className="text-[12px] font-black uppercase tracking-widest">Ativo</p>
               </div>
             </div>
 
@@ -270,39 +270,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
               <div className="space-y-4">
                 <div>
-                  <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <div className="text-[12px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                     Nome Completo do Atleta
                   </div>
-                  <h4 className="text-3xl font-black uppercase leading-tight text-white tracking-tight">
+                  <h4 className="text-4xl font-black uppercase leading-tight text-white tracking-tight">
                     {athlete.name}
                   </h4>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="text-[12px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                       Nascimento
                     </div>
-                    <p className="text-lg font-black text-white">
+                    <p className="text-xl font-black text-white">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
                     </p>
                   </div>
                   <div>
-                    <div className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="text-[12px] text-zinc-500 uppercase font-black tracking-widest mb-1.5 flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
                       Documento
                     </div>
-                    <p className="text-lg font-black text-white">{athlete.doc || '--'}</p>
+                    <p className="text-xl font-black text-white">{athlete.doc || '--'}</p>
                   </div>
                 </div>
 
                 <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/5">
-                  <p className="text-[16rem] text-zinc-500 uppercase font-black tracking-widest mb-1.5">Responsável & Contato</p>
+                  <p className="text-[12px] text-zinc-500 uppercase font-black tracking-widest mb-1.5">Responsável & Contato</p>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-base font-bold text-zinc-300 uppercase leading-tight">{athlete.guardian_name}</p>
-                    <p className="text-base font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                    <p className="text-lg font-bold text-zinc-300 uppercase leading-tight">{athlete.guardian_name}</p>
+                    <p className="text-lg font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
                   </div>
                 </div>
               </div>
@@ -321,14 +321,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 />
               </div>
               <div className="leading-tight">
-                <p className="text-lg text-white font-black uppercase tracking-widest">Identificação Digital</p>
-                <p className="text-[16rem] text-zinc-500 font-bold uppercase">Válida em todo território nacional</p>
+                <p className="text-xl text-white font-black uppercase tracking-widest">Identificação Digital</p>
+                <p className="text-[12px] text-zinc-500 font-bold uppercase">Válida em todo território nacional</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-[17rem] text-zinc-500 uppercase font-black tracking-widest">Categoria</p>
-                <p className="text-xl font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
+                <p className="text-[13px] text-zinc-500 uppercase font-black tracking-widest">Categoria</p>
+                <p className="text-2xl font-black text-theme-primary uppercase">Sub-{new Date().getFullYear() - (athlete.birth_date ? new Date(athlete.birth_date).getFullYear() : 2026)}</p>
               </div>
               <div className="w-px h-8 bg-white/10"></div>
               <ShieldCheck size={28} className="text-theme-primary" />

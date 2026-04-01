@@ -22,6 +22,14 @@
   .border-theme-primary { border-color: var(--theme-primary); }
   .bg-theme-secondary { background-color: var(--theme-secondary); }
   .text-theme-secondary { color: var(--theme-secondary); }
+
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(-10%) rotate(12deg); }
+    50% { transform: translateY(0) rotate(12deg); }
+  }
+  .animate-bounce-slow {
+    animation: bounce-slow 3s infinite ease-in-out;
+  }
 }
 
 @media print {
