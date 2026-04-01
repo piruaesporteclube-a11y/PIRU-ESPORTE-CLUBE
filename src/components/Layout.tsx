@@ -255,8 +255,6 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
           main {
             padding: 0 !important;
             margin: 0 !important;
-            background: white !important;
-            color: black !important;
           }
           .print-only, .list-print-only {
             display: block !important;

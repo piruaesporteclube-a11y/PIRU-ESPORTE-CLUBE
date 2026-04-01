@@ -164,15 +164,17 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 display: none !important;
               }
               .card-print-container {
-                position: relative !important;
-                width: 100% !important;
-                height: auto !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 background: white !important;
-                padding: 20mm 0 !important;
-                margin: 0 !important;
+                z-index: 99999 !important;
+                visibility: visible !important;
               }
               .card {
                 width: 105mm !important;
@@ -184,9 +186,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 display: flex !important;
                 flex-direction: column !important;
                 background-color: #050505 !important;
+                color: white !important;
                 transform: none !important;
                 margin: 0 auto !important;
                 page-break-inside: avoid !important;
+                visibility: visible !important;
               }
               .card * {
                 visibility: visible !important;

@@ -460,10 +460,13 @@ export default function App() {
     return (
       <PublicRegistration 
         onCancel={() => setIsRegistering(false)} 
-        onComplete={() => {
+        onComplete={(newUser) => {
           setIsRegistering(false);
+          setUser(newUser);
+          localStorage.setItem('pirua_user', JSON.stringify(newUser));
           // Clear query param
           window.history.replaceState({}, '', window.location.pathname);
+          setActiveTab('dashboard');
         }} 
       />
     );

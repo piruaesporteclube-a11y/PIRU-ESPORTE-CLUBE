@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Athlete } from '../types';
+import { Athlete, User } from '../types';
 import { X, Upload, Save, UserCircle, MessageCircle, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
@@ -61,9 +61,9 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     setLoading(true);
     try {
       if (isRegistration) {
-        const result = await api.register(formData);
+        const { athlete } = await api.register(formData);
         toast.success("Cadastro realizado com sucesso!");
-        onRegisterSuccess?.(result);
+        onRegisterSuccess?.(athlete);
       } else {
         await api.saveAthlete(formData);
         toast.success("Atleta salvo com sucesso!");

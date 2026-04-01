@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../api';
-import { Athlete, Anamnesis } from '../types';
+import { Athlete, Anamnesis, User } from '../types';
 import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, Upload, ClipboardList, AlertCircle, MessageCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ import { cn } from '../utils';
 
 interface PublicRegistrationProps {
   onCancel: () => void;
-  onComplete: () => void;
+  onComplete: (user: User) => void;
 }
 
 export default function PublicRegistration({ onCancel, onComplete }: PublicRegistrationProps) {
@@ -55,6 +55,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
   });
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
+  const [newUser, setNewUser] = useState<User | null>(null);
 
   const pathologiesList = [
     { id: 'TDAH', label: 'TDAH (Transtorno do Déficit de Atenção e Hiperatividade)' },
@@ -75,8 +76,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'doc_photo') => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // Increased to 1MB for documents
-        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 1MB.");
+      if (file.size > 400 * 1024) { // Reduced to 400KB to avoid Firestore document size limits
+        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 400KB.");
         return;
       }
       const reader = new FileReader();
@@ -92,8 +93,9 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     setLoading(true);
     try {
       // 1. Register Athlete
-      const athlete = await api.register(athleteData);
+      const { athlete, user } = await api.register(athleteData);
       setNewAthlete(athlete);
+      setNewUser(user);
 
       // 2. Save Anamnesis
       await api.saveAnamnesis({
@@ -188,7 +190,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             transition={{ delay: 0.7 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={onComplete}
+            onClick={() => newUser && onComplete(newUser)}
             className="w-full py-5 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-3 text-lg uppercase tracking-tighter"
           >
             Acessar Minha Conta
