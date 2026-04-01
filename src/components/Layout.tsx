@@ -60,104 +60,177 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-theme-primary selection:text-black">
       {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black sticky top-0 z-50">
+      <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black/80 backdrop-blur-md sticky top-0 z-50 safe-top">
         <div className="flex items-center gap-3">
           {settings?.schoolCrest ? (
             <img src={settings.schoolCrest} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
           ) : (
             <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-sm">P</div>
           )}
-          <h1 className="font-bold text-base tracking-tight">Piruá E.C.</h1>
+          <h1 className="font-black text-lg tracking-tighter uppercase">Piruá E.C.</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400"
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+        <button 
+          onClick={() => setIsMenuOpen(true)}
+          className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400"
+          aria-label="Abrir menu"
+        >
+          <Menu size={24} />
+        </button>
       </header>
 
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar Desktop / Mobile Drawer */}
-        <aside className={cn(
-          "fixed inset-y-0 left-0 z-[60] w-72 bg-black border-r border-zinc-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:w-64",
-          isMenuOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
-          <div className="flex flex-col h-full p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-8 px-2">
-              <div className="flex items-center gap-3">
-                {settings?.schoolCrest ? (
-                  <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 lg:w-12 lg:h-12 object-contain" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-10 h-10 lg:w-12 lg:h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg lg:text-xl">P</div>
-                )}
-                <div>
-                  <h1 className="font-bold text-lg lg:text-xl tracking-tight">Piruá E.C.</h1>
-                  <p className="text-[10px] lg:text-xs text-zinc-500">{user?.role === 'admin' ? 'Gestão de Base' : 'Portal do Aluno'}</p>
-                </div>
+        {/* Sidebar Desktop */}
+        <aside className="hidden lg:flex flex-col w-64 bg-black border-r border-zinc-800 sticky top-0 h-screen">
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center gap-3 mb-10 px-2">
+              {settings?.schoolCrest ? (
+                <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl">P</div>
+              )}
+              <div>
+                <h1 className="font-black text-xl tracking-tighter uppercase">Piruá E.C.</h1>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{user?.role === 'admin' ? 'Gestão de Base' : 'Portal do Aluno'}</p>
               </div>
-              <button 
-                onClick={() => setIsMenuOpen(false)}
-                className="lg:hidden p-2 hover:bg-zinc-800 rounded-lg text-zinc-500"
-              >
-                <X size={20} />
-              </button>
             </div>
 
-            <div className="mb-6 px-2 py-3 bg-zinc-900/30 rounded-2xl border border-theme-primary/20">
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Usuário</p>
-              <p className="text-sm font-bold truncate text-theme-primary">{user?.name}</p>
+            <div className="mb-8 px-4 py-4 bg-zinc-900/50 rounded-[1.5rem] border border-theme-primary/10 shadow-inner">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1">Usuário</p>
+              <p className="text-sm font-black truncate text-theme-primary uppercase tracking-tight">{user?.name}</p>
             </div>
 
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-1">
               {filteredNavItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsMenuOpen(false);
-                  }}
+                  onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden",
                     activeTab === item.id 
-                      ? "bg-theme-primary text-black font-bold shadow-lg shadow-theme-primary/30" 
-                      : "text-zinc-400 hover:bg-theme-primary/10 hover:text-theme-primary"
+                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/20" 
+                      : "text-zinc-500 hover:bg-zinc-900 hover:text-white"
                   )}
                 >
                   <item.icon size={20} className={cn(
-                    "transition-transform group-hover:scale-110",
-                    activeTab === item.id ? "text-black" : "text-zinc-500"
+                    "transition-transform duration-300 group-hover:scale-110 relative z-10",
+                    activeTab === item.id ? "text-black" : "text-zinc-600 group-hover:text-theme-primary"
                   )} />
-                  {item.label}
-                  {activeTab === item.id && <ChevronRight size={16} className="ml-auto" />}
+                  <span className="relative z-10 uppercase text-xs tracking-widest">{item.label}</span>
+                  {activeTab === item.id && (
+                    <motion.div 
+                      layoutId="activeNav"
+                      className="absolute inset-0 bg-theme-primary"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
                 </button>
               ))}
             </nav>
 
-            <div className="mt-auto pt-4 border-t border-zinc-800">
+            <div className="mt-auto pt-6 border-t border-zinc-900">
               <button 
                 onClick={onLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-400 transition-colors rounded-xl hover:bg-red-400/10"
+                className="w-full flex items-center gap-3 px-4 py-4 text-zinc-500 hover:text-red-500 transition-all rounded-2xl hover:bg-red-500/5 group"
               >
-                <LogOut size={20} />
-                Sair
+                <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="uppercase text-xs font-bold tracking-widest">Sair do Sistema</span>
               </button>
             </div>
           </div>
         </aside>
 
+        {/* Mobile Sidebar (Drawer) */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMenuOpen(false)}
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] lg:hidden"
+              />
+              <motion.aside 
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 left-0 z-[80] w-[85%] max-w-sm bg-black border-r border-zinc-800 lg:hidden flex flex-col"
+              >
+                <div className="flex flex-col h-full p-6 safe-top">
+                  <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-3">
+                      {settings?.schoolCrest ? (
+                        <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg">P</div>
+                      )}
+                      <h1 className="font-black text-lg tracking-tighter uppercase">Piruá E.C.</h1>
+                    </div>
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"
+                      aria-label="Fechar menu"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  <div className="mb-8 px-5 py-5 bg-zinc-900 rounded-[2rem] border border-theme-primary/10">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1">Usuário Conectado</p>
+                    <p className="text-base font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-1">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
+                  </div>
+
+                  <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+                    {filteredNavItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setIsMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-300",
+                          activeTab === item.id 
+                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/20" 
+                            : "text-zinc-500 hover:bg-zinc-900 hover:text-white"
+                        )}
+                      >
+                        <item.icon size={22} className={cn(
+                          activeTab === item.id ? "text-black" : "text-zinc-600"
+                        )} />
+                        <span className="uppercase text-sm font-bold tracking-widest">{item.label}</span>
+                        {activeTab === item.id && <ChevronRight size={18} className="ml-auto" />}
+                      </button>
+                    ))}
+                  </nav>
+
+                  <div className="mt-auto pt-6 border-t border-zinc-900">
+                    <button 
+                      onClick={onLogout}
+                      className="w-full flex items-center gap-4 px-5 py-5 text-zinc-500 hover:text-red-500 transition-all rounded-[1.5rem] hover:bg-red-500/5"
+                    >
+                      <LogOut size={22} />
+                      <span className="uppercase text-sm font-bold tracking-widest">Sair da Conta</span>
+                    </button>
+                  </div>
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Main Content */}
-        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 sm:p-6 lg:p-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="max-w-6xl mx-auto pb-20 lg:pb-0"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="max-w-6xl mx-auto"
             >
               {children}
             </motion.div>
@@ -192,6 +265,21 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             box-shadow: none !important;
             border: 1px solid #eee !important;
           }
+        }
+
+        .safe-top {
+          padding-top: env(safe-area-inset-top);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #27272a;
+          border-radius: 10px;
         }
       `}</style>
     </div>
