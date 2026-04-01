@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -54,6 +54,18 @@ export default function EventsManagement() {
       loadEvents();
     } catch (err: any) {
       toast.error(`Erro ao salvar evento: ${err.message}`);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este evento?")) {
+      try {
+        await api.deleteEvent(id);
+        toast.success("Evento excluído com sucesso!");
+        loadEvents();
+      } catch (err: any) {
+        toast.error(`Erro ao excluir evento: ${err.message}`);
+      }
     }
   };
 
@@ -144,13 +156,22 @@ export default function EventsManagement() {
               <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
                 <Calendar size={24} />
               </div>
-              <button 
-                onClick={() => handleOpenLineup(event)}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-xl transition-colors"
-              >
-                <Users size={16} />
-                Escalação
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleOpenLineup(event)}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-xl transition-colors"
+                >
+                  <Users size={16} />
+                  Escalação
+                </button>
+                <button 
+                  onClick={() => handleDeleteEvent(event.id)}
+                  className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-xl transition-colors"
+                  title="Excluir Evento"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
             <h3 className="text-xl font-bold text-white mb-2 uppercase">{event.name}</h3>
             <div className="space-y-2 text-sm text-zinc-400">

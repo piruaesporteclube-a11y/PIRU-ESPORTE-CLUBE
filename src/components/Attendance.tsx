@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn } from '../utils';
@@ -14,6 +14,7 @@ export default function Attendance() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
 
@@ -166,6 +167,13 @@ export default function Attendance() {
 
   const filteredAthletes = athletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);
 
+  const stats = {
+    total: filteredAthletes.length,
+    present: filteredAthletes.filter(a => attendance[a.id]?.status === 'Presente').length,
+    absent: filteredAthletes.filter(a => attendance[a.id]?.status === 'Faltou').length,
+    notMarked: filteredAthletes.filter(a => !attendance[a.id]).length
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -174,6 +182,13 @@ export default function Attendance() {
           <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsReportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+          >
+            <FileText size={18} />
+            Relatório
+          </button>
           <input 
             type="date" 
             className="px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
@@ -358,6 +373,115 @@ export default function Attendance() {
           </div>
         )}
       </div>
+
+      {/* Report Modal */}
+      {isReportOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-200 no-print">
+              <div>
+                <h2 className="text-xl font-bold uppercase">Relatório de Chamada</h2>
+                <p className="text-xs text-zinc-500">Data: {format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')} | Categoria: {filterSub}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => window.print()} 
+                  className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:opacity-90 transition-all font-bold"
+                >
+                  <Printer size={18} />
+                  Imprimir / PDF
+                </button>
+                <button 
+                  onClick={() => setIsReportOpen(false)} 
+                  className="p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 rounded-xl transition-all"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 print:p-0">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b-2 border-black pb-4">
+                  <div>
+                    <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+                    <p className="text-sm font-bold text-zinc-600">Relatório de Frequência Diária</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold uppercase text-zinc-500">Data da Chamada:</p>
+                    <p className="text-lg font-bold">{format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 no-print">
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase">Total Atletas</p>
+                    <p className="text-xl font-black">{stats.total}</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                    <p className="text-[10px] font-bold text-green-600 uppercase">Presenças</p>
+                    <p className="text-xl font-black text-green-700">{stats.present}</p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                    <p className="text-[10px] font-bold text-red-600 uppercase">Faltas</p>
+                    <p className="text-xl font-black text-red-700">{stats.absent}</p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase">Não Marcados</p>
+                    <p className="text-xl font-black">{stats.notMarked}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-black uppercase mb-2 border-b border-black pb-1">Lista de Presença - {filterSub}</h3>
+                  <table className="w-full border-collapse border border-black text-xs">
+                    <thead>
+                      <tr className="bg-zinc-100">
+                        <th className="border border-black p-2 text-left w-12">Nº</th>
+                        <th className="border border-black p-2 text-left">Nome do Atleta</th>
+                        <th className="border border-black p-2 text-center w-24">Status</th>
+                        <th className="border border-black p-2 text-left">Justificativa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAthletes.map((athlete, index) => {
+                        const att = attendance[athlete.id];
+                        return (
+                          <tr key={athlete.id} className={cn(
+                            att?.status === 'Faltou' ? "bg-red-50/30" : ""
+                          )}>
+                            <td className="border border-black p-2 text-center">{index + 1}</td>
+                            <td className="border border-black p-2 font-bold uppercase">{athlete.name}</td>
+                            <td className={cn(
+                              "border border-black p-2 text-center font-black",
+                              att?.status === 'Presente' ? "text-green-700" : att?.status === 'Faltou' ? "text-red-700" : "text-zinc-400"
+                            )}>
+                              {att?.status || '---'}
+                            </td>
+                            <td className="border border-black p-2 italic text-zinc-600">
+                              {att?.justification || '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-12 grid grid-cols-2 gap-12 pt-8">
+                  <div className="text-center">
+                    <div className="border-t border-black pt-2 font-bold uppercase text-[10px]">Assinatura do Professor Responsável</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-t border-black pt-2 font-bold uppercase text-[10px]">Data e Horário da Emissão</div>
+                    <p className="text-[10px] mt-1">{format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

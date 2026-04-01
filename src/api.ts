@@ -353,6 +353,13 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, `events/${event.id}`);
     }
   },
+  deleteEvent: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "events", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `events/${id}`);
+    }
+  },
 
   // Attendance
   getAttendance: async (date?: string, athlete_id?: string): Promise<Attendance[]> => {
