@@ -36,6 +36,19 @@ export default function Reports() {
 
   return (
     <div className="space-y-8">
+      {/* Print Header */}
+      <div className="hidden print-only mb-8 border-b-2 border-black pb-4">
+        <div className="flex items-center gap-4">
+          {settings?.schoolCrest && (
+            <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+          )}
+          <div>
+            <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+            <p className="text-sm font-bold text-zinc-600">Relatórios e Estatísticas</p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <h2 className="text-2xl font-bold text-white">Relatórios e Estatísticas</h2>

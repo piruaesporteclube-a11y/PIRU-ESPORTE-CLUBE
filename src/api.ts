@@ -135,7 +135,7 @@ export const api = {
         console.error("Error during anonymous login:", error);
         
         // If anonymous login is disabled in Firebase Console, we provide a clear error
-        if (error.code === 'auth/admin-restricted-operation') {
+        if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
           throw new Error("O Login Anônimo está desativado no Console do Firebase. Por favor, habilite-o em Authentication > Sign-in method > Anonymous.");
         }
 
@@ -146,6 +146,7 @@ export const api = {
           doc: username === "demo" ? "00000000000" : "05504043689", 
           role: "admin"
         };
+        // We return a special token to indicate emergency mode
         return { user: adminUser, token: "emergency-token" };
       }
     }

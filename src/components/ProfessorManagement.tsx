@@ -3,10 +3,14 @@ import { api } from '../api';
 import { Professor } from '../types';
 import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function ProfessorManagement() {
+  const { settings } = useTheme();
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [professorToDelete, setProfessorToDelete] = useState<string | null>(null);
   const [editingProfessor, setEditingProfessor] = useState<Professor | null>(null);
   const [formData, setFormData] = useState<Partial<Professor>>({
     name: '',
@@ -68,20 +72,39 @@ export default function ProfessorManagement() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este membro?")) {
-      try {
-        await api.deleteProfessor(id);
-        toast.success("Membro excluído com sucesso!");
-        loadProfessors();
-      } catch (err: any) {
-        toast.error(`Erro ao excluir: ${err.message}`);
-      }
+  const handleDelete = (id: string) => {
+    setProfessorToDelete(id);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!professorToDelete) return;
+    try {
+      await api.deleteProfessor(professorToDelete);
+      toast.success("Membro excluído com sucesso!");
+      loadProfessors();
+      setIsDeleteConfirmOpen(false);
+      setProfessorToDelete(null);
+    } catch (err: any) {
+      toast.error(`Erro ao excluir: ${err.message}`);
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Print Header */}
+      <div className="hidden print-only mb-8 border-b-2 border-black pb-4">
+        <div className="flex items-center gap-4">
+          {settings?.schoolCrest && (
+            <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+          )}
+          <div>
+            <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+            <p className="text-sm font-bold text-zinc-600">Lista de Comissão Técnica</p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <h2 className="text-2xl font-bold text-white">Cadastro de Comissão Técnica</h2>
@@ -268,6 +291,32 @@ export default function ProfessorManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-black border border-red-900/30 w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Excluir Membro</h3>
+            <p className="text-zinc-400 mb-8">Tem certeza que deseja excluir este membro da comissão técnica? Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}

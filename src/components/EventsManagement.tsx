@@ -11,6 +11,8 @@ export default function EventsManagement() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLineupOpen, setIsLineupOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -57,15 +59,21 @@ export default function EventsManagement() {
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este evento?")) {
-      try {
-        await api.deleteEvent(id);
-        toast.success("Evento excluído com sucesso!");
-        loadEvents();
-      } catch (err: any) {
-        toast.error(`Erro ao excluir evento: ${err.message}`);
-      }
+  const handleDeleteEvent = (id: string) => {
+    setEventToDelete(id);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!eventToDelete) return;
+    try {
+      await api.deleteEvent(eventToDelete);
+      toast.success("Evento excluído com sucesso!");
+      loadEvents();
+      setIsDeleteConfirmOpen(false);
+      setEventToDelete(null);
+    } catch (err: any) {
+      toast.error(`Erro ao excluir evento: ${err.message}`);
     }
   };
 
@@ -547,6 +555,32 @@ export default function EventsManagement() {
               <div className="mt-4 text-[8px] text-zinc-400 text-center uppercase tracking-widest">
                 Documento gerado eletronicamente pelo Sistema de Gestão Piruá E.C.
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-black border border-red-900/30 w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Excluir Evento</h3>
+            <p className="text-zinc-400 mb-8">Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteEvent}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors"
+              >
+                Excluir
+              </button>
             </div>
           </div>
         </div>

@@ -16,7 +16,7 @@ import { Athlete, User } from './types';
 import { api } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -69,6 +69,22 @@ export default function App() {
       loadStats();
       if (user.role === 'student' && user.athlete_id) {
         loadMyData(user.athlete_id);
+      }
+      
+      // Check for emergency mode (no real Firebase auth)
+      const storedUser = localStorage.getItem('pirua_user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.token === 'emergency-token') {
+            toast.error("Acesso em modo de emergência. Algumas funções de escrita podem estar desativadas. Por favor, verifique se o Login Anônimo está ativado no Console do Firebase ou entre com o Google.", {
+              duration: 10000,
+              icon: <AlertTriangle className="text-red-500" />
+            });
+          }
+        } catch (e) {
+          console.error("Error parsing stored user:", e);
+        }
       }
     }
   }, [user]);

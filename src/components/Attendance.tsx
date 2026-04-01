@@ -6,8 +6,10 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn } from '../utils';
 import { toast } from 'sonner';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Attendance() {
+  const { settings } = useTheme();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string }>>({});
   const [filterSub, setFilterSub] = useState('Todos');
@@ -403,9 +405,14 @@ export default function Attendance() {
             <div className="flex-1 overflow-y-auto p-8 print:p-0">
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
-                  <div>
-                    <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
-                    <p className="text-sm font-bold text-zinc-600">Relatório de Frequência Diária</p>
+                  <div className="flex items-center gap-4">
+                    {settings?.schoolCrest && (
+                      <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+                    )}
+                    <div>
+                      <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
+                      <p className="text-sm font-bold text-zinc-600">Relatório de Frequência Diária</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold uppercase text-zinc-500">Data da Chamada:</p>
