@@ -18,6 +18,46 @@ import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as Se
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
+          <AlertTriangle size={64} className="text-red-500 mb-4" />
+          <h1 className="text-2xl font-black text-white uppercase mb-2">Ops! Algo deu errado.</h1>
+          <p className="text-zinc-500 mb-6 max-w-md">Ocorreu um erro inesperado na aplicação. Por favor, tente recarregar a página.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-8 py-4 bg-theme-primary text-black font-black rounded-2xl uppercase tracking-tighter"
+          >
+            Recarregar Página
+          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="mt-8 p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-red-400 text-left text-xs overflow-auto max-w-full">
+              {this.state.error?.toString()}
+            </pre>
+          )}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('pirua_user');
@@ -29,7 +69,9 @@ export default function App() {
   const [isAthleteFormOpen, setIsAthleteFormOpen] = useState(false);
   const [isRegistering, setIsRegistering] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('register') === 'true';
+    const isReg = params.get('register') === 'true';
+    console.log('Initial isRegistering:', isReg);
+    return isReg;
   });
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
@@ -449,15 +491,58 @@ export default function App() {
   useEffect(() => {
     const checkRegisterParam = () => {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('register') === 'true') {
+      const isReg = params.get('register') === 'true';
+      console.log('URL Change detected. isRegistering:', isReg);
+      if (isReg) {
         setIsRegistering(true);
+      } else {
+        setIsRegistering(false);
       }
     };
 
     checkRegisterParam();
     window.addEventListener('popstate', checkRegisterParam);
-    return () => window.removeEventListener('popstate', checkRegisterParam);
+    // Also listen for pushState/replaceState if they happen
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function() {
+      originalPushState.apply(this, arguments as any);
+      checkRegisterParam();
+    };
+    
+    window.history.replaceState = function() {
+      originalReplaceState.apply(this, arguments as any);
+      checkRegisterParam();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', checkRegisterParam);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
   }, []);
+
+  // Priority 1: Registration (Show even during auth loading if param is present)
+  if (isRegistering) {
+    return (
+      <ErrorBoundary>
+        <PublicRegistration 
+          onCancel={() => {
+            setIsRegistering(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }} 
+          onComplete={(newUser) => {
+            setIsRegistering(false);
+            setUser(newUser);
+            localStorage.setItem('pirua_user', JSON.stringify(newUser));
+            window.history.replaceState({}, '', window.location.pathname);
+            setActiveTab('dashboard');
+          }} 
+        />
+      </ErrorBoundary>
+    );
+  }
 
   if (isAuthLoading) {
     return (
@@ -466,25 +551,6 @@ export default function App() {
           Iniciando Sistema...
         </div>
       </div>
-    );
-  }
-
-  if (isRegistering) {
-    return (
-      <PublicRegistration 
-        onCancel={() => {
-          setIsRegistering(false);
-          window.history.replaceState({}, '', window.location.pathname);
-        }} 
-        onComplete={(newUser) => {
-          setIsRegistering(false);
-          setUser(newUser);
-          localStorage.setItem('pirua_user', JSON.stringify(newUser));
-          // Clear query param
-          window.history.replaceState({}, '', window.location.pathname);
-          setActiveTab('dashboard');
-        }} 
-      />
     );
   }
 
@@ -498,17 +564,19 @@ export default function App() {
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
-      {renderContent()}
-      {isAthleteFormOpen && (
-        <AthleteForm 
-          athlete={editingAthlete} 
-          onClose={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
-          onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); loadStats(); }} 
-        />
-      )}
-      <Toaster position="top-right" richColors />
-    </Layout>
+    <ErrorBoundary>
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
+        {renderContent()}
+        {isAthleteFormOpen && (
+          <AthleteForm 
+            athlete={editingAthlete} 
+            onClose={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
+            onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); loadStats(); }} 
+          />
+        )}
+        <Toaster position="top-right" richColors />
+      </Layout>
+    </ErrorBoundary>
   );
 }
 
