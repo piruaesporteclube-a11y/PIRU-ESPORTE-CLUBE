@@ -14,7 +14,7 @@ import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import { Athlete, User } from './types';
 import { api } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 
@@ -242,6 +242,17 @@ export default function App() {
                     <button onClick={() => setActiveTab('documents')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
                       <FileText className="text-purple-500 group-hover:scale-110 transition-transform" />
                       <span className="text-xs font-bold uppercase">Documentos</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = `${window.location.origin}/?register=true`;
+                        navigator.clipboard.writeText(link);
+                        toast.success('Link de matrícula copiado!');
+                      }}
+                      className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group col-span-2"
+                    >
+                      <LinkIcon className="text-theme-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold uppercase">Copiar Link de Matrícula</span>
                     </button>
                   </div>
                 </div>

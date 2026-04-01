@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -72,6 +72,18 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
           <p className="text-zinc-400 text-sm">Gerencie todos os atletas da escolinha</p>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              const link = `${window.location.origin}/?register=true`;
+              navigator.clipboard.writeText(link);
+              toast.success('Link de matrícula copiado para a área de transferência!');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-theme-primary rounded-xl transition-all border border-zinc-700 hover:border-theme-primary/50"
+            title="Copiar link para enviar aos alunos"
+          >
+            <LinkIcon size={18} />
+            <span className="hidden sm:inline">Link de Matrícula</span>
+          </button>
           <button 
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"
