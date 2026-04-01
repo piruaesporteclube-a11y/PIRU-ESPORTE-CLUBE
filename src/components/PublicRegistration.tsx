@@ -4,6 +4,7 @@ import { Athlete, Anamnesis } from '../types';
 import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, Upload, ClipboardList, AlertCircle, MessageCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 
 interface PublicRegistrationProps {
@@ -112,31 +113,88 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-zinc-900 border border-theme-primary/20 rounded-[2.5rem] p-8 text-center space-y-6 shadow-2xl">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-zinc-900 border border-theme-primary/20 rounded-[2.5rem] p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
+        >
+          {/* Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-green-500/10 blur-[100px] -z-10 rounded-full"></div>
+
           <div className="flex justify-center">
-            <div className="p-4 bg-green-500/10 text-green-500 rounded-full animate-bounce">
-              <CheckCircle2 size={64} />
-            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 260,
+                damping: 20,
+                delay: 0.1
+              }}
+              className="relative"
+            >
+              <div className="p-6 bg-green-500/10 text-green-500 rounded-full">
+                <CheckCircle2 size={80} strokeWidth={3} />
+              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1.5 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="absolute inset-0 bg-green-500/20 rounded-full -z-10"
+              ></motion.div>
+            </motion.div>
           </div>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Cadastro Concluído!</h2>
-          <p className="text-zinc-400">
-            Seja bem-vindo ao Piruá E.C., <span className="text-theme-primary font-bold">{newAthlete?.name}</span>! 
-            Seu cadastro e ficha de saúde foram salvos com sucesso.
-          </p>
-          <div className="bg-zinc-800/50 p-4 rounded-2xl border border-zinc-700 text-left">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Dados de Acesso</p>
-            <p className="text-xs text-zinc-300">Usuário: <span className="text-white font-mono">{newAthlete?.doc}</span></p>
-            <p className="text-xs text-zinc-300">Senha: <span className="text-white font-mono">{newAthlete?.doc}</span></p>
-            <p className="text-[10px] text-zinc-500 mt-2 italic">* Use seu CPF (apenas números) para entrar.</p>
-          </div>
-          <button 
-            onClick={onComplete}
-            className="w-full py-4 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2"
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-2"
           >
-            Ir para o Login
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Matrícula Realizada!</h2>
+            <p className="text-zinc-400">
+              Seja bem-vindo ao Piruá E.C., <span className="text-theme-primary font-bold">{newAthlete?.name}</span>! 
+            </p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-zinc-800/50 p-6 rounded-3xl border border-zinc-700 text-left relative group"
+          >
+            <div className="absolute top-4 right-4 text-green-500/50">
+              <ClipboardCheck size={20} />
+            </div>
+            <p className="text-[10px] font-bold text-zinc-500 uppercase mb-3 tracking-widest">Dados de Acesso ao Portal</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-zinc-500">Usuário (CPF):</span>
+                <span className="text-sm text-white font-mono font-bold">{newAthlete?.doc}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-zinc-500">Senha Inicial:</span>
+                <span className="text-sm text-white font-mono font-bold">{newAthlete?.doc}</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-4 italic border-t border-zinc-700/50 pt-3">
+              * Utilize seu CPF (apenas números) para realizar o primeiro acesso.
+            </p>
+          </motion.div>
+
+          <motion.button 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onComplete}
+            className="w-full py-5 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-3 text-lg uppercase tracking-tighter"
+          >
+            Acessar Minha Conta
             <ArrowRight size={20} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     );
   }

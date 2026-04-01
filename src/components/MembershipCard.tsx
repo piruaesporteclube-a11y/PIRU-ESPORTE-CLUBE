@@ -274,7 +274,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome Completo do Aluno
                   </div>
-                  <h4 className="text-2xl font-black uppercase leading-tight text-white tracking-tight truncate">
+                  <h4 className="text-xl font-black uppercase leading-tight text-white tracking-tight">
                     {athlete.name}
                   </h4>
                 </div>
@@ -294,7 +294,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                       RG/CPF
                     </div>
-                    <p className="text-sm font-black text-white truncate">{athlete.doc || '--'}</p>
+                    <p className="text-sm font-black text-white">{athlete.doc || '--'}</p>
                   </div>
                   <div>
                     <div className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
@@ -309,7 +309,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável</p>
-                      <p className="text-xs font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
+                      <p className="text-[10px] font-bold text-[#d4d4d8] uppercase leading-tight">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
