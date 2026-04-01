@@ -27,7 +27,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { settings } = useTheme();
   const [isAthleteFormOpen, setIsAthleteFormOpen] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('register') === 'true';
+  });
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
@@ -444,10 +447,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('register') === 'true') {
-      setIsRegistering(true);
-    }
+    const checkRegisterParam = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('register') === 'true') {
+        setIsRegistering(true);
+      }
+    };
+
+    checkRegisterParam();
+    window.addEventListener('popstate', checkRegisterParam);
+    return () => window.removeEventListener('popstate', checkRegisterParam);
   }, []);
 
   if (isAuthLoading) {
@@ -463,7 +472,10 @@ export default function App() {
   if (isRegistering) {
     return (
       <PublicRegistration 
-        onCancel={() => setIsRegistering(false)} 
+        onCancel={() => {
+          setIsRegistering(false);
+          window.history.replaceState({}, '', window.location.pathname);
+        }} 
         onComplete={(newUser) => {
           setIsRegistering(false);
           setUser(newUser);

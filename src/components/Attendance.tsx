@@ -45,6 +45,7 @@ export default function Attendance() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     let html5QrCode: Html5Qrcode | null = null;
 
     if (isScanning) {
@@ -52,41 +53,58 @@ export default function Attendance() {
       
       const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-      html5QrCode.start(
-        { facingMode: "environment" }, 
-        config, 
-        (decodedText) => {
-          const now = Date.now();
-          // Prevent scanning the same code multiple times within 3 seconds
-          if (decodedText === lastScannedCode.current && (now - lastScanTime.current) < 3000) {
-            return;
-          }
-          
-          lastScannedCode.current = decodedText;
-          lastScanTime.current = now;
-          handleScan(decodedText);
-          // Removed setIsScanning(false) to allow continuous scanning
-        },
-        (errorMessage) => {
-          // Only log actual errors, not "no QR code found" warnings
-          if (typeof errorMessage === 'string' && !errorMessage.includes("NotFoundException")) {
-            console.warn("Aviso no scanner:", errorMessage);
+      const onScanSuccess = (decodedText: string) => {
+        if (!isMounted) return;
+        const now = Date.now();
+        // Prevent scanning the same code multiple times within 3 seconds
+        if (decodedText === lastScannedCode.current && (now - lastScanTime.current) < 3000) {
+          return;
+        }
+        
+        lastScannedCode.current = decodedText;
+        lastScanTime.current = now;
+        handleScan(decodedText);
+      };
+
+      const onScanFailure = (errorMessage: any) => {
+        if (!isMounted) return;
+        // Only log actual errors, not "no QR code found" warnings
+        if (typeof errorMessage === 'string' && !errorMessage.includes("NotFoundException")) {
+          console.warn("Aviso no scanner:", errorMessage);
+        }
+      };
+
+      const startWithFallback = async () => {
+        try {
+          if (!isMounted) return;
+          // Try back camera first
+          await html5QrCode!.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+        } catch (err: any) {
+          if (!isMounted) return;
+          console.warn("Erro ao iniciar com facingMode: environment, tentando fallback...", err);
+          try {
+            // Try any available camera
+            await html5QrCode!.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure);
+          } catch (err2: any) {
+            if (!isMounted) return;
+            console.error("Erro ao iniciar scanner em todos os modos:", err2);
+            if (err2?.message?.includes("Permission denied")) {
+              toast.error("Permissão de câmera negada. Por favor, autorize o acesso nas configurações do navegador.");
+            } else if (err2?.name === "NotFoundError" || err2?.message?.includes("Requested device not found")) {
+              toast.error("Nenhuma câmera encontrada neste dispositivo.");
+            } else {
+              toast.error("Não foi possível abrir a câmera. Verifique se ela está sendo usada por outro app.");
+            }
+            setIsScanning(false);
           }
         }
-      ).catch((err) => {
-        console.error("Erro ao iniciar scanner:", err);
-        if (err?.message?.includes("Permission denied")) {
-          toast.error("Permissão de câmera negada. Por favor, autorize o acesso nas configurações do navegador.");
-        } else if (err?.message?.includes("NotFoundException")) {
-           // Ignore
-        } else {
-          toast.error("Não foi possível abrir a câmera. Verifique se ela está sendo usada por outro app.");
-        }
-        setIsScanning(false);
-      });
+      };
+
+      startWithFallback();
     }
 
     return () => {
+      isMounted = false;
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().then(() => {
           html5QrCode?.clear();

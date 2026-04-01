@@ -205,7 +205,16 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     <div className="min-h-screen bg-black py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 relative">
+          <div className="absolute left-0 top-0 no-print">
+            <button 
+              onClick={onCancel}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
+            >
+              <ArrowRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
+            </button>
+          </div>
           <div className="flex justify-center">
             {settings.schoolCrest ? (
               <img src={settings.schoolCrest} alt="Escudo" className="h-24 w-auto object-contain" referrerPolicy="no-referrer" />
