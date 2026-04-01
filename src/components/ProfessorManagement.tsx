@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Professor } from '../types';
-import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2 } from 'lucide-react';
+import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -142,7 +142,20 @@ export default function ProfessorManagement() {
             </div>
             <h3 className="text-lg font-bold text-white uppercase">{p.name}</h3>
             <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
-            <p className="text-xs text-theme-primary font-bold mb-4">{p.phone}</p>
+            <div className="flex items-center gap-2 mb-4">
+              <p className="text-xs text-theme-primary font-bold">{p.phone}</p>
+              {p.phone && (
+                <a 
+                  href={`https://wa.me/55${p.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-500 hover:text-green-400 transition-colors"
+                  title="Conversar no WhatsApp"
+                >
+                  <MessageCircle size={14} />
+                </a>
+              )}
+            </div>
             <div className="text-xs text-zinc-400 space-y-1">
               <p>{p.street}, {p.number}</p>
               <p>{p.neighborhood} - {p.city}/{p.uf}</p>
@@ -224,15 +237,28 @@ export default function ProfessorManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Telefone</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    placeholder="(37) 99999-9999"
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                  />
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">WhatsApp / Telefone</label>
+                  <div className="relative">
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                      placeholder="(37) 99999-9999"
+                      value={formData.phone}
+                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                    />
+                    {formData.phone && (
+                      <a 
+                        href={`https://wa.me/55${formData.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 hover:text-green-400 transition-colors"
+                        title="Testar WhatsApp"
+                      >
+                        <MessageCircle size={20} />
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="md:col-span-2 grid grid-cols-3 gap-4">
                   <div className="col-span-2">

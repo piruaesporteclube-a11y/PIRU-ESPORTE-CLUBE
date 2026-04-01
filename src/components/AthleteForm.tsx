@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete } from '../types';
-import { X, Upload, Save, UserCircle } from 'lucide-react';
+import { X, Upload, Save, UserCircle, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -166,13 +166,27 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Contato Aluno</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                      value={formData.contact}
-                      onChange={e => setFormData({...formData, contact: e.target.value})}
-                    />
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">WhatsApp Aluno</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="(00) 00000-0000"
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12"
+                        value={formData.contact}
+                        onChange={e => setFormData({...formData, contact: e.target.value})}
+                      />
+                      {formData.contact && (
+                        <a 
+                          href={`https://wa.me/55${formData.contact.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all"
+                          title="Conversar no WhatsApp"
+                        >
+                          <MessageCircle size={18} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -258,13 +272,27 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Telefone Responsável</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.guardian_phone}
-                    onChange={e => setFormData({...formData, guardian_phone: e.target.value})}
-                  />
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">WhatsApp Responsável</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="(00) 00000-0000"
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12"
+                      value={formData.guardian_phone}
+                      onChange={e => setFormData({...formData, guardian_phone: e.target.value})}
+                    />
+                    {formData.guardian_phone && (
+                      <a 
+                        href={`https://wa.me/55${formData.guardian_phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all"
+                        title="Conversar no WhatsApp"
+                      >
+                        <MessageCircle size={18} />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

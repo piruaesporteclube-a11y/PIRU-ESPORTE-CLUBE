@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -172,8 +172,34 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                         </div>
                       )}
                       <div>
-                        <div className="font-medium text-white">{athlete.name}</div>
-                        <div className="text-xs text-zinc-500">{athlete.doc}</div>
+                        <div className="font-medium text-white flex items-center gap-2">
+                          {athlete.name}
+                          {athlete.contact && (
+                            <a 
+                              href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-500 hover:text-green-400 transition-colors"
+                              title="Conversar com Aluno"
+                            >
+                              <MessageCircle size={14} />
+                            </a>
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-500 flex items-center gap-2">
+                          {athlete.doc}
+                          {athlete.guardian_phone && (
+                            <a 
+                              href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-zinc-500 hover:text-green-500 transition-colors"
+                              title="Conversar com Responsável"
+                            >
+                              <MessageCircle size={12} />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -231,8 +257,32 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
                     </div>
                   )}
                   <div>
-                    <div className="font-bold text-white">{athlete.name}</div>
-                    <div className="text-xs text-zinc-500">{athlete.doc}</div>
+                    <div className="font-bold text-white flex items-center gap-2">
+                      {athlete.name}
+                      {athlete.contact && (
+                        <a 
+                          href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-500"
+                        >
+                          <MessageCircle size={16} />
+                        </a>
+                      )}
+                    </div>
+                    <div className="text-xs text-zinc-500 flex items-center gap-2">
+                      {athlete.doc}
+                      {athlete.guardian_phone && (
+                        <a 
+                          href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-zinc-400"
+                        >
+                          <MessageCircle size={14} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <span className={cn(

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import AthleteForm from './AthleteForm';
-import AnamnesisForm from './AnamnesisForm';
-import { Athlete } from '../types';
-import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus } from 'lucide-react';
+import { api } from '../api';
+import { Athlete, Anamnesis } from '../types';
+import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, Upload, ClipboardList, AlertCircle, MessageCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { toast } from 'sonner';
+import { cn } from '../utils';
 
 interface PublicRegistrationProps {
   onCancel: () => void;
@@ -11,13 +12,101 @@ interface PublicRegistrationProps {
 }
 
 export default function PublicRegistration({ onCancel, onComplete }: PublicRegistrationProps) {
-  const [step, setStep] = useState<'basic' | 'anamnesis' | 'success'>('basic');
-  const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
+  const [step, setStep] = useState<'form' | 'success'>('form');
+  const [loading, setLoading] = useState(false);
   const { settings } = useTheme();
+  
+  const [athleteData, setAthleteData] = useState<Partial<Athlete>>({
+    name: '',
+    birth_date: '',
+    doc: '',
+    street: '',
+    number: '',
+    neighborhood: '',
+    city: '',
+    uf: '',
+    jersey_number: '',
+    photo: '',
+    contact: '',
+    guardian_name: '',
+    guardian_doc: '',
+    guardian_phone: '',
+    status: 'Ativo'
+  });
 
-  const handleRegisterSuccess = (athlete: Athlete) => {
-    setNewAthlete(athlete);
-    setStep('anamnesis');
+  const [anamnesisData, setAnamnesisData] = useState<Partial<Anamnesis>>({
+    sleep_time: '',
+    wake_up_difficulty: '',
+    fractures: '',
+    medical_treatment: '',
+    controlled_medication: '',
+    other_exercises: '',
+    respiratory_problems: '',
+    cardiac_problems: '',
+    allergies: '',
+    hypertension: '',
+    hypotension: '',
+    epilepsy: '',
+    diabetes: '',
+    food_restriction: '',
+    medication_restriction: '',
+    pathologies: '[]'
+  });
+
+  const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
+
+  const pathologiesList = [
+    { id: 'TDAH', label: 'TDAH (Transtorno do Déficit de Atenção e Hiperatividade)' },
+    { id: 'TEA', label: 'TEA (Autismo)' },
+    { id: 'TOD', label: 'TOD (Transtorno Opositor e Desafiador)' },
+    { id: 'DI', label: 'DI (Déficit Intelectual)' },
+    { id: 'ANSIEDADE', label: 'Ansiedade' },
+  ];
+
+  const handlePathologyToggle = (pathId: string) => {
+    const current = JSON.parse(anamnesisData.pathologies || '[]');
+    const next = current.includes(pathId) 
+      ? current.filter((id: string) => id !== pathId)
+      : [...current, pathId];
+    setAnamnesisData({ ...anamnesisData, pathologies: JSON.stringify(next) });
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500 * 1024) {
+        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAthleteData(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // 1. Register Athlete
+      const athlete = await api.register(athleteData);
+      setNewAthlete(athlete);
+
+      // 2. Save Anamnesis
+      await api.saveAnamnesis({
+        ...anamnesisData,
+        athlete_id: athlete.id
+      });
+
+      toast.success("Matrícula realizada com sucesso!");
+      setStep('success');
+    } catch (err: any) {
+      toast.error(`Erro ao realizar matrícula: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === 'success') {
@@ -65,48 +154,221 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             )}
           </div>
           <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Portal de Matrícula</h1>
-          <p className="text-zinc-400">Preencha os dados abaixo para se tornar um atleta do Piruá Esporte Clube</p>
-          
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center gap-4 pt-4">
-            <div className={`flex items-center gap-2 ${step === 'basic' ? 'text-theme-primary' : 'text-zinc-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 ${step === 'basic' ? 'border-theme-primary bg-theme-primary/10' : 'border-zinc-700'}`}>1</div>
-              <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Dados Pessoais</span>
-            </div>
-            <div className="w-12 h-[2px] bg-zinc-800" />
-            <div className={`flex items-center gap-2 ${step === 'anamnesis' ? 'text-theme-primary' : 'text-zinc-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 ${step === 'anamnesis' ? 'border-theme-primary bg-theme-primary/10' : 'border-zinc-700'}`}>2</div>
-              <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Ficha de Saúde</span>
-            </div>
-          </div>
+          <p className="text-zinc-400">Preencha a ficha de inscrição e anamnese abaixo para se tornar um atleta do Piruá Esporte Clube</p>
         </div>
 
-        {step === 'basic' ? (
-          <div className="relative">
-            <AthleteForm 
-              isRegistration={true}
-              onClose={onCancel}
-              onSave={() => {}} // Not used in registration mode
-              onRegisterSuccess={(athlete) => handleRegisterSuccess(athlete as Athlete)}
-            />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-zinc-900/50 border border-theme-primary/20 p-6 rounded-3xl flex items-center gap-4">
-              <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
-                <ClipboardCheck size={24} />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Section 1: Athlete Data */}
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 bg-zinc-900/80 flex items-center gap-3">
+              <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
+                <UserPlus size={20} />
               </div>
-              <div>
-                <h3 className="text-white font-bold uppercase tracking-widest">Quase lá, {newAthlete?.name}!</h3>
-                <p className="text-xs text-zinc-400">Agora, preencha sua ficha de anamnese para completar o cadastro.</p>
+              <h2 className="text-xl font-bold text-white uppercase tracking-widest">1. Ficha de Inscrição</h2>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              {/* Photo Upload */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative group">
+                  {athleteData.photo ? (
+                    <img src={athleteData.photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-[120px] h-[160px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-700 group-hover:border-theme-primary transition-colors">
+                      <UserCircle size={48} />
+                      <span className="text-[10px] mt-2 font-bold uppercase">Foto 3x4</span>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
+                    <Upload className="text-white" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-500">Upload da foto do atleta (3x4)</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Dados Pessoais</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome Completo</label>
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.name} onChange={e => setAthleteData({...athleteData, name: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nascimento</label>
+                        <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.birth_date} onChange={e => setAthleteData({...athleteData, birth_date: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF/RG</label>
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.doc} onChange={e => setAthleteData({...athleteData, doc: e.target.value})} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
+                      <input type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Endereço</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Rua</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.street} onChange={e => setAthleteData({...athleteData, street: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nº</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.number} onChange={e => setAthleteData({...athleteData, number: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Bairro</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.neighborhood} onChange={e => setAthleteData({...athleteData, neighborhood: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Cidade</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.city} onChange={e => setAthleteData({...athleteData, city: e.target.value})} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 space-y-4 pt-4 border-t border-zinc-800">
+                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Responsável Legal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome do Responsável</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.guardian_name} onChange={e => setAthleteData({...athleteData, guardian_name: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF Responsável</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.guardian_doc} onChange={e => setAthleteData({...athleteData, guardian_doc: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Responsável</label>
+                      <input type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.guardian_phone} onChange={e => setAthleteData({...athleteData, guardian_phone: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <AnamnesisForm 
-              athlete={newAthlete!} 
-              onSave={() => setStep('success')} 
-            />
           </div>
-        )}
+
+          {/* Section 2: Anamnesis Data */}
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 bg-zinc-900/80 flex items-center gap-3">
+              <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
+                <ClipboardCheck size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-white uppercase tracking-widest">2. Ficha de Saúde (Anamnese)</h2>
+            </div>
+
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                    <ClipboardList size={16} />
+                    Hábitos e Rotina
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Qual horário o atleta dorme?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.sleep_time} onChange={e => setAnamnesisData({...anamnesisData, sleep_time: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Tem dificuldade de acordar cedo?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.wake_up_difficulty} onChange={e => setAnamnesisData({...anamnesisData, wake_up_difficulty: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Pratica outro exercício físico?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.other_exercises} onChange={e => setAnamnesisData({...anamnesisData, other_exercises: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                    <AlertCircle size={16} />
+                    Histórico Médico
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Já fraturou algum membro?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.fractures} onChange={e => setAnamnesisData({...anamnesisData, fractures: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Faz algum tratamento médico?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.medical_treatment} onChange={e => setAnamnesisData({...anamnesisData, medical_treatment: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Faz uso de medicação controlada?</label>
+                      <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={anamnesisData.controlled_medication} onChange={e => setAnamnesisData({...anamnesisData, controlled_medication: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-8 border-t border-zinc-800">
+                <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Condições de Saúde</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    { label: 'Problemas Respiratórios', key: 'respiratory_problems' },
+                    { label: 'Problemas Cardíacos', key: 'cardiac_problems' },
+                    { label: 'Alergias', key: 'allergies' },
+                    { label: 'Hipertensão', key: 'hypertension' },
+                    { label: 'Hipotensão', key: 'hypotension' },
+                    { label: 'Epilepsia', key: 'epilepsy' },
+                    { label: 'Diabetes', key: 'diabetes' },
+                    { label: 'Restrição Alimentar', key: 'food_restriction' },
+                    { label: 'Restrição Medicamentos', key: 'medication_restriction' },
+                  ].map((item) => (
+                    <div key={item.key}>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{item.label}</label>
+                      <input type="text" className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-theme-primary/50 outline-none" value={(anamnesisData as any)[item.key]} onChange={e => setAnamnesisData({...anamnesisData, [item.key]: e.target.value})} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-8 border-t border-zinc-800">
+                <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Patologias (Doenças)</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {pathologiesList.map((path) => {
+                    const isActive = JSON.parse(anamnesisData.pathologies || '[]').includes(path.id);
+                    return (
+                      <button key={path.id} type="button" onClick={() => handlePathologyToggle(path.id)} className={cn("flex items-center gap-3 p-4 rounded-2xl border transition-all text-left", isActive ? "bg-theme-primary/10 border-theme-primary text-theme-primary" : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600")}>
+                        <div className={cn("w-5 h-5 rounded flex items-center justify-center border", isActive ? "bg-theme-primary border-theme-primary" : "border-zinc-600")}>
+                          {isActive && <Save size={12} className="text-black" />}
+                        </div>
+                        <span className="text-xs font-bold uppercase">{path.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center pt-8">
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full max-w-md py-5 bg-theme-primary hover:opacity-90 text-black rounded-[2rem] font-black transition-all shadow-2xl shadow-theme-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 text-lg uppercase tracking-tighter"
+            >
+              {loading ? 'Processando Matrícula...' : (
+                <>
+                  <Save size={24} />
+                  Finalizar Matrícula
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2 } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle } from 'lucide-react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -364,7 +364,20 @@ export default function EventsManagement() {
                                 {s.photo && <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-bold truncate text-xs uppercase">{s.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold truncate text-xs uppercase">{s.name}</p>
+                                  {s.phone && (
+                                    <a 
+                                      href={`https://wa.me/55${s.phone.replace(/\D/g, '')}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-green-500 hover:text-green-400 transition-colors"
+                                      title="Conversar no WhatsApp"
+                                    >
+                                      <MessageCircle size={12} />
+                                    </a>
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-theme-primary font-bold">COMISSÃO</p>
                               </div>
                             </div>
