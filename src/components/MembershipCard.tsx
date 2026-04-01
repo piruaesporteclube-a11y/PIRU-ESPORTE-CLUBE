@@ -328,10 +328,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           {/* Footer */}
           <div className="h-16 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-1 rounded-md shadow-xl">
+              <div className="bg-white p-1.5 rounded-lg shadow-xl">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={48} 
+                  size={64} 
                   level="H"
                   includeMargin={false}
                 />

@@ -14,7 +14,7 @@ import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import { Athlete, User } from './types';
 import { api } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 
@@ -234,6 +234,10 @@ export default function App() {
                     <button onClick={() => setActiveTab('attendance')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
                       <ClipboardCheck className="text-green-500 group-hover:scale-110 transition-transform" />
                       <span className="text-xs font-bold uppercase">Fazer Chamada</span>
+                    </button>
+                    <button onClick={() => { setActiveTab('attendance'); localStorage.setItem('auto_scan', 'true'); }} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
+                      <QrCode className="text-theme-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold uppercase">Chamada QR</span>
                     </button>
                     <button onClick={() => setActiveTab('events')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
                       <Calendar className="text-blue-500 group-hover:scale-110 transition-transform" />

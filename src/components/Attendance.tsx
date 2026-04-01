@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { cn } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Attendance() {
   const { settings } = useTheme();
@@ -17,11 +18,16 @@ export default function Attendance() {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
 
   useEffect(() => {
     loadData();
+    if (localStorage.getItem('auto_scan') === 'true') {
+      setIsScanning(true);
+      localStorage.removeItem('auto_scan');
+    }
   }, [date]);
 
   const loadData = async () => {
@@ -139,6 +145,12 @@ export default function Attendance() {
         }
 
         setScanResult(`Presença registrada: ${athlete.name}`);
+        setRecentScans(prev => [{ 
+          id: athlete.id, 
+          name: athlete.name, 
+          time: format(new Date(), 'HH:mm'),
+          photo: athlete.photo 
+        }, ...prev].slice(0, 5));
         setTimeout(() => setScanResult(null), 3000);
       } else {
         setScanResult("Atleta não encontrado ou inativo.");
@@ -208,21 +220,83 @@ export default function Attendance() {
       </div>
 
       {isScanning && (
-        <div className="bg-black border border-zinc-800 rounded-2xl p-4 flex flex-col items-center">
-          <div id="reader" className="w-full max-w-md overflow-hidden rounded-xl"></div>
-          <p className="mt-4 text-zinc-400 text-sm">Aponte a câmera para o QR Code da carteirinha</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-800 rounded-3xl p-6 flex flex-col items-center">
+            <div id="reader" className="w-full max-w-md overflow-hidden rounded-2xl border-4 border-theme-primary/20 shadow-2xl"></div>
+            <div className="mt-6 flex items-center gap-3 text-zinc-400">
+              <div className="w-2 h-2 rounded-full bg-theme-primary animate-pulse"></div>
+              <p className="text-sm font-bold uppercase tracking-widest">Scanner Ativo - Aponte para a Carteirinha</p>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-3xl p-6">
+            <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <CheckCircle2 size={14} className="text-theme-primary" />
+              Escaneados Recentemente
+            </h3>
+            <div className="space-y-4">
+              <AnimatePresence initial={false}>
+                {recentScans.length > 0 ? (
+                  recentScans.map((scan, idx) => (
+                    <motion.div 
+                      key={`${scan.id}-${scan.time}-${idx}`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5"
+                    >
+                      <div className="w-10 h-10 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0 border border-theme-primary/20">
+                        {scan.photo ? (
+                          <img src={scan.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                            <User size={20} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate uppercase">{scan.name}</p>
+                        <p className="text-[10px] text-theme-primary font-black">{scan.time}</p>
+                      </div>
+                      <div className="p-1.5 bg-green-500/10 text-green-500 rounded-lg">
+                        <CheckCircle2 size={14} />
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center text-zinc-600">
+                    <QrCode size={40} className="mx-auto mb-3 opacity-20" />
+                    <p className="text-xs uppercase font-bold tracking-widest">Aguardando Leitura...</p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       )}
 
-      {scanResult && (
-        <div className={cn(
-          "p-4 rounded-xl flex items-center gap-3 animate-bounce",
-          scanResult.includes('registrada') ? "bg-green-500/20 text-green-500 border border-green-500/50" : "bg-red-500/20 text-red-500 border border-red-500/50"
-        )}>
-          {scanResult.includes('registrada') ? <CheckCircle2 /> : <AlertCircle />}
-          <span className="font-bold">{scanResult}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {scanResult && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            className={cn(
+              "p-6 rounded-3xl flex items-center justify-center gap-4 shadow-2xl border-2 mb-8",
+              scanResult.includes('registrada') 
+                ? "bg-green-500/10 text-green-500 border-green-500/30" 
+                : "bg-red-500/10 text-red-500 border-red-500/30"
+            )}
+          >
+            <div className={cn(
+              "p-3 rounded-2xl",
+              scanResult.includes('registrada') ? "bg-green-500/20" : "bg-red-500/20"
+            )}>
+              {scanResult.includes('registrada') ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
+            </div>
+            <span className="text-xl font-black uppercase tracking-tighter">{scanResult}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
