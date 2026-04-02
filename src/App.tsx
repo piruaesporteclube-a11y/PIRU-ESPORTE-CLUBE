@@ -76,79 +76,71 @@ export default function App() {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [stats, setStats] = useState({ athletes: 0, active: 0, events: 0 });
   const [myAthleteData, setMyAthleteData] = useState<Athlete | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const storedUser = localStorage.getItem('pirua_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.token !== 'emergency-token') {
-          setUser(parsedUser);
-          setIsAuthLoading(false);
-          return;
-        }
+    // Real-time listener for athletes to ensure the dashboard and lists are always up to date
+    // This is useful for both admins (stats/list) and students (my-data)
+    const unsubscribe = api.subscribeToAthletes((data) => {
+      setAthletes(data);
+      if (user?.role === 'admin') {
+        setStats(prev => ({
+          ...prev,
+          athletes: data.length,
+          active: data.filter(a => a.status === 'Ativo').length
+        }));
       }
-
-      if (!user) {
-        try {
-          // Auto-login as admin for "free access"
-          const res = await api.login('05504043689', '05504043689');
-          if (res.token !== "emergency-token") {
-            setUser(res.user);
-            localStorage.setItem('pirua_user', JSON.stringify(res.user));
-          }
-        } catch (err) {
-          console.error("Auto-login failed:", err);
-        }
-      }
-      setIsAuthLoading(false);
-    };
-    initAuth();
-  }, []);
+    });
+    return () => unsubscribe();
+  }, [user?.id]); // Re-subscribe if user changes
 
   useEffect(() => {
-    if (user) {
-      loadStats();
-      if (user.role === 'student' && user.athlete_id) {
-        loadMyData(user.athlete_id);
-      }
-      
-      // Check for emergency mode (no real Firebase auth)
-      const storedUser = localStorage.getItem('pirua_user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser.token === 'emergency-token') {
-            toast.error("Acesso em modo de emergência. Algumas funções de escrita podem estar desativadas. Por favor, verifique se o Login Anônimo está ativado no Console do Firebase ou entre com o Google.", {
-              duration: 10000,
-              icon: <AlertTriangle className="text-red-500" />
-            });
-          }
-        } catch (e) {
-          console.error("Error parsing stored user:", e);
-        }
-      }
+    if (user?.role === 'student' && user.athlete_id && athletes.length > 0) {
+      const me = athletes.find(a => a.id === user.athlete_id);
+      if (me) setMyAthleteData(me);
+    }
+  }, [user, athletes]);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      api.getEvents().then(events => {
+        setStats(prev => ({ ...prev, events: events.length }));
+      });
     }
   }, [user]);
 
-  const loadStats = async () => {
-    if (user?.role !== 'admin') return;
-    const [athletes, events] = await Promise.all([api.getAthletes(), api.getEvents()]);
-    setStats({
-      athletes: athletes.length,
-      active: athletes.filter(a => a.status === 'Ativo').length,
-      events: events.length
-    });
+  const initAuth = async () => {
+    const storedUser = localStorage.getItem('pirua_user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.token !== 'emergency-token') {
+        setUser(parsedUser);
+        setIsAuthLoading(false);
+        return;
+      }
+    }
+
+    if (!user) {
+      try {
+        // Auto-login as admin for "free access"
+        const res = await api.login('05504043689', '05504043689');
+        if (res.token !== "emergency-token") {
+          setUser(res.user);
+          localStorage.setItem('pirua_user', JSON.stringify(res.user));
+        }
+      } catch (err) {
+        console.error("Auto-login failed:", err);
+      }
+    }
+    setIsAuthLoading(false);
   };
 
-  const loadMyData = async (id: string) => {
-    const athletes = await api.getAthletes();
-    const me = athletes.find(a => a.id === id);
-    if (me) setMyAthleteData(me);
-  };
+  useEffect(() => {
+    initAuth();
+  }, []);
 
   const handleLogin = (auth: any) => {
     setUser(auth.user);
@@ -323,6 +315,7 @@ export default function App() {
           return (
             <div className="space-y-6">
               <AthleteList 
+                athletes={athletes}
                 onAdd={() => setIsAthleteFormOpen(true)} 
                 onEdit={(a) => { setEditingAthlete(a); setIsAthleteFormOpen(true); }} 
               />
@@ -418,7 +411,6 @@ export default function App() {
                   athlete={myAthleteData} 
                   onClose={() => setActiveTab('dashboard')} 
                   onSave={() => {
-                    loadMyData(user.athlete_id!);
                     setActiveTab('dashboard');
                   }} 
                 />
@@ -571,7 +563,7 @@ export default function App() {
           <AthleteForm 
             athlete={editingAthlete} 
             onClose={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
-            onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); loadStats(); }} 
+            onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
           />
         )}
         <Toaster position="top-right" richColors />

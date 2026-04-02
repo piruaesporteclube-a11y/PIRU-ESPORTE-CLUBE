@@ -8,28 +8,19 @@ import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 interface AthleteListProps {
+  athletes: Athlete[];
   onEdit: (athlete: Athlete) => void;
   onAdd: () => void;
 }
 
-export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
+export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProps) {
   const { settings } = useTheme();
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [athleteToDelete, setAthleteToDelete] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadAthletes();
-  }, []);
-
-  const loadAthletes = async () => {
-    const data = await api.getAthletes();
-    setAthletes(data);
-  };
 
   const handleDelete = (id: string) => {
     setAthleteToDelete(id);
@@ -41,7 +32,6 @@ export default function AthleteList({ onEdit, onAdd }: AthleteListProps) {
     try {
       await api.deleteAthlete(athleteToDelete);
       toast.success("Atleta excluído com sucesso!");
-      loadAthletes();
       setIsDeleteConfirmOpen(false);
       setAthleteToDelete(null);
     } catch (err: any) {

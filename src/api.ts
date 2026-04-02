@@ -219,7 +219,7 @@ export const api = {
       throw new Error("CPF inválido. Deve conter pelo menos 11 dígitos.");
     }
     
-    const email = `${normalizedDoc}@pirua.com`;
+    const email = `${normalizedDoc}@pirua.com.br`;
     const password = normalizedDoc;
     
     try {
@@ -309,6 +309,15 @@ export const api = {
   },
 
   // Athletes
+  subscribeToAthletes: (callback: (athletes: Athlete[]) => void) => {
+    return onSnapshot(collection(db, "athletes"), (snapshot) => {
+      const athletes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
+      callback(athletes);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, "athletes/subscription");
+    });
+  },
+
   getAthletes: async (): Promise<Athlete[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, "athletes"));
