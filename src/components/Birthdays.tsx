@@ -83,6 +83,9 @@ export default function Birthdays() {
     try {
       setIsGenerating(true);
       
+      // Small delay to ensure any modal transitions are finished
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Ensure all images are loaded before capturing
       const images = element.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
@@ -95,10 +98,25 @@ export default function Birthdays() {
 
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 2, // Scale 2 is usually enough for social media and more stable
+        scale: 2,
         backgroundColor: '#000000',
         logging: false,
-        allowTaint: true
+        allowTaint: false,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById('birthday-card');
+          if (clonedElement) {
+            // Remove animations and complex effects that break html2canvas
+            const animatedElements = clonedElement.querySelectorAll('.animate-spin-slow, .animate-spin-slow-reverse, .animate-pulse');
+            animatedElements.forEach(el => {
+              (el as HTMLElement).style.animation = 'none';
+              (el as HTMLElement).style.transform = 'none';
+            });
+            
+            // Remove the scanline effect which uses complex gradients that often fail
+            const scanline = clonedElement.querySelector('.bg-\\[linear-gradient');
+            if (scanline) scanline.remove();
+          }
+        }
       });
 
       const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
@@ -336,10 +354,10 @@ export default function Birthdays() {
               Fechar [X]
             </button>
             
-            {/* Modern Phoenix Birthday Card */}
+            {/* Modern Phoenix Birthday Card - Instagram Stories Size (9:16) */}
             <div 
               id="birthday-card" 
-              className="w-[450px] h-[600px] md:w-[540px] md:h-[720px] overflow-hidden relative shadow-2xl flex flex-col group bg-[#000000] font-sans italic" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-[#000000] font-sans italic" 
             >
               {/* Background Layers */}
               <div className="absolute inset-0 z-0">

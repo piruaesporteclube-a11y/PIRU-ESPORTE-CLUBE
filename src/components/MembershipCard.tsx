@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
@@ -263,11 +263,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 className="absolute -inset-2 blur-2xl opacity-20 rounded-[1.5rem] -z-0"
                 style={{ backgroundColor: settings.primaryColor }}
               ></div>
-              
-              {/* Status Badge on Photo */}
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-theme-primary text-black px-4 py-1.5 rounded-full shadow-lg">
-                <p className="text-[10px] font-black uppercase tracking-widest">Ativo</p>
-              </div>
             </div>
 
             {/* Info Section */}
@@ -326,14 +321,22 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-16 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
+          <div className="h-24 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-1.5 rounded-lg shadow-xl">
-                <QRCodeCanvas 
+              <div className="bg-white p-1.5 rounded-xl shadow-2xl flex items-center justify-center">
+                <QRCodeSVG 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={64} 
+                  size={84} 
                   level="H"
                   includeMargin={false}
+                  imageSettings={{
+                    src: crestDataUrl || '',
+                    x: undefined,
+                    y: undefined,
+                    height: 20,
+                    width: 20,
+                    excavate: true,
+                  }}
                 />
               </div>
               <div className="leading-tight">
