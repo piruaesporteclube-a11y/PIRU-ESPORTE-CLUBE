@@ -106,7 +106,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
       toast.success("Matrícula realizada com sucesso!");
       setStep('success');
     } catch (err: any) {
-      toast.error(`Erro ao realizar matrícula: ${err.message}`);
+      console.error("Erro completo na matrícula:", err);
+      toast.error(`Erro ao realizar matrícula: ${err.message || "Erro desconhecido"}`);
     } finally {
       setLoading(false);
     }

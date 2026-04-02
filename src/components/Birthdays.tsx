@@ -136,7 +136,7 @@ export default function Birthdays() {
               await navigator.share({
                 files: [file],
                 title: `Parabéns ${selectedPerson?.name}!`,
-                text: `Feliz aniversário para o nosso atleta ${selectedPerson?.name}! #PiruáEC #FênixDoCampo`
+                text: `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário, ${selectedPerson?.name}! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo`
               });
               toast.success("Compartilhamento aberto!");
             } catch (err) {
@@ -450,9 +450,14 @@ export default function Birthdays() {
                 {/* Footer: Message */}
                 <div className="w-full text-center space-y-4">
                   <div className="h-px w-full bg-gradient-to-r from-transparent via-[rgba(234,179,8,0.5)] to-transparent"></div>
-                  <p className="text-xs md:text-base text-[#a1a1aa] font-bold uppercase tracking-widest italic">
-                    "COMO UMA <span className="text-[#EAB308]">FÊNIX</span>, QUE VOCÊ RENASÇA A CADA JOGO E SUPERE TODOS OS DESAFIOS!"
-                  </p>
+                  <div className="px-4">
+                    <p className="text-[11px] md:text-sm text-white font-bold uppercase tracking-wider leading-relaxed">
+                      A escolinha <span className="text-[#EAB308]">Piruá Esporte Clube</span> deseja a você um feliz aniversário!
+                    </p>
+                    <p className="text-[10px] md:text-xs text-[#a1a1aa] font-medium uppercase tracking-widest mt-1 italic">
+                      "Que Deus ilumine sempre sua vida, muita paz e saúde."
+                    </p>
+                  </div>
                   <div className="flex items-center justify-center gap-4 opacity-50">
                     <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
                     <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
@@ -490,7 +495,7 @@ export default function Birthdays() {
 
               <button 
                 onClick={() => {
-                  const text = `Parabéns ${selectedPerson?.name}! Feliz aniversário! #PiruáEC #FênixDoCampo`;
+                  const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário, ${selectedPerson?.name}! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
                   navigator.clipboard.writeText(text);
                   toast.success('Legenda copiada! Agora é só colar no post.');
                 }}

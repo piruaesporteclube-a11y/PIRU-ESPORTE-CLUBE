@@ -223,12 +223,15 @@ export const api = {
     const password = normalizedDoc;
     
     try {
-      // 1. Ensure we are signed out first
+      console.log("Starting registration for:", email);
+      
+      // 1. Ensure we are signed out first to avoid conflicts
       await signOut(auth);
 
       // 2. Create Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
+      console.log("Auth user created:", firebaseUser.uid);
 
       // 3. Prepare Batch for atomic write
       const batch = writeBatch(db);
@@ -250,10 +253,13 @@ export const api = {
         athlete_id: athleteId
       };
 
+      console.log("Setting batch docs...");
       batch.set(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
       batch.set(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
       
+      console.log("Committing batch...");
       await batch.commit();
+      console.log("Batch committed successfully");
       
       return { athlete: newAthlete, user: newUser };
     } catch (error: any) {

@@ -30,18 +30,24 @@ export default function Attendance() {
     }
   }, [date]);
 
-  const loadData = async () => {
-    const [athletesData, attendanceData] = await Promise.all([
-      api.getAthletes(),
-      api.getAttendance(date)
-    ]);
-    setAthletes(athletesData.filter(a => a.status === 'Ativo'));
-    
-    const attMap: Record<string, { status: string, justification: string }> = {};
-    attendanceData.forEach(a => {
-      attMap[a.athlete_id] = { status: a.status, justification: a.justification || '' };
-    });
-    setAttendance(attMap);
+  const loadData = async (silent = false) => {
+    try {
+      const [athletesData, attendanceData] = await Promise.all([
+        api.getAthletes(),
+        api.getAttendance(date)
+      ]);
+      setAthletes(athletesData);
+      
+      const attMap: Record<string, { status: string, justification: string }> = {};
+      attendanceData.forEach(a => {
+        attMap[a.athlete_id] = { status: a.status, justification: a.justification || '' };
+      });
+      setAttendance(attMap);
+      if (!silent) toast.success("Dados atualizados!");
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+      if (!silent) toast.error("Erro ao atualizar dados.");
+    }
   };
 
   useEffect(() => {
@@ -137,12 +143,32 @@ export default function Attendance() {
   };
 
   const handleScan = async (data: string) => {
+    console.log("QR Scanned:", data);
     // Expected format: PIRUA-ATHLETE-ID
-    const match = data.match(/PIRUA-ATHLETE-([a-zA-Z0-9_-]+)/);
+    // Using a more permissive regex to capture any ID format
+    const match = data.match(/PIRUA-ATHLETE-(.+)/);
+    
     if (match) {
-      const athleteId = match[1];
+      const athleteId = match[1].trim();
+      console.log("Extracted Athlete ID:", athleteId);
+      
+      if (athletes.length === 0) {
+        setScanResult("Lista de atletas vazia. Recarregando...");
+        await loadData(true);
+      }
+
       const athlete = athletes.find(a => a.id === athleteId);
+      
+      if (!athlete) {
+        console.log("Athlete not found in local list. IDs available:", athletes.map(a => a.id));
+      }
+
       if (athlete) {
+        if (athlete.status !== 'Ativo') {
+          setScanResult(`Atleta ${athlete.name} está INATIVO.`);
+          return;
+        }
+
         playBeep();
         await markAttendance(athleteId, 'Presente');
         
@@ -162,7 +188,7 @@ export default function Attendance() {
           console.error("Erro ao registrar presença em evento:", err);
         }
 
-        setScanResult(`Presença registrada: ${athlete.name}`);
+        setScanResult(`Leitura realizada com sucesso: ${athlete.name}`);
         setRecentScans(prev => [{ 
           id: athlete.id, 
           name: athlete.name, 
@@ -180,7 +206,9 @@ export default function Attendance() {
 
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '') => {
     try {
-      await api.saveAttendance({ athlete_id: athleteId, date, status, justification });
+      // Use a stable ID for the day to prevent duplicate records
+      const attendanceId = `${athleteId}_${date}`;
+      await api.saveAttendance({ id: attendanceId, athlete_id: athleteId, date, status, justification });
       setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
     } catch (err: any) {
       toast.error(`Erro ao salvar presença: ${err.message}`);
@@ -197,7 +225,8 @@ export default function Attendance() {
     }
   };
 
-  const filteredAthletes = athletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);
+  const activeAthletes = athletes.filter(a => a.status === 'Ativo');
+  const filteredAthletes = activeAthletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);
 
   const stats = {
     total: filteredAthletes.length,
@@ -214,6 +243,13 @@ export default function Attendance() {
           <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => loadData()}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+          >
+            <QrCode size={18} />
+            Atualizar
+          </button>
           <button 
             onClick={() => setIsReportOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
@@ -494,21 +530,21 @@ export default function Attendance() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 print:p-0">
-              <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 print:p-0 print:overflow-visible">
+              <div className="space-y-6 print:space-y-4">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
                   <div className="flex items-center gap-4">
                     {settings?.schoolCrest && (
-                      <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
+                      <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
                     )}
                     <div>
-                      <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
-                      <p className="text-sm font-bold text-zinc-600">Relatório de Frequência Diária</p>
+                      <h1 className="text-2xl font-black uppercase tracking-tighter">Piruá Esporte Clube</h1>
+                      <p className="text-sm font-bold text-zinc-600 uppercase tracking-widest">Relatório Oficial de Frequência</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold uppercase text-zinc-500">Data da Chamada:</p>
-                    <p className="text-lg font-bold">{format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Data de Referência</p>
+                    <p className="text-xl font-black">{format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')}</p>
                   </div>
                 </div>
 
