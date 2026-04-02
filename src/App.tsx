@@ -112,17 +112,40 @@ export default function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    // Sync user state with Firebase Auth
+    const unsubscribe = api.onAuthChange((firebaseUser) => {
+      if (!firebaseUser) {
+        // If Firebase Auth says no user, but we have one in state, clear it
+        // unless it's the emergency-token admin (which is local only)
+        const saved = localStorage.getItem('pirua_user');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.token !== 'emergency-token') {
+            setUser(null);
+            localStorage.removeItem('pirua_user');
+          }
+        } else {
+          setUser(null);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const initAuth = async () => {
     const storedUser = localStorage.getItem('pirua_user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
-      if (parsedUser.token !== 'emergency-token') {
+      // Verify if the token is still valid or if it's the emergency one
+      if (parsedUser.token === 'emergency-token') {
         setUser(parsedUser);
-        setIsAuthLoading(false);
-        return;
+      } else {
+        // For regular users, we rely on onAuthStateChanged to set the user
+        // but we can set it initially from storage for better UX
+        setUser(parsedUser);
       }
     }
-
     setIsAuthLoading(false);
   };
 

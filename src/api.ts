@@ -109,6 +109,10 @@ testConnection();
 
 export const api = {
   // Auth
+  onAuthChange: (callback: (user: any) => void) => {
+    return onAuthStateChanged(auth, callback);
+  },
+
   login: async (username: string, password: string): Promise<AuthResponse> => {
     const normalizedUsername = username.replace(/\D/g, "");
     const normalizedPassword = password.replace(/\D/g, "");
@@ -278,9 +282,19 @@ export const api = {
       return { athlete: newAthlete, user: newUser };
     } catch (error: any) {
       console.error("Detailed Registration Error:", error);
+      
       if (error.code === 'auth/email-already-in-use') {
         throw new Error("Este CPF já está cadastrado no sistema.");
       }
+      
+      if (error.code === 'auth/weak-password') {
+        throw new Error("A senha (CPF) é muito fraca. Por favor, use um CPF válido.");
+      }
+
+      if (error.message && error.message.includes("permission-denied")) {
+        throw new Error("Erro de permissão no banco de dados. Verifique se todos os campos obrigatórios foram preenchidos corretamente.");
+      }
+
       handleFirestoreError(error, OperationType.WRITE, "registration/batch");
     }
   },
