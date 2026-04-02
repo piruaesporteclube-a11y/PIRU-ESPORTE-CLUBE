@@ -76,25 +76,81 @@ export default function Birthdays() {
     setSelectedPerson(person);
   };
 
-  const downloadCard = async () => {
+  const downloadCard = async (share = false) => {
     const element = document.getElementById('birthday-card');
     if (!element) return;
 
     try {
       setIsGenerating(true);
+      
+      // Ensure all images are loaded before capturing
+      const images = element.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 3, // Higher scale for better quality
-        backgroundColor: '#000000'
+        scale: 2, // Scale 2 is usually enough for social media and more stable
+        backgroundColor: '#000000',
+        logging: false,
+        allowTaint: true
       });
-      const link = document.createElement('a');
-      link.download = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      toast.success("Imagem de aniversário gerada com sucesso!");
+
+      const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      
+      if (share && navigator.share && navigator.canShare) {
+        // Try to share using Web Share API (Best for mobile/Instagram/WhatsApp)
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast.error("Erro ao processar imagem para compartilhamento.");
+            return;
+          }
+          
+          const file = new File([blob], fileName, { type: 'image/png' });
+          
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `Parabéns ${selectedPerson?.name}!`,
+                text: `Feliz aniversário para o nosso atleta ${selectedPerson?.name}! #PiruáEC #FênixDoCampo`
+              });
+              toast.success("Compartilhamento aberto!");
+            } catch (err) {
+              if ((err as Error).name !== 'AbortError') {
+                console.error('Erro ao compartilhar:', err);
+                // Fallback to download if share fails
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+              }
+            }
+          } else {
+            // Fallback to download if cannot share files
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            toast.success("Imagem baixada! Agora você pode postar no Instagram.");
+          }
+        }, 'image/png');
+      } else {
+        // Standard download
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        toast.success("Imagem baixada com sucesso!");
+      }
     } catch (err) {
       console.error('Erro ao gerar imagem:', err);
-      toast.error('Erro ao gerar imagem. Tente novamente.');
+      toast.error('Erro ao gerar imagem. Tente novamente ou use um navegador moderno.');
     } finally {
       setIsGenerating(false);
     }
@@ -280,149 +336,150 @@ export default function Birthdays() {
               Fechar [X]
             </button>
             
-            {/* The Post Layout (Strictly faithful to the user's image) */}
+            {/* Modern Phoenix Birthday Card */}
             <div 
               id="birthday-card" 
-              className="w-[450px] h-[675px] md:w-[540px] md:h-[810px] overflow-hidden relative shadow-2xl flex flex-col group bg-black font-sans italic" 
+              className="w-[450px] h-[600px] md:w-[540px] md:h-[720px] overflow-hidden relative shadow-2xl flex flex-col group bg-[#000000] font-sans italic" 
             >
-              {/* Background Image (Stadium with Cleats/Net style) */}
+              {/* Background Layers */}
               <div className="absolute inset-0 z-0">
+                {/* Dark Soccer Field Background */}
                 <img 
                   src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop" 
                   alt="Stadium Background" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover opacity-30 grayscale"
                   referrerPolicy="no-referrer"
                 />
-                {/* Darkening overlays to match the contrast of the original image */}
-                <div className="absolute inset-0 bg-black/50"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/70"></div>
-              </div>
-
-              {/* Gold Confetti at the top */}
-              <div className="absolute top-0 left-0 w-full h-40 pointer-events-none z-10 overflow-hidden">
-                {[...Array(40)].map((_, i) => (
-                  <div 
-                    key={i}
-                    className="absolute w-1.5 h-1.5 bg-yellow-500 rounded-sm rotate-45 animate-pulse"
-                    style={{
-                      top: `${Math.random() * 100}%`,
-                      left: `${Math.random() * 100}%`,
-                      opacity: Math.random() * 0.8,
-                      animationDelay: `${Math.random() * 3}s`
-                    }}
-                  />
-                ))}
-              </div>
-
-              <div className="relative flex-1 flex flex-col items-center justify-between p-6 md:p-10 z-20">
-                {/* Top: FELIZ, ANIVERSÁRIO! */}
-                <div className="text-center mt-6 w-full">
-                  <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-                    FELIZ,
-                  </h1>
-                  <div className="relative inline-block">
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]"
-                        style={{ 
-                          background: 'linear-gradient(to bottom, #fef08a, #eab308, #a16207)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent'
-                        }}>
-                      ANIVERSÁRIO!
-                    </h1>
-                    {/* The Swoosh Underline */}
-                    <div className="absolute -bottom-2 left-0 w-full h-1.5 md:h-2 bg-yellow-500 rounded-full shadow-[0_2px_10px_rgba(234,179,8,0.5)]"></div>
-                  </div>
+                
+                {/* Phoenix Wings / Fire Effect (Standard RGBA) */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(234,179,8,0.15),transparent_70%)]"></div>
+                <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-[rgba(234,179,8,0.1)] blur-[100px] rounded-full animate-pulse"></div>
+                <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-[rgba(234,179,8,0.1)] blur-[100px] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+                
+                {/* Phoenix Motif (Stylized Wings) */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                  <svg viewBox="0 0 200 200" className="w-[120%] h-[120%] text-[#EAB308] fill-current">
+                    <path d="M100 20C100 20 80 50 40 60C20 65 10 80 10 100C10 140 40 170 100 180C160 170 190 140 190 100C190 80 180 65 160 60C120 50 100 20 100 20ZM100 40C110 60 140 75 170 80C175 82 180 85 180 100C180 130 155 155 100 165C45 155 20 130 20 100C20 85 25 82 30 80C60 75 90 60 100 40Z" />
+                  </svg>
                 </div>
+              </div>
 
-                {/* Middle Section: Message & Polaroid Photo */}
-                <div className="w-full flex items-center justify-between gap-4 mt-8">
-                  {/* Left Message */}
-                  <div className="w-[45%] text-left">
-                    <p className="text-white font-black italic text-base md:text-2xl leading-tight uppercase tracking-tighter drop-shadow-lg">
-                      QUE SEU DIA SEJA TÃO ESPECIAL QUANTO UM <span className="text-yellow-400">GOLAÇO</span> NOS ACRÉSCIMOS!
-                    </p>
-                  </div>
-
-                  {/* Polaroid Photo Frame */}
-                  <div className="relative rotate-6 group-hover:rotate-0 transition-transform duration-500">
-                    <div className="bg-white p-2 pb-12 md:p-3 md:pb-16 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm border border-zinc-200">
-                      <div className="w-36 h-44 md:w-56 md:h-64 bg-zinc-900 overflow-hidden">
-                        {selectedPerson.photo ? (
-                          <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-800">
-                            <UserCircle size={80} strokeWidth={1} />
-                          </div>
-                        )}
-                      </div>
-                      {/* Name on the Polaroid bottom */}
-                      <div className="absolute bottom-2 md:bottom-4 left-0 w-full text-center px-2">
-                        <p className="text-[10px] md:text-xs font-black text-zinc-800 uppercase tracking-widest truncate">
-                          {selectedPerson.name}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* School Crest Seal - Positioned like a sticker */}
-                    <div className="absolute -top-4 -left-4 w-12 h-12 md:w-16 md:h-16 bg-white rounded-full p-1.5 shadow-xl border border-zinc-200 z-30 -rotate-12">
+              {/* Content Overlay */}
+              <div className="relative flex-1 flex flex-col items-center justify-between p-8 z-20">
+                {/* Header: Logo & Title */}
+                <div className="w-full flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-[#EAB308] p-1.5 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.4)]">
                       {settings.schoolCrest ? (
                         <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                       ) : (
-                        <div className="w-full h-full bg-theme-primary rounded-full flex items-center justify-center text-black font-black text-[10px]">P</div>
+                        <div className="w-full h-full bg-[#000000] rounded-xl flex items-center justify-center text-[#EAB308] font-black text-xl">P</div>
                       )}
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-white font-black uppercase tracking-tighter text-sm md:text-base leading-none">Piruá E.C.</h4>
+                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#EAB308]">Fênix do Campo</p>
+                    </div>
+                  </div>
+                  <div className="bg-[rgba(234,179,8,0.1)] px-4 py-2 rounded-full border border-[rgba(234,179,8,0.2)]">
+                    <p className="text-[10px] font-black text-[#EAB308] uppercase tracking-widest">#RENASCENDO</p>
+                  </div>
+                </div>
+
+                {/* Main Section: Photo & Name */}
+                <div className="flex flex-col items-center w-full relative">
+                  {/* Large Background Text */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none whitespace-nowrap">
+                    <h2 className="text-[150px] md:text-[220px] font-black uppercase italic tracking-tighter text-white">BIRTHDAY</h2>
+                  </div>
+
+                  <div className="relative mb-8">
+                    {/* Modern Hexagon/Diamond Frame */}
+                    <div className="absolute -inset-4 border-2 border-[rgba(234,179,8,0.3)] rotate-12 rounded-[40px] animate-spin-slow"></div>
+                    <div className="absolute -inset-4 border-2 border-[rgba(234,179,8,0.3)] -rotate-12 rounded-[40px] animate-spin-slow-reverse"></div>
+                    
+                    {/* Athlete Photo */}
+                    <div className="w-48 h-48 md:w-64 md:h-64 bg-[#18181b] rounded-[48px] border-4 border-[#EAB308] overflow-hidden shadow-[0_0_50px_rgba(234,179,8,0.3)] relative z-10 group-hover:scale-105 transition-transform duration-500">
+                      {selectedPerson.photo ? (
+                        <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#27272a]">
+                          <UserCircle size={120} strokeWidth={1} />
+                        </div>
+                      )}
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent"></div>
+                    </div>
+
+                    {/* Birthday Badge */}
+                    <div className="absolute -bottom-4 -right-4 px-6 py-3 bg-[#EAB308] text-black rounded-2xl flex items-center gap-2 shadow-2xl z-20 -rotate-6 font-black uppercase text-xs tracking-tighter border-2 border-black">
+                      Parabéns!
+                    </div>
+                  </div>
+
+                  <div className="text-center space-y-2 z-20">
+                    <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
+                      FELIZ <span className="text-[#EAB308]">ANIVERSÁRIO</span>
+                    </h2>
+                    <div className="inline-block px-8 py-2 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl">
+                      <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight">
+                        {selectedPerson.name}
+                      </h3>
                     </div>
                   </div>
                 </div>
 
-                {/* Bottom Section: Final Message & Icons */}
-                <div className="w-full mt-auto pt-10 relative">
-                  {/* Soccer Ball Decoration (Bottom Left) */}
-                  <div className="absolute bottom-0 left-0 opacity-20 grayscale">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="m12 2-2 3.5h4L12 2Z" />
-                      <path d="m10 5.5-4 1.5L4 11l6-1 2-4.5Z" />
-                    </svg>
-                  </div>
-
-                  <div className="text-center max-w-[90%] mx-auto mb-4">
-                    <p className="text-yellow-400 font-black italic text-xs md:text-lg leading-tight uppercase tracking-widest drop-shadow-md">
-                      QUE VENHAM MUITAS VITÓRIAS, CONQUISTAS E MUITOS GOLS! VOCÊ MERECE TUDO DE MELHOR!
-                    </p>
-                  </div>
-                  
-                  {/* Heart Icon (Bottom Right) */}
-                  <div className="absolute bottom-0 right-0">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#eab308" className="drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
+                {/* Footer: Message */}
+                <div className="w-full text-center space-y-4">
+                  <div className="h-px w-full bg-gradient-to-r from-transparent via-[rgba(234,179,8,0.5)] to-transparent"></div>
+                  <p className="text-xs md:text-base text-[#a1a1aa] font-bold uppercase tracking-widest italic">
+                    "COMO UMA <span className="text-[#EAB308]">FÊNIX</span>, QUE VOCÊ RENASÇA A CADA JOGO E SUPERE TODOS OS DESAFIOS!"
+                  </p>
+                  <div className="flex items-center justify-center gap-4 opacity-50">
+                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
+                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
+                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
                   </div>
                 </div>
               </div>
 
-              {/* Edge Lighting Accents */}
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent"></div>
+              {/* Modern Edge Accents */}
+              <div className="absolute top-0 right-0 w-2 h-full bg-[#EAB308] opacity-20"></div>
+              <div className="absolute top-0 left-0 w-2 h-full bg-[#EAB308] opacity-20"></div>
+              
+              {/* Scanline Effect */}
+              <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
             </div>
 
-            <div className="mt-6 flex justify-center gap-4">
+            <div className="mt-6 flex flex-col md:flex-row justify-center gap-4">
               <button 
-                onClick={downloadCard}
+                onClick={() => downloadCard(false)}
                 disabled={isGenerating}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter"
               >
                 <Download size={20} className={isGenerating ? "animate-bounce" : ""} />
-                {isGenerating ? 'Gerando...' : 'Salvar Imagem'}
+                {isGenerating ? 'Gerando...' : 'Salvar no Celular'}
               </button>
+              
               <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success('Link copiado para compartilhar!');
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors"
+                onClick={() => downloadCard(true)}
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter shadow-[0_10px_20px_rgba(234,179,8,0.3)]"
               >
                 <Share2 size={20} />
-                Compartilhar
+                {isGenerating ? 'Processando...' : 'Postar / Compartilhar'}
+              </button>
+
+              <button 
+                onClick={() => {
+                  const text = `Parabéns ${selectedPerson?.name}! Feliz aniversário! #PiruáEC #FênixDoCampo`;
+                  navigator.clipboard.writeText(text);
+                  toast.success('Legenda copiada! Agora é só colar no post.');
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-xl hover:bg-zinc-700 transition-colors uppercase text-sm tracking-tighter"
+              >
+                <Instagram size={20} />
+                Copiar Legenda
               </button>
             </div>
           </div>
