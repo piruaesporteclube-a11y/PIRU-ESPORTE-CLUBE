@@ -50,6 +50,33 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
     window.print();
   };
 
+  const exportToCSV = () => {
+    const headers = ['Nome', 'Categoria', 'Status', 'Documento', 'Uniforme'];
+    const rows = filteredAthletes.map(a => [
+      a.name,
+      getSubCategory(a.birth_date),
+      a.status,
+      a.doc,
+      a.jersey_number || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `atletas-pirua-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Lista exportada com sucesso!");
+  };
+
   return (
     <div className="space-y-6">
       {/* Print Header */}
@@ -82,6 +109,14 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
           >
             <LinkIcon size={18} />
             <span className="hidden sm:inline">Link de Matrícula</span>
+          </button>
+          <button 
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"
+            title="Exportar para Excel/CSV"
+          >
+            <FileDown size={18} />
+            <span className="hidden sm:inline">Exportar</span>
           </button>
           <button 
             onClick={handlePrint}

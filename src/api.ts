@@ -211,7 +211,7 @@ export const api = {
     }
   },
 
-  register: async (athleteData: Partial<Athlete>): Promise<{ athlete: Athlete, user: User }> => {
+  register: async (athleteData: Partial<Athlete>, anamnesisData?: Partial<Anamnesis>): Promise<{ athlete: Athlete, user: User }> => {
     if (!athleteData.doc) throw new Error("CPF é obrigatório");
     
     const normalizedDoc = athleteData.doc.replace(/\D/g, "");
@@ -257,6 +257,16 @@ export const api = {
       batch.set(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
       batch.set(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
       
+      // 4. Include Anamnesis in batch if provided
+      if (anamnesisData) {
+        const anamnesisDoc = {
+          ...anamnesisData,
+          athlete_id: athleteId,
+          created_at: new Date().toISOString()
+        };
+        batch.set(doc(db, "anamnesis", athleteId), sanitizeData(anamnesisDoc));
+      }
+
       console.log("Committing batch...");
       await batch.commit();
       console.log("Batch committed successfully");

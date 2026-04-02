@@ -9,7 +9,7 @@ import { cn } from '../utils';
 
 interface PublicRegistrationProps {
   onCancel: () => void;
-  onComplete: (user: User) => void;
+  onComplete: () => void;
 }
 
 export default function PublicRegistration({ onCancel, onComplete }: PublicRegistrationProps) {
@@ -92,16 +92,10 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Register Athlete
-      const { athlete, user } = await api.register(athleteData);
+      // Register Athlete and Anamnesis in a single atomic batch
+      const { athlete, user } = await api.register(athleteData, anamnesisData);
       setNewAthlete(athlete);
       setNewUser(user);
-
-      // 2. Save Anamnesis
-      await api.saveAnamnesis({
-        ...anamnesisData,
-        athlete_id: athlete.id
-      });
 
       toast.success("Matrícula realizada com sucesso!");
       setStep('success');
@@ -191,10 +185,10 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             transition={{ delay: 0.7 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => newUser && onComplete(newUser)}
+            onClick={() => onComplete()}
             className="w-full py-5 bg-theme-primary hover:opacity-90 text-black rounded-2xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-3 text-lg uppercase tracking-tighter"
           >
-            Acessar Minha Conta
+            Fazer Login
             <ArrowRight size={20} />
           </motion.button>
         </motion.div>

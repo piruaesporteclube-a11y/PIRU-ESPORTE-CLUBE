@@ -82,14 +82,20 @@ service cloud.firestore {
 
     function isValidAthlete(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.doc is string && data.doc.size() >= 11 &&
-             data.status in ['Ativo', 'Inativo'];
+             data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 14 &&
+             data.status in ['Ativo', 'Inativo'] &&
+             (!('photo' in data) || (data.photo is string && data.photo.size() < 600000));
     }
 
     function isValidUser(data) {
-      return data.name is string && data.name.size() > 0 &&
-             data.doc is string &&
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 14 &&
              data.role in ['admin', 'student'];
+    }
+
+    function isValidAnamnesis(data) {
+      return data.athlete_id is string && data.athlete_id.size() > 0 &&
+             (!('pathologies' in data) || data.pathologies is string);
     }
 
     // ===============================================================
@@ -105,26 +111,31 @@ service cloud.firestore {
 
     match /athletes/{athleteId} {
       allow read: if true;
-      allow create: if true; // Allow public registration
+      allow create: if isValidAthlete(request.resource.data);
       allow update, delete: if isAdmin();
     }
 
     match /professors/{professorId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /events/{eventId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /attendance/{attendanceId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if hasRequiredFields(['athlete_id', 'date', 'status']) && 
+                      request.resource.data.status in ['Presente', 'Faltou', 'Justificado'];
+      allow update, delete: if isAdmin();
     }
 
     match /anamnesis/{athleteId} {
       allow read: if isAuthenticated() && (isAthleteOwner(athleteId) || isAdmin());
-      allow create: if true; // Allow public registration
-      allow update: if isAuthenticated() && (isAthleteOwner(athleteId) || isAdmin());
+      allow create: if isValidAnamnesis(request.resource.data);
+      allow update: if isAuthenticated() && (isAthleteOwner(athleteId) || isAdmin()) && isValidAnamnesis(request.resource.data);
       allow delete: if isAdmin();
     }
 

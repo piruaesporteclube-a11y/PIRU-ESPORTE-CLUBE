@@ -123,18 +123,6 @@ export default function App() {
       }
     }
 
-    if (!user) {
-      try {
-        // Auto-login as admin for "free access"
-        const res = await api.login('05504043689', '05504043689');
-        if (res.token !== "emergency-token") {
-          setUser(res.user);
-          localStorage.setItem('pirua_user', JSON.stringify(res.user));
-        }
-      } catch (err) {
-        console.error("Auto-login failed:", err);
-      }
-    }
     setIsAuthLoading(false);
   };
 
@@ -524,12 +512,10 @@ export default function App() {
             setIsRegistering(false);
             window.history.replaceState({}, '', window.location.pathname);
           }} 
-          onComplete={(newUser) => {
+          onComplete={() => {
             setIsRegistering(false);
-            setUser(newUser);
-            localStorage.setItem('pirua_user', JSON.stringify(newUser));
             window.history.replaceState({}, '', window.location.pathname);
-            setActiveTab('dashboard');
+            toast.success("Matrícula realizada com sucesso! Agora você pode entrar no portal usando seu CPF.");
           }} 
         />
       </ErrorBoundary>
