@@ -40,7 +40,14 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
   };
 
   const filteredAthletes = athletes.filter(a => {
-    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.doc.includes(search);
+    const normalizedSearch = search.replace(/\D/g, "");
+    const normalizedDoc = a.doc.replace(/\D/g, "");
+    
+    const matchesSearch = 
+      a.name.toLowerCase().includes(search.toLowerCase()) || 
+      (normalizedSearch.length > 0 && normalizedDoc.includes(normalizedSearch)) ||
+      a.doc.includes(search);
+      
     const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
     const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
     return matchesSearch && matchesSub && matchesStatus;

@@ -136,7 +136,7 @@ export default function Birthdays() {
               await navigator.share({
                 files: [file],
                 title: `Parabéns ${selectedPerson?.name}!`,
-                text: `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário, ${selectedPerson?.name}! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo`
+                text: `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo`
               });
               toast.success("Compartilhamento aberto!");
             } catch (err) {
@@ -495,7 +495,7 @@ export default function Birthdays() {
 
               <button 
                 onClick={() => {
-                  const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário, ${selectedPerson?.name}! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
+                  const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
                   navigator.clipboard.writeText(text);
                   toast.success('Legenda copiada! Agora é só colar no post.');
                 }}

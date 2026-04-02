@@ -151,7 +151,7 @@ export const api = {
       }
     }
 
-    const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com`;
+    const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com.br`;
     
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
@@ -237,6 +237,7 @@ export const api = {
       const batch = writeBatch(db);
       
       const athleteId = doc(collection(db, "athletes")).id;
+      console.log("Generated Athlete ID:", athleteId);
       const newAthlete = {
         ...athleteData,
         id: athleteId,
@@ -270,6 +271,9 @@ export const api = {
       console.log("Committing batch...");
       await batch.commit();
       console.log("Batch committed successfully");
+      
+      // 5. Sign out the new user to ensure they have to log in properly
+      await signOut(auth);
       
       return { athlete: newAthlete, user: newUser };
     } catch (error: any) {
@@ -339,8 +343,18 @@ export const api = {
   },
   saveAthlete: async (athlete: Partial<Athlete>) => {
     if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
+    
+    // Normalize CPF if present
+    const sanitizedAthlete = { ...athlete };
+    if (sanitizedAthlete.doc) {
+      sanitizedAthlete.doc = sanitizedAthlete.doc.replace(/\D/g, "");
+    }
+    if (sanitizedAthlete.guardian_doc) {
+      sanitizedAthlete.guardian_doc = sanitizedAthlete.guardian_doc.replace(/\D/g, "");
+    }
+
     try {
-      await setDoc(doc(db, "athletes", athlete.id), sanitizeData(athlete), { merge: true });
+      await setDoc(doc(db, "athletes", athlete.id), sanitizeData(sanitizedAthlete), { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
     }

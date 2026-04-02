@@ -436,7 +436,7 @@ export default function App() {
         case 'professors':
           return <ProfessorManagement />;
         case 'attendance':
-          return <Attendance />;
+          return <Attendance athletes={athletes} />;
         case 'events':
           return <EventsManagement />;
         case 'birthdays':

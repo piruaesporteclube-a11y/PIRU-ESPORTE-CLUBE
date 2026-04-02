@@ -9,9 +9,9 @@ import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function Attendance() {
+export default function Attendance({ athletes: athletesProp }: { athletes?: Athlete[] }) {
   const { settings } = useTheme();
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string }>>({});
   const [filterSub, setFilterSub] = useState('Todos');
   const [isScanning, setIsScanning] = useState(false);
@@ -23,7 +23,15 @@ export default function Attendance() {
   const lastScanTime = useRef<number>(0);
 
   useEffect(() => {
-    loadData();
+    if (athletesProp) {
+      setAthletes(athletesProp);
+    } else {
+      loadData(true);
+    }
+  }, [athletesProp]);
+
+  useEffect(() => {
+    loadAttendance();
     if (localStorage.getItem('auto_scan') === 'true') {
       setIsScanning(true);
       localStorage.removeItem('auto_scan');
@@ -32,21 +40,27 @@ export default function Attendance() {
 
   const loadData = async (silent = false) => {
     try {
-      const [athletesData, attendanceData] = await Promise.all([
-        api.getAthletes(),
-        api.getAttendance(date)
-      ]);
-      setAthletes(athletesData);
+      const data = await api.getAthletes();
+      setAthletes(data);
+      if (!silent) toast.success("Lista de atletas atualizada!");
+    } catch (err) {
+      console.error("Erro ao carregar atletas:", err);
+    }
+  };
+
+  const loadAttendance = async (silent = false) => {
+    try {
+      const attendanceData = await api.getAttendance(date);
       
       const attMap: Record<string, { status: string, justification: string }> = {};
       attendanceData.forEach(a => {
         attMap[a.athlete_id] = { status: a.status, justification: a.justification || '' };
       });
       setAttendance(attMap);
-      if (!silent) toast.success("Dados atualizados!");
+      if (!silent) toast.success("Presenças carregadas!");
     } catch (err) {
-      console.error("Erro ao carregar dados:", err);
-      if (!silent) toast.error("Erro ao atualizar dados.");
+      console.error("Erro ao carregar presenças:", err);
+      if (!silent) toast.error("Erro ao atualizar presenças.");
     }
   };
 
@@ -170,7 +184,11 @@ export default function Attendance() {
         }
 
         playBeep();
-        await markAttendance(athleteId, 'Presente');
+        
+        // Only save if not already present to avoid redundant writes
+        if (attendance[athleteId]?.status !== 'Presente') {
+          await markAttendance(athleteId, 'Presente');
+        }
         
         // Check for events today
         try {
