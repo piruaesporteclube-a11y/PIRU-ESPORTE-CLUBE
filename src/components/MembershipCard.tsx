@@ -271,10 +271,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <div>
                   <div className="text-[9px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                    Nome Completo do Aluno
+                    Nome do Aluno / Apelido
                   </div>
                   <h4 className="text-sm font-black uppercase leading-tight text-white tracking-tight">
-                    {athlete.name}
+                    {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
                   </h4>
                 </div>
 

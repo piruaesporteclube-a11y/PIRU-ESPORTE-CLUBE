@@ -3,6 +3,7 @@ import { format, differenceInYears, parseISO, isSameDay, isSameMonth } from "dat
 export type Athlete = {
   id: string;
   name: string;
+  nickname?: string;
   birth_date: string;
   doc: string;
   street: string;

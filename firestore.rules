@@ -6,7 +6,7 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: athletes
-    // Fields: id, name, birth_date, doc, street, number, neighborhood, city, uf, jersey_number, photo, contact, guardian_name, guardian_doc, guardian_phone, status, confirmation
+    // Fields: id, name, nickname, birth_date, doc, street, number, neighborhood, city, uf, jersey_number, photo, contact, guardian_name, guardian_doc, guardian_phone, status, confirmation
     //
     // Collection: professors
     // Fields: id, name, birth_date, doc, street, number, neighborhood, city, uf, photo
@@ -82,9 +82,13 @@ service cloud.firestore {
 
     function isValidAthlete(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.nickname is string && data.nickname.size() > 0 && data.nickname.size() < 50 &&
              data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 14 &&
              data.status in ['Ativo', 'Inativo'] &&
-             (!('photo' in data) || (data.photo is string && data.photo.size() < 600000));
+             data.photo is string && data.photo.size() < 600000 &&
+             data.birth_date is string &&
+             data.guardian_name is string &&
+             data.guardian_phone is string;
     }
 
     function isValidUser(data) {

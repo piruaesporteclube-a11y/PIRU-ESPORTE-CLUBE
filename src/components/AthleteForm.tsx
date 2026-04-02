@@ -17,6 +17,7 @@ interface AthleteFormProps {
 export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone }: AthleteFormProps) {
   const [formData, setFormData] = useState<Partial<Athlete>>({
     name: '',
+    nickname: '',
     birth_date: '',
     doc: '',
     street: '',
@@ -58,6 +59,20 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all fields are filled
+    const requiredFields: (keyof Athlete)[] = [
+      'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
+      'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
+      'guardian_name', 'guardian_doc', 'guardian_phone'
+    ];
+    
+    const missing = requiredFields.filter(f => !formData[f]);
+    if (missing.length > 0) {
+      toast.error("Por favor, preencha todos os campos obrigatórios, incluindo a foto.");
+      return;
+    }
+
     setLoading(true);
     try {
       if (isRegistration) {
@@ -125,15 +140,27 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Informações Pessoais</h3>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome Completo</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value.toUpperCase()})}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome Completo</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      value={formData.name}
+                      onChange={e => setFormData({...formData, name: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Apelido</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      value={formData.nickname}
+                      onChange={e => setFormData({...formData, nickname: e.target.value.toUpperCase()})}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -161,6 +188,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">NUMERO DO UNIFORME</label>
                     <input 
+                      required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                       value={formData.jersey_number}
@@ -171,6 +199,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">WhatsApp Aluno</label>
                     <div className="relative">
                       <input 
+                        required
                         type="text" 
                         placeholder="(00) 00000-0000"
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"
@@ -202,6 +231,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <div className="col-span-2">
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Rua</label>
                     <input 
+                      required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                       value={formData.street}
@@ -211,6 +241,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nº</label>
                     <input 
+                      required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                       value={formData.number}
@@ -221,6 +252,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Bairro</label>
                   <input 
+                    required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                     value={formData.neighborhood}
@@ -231,6 +263,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Cidade</label>
                     <input 
+                      required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                       value={formData.city}
@@ -240,6 +273,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">UF</label>
                     <input 
+                      required
                       type="text" 
                       maxLength={2}
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
@@ -258,6 +292,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome do Responsável</label>
                   <input 
+                    required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                     value={formData.guardian_name}
@@ -267,6 +302,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">RG/CPF Responsável</label>
                   <input 
+                    required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
                     value={formData.guardian_doc}
@@ -277,6 +313,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">WhatsApp Responsável</label>
                   <div className="relative">
                     <input 
+                      required
                       type="text" 
                       placeholder="(00) 00000-0000"
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"

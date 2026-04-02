@@ -205,7 +205,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                       )}
                       <div>
                         <div className="font-medium text-white flex items-center gap-2">
-                          {athlete.name}
+                          {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
                           {athlete.contact && (
                             <a 
                               href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
@@ -290,7 +290,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                   )}
                   <div>
                     <div className="font-bold text-white flex items-center gap-2">
-                      {athlete.name}
+                      {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
                       {athlete.contact && (
                         <a 
                           href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
