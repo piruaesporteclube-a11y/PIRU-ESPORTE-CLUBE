@@ -36,7 +36,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (athlete) setFormData(athlete);
+    if (athlete) setFormData(prev => ({ ...prev, ...athlete }));
   }, [athlete]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,7 +152,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.name}
+                      value={formData.name || ''}
                       onChange={e => setFormData({...formData, name: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -162,7 +162,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.nickname}
+                      value={formData.nickname || ''}
                       onChange={e => setFormData({...formData, nickname: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -174,7 +174,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="date" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.birth_date}
+                      value={formData.birth_date || ''}
                       onChange={e => setFormData({...formData, birth_date: e.target.value})}
                     />
                   </div>
@@ -184,7 +184,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.doc}
+                      value={formData.doc || ''}
                       onChange={e => setFormData({...formData, doc: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -196,7 +196,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.jersey_number}
+                      value={formData.jersey_number || ''}
                       onChange={e => setFormData({...formData, jersey_number: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -208,7 +208,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                         type="text" 
                         placeholder="(00) 00000-0000"
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"
-                        value={formData.contact}
+                        value={formData.contact || ''}
                         onChange={e => setFormData({...formData, contact: e.target.value.toUpperCase()})}
                       />
                       {formData.contact && (
@@ -239,7 +239,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.street}
+                      value={formData.street || ''}
                       onChange={e => setFormData({...formData, street: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -249,7 +249,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.number}
+                      value={formData.number || ''}
                       onChange={e => setFormData({...formData, number: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -260,7 +260,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                    value={formData.neighborhood}
+                    value={formData.neighborhood || ''}
                     onChange={e => setFormData({...formData, neighborhood: e.target.value.toUpperCase()})}
                   />
                 </div>
@@ -271,7 +271,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       required
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.city}
+                      value={formData.city || ''}
                       onChange={e => setFormData({...formData, city: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -282,7 +282,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       type="text" 
                       maxLength={2}
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.uf}
+                      value={formData.uf || ''}
                       onChange={e => setFormData({...formData, uf: e.target.value.toUpperCase()})}
                     />
                   </div>
@@ -300,7 +300,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                    value={formData.guardian_name}
+                    value={formData.guardian_name || ''}
                     onChange={e => setFormData({...formData, guardian_name: e.target.value.toUpperCase()})}
                   />
                 </div>
@@ -310,7 +310,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                    value={formData.guardian_doc}
+                    value={formData.guardian_doc || ''}
                     onChange={e => setFormData({...formData, guardian_doc: e.target.value.toUpperCase()})}
                   />
                 </div>
@@ -322,7 +322,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       type="text" 
                       placeholder="(00) 00000-0000"
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"
-                      value={formData.guardian_phone}
+                      value={formData.guardian_phone || ''}
                       onChange={e => setFormData({...formData, guardian_phone: e.target.value.toUpperCase()})}
                     />
                     {formData.guardian_phone && (
@@ -345,7 +345,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status</label>
               <select 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                value={formData.status}
+                value={formData.status || 'Ativo'}
                 onChange={e => setFormData({...formData, status: e.target.value as any})}
               >
                 <option value="Ativo">Ativo</option>

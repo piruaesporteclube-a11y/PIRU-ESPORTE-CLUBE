@@ -52,7 +52,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     diabetes: '',
     food_restriction: '',
     medication_restriction: '',
-    pathologies: '[]'
+    pathologies: '[]',
+    pathologies_description: ''
   });
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
@@ -64,7 +65,51 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     { id: 'TOD', label: 'TOD (Transtorno Opositor e Desafiador)' },
     { id: 'DI', label: 'DI (Déficit Intelectual)' },
     { id: 'ANSIEDADE', label: 'Ansiedade' },
+    { id: 'OUTROS', label: 'Outros' },
   ];
+
+  const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
+    const safeValue = value || '';
+    const isNo = safeValue === 'NÃO';
+    const isYes = safeValue !== '' && safeValue !== 'NÃO';
+    
+    return (
+      <div className="space-y-2">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{label}</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onChange('SIM')}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+              isYes ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+            )}
+          >
+            SIM
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange('NÃO')}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+              isNo ? "bg-red-500/20 text-red-500 border-red-500/50" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+            )}
+          >
+            NÃO
+          </button>
+        </div>
+        {isYes && (
+          <input
+            type="text"
+            placeholder={placeholder}
+            className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase animate-in fade-in slide-in-from-top-1"
+            value={safeValue === 'SIM' ? '' : safeValue}
+            onChange={e => onChange(e.target.value.toUpperCase() || 'SIM')}
+          />
+        )}
+      </div>
+    );
+  };
 
   const handlePathologyToggle = (pathId: string) => {
     const current = JSON.parse(anamnesisData.pathologies || '[]');
@@ -101,7 +146,15 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     
     const missingAthlete = requiredAthleteFields.filter(f => !athleteData[f]);
     if (missingAthlete.length > 0) {
-      toast.error("Por favor, preencha todos os campos obrigatórios, incluindo a foto.");
+      const fieldLabels: Record<string, string> = {
+        name: 'Nome', nickname: 'Apelido', birth_date: 'Nascimento', doc: 'CPF/RG',
+        street: 'Rua', number: 'Número', neighborhood: 'Bairro', city: 'Cidade',
+        uf: 'UF', photo: 'Foto', contact: 'WhatsApp', jersey_number: 'Uniforme',
+        guardian_name: 'Nome do Responsável', guardian_doc: 'Documento do Responsável',
+        guardian_phone: 'WhatsApp do Responsável'
+      };
+      const missingLabels = missingAthlete.map(f => fieldLabels[f] || f).join(', ');
+      toast.error(`Por favor, preencha os campos: ${missingLabels}`);
       return;
     }
 
@@ -119,7 +172,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
 
     const missingAnamnesis = requiredAnamnesisFields.filter(f => !anamnesisData[f]);
     if (missingAnamnesis.length > 0) {
-      toast.error("Por favor, preencha todos os campos da ficha de saúde.");
+      toast.error("Por favor, responda todas as perguntas da ficha de saúde (SIM ou NÃO).");
       return;
     }
 
@@ -382,16 +435,18 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                   <div className="space-y-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Qual horário o atleta dorme?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.sleep_time} onChange={e => setAnamnesisData({...anamnesisData, sleep_time: e.target.value.toUpperCase()})} />
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.sleep_time || ''} onChange={e => setAnamnesisData({...anamnesisData, sleep_time: e.target.value.toUpperCase()})} />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Tem dificuldade de acordar cedo?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.wake_up_difficulty} onChange={e => setAnamnesisData({...anamnesisData, wake_up_difficulty: e.target.value.toUpperCase()})} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Pratica outro exercício físico?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.other_exercises} onChange={e => setAnamnesisData({...anamnesisData, other_exercises: e.target.value.toUpperCase()})} />
-                    </div>
+                    <YesNoField 
+                      label="Tem dificuldade de acordar cedo?"
+                      value={anamnesisData.wake_up_difficulty || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, wake_up_difficulty: val})}
+                    />
+                    <YesNoField 
+                      label="Pratica outro exercício físico?"
+                      value={anamnesisData.other_exercises || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, other_exercises: val})}
+                    />
                   </div>
                 </div>
 
@@ -401,18 +456,21 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     Histórico Médico
                   </h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Já fraturou algum membro?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.fractures} onChange={e => setAnamnesisData({...anamnesisData, fractures: e.target.value.toUpperCase()})} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Faz algum tratamento médico?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.medical_treatment} onChange={e => setAnamnesisData({...anamnesisData, medical_treatment: e.target.value.toUpperCase()})} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Faz uso de medicação controlada?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.controlled_medication} onChange={e => setAnamnesisData({...anamnesisData, controlled_medication: e.target.value.toUpperCase()})} />
-                    </div>
+                    <YesNoField 
+                      label="Já fraturou algum membro?"
+                      value={anamnesisData.fractures || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, fractures: val})}
+                    />
+                    <YesNoField 
+                      label="Faz algum tratamento médico?"
+                      value={anamnesisData.medical_treatment || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, medical_treatment: val})}
+                    />
+                    <YesNoField 
+                      label="Faz uso de medicação controlada?"
+                      value={anamnesisData.controlled_medication || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, controlled_medication: val})}
+                    />
                   </div>
                 </div>
               </div>
@@ -431,10 +489,12 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     { label: 'Restrição Alimentar', key: 'food_restriction' },
                     { label: 'Restrição Medicamentos', key: 'medication_restriction' },
                   ].map((item) => (
-                    <div key={item.key}>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{item.label}</label>
-                      <input required type="text" className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={(anamnesisData as any)[item.key]} onChange={e => setAnamnesisData({...anamnesisData, [item.key]: e.target.value.toUpperCase()})} />
-                    </div>
+                    <YesNoField 
+                      key={item.key}
+                      label={item.label}
+                      value={(anamnesisData as any)[item.key] || ''}
+                      onChange={val => setAnamnesisData({...anamnesisData, [item.key]: val})}
+                    />
                   ))}
                 </div>
               </div>
@@ -454,6 +514,17 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     );
                   })}
                 </div>
+                {JSON.parse(anamnesisData.pathologies || '[]').includes('OUTROS') && (
+                  <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Descreva outras patologias</label>
+                    <textarea 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase min-h-[100px]"
+                      value={anamnesisData.pathologies_description || ''}
+                      onChange={e => setAnamnesisData({...anamnesisData, pathologies_description: e.target.value.toUpperCase()})}
+                      placeholder="DESCREVA AQUI..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -18,7 +18,7 @@ service cloud.firestore {
     // Fields: id, athlete_id, date, status, justification
     //
     // Collection: anamnesis
-    // Fields: athlete_id, sleep_time, wake_up_difficulty, fractures, medical_treatment, controlled_medication, other_exercises, respiratory_problems, cardiac_problems, allergies, hypertension, hypotension, epilepsy, diabetes, food_restriction, medication_restriction, pathologies
+    // Fields: athlete_id, sleep_time, wake_up_difficulty, fractures, medical_treatment, controlled_medication, other_exercises, respiratory_problems, cardiac_problems, allergies, hypertension, hypotension, epilepsy, diabetes, food_restriction, medication_restriction, pathologies, pathologies_description
     //
     // Collection: settings
     // Fields: primaryColor, secondaryColor, instagram, whatsapp, schoolCrest
@@ -99,7 +99,8 @@ service cloud.firestore {
 
     function isValidAnamnesis(data) {
       return data.athlete_id is string && data.athlete_id.size() > 0 &&
-             (!('pathologies' in data) || data.pathologies is string);
+             (!('pathologies' in data) || data.pathologies is string) &&
+             (!('pathologies_description' in data) || data.pathologies_description is string);
     }
 
     // ===============================================================

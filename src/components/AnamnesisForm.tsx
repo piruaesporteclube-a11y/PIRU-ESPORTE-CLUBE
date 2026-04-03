@@ -28,12 +28,13 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
     diabetes: '',
     food_restriction: '',
     medication_restriction: '',
-    pathologies: '[]'
+    pathologies: '[]',
+    pathologies_description: ''
   });
 
   useEffect(() => {
     api.getAnamnesis(athlete.id).then(data => {
-      if (data.athlete_id) setFormData(data);
+      if (data.athlete_id) setFormData(prev => ({ ...prev, ...data }));
     }).catch(() => {
       // If not found, keep default empty form
     });
@@ -45,7 +46,51 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
     { id: 'TOD', label: 'TOD (Transtorno Opositor e Desafiador)' },
     { id: 'DI', label: 'DI (Déficit Intelectual)' },
     { id: 'ANSIEDADE', label: 'Ansiedade' },
+    { id: 'OUTROS', label: 'Outros' },
   ];
+
+  const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
+    const safeValue = value || '';
+    const isNo = safeValue === 'NÃO';
+    const isYes = safeValue !== '' && safeValue !== 'NÃO';
+    
+    return (
+      <div className="space-y-2">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{label}</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onChange('SIM')}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+              isYes ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+            )}
+          >
+            SIM
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange('NÃO')}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+              isNo ? "bg-red-500/20 text-red-500 border-red-500/50" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+            )}
+          >
+            NÃO
+          </button>
+        </div>
+        {isYes && (
+          <input
+            type="text"
+            placeholder={placeholder}
+            className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase animate-in fade-in slide-in-from-top-1"
+            value={safeValue === 'SIM' ? '' : safeValue}
+            onChange={e => onChange(e.target.value.toUpperCase() || 'SIM')}
+          />
+        )}
+      </div>
+    );
+  };
 
   const handlePathologyToggle = (pathId: string) => {
     const current = JSON.parse(formData.pathologies || '[]');
@@ -57,6 +102,20 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const requiredFields: (keyof Anamnesis)[] = [
+      'sleep_time', 'wake_up_difficulty', 'fractures', 'medical_treatment',
+      'controlled_medication', 'other_exercises', 'respiratory_problems',
+      'cardiac_problems', 'allergies', 'hypertension', 'hypotension',
+      'epilepsy', 'diabetes', 'food_restriction', 'medication_restriction'
+    ];
+
+    const missing = requiredFields.filter(f => !formData[f]);
+    if (missing.length > 0) {
+      toast.error("Por favor, responda todas as perguntas da ficha de saúde (SIM ou NÃO).");
+      return;
+    }
+
     try {
       await api.saveAnamnesis(formData);
       toast.success("Anamnese salva com sucesso!");
@@ -112,28 +171,20 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
                 <input 
                   type="text" 
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.sleep_time}
+                  value={formData.sleep_time || ''}
                   onChange={e => setFormData({...formData, sleep_time: e.target.value})}
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Tem dificuldade de acordar cedo?</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.wake_up_difficulty}
-                  onChange={e => setFormData({...formData, wake_up_difficulty: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Pratica outro exercício físico?</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.other_exercises}
-                  onChange={e => setFormData({...formData, other_exercises: e.target.value})}
-                />
-              </div>
+              <YesNoField 
+                label="Tem dificuldade de acordar cedo?"
+                value={formData.wake_up_difficulty || ''}
+                onChange={val => setFormData({...formData, wake_up_difficulty: val})}
+              />
+              <YesNoField 
+                label="Pratica outro exercício físico?"
+                value={formData.other_exercises || ''}
+                onChange={val => setFormData({...formData, other_exercises: val})}
+              />
             </div>
           </div>
 
@@ -144,33 +195,21 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
               Histórico Médico
             </h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Já fraturou algum membro?</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.fractures}
-                  onChange={e => setFormData({...formData, fractures: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Faz algum tratamento médico?</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.medical_treatment}
-                  onChange={e => setFormData({...formData, medical_treatment: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Faz uso de medicação controlada?</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.controlled_medication}
-                  onChange={e => setFormData({...formData, controlled_medication: e.target.value})}
-                />
-              </div>
+              <YesNoField 
+                label="Já fraturou algum membro?"
+                value={formData.fractures || ''}
+                onChange={val => setFormData({...formData, fractures: val})}
+              />
+              <YesNoField 
+                label="Faz algum tratamento médico?"
+                value={formData.medical_treatment || ''}
+                onChange={val => setFormData({...formData, medical_treatment: val})}
+              />
+              <YesNoField 
+                label="Faz uso de medicação controlada?"
+                value={formData.controlled_medication || ''}
+                onChange={val => setFormData({...formData, controlled_medication: val})}
+              />
             </div>
           </div>
         </div>
@@ -190,15 +229,12 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
               { label: 'Restrição Alimentar', key: 'food_restriction' },
               { label: 'Restrição Medicamentos', key: 'medication_restriction' },
             ].map((item) => (
-              <div key={item.key}>
-                <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{item.label}</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={(formData as any)[item.key]}
-                  onChange={e => setFormData({...formData, [item.key]: e.target.value})}
-                />
-              </div>
+              <YesNoField 
+                key={item.key}
+                label={item.label}
+                value={(formData as any)[item.key] || ''}
+                onChange={val => setFormData({...formData, [item.key]: val})}
+              />
             ))}
           </div>
         </div>
@@ -232,6 +268,17 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
               );
             })}
           </div>
+          {JSON.parse(formData.pathologies || '[]').includes('OUTROS') && (
+            <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+              <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Descreva outras patologias</label>
+              <textarea 
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase min-h-[100px]"
+                value={formData.pathologies_description || ''}
+                onChange={e => setFormData({...formData, pathologies_description: e.target.value.toUpperCase()})}
+                placeholder="DESCREVA AQUI..."
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end pt-8 border-t border-zinc-800 no-print">
@@ -267,6 +314,7 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
           <p><strong>Restrição Alimentar:</strong> {formData.food_restriction}</p>
           <p><strong>Restrição Medicamentos:</strong> {formData.medication_restriction}</p>
           <p><strong>Patologias:</strong> {JSON.parse(formData.pathologies || '[]').join(', ')}</p>
+          {formData.pathologies_description && <p><strong>Outras Patologias (Descrição):</strong> {formData.pathologies_description}</p>}
         </div>
 
         <div className="mt-20 flex justify-between">

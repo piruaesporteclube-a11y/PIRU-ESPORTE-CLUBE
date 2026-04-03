@@ -76,6 +76,7 @@ export type Anamnesis = {
   food_restriction: string;
   medication_restriction: string;
   pathologies: string; // JSON string
+  pathologies_description?: string;
 };
 
 export type Settings = {
