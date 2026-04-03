@@ -99,6 +99,8 @@ service cloud.firestore {
 
     function isValidAnamnesis(data) {
       return data.athlete_id is string && data.athlete_id.size() > 0 &&
+             data.sleep_time is string &&
+             data.wake_up_difficulty is string &&
              (!('pathologies' in data) || data.pathologies is string) &&
              (!('pathologies_description' in data) || data.pathologies_description is string);
     }

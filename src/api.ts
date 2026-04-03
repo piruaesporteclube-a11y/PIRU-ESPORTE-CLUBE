@@ -298,7 +298,11 @@ export const api = {
         throw new Error("A senha (CPF) é muito fraca. Por favor, use um CPF válido.");
       }
 
-      if (error.message && error.message.includes("permission-denied")) {
+      if (error.code === 'auth/operation-not-allowed') {
+        throw new Error("O login por E-mail/Senha não está ativado no Firebase Console.");
+      }
+
+      if (error.message && (error.message.includes("permission-denied") || error.message.includes("insufficient permissions"))) {
         throw new Error("Erro de permissão no banco de dados. Verifique se todos os campos obrigatórios foram preenchidos corretamente.");
       }
 

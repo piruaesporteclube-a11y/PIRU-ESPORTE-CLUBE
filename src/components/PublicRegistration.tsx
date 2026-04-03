@@ -171,8 +171,13 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     ];
 
     const missingAnamnesis = requiredAnamnesisFields.filter(f => !anamnesisData[f]);
-    if (missingAnamnesis.length > 0) {
-      toast.error("Por favor, responda todas as perguntas da ficha de saúde (SIM ou NÃO).");
+    
+    // Check if 'OUTROS' is selected but description is empty
+    const pathologies = JSON.parse(anamnesisData.pathologies || '[]');
+    const missingPathologyDesc = pathologies.includes('OUTROS') && !anamnesisData.pathologies_description;
+
+    if (missingAnamnesis.length > 0 || missingPathologyDesc) {
+      toast.error("Por favor, responda todas as perguntas da ficha de saúde e descreva as patologias se selecionou 'OUTROS'.");
       return;
     }
 
