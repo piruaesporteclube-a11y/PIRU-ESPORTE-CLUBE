@@ -366,7 +366,7 @@ export default function EventsManagement() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="font-bold truncate text-xs uppercase">{s.name}</p>
-                                  {s.phone && (
+                                  {s.phone && s.phone.replace(/\D/g, '') && (
                                     <a 
                                       href={`https://wa.me/55${s.phone.replace(/\D/g, '')}`}
                                       target="_blank"

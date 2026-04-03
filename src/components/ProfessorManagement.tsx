@@ -144,7 +144,7 @@ export default function ProfessorManagement() {
             <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
             <div className="flex items-center gap-2 mb-4">
               <p className="text-xs text-theme-primary font-bold">{p.phone}</p>
-              {p.phone && (
+              {p.phone && p.phone.replace(/\D/g, '') && (
                 <a 
                   href={`https://wa.me/55${p.phone.replace(/\D/g, '')}`}
                   target="_blank"
@@ -247,7 +247,7 @@ export default function ProfessorManagement() {
                       value={formData.phone}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
                     />
-                    {formData.phone && (
+                    {formData.phone && formData.phone.replace(/\D/g, '') && (
                       <a 
                         href={`https://wa.me/55${formData.phone.replace(/\D/g, '')}`}
                         target="_blank"

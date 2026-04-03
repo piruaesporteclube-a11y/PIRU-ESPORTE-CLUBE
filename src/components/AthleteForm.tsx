@@ -211,7 +211,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                         value={formData.contact || ''}
                         onChange={e => setFormData({...formData, contact: e.target.value.toUpperCase()})}
                       />
-                      {formData.contact && (
+                      {formData.contact && formData.contact.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${formData.contact.replace(/\D/g, '')}`}
                           target="_blank"
@@ -325,7 +325,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       value={formData.guardian_phone || ''}
                       onChange={e => setFormData({...formData, guardian_phone: e.target.value.toUpperCase()})}
                     />
-                    {formData.guardian_phone && (
+                    {formData.guardian_phone && formData.guardian_phone.replace(/\D/g, '') && (
                       <a 
                         href={`https://wa.me/55${formData.guardian_phone.replace(/\D/g, '')}`}
                         target="_blank"

@@ -206,7 +206,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                       <div>
                         <div className="font-medium text-white flex items-center gap-2">
                           {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
-                          {athlete.contact && (
+                          {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                             <a 
                               href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
                               target="_blank"
@@ -220,7 +220,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                         </div>
                         <div className="text-xs text-zinc-500 flex items-center gap-2">
                           {athlete.doc}
-                          {athlete.guardian_phone && (
+                          {athlete.guardian_phone && athlete.guardian_phone.replace(/\D/g, '') && (
                             <a 
                               href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
                               target="_blank"
@@ -291,7 +291,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                   <div>
                     <div className="font-bold text-white flex items-center gap-2">
                       {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
-                      {athlete.contact && (
+                      {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
                           target="_blank"
@@ -304,7 +304,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                     </div>
                     <div className="text-xs text-zinc-500 flex items-center gap-2">
                       {athlete.doc}
-                      {athlete.guardian_phone && (
+                      {athlete.guardian_phone && athlete.guardian_phone.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
                           target="_blank"

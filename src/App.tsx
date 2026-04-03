@@ -231,9 +231,9 @@ export default function App() {
                       </div>
                     </a>
                   )}
-                  {settings.whatsapp && (
+                  {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
                     <a 
-                      href={`https://wa.me/${settings.whatsapp.replace(/\D/g, '')}`}
+                      href={`https://wa.me/55${settings.whatsapp.replace(/\D/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-zinc-900/40 border border-green-500/30 p-6 rounded-3xl shadow-xl hover:border-green-500/60 transition-all group flex items-center gap-4"
@@ -377,9 +377,9 @@ export default function App() {
                         </div>
                       </a>
                     )}
-                    {settings.whatsapp && (
+                    {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
                       <a 
-                        href={`https://wa.me/${settings.whatsapp.replace(/\D/g, '')}`}
+                        href={`https://wa.me/55${settings.whatsapp.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-zinc-800/50 border border-green-500/20 p-6 rounded-2xl hover:border-green-500/50 transition-all group flex items-center gap-4"
