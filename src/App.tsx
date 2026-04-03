@@ -14,7 +14,7 @@ import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import { Athlete, User } from './types';
 import { api } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 
@@ -213,6 +213,41 @@ export default function App() {
                     </div>
                   </button>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                  {settings.instagram && (
+                    <a 
+                      href={settings.instagram.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-zinc-900/40 border border-pink-500/30 p-6 rounded-3xl shadow-xl hover:border-pink-500/60 transition-all group flex items-center gap-4"
+                    >
+                      <div className="p-3 bg-pink-500/10 text-pink-500 rounded-2xl group-hover:scale-110 transition-transform">
+                        <Instagram size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-widest">Instagram</h3>
+                        <p className="text-[10px] text-zinc-500">Siga-nos para novidades</p>
+                      </div>
+                    </a>
+                  )}
+                  {settings.whatsapp && (
+                    <a 
+                      href={`https://wa.me/${settings.whatsapp.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-zinc-900/40 border border-green-500/30 p-6 rounded-3xl shadow-xl hover:border-green-500/60 transition-all group flex items-center gap-4"
+                    >
+                      <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
+                        <MessageCircle size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-widest">WhatsApp</h3>
+                        <p className="text-[10px] text-zinc-500">Fale conosco agora</p>
+                      </div>
+                    </a>
+                  )}
+                </div>
               </div>
             );
           }
@@ -318,6 +353,47 @@ export default function App() {
                     Aniversariantes
                   </h3>
                   <Birthdays />
+                </div>
+
+                <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl lg:col-span-2">
+                  <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                    <LinkIcon size={20} className="text-theme-primary" />
+                    Redes Sociais & Contato
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {settings.instagram && (
+                      <a 
+                        href={settings.instagram.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-zinc-800/50 border border-pink-500/20 p-6 rounded-2xl hover:border-pink-500/50 transition-all group flex items-center gap-4"
+                      >
+                        <div className="p-3 bg-pink-500/10 text-pink-500 rounded-xl group-hover:scale-110 transition-transform">
+                          <Instagram size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white uppercase tracking-widest">Instagram</h4>
+                          <p className="text-xs text-zinc-500">@pirua_ec</p>
+                        </div>
+                      </a>
+                    )}
+                    {settings.whatsapp && (
+                      <a 
+                        href={`https://wa.me/${settings.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-zinc-800/50 border border-green-500/20 p-6 rounded-2xl hover:border-green-500/50 transition-all group flex items-center gap-4"
+                      >
+                        <div className="p-3 bg-green-500/10 text-green-500 rounded-xl group-hover:scale-110 transition-transform">
+                          <MessageCircle size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white uppercase tracking-widest">WhatsApp</h4>
+                          <p className="text-xs text-zinc-500">Suporte e Informações</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
