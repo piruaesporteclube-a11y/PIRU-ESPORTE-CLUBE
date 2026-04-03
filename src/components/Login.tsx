@@ -37,7 +37,16 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
       const res = await api.loginWithGoogle();
       onLogin(res);
     } catch (err: any) {
-      setError('Erro ao entrar com Google. Verifique sua conta.');
+      console.error("Erro no login Google:", err);
+      if (err.message?.includes('unauthorized-domain')) {
+        setError('Este domínio não está autorizado no Firebase Console. Adicione este domínio em Authentication > Settings > Authorized domains.');
+      } else if (err.message?.includes('popup-closed-by-user')) {
+        setError('O login foi cancelado porque a janela foi fechada.');
+      } else if (err.message?.includes('operation-not-allowed')) {
+        setError('O login com Google não está ativado no Firebase Console.');
+      } else {
+        setError(err.message || 'Erro ao entrar com Google. Verifique sua conta.');
+      }
     } finally {
       setLoading(false);
     }

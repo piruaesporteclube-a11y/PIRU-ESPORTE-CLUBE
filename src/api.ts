@@ -200,11 +200,12 @@ export const api = {
         userData = userDocSnap.data() as User;
       } else {
         // Create new user doc
+        const isAdminEmail = firebaseUser.email === "piruaesporteclube@gmail.com";
         userData = {
           id: firebaseUser.uid,
-          name: firebaseUser.displayName || "Usuário Google",
-          doc: "",
-          role: firebaseUser.email === "piruaesporteclube@gmail.com" ? "admin" : "student"
+          name: firebaseUser.displayName || (isAdminEmail ? "Administrador Principal" : "Usuário Google"),
+          doc: isAdminEmail ? "05504043689" : "",
+          role: isAdminEmail ? "admin" : "student"
         };
         await setDoc(userDocRef, sanitizeData(userData));
       }

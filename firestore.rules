@@ -93,7 +93,7 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 14 &&
+             data.doc is string && (data.doc.size() == 0 || (data.doc.size() >= 11 && data.doc.size() <= 14)) &&
              data.role in ['admin', 'student'];
     }
 
