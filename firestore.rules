@@ -85,7 +85,7 @@ service cloud.firestore {
              data.nickname is string && data.nickname.size() > 0 && data.nickname.size() < 50 &&
              data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 14 &&
              data.status in ['Ativo', 'Inativo'] &&
-             data.photo is string && data.photo.size() < 600000 &&
+             data.photo is string && data.photo.size() < 1000000 &&
              data.birth_date is string &&
              data.guardian_name is string &&
              data.guardian_phone is string;

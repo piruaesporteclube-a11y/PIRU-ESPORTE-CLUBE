@@ -259,6 +259,13 @@ export const api = {
       };
 
       console.log("Setting batch docs...");
+      console.log("New Athlete Keys:", Object.keys(newAthlete));
+      if (newAthlete.photo) {
+        console.log("Photo size (chars):", newAthlete.photo.length);
+      } else {
+        console.log("Photo is MISSING from newAthlete");
+      }
+      
       batch.set(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
       batch.set(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
       

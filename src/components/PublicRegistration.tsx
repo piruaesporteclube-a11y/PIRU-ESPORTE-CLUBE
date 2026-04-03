@@ -105,6 +105,11 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
       return;
     }
 
+    if (athleteData.photo && !athleteData.photo.startsWith('data:')) {
+      toast.error("A foto ainda está sendo processada. Por favor, aguarde um momento.");
+      return;
+    }
+
     const requiredAnamnesisFields: (keyof Anamnesis)[] = [
       'sleep_time', 'wake_up_difficulty', 'fractures', 'medical_treatment',
       'controlled_medication', 'other_exercises', 'respiratory_problems',

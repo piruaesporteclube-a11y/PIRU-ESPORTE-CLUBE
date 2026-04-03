@@ -73,6 +73,11 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       return;
     }
 
+    if (formData.photo && !formData.photo.startsWith('data:')) {
+      toast.error("A foto ainda está sendo processada. Por favor, aguarde um momento.");
+      return;
+    }
+
     setLoading(true);
     try {
       if (isRegistration) {
