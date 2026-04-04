@@ -102,6 +102,7 @@ export default function Birthdays() {
         backgroundColor: '#000000',
         logging: false,
         allowTaint: false,
+        windowWidth: 1200,
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.getElementById('birthday-card');
           if (clonedElement) {
