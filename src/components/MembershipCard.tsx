@@ -98,6 +98,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             clonedCard.style.transform = 'none';
             clonedCard.style.margin = '0';
             clonedCard.style.position = 'relative';
+            clonedCard.style.width = '450px';
+            clonedCard.style.height = '321px';
+            clonedCard.style.overflow = 'visible';
           }
         }
       });
@@ -351,11 +354,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   }}
                 />
               </div>
-              <div className="leading-tight max-w-[180px]">
-                <p className="text-[8px] text-white font-bold uppercase leading-tight truncate">
+              <div className="leading-tight max-w-[220px]">
+                <p className="text-[8px] text-white font-bold uppercase leading-tight">
                   {athlete.street}, {athlete.number}
                 </p>
-                <p className="text-[8px] text-[#71717a] font-medium uppercase leading-tight truncate">
+                <p className="text-[8px] text-[#71717a] font-medium uppercase leading-tight">
                   {athlete.neighborhood} - {athlete.city}/{athlete.uf}
                 </p>
               </div>

@@ -119,16 +119,64 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     setAnamnesisData({ ...anamnesisData, pathologies: JSON.stringify(next) });
   };
 
+  const compressImage = (base64Str: string, maxWidth = 600, maxHeight = 800, quality = 0.6): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    });
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 400 * 1024) { // Reduced to 400KB to avoid Firestore document size limits
-        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 400KB.");
-        return;
-      }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setAthleteData(prev => ({ ...prev, photo: reader.result as string }));
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        
+        // Show loading state for compression
+        const toastId = toast.loading("Otimizando foto para o sistema...");
+        
+        try {
+          // Always compress to ensure it fits Firestore limits and is standardized
+          const compressed = await compressImage(base64);
+          
+          // Check final size (approximate from base64)
+          // Firestore document limit is 1MB total. 
+          // Base64 string length should stay well under 1,000,000.
+          if (compressed.length > 900000) {
+             toast.error("A foto ainda está muito grande. Tente tirar uma foto com menos detalhes ou de mais longe.", { id: toastId });
+             return;
+          }
+
+          setAthleteData(prev => ({ ...prev, photo: compressed }));
+          toast.success("Foto processada com sucesso!", { id: toastId });
+        } catch (err) {
+          console.error("Erro ao processar imagem:", err);
+          toast.error("Erro ao processar a foto. Tente outro arquivo.", { id: toastId });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -192,7 +240,18 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
       setStep('success');
     } catch (err: any) {
       console.error("Erro completo na matrícula:", err);
-      toast.error(`Erro ao realizar matrícula: ${err.message || "Erro desconhecido"}`);
+      
+      let errorMessage = "Erro ao realizar matrícula. Tente novamente.";
+      
+      if (err.message?.includes("permission-denied") || err.message?.includes("insufficient permissions")) {
+        errorMessage = "O sistema recusou os dados. Verifique se a foto não é muito grande ou se há campos inválidos.";
+      } else if (err.message?.includes("email-already-in-use")) {
+        errorMessage = "Este CPF já está cadastrado no sistema.";
+      } else if (err.message) {
+        errorMessage = `Erro: ${err.message}`;
+      }
+
+      toast.error(errorMessage, { duration: 6000 });
     } finally {
       setLoading(false);
     }
