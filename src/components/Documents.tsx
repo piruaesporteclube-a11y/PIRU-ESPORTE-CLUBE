@@ -58,7 +58,8 @@ export default function Documents() {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: 1200 // Force a consistent width for capture
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -67,7 +68,12 @@ export default function Documents() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Add some margins
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
       pdf.save(`${docType}_${selectedAthlete?.name.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -328,47 +334,46 @@ export default function Documents() {
           </div>
         </div>
       </div>
-      
-      {/* Document View Modal */}
+       {/* Document View Modal */}
       {docType && selectedAthlete && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex items-start justify-center p-2 sm:p-4 overflow-y-auto no-print py-4 sm:py-8">
-          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-auto p-4 sm:p-8 relative">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-4 no-print">
+          <div className="bg-white text-black w-full max-w-4xl rounded-3xl shadow-2xl my-auto p-4 sm:p-10 relative">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 no-print">
               <button 
                 onClick={() => setDocType(null)}
-                className="flex items-center gap-2 px-6 py-3 bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-black rounded-xl transition-all group font-bold uppercase text-xs tracking-widest"
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-black rounded-xl transition-all group font-bold uppercase text-[10px] tracking-widest"
               >
-                <ChevronRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                <ChevronRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
                 Voltar
               </button>
               
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
                     toast.success('Link copiado para compartilhar!');
                   }}
-                  className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:text-black transition-all shadow-lg"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:text-black transition-all text-[10px] uppercase tracking-widest"
                 >
-                  <Share2 size={20} />
+                  <Share2 size={16} />
                   Compartilhar
                 </button>
-
+ 
                 <button 
                   onClick={handleDownloadPDF}
                   disabled={isGeneratingPDF}
-                  className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all shadow-lg disabled:opacity-50"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 text-[10px] uppercase tracking-widest"
                 >
-                  <FileDown size={20} />
-                  {isGeneratingPDF ? 'Gerando...' : 'Salvar em PDF'}
+                  <FileDown size={16} />
+                  {isGeneratingPDF ? 'Gerando...' : 'PDF'}
                 </button>
-
+ 
                 <button 
                   onClick={handlePrint}
-                  className="flex items-center gap-2 px-6 py-3 bg-black text-white font-black rounded-xl hover:bg-zinc-800 transition-colors shadow-lg"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white font-black rounded-xl hover:bg-zinc-800 transition-colors text-[10px] uppercase tracking-widest"
                 >
-                  <Printer size={20} />
-                  Imprimir Documento
+                  <Printer size={16} />
+                  Imprimir
                 </button>
               </div>
             </div>

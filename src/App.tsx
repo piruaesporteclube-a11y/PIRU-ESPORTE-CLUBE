@@ -183,33 +183,33 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                    <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
                     <div className="p-3 lg:p-4 bg-theme-primary/10 text-theme-primary rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
-                      <UserPlus size={28} className="lg:w-8 lg:h-8" />
+                      <UserPlus size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Meus Dados</h3>
-                      <p className="text-[10px] lg:text-xs text-zinc-500">Atualize suas informações cadastrais</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Meus Dados</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Atualize suas informações cadastrais</p>
                     </div>
                   </button>
  
-                    <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
                     <div className="p-3 lg:p-4 bg-green-500/10 text-green-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
-                      <ClipboardCheck size={28} className="lg:w-8 lg:h-8" />
+                      <ClipboardCheck size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Minha Saúde</h3>
-                      <p className="text-[10px] lg:text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Minha Saúde</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
                     </div>
                   </button>
  
-                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-4">
+                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
                     <div className="p-3 lg:p-4 bg-blue-500/10 text-blue-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
-                      <CreditCard size={28} className="lg:w-8 lg:h-8" />
+                      <CreditCard size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Carteirinha</h3>
-                      <p className="text-[10px] lg:text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Carteirinha</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
                     </div>
                   </button>
                 </div>
@@ -264,42 +264,42 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
-                      <Users size={24} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+                  <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                    <div className="p-2.5 sm:p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
+                      <Users size={20} className="sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Totais</h3>
+                    <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Totais</h3>
                   </div>
-                  <p className="text-4xl font-black text-white">{stats.athletes}</p>
+                  <p className="text-3xl sm:text-4xl font-black text-white">{stats.athletes}</p>
                 </div>
-                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
-                      <UserCheck size={24} />
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+                  <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                    <div className="p-2.5 sm:p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
+                      <UserCheck size={20} className="sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Ativos</h3>
+                    <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Ativos</h3>
                   </div>
-                  <p className="text-4xl font-black text-white">{stats.active}</p>
+                  <p className="text-3xl sm:text-4xl font-black text-white">{stats.active}</p>
                 </div>
-                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
-                      <Calendar size={24} />
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+                  <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                    <div className="p-2.5 sm:p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
+                      <Calendar size={20} className="sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Eventos</h3>
+                    <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Eventos</h3>
                   </div>
-                  <p className="text-4xl font-black text-white">{stats.events}</p>
+                  <p className="text-3xl sm:text-4xl font-black text-white">{stats.events}</p>
                 </div>
-                <div className="bg-zinc-900/40 border border-theme-primary/30 p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
-                      <Trophy size={24} />
+                <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+                  <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                    <div className="p-2.5 sm:p-3 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
+                      <Trophy size={20} className="sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Ranking</h3>
+                    <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Ranking</h3>
                   </div>
-                  <p className="text-4xl font-black text-white">#1</p>
+                  <p className="text-3xl sm:text-4xl font-black text-white">#1</p>
                 </div>
               </div>
 
@@ -309,26 +309,26 @@ export default function App() {
                     <Activity size={20} className="text-theme-primary" />
                     Ações Rápidas
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
-                      <Users className="text-theme-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Novo Atleta</span>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <Users size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Novo Atleta</span>
                     </button>
-                    <button onClick={() => setActiveTab('attendance')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
-                      <ClipboardCheck className="text-green-500 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Fazer Chamada</span>
+                    <button onClick={() => setActiveTab('attendance')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <ClipboardCheck size={20} className="text-green-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Fazer Chamada</span>
                     </button>
-                    <button onClick={() => { setActiveTab('attendance'); localStorage.setItem('auto_scan', 'true'); }} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
-                      <QrCode className="text-theme-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Chamada QR</span>
+                    <button onClick={() => { setActiveTab('attendance'); localStorage.setItem('auto_scan', 'true'); }} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <QrCode size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Chamada QR</span>
                     </button>
-                    <button onClick={() => setActiveTab('events')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
-                      <Calendar className="text-blue-500 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Novo Evento</span>
+                    <button onClick={() => setActiveTab('events')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <Calendar size={20} className="text-blue-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Novo Evento</span>
                     </button>
-                    <button onClick={() => setActiveTab('documents')} className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group">
-                      <FileText className="text-purple-500 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Documentos</span>
+                    <button onClick={() => setActiveTab('documents')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <FileText size={20} className="text-purple-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Documentos</span>
                     </button>
                     <button 
                       onClick={() => {
@@ -336,10 +336,10 @@ export default function App() {
                         navigator.clipboard.writeText(link);
                         toast.success('Link de matrícula copiado!');
                       }}
-                      className="flex flex-col items-center justify-center p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-3 group col-span-2"
+                      className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group col-span-2 text-center"
                     >
-                      <LinkIcon className="text-theme-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase">Copiar Link de Matrícula</span>
+                      <LinkIcon size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Copiar Link de Matrícula</span>
                     </button>
                   </div>
                 </div>

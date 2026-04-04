@@ -81,17 +81,23 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       }));
 
       const canvas = await html2canvas(cardRef.current, {
-        scale: 4,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#050505',
         logging: false,
+        width: 450,
+        height: 321,
+        windowWidth: 1200,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
           if (clonedCard) {
             clonedCard.style.visibility = 'visible';
             clonedCard.style.display = 'flex';
             clonedCard.style.boxShadow = 'none';
+            clonedCard.style.transform = 'none';
+            clonedCard.style.margin = '0';
+            clonedCard.style.position = 'relative';
           }
         }
       });
@@ -136,11 +142,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         </div>
       </div>
 
-      <div className="flex justify-center p-4 print:p-0 card-print-container overflow-x-auto">
+      <div className="flex justify-center p-2 sm:p-4 print:p-0 card-print-container overflow-x-auto">
         {/* The Card Layout - Custom Size (10.5cm x 7.5cm) */}
         <div 
           ref={cardRef}
-          className="w-[450px] h-[321px] min-w-[450px] bg-[#050505] text-white rounded-[24px] overflow-hidden shadow-2xl flex flex-col relative card border border-[rgba(39,39,42,0.5)] print:border-[#d4d4d8]"
+          className="w-[450px] h-[321px] min-w-[450px] bg-[#050505] text-white rounded-[24px] overflow-hidden shadow-2xl flex flex-col relative card border border-[rgba(39,39,42,0.5)] print:border-[#d4d4d8] transform scale-[0.8] sm:scale-100 origin-center"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
