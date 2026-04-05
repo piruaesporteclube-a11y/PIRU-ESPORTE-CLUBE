@@ -54,9 +54,20 @@ export type Event = {
 export type Attendance = {
   id: string;
   athlete_id: string;
+  training_id?: string;
   date: string;
   status: "Presente" | "Faltou";
   justification?: string;
+};
+
+export type Training = {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  location: string;
+  modality: string;
+  category: string;
 };
 
 export type Anamnesis = {

@@ -10,6 +10,7 @@ import AnamnesisForm from './components/AnamnesisForm';
 import Documents from './components/Documents';
 import SponsorManager from './components/SponsorManager';
 import ModalityList from './components/ModalityList';
+import TrainingManagement from './components/TrainingManagement';
 import SettingsComponent from './components/Settings';
 import MembershipCard from './components/MembershipCard';
 import Login from './components/Login';
@@ -642,6 +643,8 @@ export default function App() {
           return <SponsorManager />;
         case 'modalities':
           return <ModalityList />;
+        case 'trainings':
+          return <TrainingManagement />;
         case 'settings':
           return <SettingsComponent />;
         default:

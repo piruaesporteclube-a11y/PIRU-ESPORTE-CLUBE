@@ -9,14 +9,14 @@ import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function Attendance({ athletes: athletesProp }: { athletes?: Athlete[] }) {
+export default function Attendance({ athletes: athletesProp, trainingId, initialDate }: { athletes?: Athlete[], trainingId?: string, initialDate?: string }) {
   const { settings } = useTheme();
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string }>>({});
   const [filterSub, setFilterSub] = useState('Todos');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const lastScannedCode = useRef<string | null>(null);
@@ -36,7 +36,7 @@ export default function Attendance({ athletes: athletesProp }: { athletes?: Athl
       setIsScanning(true);
       localStorage.removeItem('auto_scan');
     }
-  }, [date]);
+  }, [date, trainingId]);
 
   const loadData = async (silent = false) => {
     try {
@@ -50,7 +50,7 @@ export default function Attendance({ athletes: athletesProp }: { athletes?: Athl
 
   const loadAttendance = async (silent = false) => {
     try {
-      const attendanceData = await api.getAttendance(date);
+      const attendanceData = await api.getAttendance(date, undefined, trainingId);
       
       const attMap: Record<string, { status: string, justification: string }> = {};
       attendanceData.forEach(a => {
@@ -225,8 +225,8 @@ export default function Attendance({ athletes: athletesProp }: { athletes?: Athl
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '') => {
     try {
       // Use a stable ID for the day to prevent duplicate records
-      const attendanceId = `${athleteId}_${date}`;
-      await api.saveAttendance({ id: attendanceId, athlete_id: athleteId, date, status, justification });
+      const attendanceId = trainingId ? `${athleteId}_training_${trainingId}` : `${athleteId}_${date}`;
+      await api.saveAttendance({ id: attendanceId, athlete_id: athleteId, training_id: trainingId, date, status, justification });
       setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
     } catch (err: any) {
       toast.error(`Erro ao salvar presença: ${err.message}`);

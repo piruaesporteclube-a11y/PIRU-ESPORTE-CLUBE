@@ -22,7 +22,7 @@ import {
   writeBatch
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -446,11 +446,12 @@ export const api = {
   },
 
   // Attendance
-  getAttendance: async (date?: string, athlete_id?: string): Promise<Attendance[]> => {
+  getAttendance: async (date?: string, athlete_id?: string, training_id?: string): Promise<Attendance[]> => {
     try {
       let q = query(collection(db, "attendance"));
       if (date) q = query(q, where("date", "==", date));
       if (athlete_id) q = query(q, where("athlete_id", "==", athlete_id));
+      if (training_id) q = query(q, where("training_id", "==", training_id));
       
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => doc.data() as Attendance);
@@ -624,6 +625,32 @@ export const api = {
       await deleteDoc(doc(db, "uniform_models", id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `uniform_models/${id}`);
+    }
+  },
+
+  // Trainings
+  getTrainings: async (): Promise<Training[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "trainings"));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Training));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "trainings");
+      return [];
+    }
+  },
+  saveTraining: async (training: Partial<Training>) => {
+    if (!training.id) training.id = doc(collection(db, "trainings")).id;
+    try {
+      await setDoc(doc(db, "trainings", training.id), sanitizeData(training), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `trainings/${training.id}`);
+    }
+  },
+  deleteTraining: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "trainings", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `trainings/${id}`);
     }
   },
 };

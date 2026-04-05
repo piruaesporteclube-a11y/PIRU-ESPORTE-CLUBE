@@ -41,6 +41,7 @@ const navItems: NavItem[] = [
   { id: 'membership-card', label: 'Carteirinha', icon: CreditCard, roles: ['admin'] },
   { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'] },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'] },
+  { id: 'trainings', label: 'Treinos', icon: Calendar, roles: ['admin'] },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'] },
   
   // Student items
