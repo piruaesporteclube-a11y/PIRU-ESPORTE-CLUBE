@@ -317,6 +317,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     </div>
                     <p className="text-[10px] font-black text-white">#{athlete.jersey_number || '--'}</p>
                   </div>
+                  <div>
+                    <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                      Modalidade
+                    </div>
+                    <p className="text-[10px] font-black text-white truncate">{athlete.modality || '--'}</p>
+                  </div>
                 </div>
 
                 <div className="bg-[rgba(255,255,255,0.05)] backdrop-blur-md p-2 rounded-xl border border-[rgba(255,255,255,0.05)]">
@@ -355,18 +362,18 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 />
               </div>
               <div className="leading-tight max-w-[240px]">
-                <p className="text-[7px] text-white font-bold uppercase leading-tight">
+                <p className="text-[8px] text-white font-bold uppercase leading-tight">
                   {athlete.street}, {athlete.number}
                 </p>
-                <p className="text-[7px] text-[#71717a] font-medium uppercase leading-tight">
+                <p className="text-[8px] text-[#71717a] font-medium uppercase leading-tight">
                   {athlete.neighborhood} - {athlete.city}/{athlete.uf}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
-                <p className="text-sm font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
+                <p className="text-[7px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
+                <p className="text-xs font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
               </div>
               <div className="w-px h-6 bg-[rgba(255,255,255,0.1)]"></div>
               <ShieldCheck size={18} className="text-theme-primary" />

@@ -8,6 +8,8 @@ import Birthdays from './components/Birthdays';
 import EventsManagement from './components/EventsManagement';
 import AnamnesisForm from './components/AnamnesisForm';
 import Documents from './components/Documents';
+import SponsorManager from './components/SponsorManager';
+import ModalityList from './components/ModalityList';
 import SettingsComponent from './components/Settings';
 import MembershipCard from './components/MembershipCard';
 import Login from './components/Login';
@@ -15,7 +17,7 @@ import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
 import { Athlete, User } from './types';
 import { api } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 
@@ -548,6 +550,84 @@ export default function App() {
               )}
             </div>
           );
+        case 'anamnesis':
+          return (
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
+                    <ClipboardList size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Ficha de Saúde (Anamnese)</h2>
+                    <p className="text-sm text-zinc-500 uppercase tracking-widest">Selecione um atleta para preencher ou visualizar a ficha</p>
+                  </div>
+                </div>
+                <select 
+                  className="w-full px-6 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none text-lg uppercase font-bold"
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    api.getAthletes().then(list => {
+                      const a = list.find(item => item.id === id);
+                      if (a) setSelectedAthleteForAnamnesis(a);
+                    });
+                  }}
+                  value={selectedAthleteForAnamnesis?.id || ''}
+                >
+                  <option value="">SELECIONAR ATLETA...</option>
+                  {stats.athletes > 0 && <AthleteOptions />}
+                </select>
+              </div>
+              {selectedAthleteForAnamnesis && (
+                <div className="animate-in fade-in slide-in-from-top-4">
+                  <AnamnesisForm 
+                    athlete={selectedAthleteForAnamnesis} 
+                    onSave={() => {
+                      toast.success("Ficha de anamnese salva com sucesso!");
+                      setSelectedAthleteForAnamnesis(null);
+                    }} 
+                  />
+                </div>
+              )}
+            </div>
+          );
+        case 'membership-card':
+          return (
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
+                    <CreditCard size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Gerar Carteirinha</h2>
+                    <p className="text-sm text-zinc-500 uppercase tracking-widest">Selecione um atleta para gerar a carteirinha oficial</p>
+                  </div>
+                </div>
+                <select 
+                  className="w-full px-6 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none text-lg uppercase font-bold"
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    api.getAthletes().then(list => {
+                      const a = list.find(item => item.id === id);
+                      if (a) setSelectedAthleteForCard(a);
+                    });
+                  }}
+                  value={selectedAthleteForCard?.id || ''}
+                >
+                  <option value="">SELECIONAR ATLETA...</option>
+                  {stats.athletes > 0 && <AthleteOptions />}
+                </select>
+              </div>
+              {selectedAthleteForCard && (
+                <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4">
+                  <div className="bg-black p-8 rounded-[2.5rem] border border-theme-primary/20 shadow-2xl">
+                    <MembershipCard athlete={selectedAthleteForCard} />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
         case 'professors':
           return <ProfessorManagement />;
         case 'attendance':
@@ -558,6 +638,10 @@ export default function App() {
           return <Birthdays />;
         case 'documents':
           return <Documents />;
+        case 'sponsors':
+          return <SponsorManager />;
+        case 'modalities':
+          return <ModalityList />;
         case 'settings':
           return <SettingsComponent />;
         default:

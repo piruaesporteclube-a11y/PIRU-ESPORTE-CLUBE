@@ -12,7 +12,9 @@ import {
   X,
   ChevronRight,
   LogOut,
-  UserCheck
+  UserCheck,
+  ClipboardList,
+  CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -35,6 +37,10 @@ const navItems: NavItem[] = [
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin'] },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },
   { id: 'documents', label: 'Documentos', icon: FileText, roles: ['admin'] },
+  { id: 'anamnesis', label: 'Anamnese', icon: ClipboardList, roles: ['admin'] },
+  { id: 'membership-card', label: 'Carteirinha', icon: CreditCard, roles: ['admin'] },
+  { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'] },
+  { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'] },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'] },
   
   // Student items

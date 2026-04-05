@@ -18,6 +18,7 @@ export type Athlete = {
   guardian_doc: string;
   guardian_phone: string;
   status: "Ativo" | "Inativo";
+  modality: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
 };
 
@@ -98,6 +99,20 @@ export type User = {
 export type AuthResponse = {
   user: User;
   token: string;
+};
+
+export type Sponsor = {
+  id: string;
+  name: string;
+  logo: string;
+  link?: string;
+};
+
+export type UniformModel = {
+  id: string;
+  name: string;
+  image: string;
+  description?: string;
 };
 
 export const getSubCategory = (birthDate: string) => {

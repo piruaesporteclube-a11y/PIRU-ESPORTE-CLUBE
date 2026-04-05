@@ -33,7 +33,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     guardian_name: '',
     guardian_doc: '',
     guardian_phone: '',
-    status: 'Ativo'
+    status: 'Ativo',
+    modality: ''
   });
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
@@ -109,7 +110,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     const requiredAthleteFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
       'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
-      'guardian_name', 'guardian_doc', 'guardian_phone'
+      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality'
     ];
     
     const missingAthlete = requiredAthleteFields.filter(f => !athleteData[f]);
@@ -119,7 +120,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
         street: 'Rua', number: 'Número', neighborhood: 'Bairro', city: 'Cidade',
         uf: 'UF', photo: 'Foto', contact: 'WhatsApp', jersey_number: 'Uniforme',
         guardian_name: 'Nome do Responsável', guardian_doc: 'Documento do Responsável',
-        guardian_phone: 'WhatsApp do Responsável'
+        guardian_phone: 'WhatsApp do Responsável', modality: 'Modalidade'
       };
       const missingLabels = missingAthlete.map(f => fieldLabels[f] || f).join(', ');
       toast.error(`Por favor, preencha os campos: ${missingLabels}`);
@@ -330,6 +331,22 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
                       <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Modalidade Esportiva</label>
+                      <select 
+                        required 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
+                        value={athleteData.modality} 
+                        onChange={e => setAthleteData({...athleteData, modality: e.target.value})}
+                      >
+                        <option value="">Selecione a Modalidade</option>
+                        <option value="Futebol de Campo">Futebol de Campo</option>
+                        <option value="Futsal">Futsal</option>
+                        <option value="Volêi">Volêi</option>
+                        <option value="Corrida de Rua">Corrida de Rua</option>
+                        <option value="Outros">Outros</option>
+                      </select>
                     </div>
                   </div>
                 </div>

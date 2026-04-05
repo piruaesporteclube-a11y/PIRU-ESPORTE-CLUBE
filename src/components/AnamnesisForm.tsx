@@ -10,6 +10,49 @@ interface AnamnesisFormProps {
   onSave: () => void;
 }
 
+const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
+  const safeValue = value || '';
+  const isNo = safeValue === 'NÃO';
+  const isYes = safeValue !== '' && safeValue !== 'NÃO';
+  
+  return (
+    <div className="space-y-2">
+      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{label}</label>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange('SIM')}
+          className={cn(
+            "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+            isYes ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+          )}
+        >
+          SIM
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange('NÃO')}
+          className={cn(
+            "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
+            isNo ? "bg-red-500/20 text-red-500 border-red-500/50" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
+          )}
+        >
+          NÃO
+        </button>
+      </div>
+      {isYes && (
+        <input
+          type="text"
+          placeholder={placeholder}
+          className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase animate-in fade-in slide-in-from-top-1"
+          value={safeValue === 'SIM' ? '' : safeValue}
+          onChange={e => onChange(e.target.value.toUpperCase() || 'SIM')}
+        />
+      )}
+    </div>
+  );
+};
+
 export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
   const [formData, setFormData] = useState<Partial<Anamnesis>>({
     athlete_id: athlete.id,
@@ -48,49 +91,6 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
     { id: 'ANSIEDADE', label: 'Ansiedade' },
     { id: 'OUTROS', label: 'Outros' },
   ];
-
-  const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
-    const safeValue = value || '';
-    const isNo = safeValue === 'NÃO';
-    const isYes = safeValue !== '' && safeValue !== 'NÃO';
-    
-    return (
-      <div className="space-y-2">
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{label}</label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange('SIM')}
-            className={cn(
-              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
-              isYes ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
-            )}
-          >
-            SIM
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange('NÃO')}
-            className={cn(
-              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
-              isNo ? "bg-red-500/20 text-red-500 border-red-500/50" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
-            )}
-          >
-            NÃO
-          </button>
-        </div>
-        {isYes && (
-          <input
-            type="text"
-            placeholder={placeholder}
-            className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase animate-in fade-in slide-in-from-top-1"
-            value={safeValue === 'SIM' ? '' : safeValue}
-            onChange={e => onChange(e.target.value.toUpperCase() || 'SIM')}
-          />
-        )}
-      </div>
-    );
-  };
 
   const handlePathologyToggle = (pathId: string) => {
     const current = JSON.parse(formData.pathologies || '[]');

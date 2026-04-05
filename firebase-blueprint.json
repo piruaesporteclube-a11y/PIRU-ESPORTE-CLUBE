@@ -21,6 +21,7 @@
         "guardian_doc": { "type": "string" },
         "guardian_phone": { "type": "string" },
         "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
+        "modality": { "type": "string" },
         "confirmation": { "type": "string", "enum": ["Pendente", "Confirmado", "Recusado"] }
       },
       "required": ["id", "name", "birth_date", "doc", "status"]
@@ -124,6 +125,30 @@
         "athlete_id": { "type": "string" }
       },
       "required": ["id", "name", "doc", "role"]
+    },
+    "Sponsor": {
+      "title": "Sponsor",
+      "description": "Sponsor data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "logo": { "type": "string" },
+        "link": { "type": "string" }
+      },
+      "required": ["id", "name", "logo"]
+    },
+    "UniformModel": {
+      "title": "UniformModel",
+      "description": "Uniform model data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "name", "image"]
     }
   },
   "firestore": {
@@ -154,6 +179,14 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles"
+    },
+    "/sponsors/{sponsorId}": {
+      "schema": "Sponsor",
+      "description": "Sponsors collection"
+    },
+    "/uniform_models/{uniformId}": {
+      "schema": "UniformModel",
+      "description": "Uniform models collection"
     }
   }
 }

@@ -58,10 +58,11 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
   };
 
   const exportToCSV = () => {
-    const headers = ['Nome', 'Categoria', 'Status', 'Documento', 'Uniforme'];
+    const headers = ['Nome', 'Categoria', 'Modalidade', 'Status', 'Documento', 'Uniforme'];
     const rows = filteredAthletes.map(a => [
       a.name,
       getSubCategory(a.birth_date),
+      a.modality || '',
       a.status,
       a.doc,
       a.jersey_number || ''
@@ -186,6 +187,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
               <tr className="bg-black/50 border-b border-zinc-800">
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Modalidade</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">UNIFORME</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right no-print">Ações</th>
@@ -238,6 +240,11 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-bold rounded-md">
                       {getSubCategory(athlete.birth_date)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-zinc-300 text-xs font-bold uppercase">
+                      {athlete.modality || '--'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-zinc-300 font-mono">
@@ -331,6 +338,10 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                     <span className="text-theme-primary font-bold">{getSubCategory(athlete.birth_date)}</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">Modalidade:</span>
+                    <span className="text-white font-bold text-[10px] uppercase">{athlete.modality || '--'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">UNIFORME:</span>
                     <span className="text-theme-primary font-mono font-bold">#{athlete.jersey_number || '--'}</span>
                   </div>
@@ -384,6 +395,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
               <th className="border border-black p-2 text-left">Doc</th>
               <th className="border border-black p-2 text-left">Nasc.</th>
               <th className="border border-black p-2 text-left">Cat.</th>
+              <th className="border border-black p-2 text-left">Modalidade</th>
               <th className="border border-black p-2 text-left">UNIFORME</th>
               <th className="border border-black p-2 text-left">Status</th>
             </tr>
@@ -395,6 +407,7 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
                 <td className="border border-black p-2">{a.doc}</td>
                 <td className="border border-black p-2">{a.birth_date}</td>
                 <td className="border border-black p-2">{getSubCategory(a.birth_date)}</td>
+                <td className="border border-black p-2">{a.modality}</td>
                 <td className="border border-black p-2">#{a.jersey_number}</td>
                 <td className="border border-black p-2">{a.status}</td>
               </tr>

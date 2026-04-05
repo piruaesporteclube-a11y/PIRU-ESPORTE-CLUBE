@@ -22,7 +22,7 @@ import {
   writeBatch
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -572,6 +572,58 @@ export const api = {
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${type}_${person_id}`);
+    }
+  },
+
+  // Sponsors
+  getSponsors: async (): Promise<Sponsor[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "sponsors"));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Sponsor));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "sponsors");
+      return [];
+    }
+  },
+  saveSponsor: async (sponsor: Partial<Sponsor>) => {
+    if (!sponsor.id) sponsor.id = doc(collection(db, "sponsors")).id;
+    try {
+      await setDoc(doc(db, "sponsors", sponsor.id), sanitizeData(sponsor), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `sponsors/${sponsor.id}`);
+    }
+  },
+  deleteSponsor: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "sponsors", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `sponsors/${id}`);
+    }
+  },
+
+  // Uniform Models
+  getUniformModels: async (): Promise<UniformModel[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "uniform_models"));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UniformModel));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "uniform_models");
+      return [];
+    }
+  },
+  saveUniformModel: async (model: Partial<UniformModel>) => {
+    if (!model.id) model.id = doc(collection(db, "uniform_models")).id;
+    try {
+      await setDoc(doc(db, "uniform_models", model.id), sanitizeData(model), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `uniform_models/${model.id}`);
+    }
+  },
+  deleteUniformModel: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "uniform_models", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `uniform_models/${id}`);
     }
   },
 };

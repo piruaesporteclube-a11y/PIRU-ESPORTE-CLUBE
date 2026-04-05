@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Settings } from '../types';
-import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon } from 'lucide-react';
+import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+import SponsorManager from './SponsorManager';
+import UniformManager from './UniformManager';
 
 export default function SettingsComponent() {
   const { settings: globalSettings } = useTheme();
@@ -198,31 +200,77 @@ export default function SettingsComponent() {
             <h3 className="text-lg font-bold uppercase tracking-widest">Links de Registro</h3>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-white uppercase text-theme-primary">Link para Alunos</h4>
-            <p className="text-xs text-zinc-500 leading-relaxed">
-              Envie este link para que novos alunos possam realizar o próprio cadastro e preencher a ficha de anamnese.
-            </p>
-            <div className="flex items-center gap-2 p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
-              <input 
-                readOnly
-                type="text" 
-                className="flex-1 bg-transparent border-none text-xs text-zinc-300 font-mono focus:outline-none"
-                value={`${window.location.origin}/?register=true`}
-              />
-              <button 
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/?register=true`);
-                  toast.success('Link copiado!');
-                }}
-                className="p-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all"
-                title="Copiar Link"
-              >
-                <LinkIcon size={16} />
-              </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-white uppercase text-theme-primary">Link para Alunos</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Envie este link para que novos alunos possam realizar o próprio cadastro.
+              </p>
+              <div className="flex items-center gap-2 p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
+                <input 
+                  readOnly
+                  type="text" 
+                  className="flex-1 bg-transparent border-none text-xs text-zinc-300 font-mono focus:outline-none"
+                  value={`${window.location.origin}/?register=true`}
+                />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/?register=true`);
+                    toast.success('Link copiado!');
+                  }}
+                  className="p-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all"
+                  title="Copiar Link"
+                >
+                  <LinkIcon size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-white uppercase text-theme-primary">Link para Anamnese</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Envie este link para que alunos já cadastrados preencham a ficha de saúde.
+              </p>
+              <div className="flex items-center gap-2 p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
+                <input 
+                  readOnly
+                  type="text" 
+                  className="flex-1 bg-transparent border-none text-xs text-zinc-300 font-mono focus:outline-none"
+                  value={`${window.location.origin}/?anamnesis=true`}
+                />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/?anamnesis=true`);
+                    toast.success('Link copiado!');
+                  }}
+                  className="p-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all"
+                  title="Copiar Link"
+                >
+                  <LinkIcon size={16} />
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Sponsors Management */}
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
+            <Heart size={24} />
+            <h3 className="text-lg font-bold uppercase tracking-widest">Patrocinadores</h3>
+          </div>
+          <SponsorManager />
+        </div>
+
+        {/* Uniform Models Management */}
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
+            <Shirt size={24} />
+            <h3 className="text-lg font-bold uppercase tracking-widest">Modelos de Uniforme</h3>
+          </div>
+          <UniformManager />
         </div>
 
         {/* Data Management */}

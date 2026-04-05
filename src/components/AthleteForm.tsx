@@ -31,7 +31,8 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     guardian_name: '',
     guardian_doc: '',
     guardian_phone: '',
-    status: 'Ativo'
+    status: 'Ativo',
+    modality: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -64,7 +65,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     const requiredFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
       'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
-      'guardian_name', 'guardian_doc', 'guardian_phone'
+      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality'
     ];
     
     const missing = requiredFields.filter(f => !formData[f]);
@@ -223,6 +224,22 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                         </a>
                       )}
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Modalidade Esportiva</label>
+                    <select 
+                      required 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase" 
+                      value={formData.modality || ''} 
+                      onChange={e => setFormData({...formData, modality: e.target.value})}
+                    >
+                      <option value="">Selecione a Modalidade</option>
+                      <option value="Futebol de Campo">Futebol de Campo</option>
+                      <option value="Futsal">Futsal</option>
+                      <option value="Volêi">Volêi</option>
+                      <option value="Corrida de Rua">Corrida de Rua</option>
+                      <option value="Outros">Outros</option>
+                    </select>
                   </div>
                 </div>
               </div>

@@ -6,7 +6,7 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: athletes
-    // Fields: id, name, nickname, birth_date, doc, street, number, neighborhood, city, uf, jersey_number, photo, contact, guardian_name, guardian_doc, guardian_phone, status, confirmation
+    // Fields: id, name, nickname, birth_date, doc, street, number, neighborhood, city, uf, jersey_number, photo, contact, guardian_name, guardian_doc, guardian_phone, status, modality, confirmation
     //
     // Collection: professors
     // Fields: id, name, birth_date, doc, street, number, neighborhood, city, uf, photo
@@ -25,6 +25,12 @@ service cloud.firestore {
     //
     // Collection: users
     // Fields: id, name, doc, role, athlete_id
+    //
+    // Collection: sponsors
+    // Fields: id, name, logo, link
+    //
+    // Collection: uniform_models
+    // Fields: id, name, image, description
     //
     // ===============================================================
 
@@ -88,7 +94,8 @@ service cloud.firestore {
              data.photo is string && data.photo.size() < 1048576 &&
              data.birth_date is string &&
              data.guardian_name is string &&
-             data.guardian_phone is string;
+             data.guardian_phone is string &&
+             (!('modality' in data) || data.modality is string);
     }
 
     function isValidUser(data) {
@@ -103,6 +110,16 @@ service cloud.firestore {
              data.wake_up_difficulty is string &&
              (!('pathologies' in data) || data.pathologies is string) &&
              (!('pathologies_description' in data) || data.pathologies_description is string);
+    }
+
+    function isValidSponsor(data) {
+      return data.id is string && data.name is string && data.name.size() > 0 &&
+             data.logo is string && data.logo.size() > 0;
+    }
+
+    function isValidUniformModel(data) {
+      return data.id is string && data.name is string && data.name.size() > 0 &&
+             data.image is string && data.image.size() > 0;
     }
 
     // ===============================================================
@@ -154,6 +171,16 @@ service cloud.firestore {
     match /event_lineups/{lineupId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /sponsors/{sponsorId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSponsor(request.resource.data);
+    }
+
+    match /uniform_models/{uniformId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidUniformModel(request.resource.data);
     }
 
     match /test/connection {
