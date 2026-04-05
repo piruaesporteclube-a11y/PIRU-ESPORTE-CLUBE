@@ -12,6 +12,7 @@ import SettingsComponent from './components/Settings';
 import MembershipCard from './components/MembershipCard';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
+import PublicAnamnesis from './components/PublicAnamnesis';
 import { Athlete, User } from './types';
 import { api } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle } from 'lucide-react';
@@ -72,6 +73,10 @@ export default function App() {
     const isReg = params.get('register') === 'true';
     console.log('Initial isRegistering:', isReg);
     return isReg;
+  });
+  const [isAnamnesisOnly, setIsAnamnesisOnly] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('anamnesis') === 'true';
   });
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
@@ -336,10 +341,21 @@ export default function App() {
                         navigator.clipboard.writeText(link);
                         toast.success('Link de matrícula copiado!');
                       }}
-                      className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group col-span-2 text-center"
+                      className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
                     >
                       <LinkIcon size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
-                      <span className="text-[10px] sm:text-xs font-bold uppercase">Copiar Link de Matrícula</span>
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Link Matrícula</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = `${window.location.origin}/?anamnesis=true`;
+                        navigator.clipboard.writeText(link);
+                        toast.success('Link de anamnese copiado!');
+                      }}
+                      className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
+                    >
+                      <ClipboardCheck size={20} className="text-green-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Link Anamnese</span>
                     </button>
                   </div>
                 </div>
@@ -571,12 +587,10 @@ export default function App() {
     const checkRegisterParam = () => {
       const params = new URLSearchParams(window.location.search);
       const isReg = params.get('register') === 'true';
-      console.log('URL Change detected. isRegistering:', isReg);
-      if (isReg) {
-        setIsRegistering(true);
-      } else {
-        setIsRegistering(false);
-      }
+      const isAna = params.get('anamnesis') === 'true';
+      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna);
+      setIsRegistering(isReg);
+      setIsAnamnesisOnly(isAna);
     };
 
     checkRegisterParam();
@@ -615,6 +629,24 @@ export default function App() {
             setIsRegistering(false);
             window.history.replaceState({}, '', window.location.pathname);
             toast.success("Matrícula realizada com sucesso! Agora você pode entrar no portal usando seu CPF.");
+          }} 
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isAnamnesisOnly) {
+    return (
+      <ErrorBoundary>
+        <PublicAnamnesis 
+          onCancel={() => {
+            setIsAnamnesisOnly(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }} 
+          onComplete={() => {
+            setIsAnamnesisOnly(false);
+            window.history.replaceState({}, '', window.location.pathname);
+            toast.success("Ficha de saúde enviada com sucesso!");
           }} 
         />
       </ErrorBoundary>

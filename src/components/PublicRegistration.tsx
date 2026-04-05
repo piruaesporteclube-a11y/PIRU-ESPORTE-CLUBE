@@ -36,88 +36,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     status: 'Ativo'
   });
 
-  const [anamnesisData, setAnamnesisData] = useState<Partial<Anamnesis>>({
-    sleep_time: '',
-    wake_up_difficulty: '',
-    fractures: '',
-    medical_treatment: '',
-    controlled_medication: '',
-    other_exercises: '',
-    respiratory_problems: '',
-    cardiac_problems: '',
-    allergies: '',
-    hypertension: '',
-    hypotension: '',
-    epilepsy: '',
-    diabetes: '',
-    food_restriction: '',
-    medication_restriction: '',
-    pathologies: '[]',
-    pathologies_description: ''
-  });
-
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
   const [newUser, setNewUser] = useState<User | null>(null);
-
-  const pathologiesList = [
-    { id: 'TDAH', label: 'TDAH (Transtorno do Déficit de Atenção e Hiperatividade)' },
-    { id: 'TEA', label: 'TEA (Autismo)' },
-    { id: 'TOD', label: 'TOD (Transtorno Opositor e Desafiador)' },
-    { id: 'DI', label: 'DI (Déficit Intelectual)' },
-    { id: 'ANSIEDADE', label: 'Ansiedade' },
-    { id: 'OUTROS', label: 'Outros' },
-  ];
-
-  const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
-    const safeValue = value || '';
-    const isNo = safeValue === 'NÃO';
-    const isYes = safeValue !== '' && safeValue !== 'NÃO';
-    
-    return (
-      <div className="space-y-2">
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">{label}</label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange('SIM')}
-            className={cn(
-              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
-              isYes ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
-            )}
-          >
-            SIM
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange('NÃO')}
-            className={cn(
-              "flex-1 py-2 rounded-xl text-[10px] font-black transition-all border tracking-widest",
-              isNo ? "bg-red-500/20 text-red-500 border-red-500/50" : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600"
-            )}
-          >
-            NÃO
-          </button>
-        </div>
-        {isYes && (
-          <input
-            type="text"
-            placeholder={placeholder}
-            className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase animate-in fade-in slide-in-from-top-1"
-            value={safeValue === 'SIM' ? '' : safeValue}
-            onChange={e => onChange(e.target.value.toUpperCase() || 'SIM')}
-          />
-        )}
-      </div>
-    );
-  };
-
-  const handlePathologyToggle = (pathId: string) => {
-    const current = JSON.parse(anamnesisData.pathologies || '[]');
-    const next = current.includes(pathId) 
-      ? current.filter((id: string) => id !== pathId)
-      : [...current, pathId];
-    setAnamnesisData({ ...anamnesisData, pathologies: JSON.stringify(next) });
-  };
 
   const compressImage = (base64Str: string, maxWidth = 600, maxHeight = 800, quality = 0.6): Promise<string> => {
     return new Promise((resolve) => {
@@ -211,28 +131,10 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
       return;
     }
 
-    const requiredAnamnesisFields: (keyof Anamnesis)[] = [
-      'sleep_time', 'wake_up_difficulty', 'fractures', 'medical_treatment',
-      'controlled_medication', 'other_exercises', 'respiratory_problems',
-      'cardiac_problems', 'allergies', 'hypertension', 'hypotension',
-      'epilepsy', 'diabetes', 'food_restriction', 'medication_restriction'
-    ];
-
-    const missingAnamnesis = requiredAnamnesisFields.filter(f => !anamnesisData[f]);
-    
-    // Check if 'OUTROS' is selected but description is empty
-    const pathologies = JSON.parse(anamnesisData.pathologies || '[]');
-    const missingPathologyDesc = pathologies.includes('OUTROS') && !anamnesisData.pathologies_description;
-
-    if (missingAnamnesis.length > 0 || missingPathologyDesc) {
-      toast.error("Por favor, responda todas as perguntas da ficha de saúde e descreva as patologias se selecionou 'OUTROS'.");
-      return;
-    }
-
     setLoading(true);
     try {
-      // Register Athlete and Anamnesis in a single atomic batch
-      const { athlete, user } = await api.register(athleteData, anamnesisData);
+      // Register Athlete only
+      const { athlete, user } = await api.register(athleteData);
       setNewAthlete(athlete);
       setNewUser(user);
 
@@ -302,6 +204,9 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             <p className="text-zinc-400 uppercase">
               Seja bem-vindo ao Piruá E.C., <span className="text-theme-primary font-bold">{newAthlete?.name}</span>! 
             </p>
+            <p className="text-xs text-zinc-500 uppercase mt-2">
+              Agora você deve preencher sua <span className="text-green-500 font-bold">Ficha de Saúde</span> usando o link enviado pelo professor.
+            </p>
           </motion.div>
 
           <motion.div 
@@ -359,7 +264,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             )}
           </div>
           <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Portal de Matrícula</h1>
-          <p className="text-zinc-400 uppercase">Preencha a ficha de inscrição e anamnese abaixo para se tornar um atleta do Piruá Esporte Clube</p>
+          <p className="text-zinc-400 uppercase">Preencha a ficha de inscrição abaixo para se tornar um atleta do Piruá Esporte Clube</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -369,7 +274,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
               <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
                 <UserPlus size={20} />
               </div>
-              <h2 className="text-xl font-bold text-white uppercase tracking-widest">1. Ficha de Inscrição</h2>
+              <h2 className="text-xl font-bold text-white uppercase tracking-widest">Ficha de Inscrição</h2>
             </div>
             
             <div className="p-8 space-y-8">
@@ -476,119 +381,6 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Anamnesis Data */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-zinc-800 bg-zinc-900/80 flex items-center gap-3">
-              <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
-                <ClipboardCheck size={20} />
-              </div>
-              <h2 className="text-xl font-bold text-white uppercase tracking-widest">2. Ficha de Saúde (Anamnese)</h2>
-            </div>
-
-            <div className="p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em] flex items-center gap-2">
-                    <ClipboardList size={16} />
-                    Hábitos e Rotina
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Qual horário o atleta dorme?</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={anamnesisData.sleep_time || ''} onChange={e => setAnamnesisData({...anamnesisData, sleep_time: e.target.value.toUpperCase()})} />
-                    </div>
-                    <YesNoField 
-                      label="Tem dificuldade de acordar cedo?"
-                      value={anamnesisData.wake_up_difficulty || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, wake_up_difficulty: val})}
-                    />
-                    <YesNoField 
-                      label="Pratica outro exercício físico?"
-                      value={anamnesisData.other_exercises || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, other_exercises: val})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em] flex items-center gap-2">
-                    <AlertCircle size={16} />
-                    Histórico Médico
-                  </h3>
-                  <div className="space-y-4">
-                    <YesNoField 
-                      label="Já fraturou algum membro?"
-                      value={anamnesisData.fractures || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, fractures: val})}
-                    />
-                    <YesNoField 
-                      label="Faz algum tratamento médico?"
-                      value={anamnesisData.medical_treatment || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, medical_treatment: val})}
-                    />
-                    <YesNoField 
-                      label="Faz uso de medicação controlada?"
-                      value={anamnesisData.controlled_medication || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, controlled_medication: val})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-8 border-t border-zinc-800">
-                <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Condições de Saúde</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { label: 'Problemas Respiratórios', key: 'respiratory_problems' },
-                    { label: 'Problemas Cardíacos', key: 'cardiac_problems' },
-                    { label: 'Alergias', key: 'allergies' },
-                    { label: 'Hipertensão', key: 'hypertension' },
-                    { label: 'Hipotensão', key: 'hypotension' },
-                    { label: 'Epilepsia', key: 'epilepsy' },
-                    { label: 'Diabetes', key: 'diabetes' },
-                    { label: 'Restrição Alimentar', key: 'food_restriction' },
-                    { label: 'Restrição Medicamentos', key: 'medication_restriction' },
-                  ].map((item) => (
-                    <YesNoField 
-                      key={item.key}
-                      label={item.label}
-                      value={(anamnesisData as any)[item.key] || ''}
-                      onChange={val => setAnamnesisData({...anamnesisData, [item.key]: val})}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-8 border-t border-zinc-800">
-                <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em]">Patologias (Doenças)</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {pathologiesList.map((path) => {
-                    const isActive = JSON.parse(anamnesisData.pathologies || '[]').includes(path.id);
-                    return (
-                      <button key={path.id} type="button" onClick={() => handlePathologyToggle(path.id)} className={cn("flex items-center gap-3 p-4 rounded-2xl border transition-all text-left", isActive ? "bg-theme-primary/10 border-theme-primary text-theme-primary" : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600")}>
-                        <div className={cn("w-5 h-5 rounded flex items-center justify-center border", isActive ? "bg-theme-primary border-theme-primary" : "border-zinc-600")}>
-                          {isActive && <Save size={12} className="text-black" />}
-                        </div>
-                        <span className="text-xs font-bold uppercase">{path.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {JSON.parse(anamnesisData.pathologies || '[]').includes('OUTROS') && (
-                  <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Descreva outras patologias</label>
-                    <textarea 
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase min-h-[100px]"
-                      value={anamnesisData.pathologies_description || ''}
-                      onChange={e => setAnamnesisData({...anamnesisData, pathologies_description: e.target.value.toUpperCase()})}
-                      placeholder="DESCREVA AQUI..."
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </div>
