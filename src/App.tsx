@@ -15,6 +15,7 @@ import SettingsComponent from './components/Settings';
 import AthleteSearchSelect from './components/AthleteSearchSelect';
 import MembershipCard from './components/MembershipCard';
 import ContactList from './components/ContactList';
+import CategoryList from './components/CategoryList';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
@@ -243,6 +244,26 @@ export default function App() {
                       <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
                     </div>
                   </button>
+
+                  <button onClick={() => setActiveTab('events')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+                    <div className="p-3 lg:p-4 bg-purple-500/10 text-purple-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <Calendar size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Eventos</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Veja os próximos eventos e jogos</p>
+                    </div>
+                  </button>
+
+                  <button onClick={() => setActiveTab('trainings')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+                    <div className="p-3 lg:p-4 bg-theme-primary/10 text-theme-primary rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <ClipboardList size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Treinos</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Confira a agenda de treinamentos</p>
+                    </div>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
@@ -349,6 +370,10 @@ export default function App() {
                       <ClipboardCheck size={20} className="text-green-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
                       <span className="text-[10px] sm:text-xs font-bold uppercase">Fazer Chamada</span>
                     </button>
+                    <button onClick={() => setActiveTab('categories')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+                      <ClipboardList size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Categorias (SUB)</span>
+                    </button>
                     <button onClick={() => { setActiveTab('attendance'); localStorage.setItem('auto_scan', 'true'); }} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
                       <QrCode size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
                       <span className="text-[10px] sm:text-xs font-bold uppercase">Chamada QR</span>
@@ -371,6 +396,17 @@ export default function App() {
                     >
                       <LinkIcon size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
                       <span className="text-[10px] sm:text-xs font-bold uppercase">Link Matrícula</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = `${window.location.origin}/`;
+                        navigator.clipboard.writeText(link);
+                        toast.success('Link do Portal do Atleta copiado!');
+                      }}
+                      className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
+                    >
+                      <UserCheck size={20} className="text-blue-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+                      <span className="text-[10px] sm:text-xs font-bold uppercase">Link Portal</span>
                     </button>
                     <button 
                       onClick={() => {
@@ -521,6 +557,18 @@ export default function App() {
               )}
             </div>
           );
+        case 'categories':
+          return (
+            <CategoryList 
+              athletes={athletes} 
+              onAddAthlete={() => setIsAthleteFormOpen(true)}
+              onEditAthlete={(a) => { setEditingAthlete(a); setIsAthleteFormOpen(true); }}
+              onRefresh={async () => {
+                const data = await api.getAthletes();
+                setAthletes(data);
+              }}
+            />
+          );
         case 'my-data':
           return (
             <div className="max-w-4xl mx-auto">
@@ -626,7 +674,7 @@ export default function App() {
         case 'attendance':
           return <Attendance athletes={athletes} />;
         case 'events':
-          return <EventsManagement athletes={athletes} events={events} />;
+          return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':
           return <Birthdays athletes={athletes} />;
         case 'documents':
@@ -638,7 +686,7 @@ export default function App() {
         case 'contacts':
           return <ContactList athletes={athletes} />;
         case 'trainings':
-          return <TrainingManagement athletes={athletes} />;
+          return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'settings':
           return <SettingsComponent />;
         case 'my-data':

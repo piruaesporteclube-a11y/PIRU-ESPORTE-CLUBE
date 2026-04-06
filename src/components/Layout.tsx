@@ -33,9 +33,10 @@ type NavItem = {
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin'] },
   { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'] },
+  { id: 'categories', label: 'Categorias (SUB)', icon: ClipboardList, roles: ['admin'] },
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },
   { id: 'attendance', label: 'Chamada', icon: ClipboardCheck, roles: ['admin'] },
-  { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin'] },
+  { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student'] },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },
   { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'] },
   { id: 'documents', label: 'Documentos', icon: FileText, roles: ['admin'] },
@@ -43,13 +44,13 @@ const navItems: NavItem[] = [
   { id: 'membership-card', label: 'Carteirinha', icon: CreditCard, roles: ['admin'] },
   { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'] },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'] },
-  { id: 'trainings', label: 'Treinos', icon: Calendar, roles: ['admin'] },
+  { id: 'trainings', label: 'Treinos', icon: Calendar, roles: ['admin', 'student'] },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'] },
   
   // Student items
   { id: 'my-data', label: 'Meus Dados', icon: UserPlus, roles: ['student'] },
   { id: 'my-anamnesis', label: 'Minha Saúde', icon: ClipboardCheck, roles: ['student'] },
-  { id: 'my-card', label: 'Minha Carteirinha', icon: FileText, roles: ['student'] },
+  { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student'] },
 ];
 
 interface LayoutProps {

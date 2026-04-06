@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Training, Athlete } from '../types';
+import { Training, Athlete, categories } from '../types';
 import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -10,9 +10,11 @@ import Attendance from './Attendance';
 
 interface TrainingManagementProps {
   athletes?: Athlete[];
+  role?: 'admin' | 'student';
 }
 
-export default function TrainingManagement({ athletes: athletesProp }: TrainingManagementProps) {
+export default function TrainingManagement({ athletes: athletesProp, role = 'admin' }: TrainingManagementProps) {
+  const isAdmin = role === 'admin';
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [loading, setLoading] = useState(true);
@@ -125,26 +127,28 @@ export default function TrainingManagement({ athletes: athletesProp }: TrainingM
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight uppercase italic">Gestão de Treinos</h2>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Cadastre e gerencie os horários de treinos</p>
+          <h2 className="text-2xl font-black text-white tracking-tight uppercase italic">Treinos</h2>
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Confira a agenda de treinamentos</p>
         </div>
-        <button 
-          onClick={() => {
-            setFormData({
-              date: format(new Date(), 'yyyy-MM-dd'),
-              start_time: format(new Date(), 'HH:mm'),
-              end_time: format(new Date(), 'HH:mm'),
-              location: '',
-              modality: 'Futebol de Campo',
-              category: 'Todos'
-            });
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl uppercase tracking-tighter hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
-        >
-          <Plus size={20} />
-          Novo Treino
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={() => {
+              setFormData({
+                date: format(new Date(), 'yyyy-MM-dd'),
+                start_time: format(new Date(), 'HH:mm'),
+                end_time: format(new Date(), 'HH:mm'),
+                location: '',
+                modality: 'Futebol de Campo',
+                category: 'Todos'
+              });
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl uppercase tracking-tighter hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
+          >
+            <Plus size={20} />
+            Novo Treino
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -165,14 +169,16 @@ export default function TrainingManagement({ athletes: athletesProp }: TrainingM
                   <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
                     <Trophy size={24} />
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => openEdit(training)} className="p-2 text-zinc-500 hover:text-white transition-colors">
-                      <Edit2 size={18} />
-                    </button>
-                    <button onClick={() => handleDelete(training.id)} className="p-2 text-zinc-500 hover:text-red-500 transition-colors">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      <button onClick={() => openEdit(training)} className="p-2 text-zinc-500 hover:text-white transition-colors">
+                        <Edit2 size={18} />
+                      </button>
+                      <button onClick={() => handleDelete(training.id)} className="p-2 text-zinc-500 hover:text-red-500 transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -195,13 +201,15 @@ export default function TrainingManagement({ athletes: athletesProp }: TrainingM
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setActiveAttendanceTraining(training)}
-                  className="w-full py-4 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2"
-                >
-                  <CheckCircle2 size={18} />
-                  Fazer Chamada
-                </button>
+                {isAdmin && (
+                  <button 
+                    onClick={() => setActiveAttendanceTraining(training)}
+                    className="w-full py-4 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={18} />
+                    Fazer Chamada
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -298,13 +306,7 @@ export default function TrainingManagement({ athletes: athletesProp }: TrainingM
                       onChange={e => setFormData({...formData, category: e.target.value})}
                     >
                       <option value="Todos">Todos</option>
-                      <option value="SUB 7">SUB 7</option>
-                      <option value="SUB 9">SUB 9</option>
-                      <option value="SUB 11">SUB 11</option>
-                      <option value="SUB 13">SUB 13</option>
-                      <option value="SUB 15">SUB 15</option>
-                      <option value="SUB 17">SUB 17</option>
-                      <option value="SUB ADULTO">SUB ADULTO</option>
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
