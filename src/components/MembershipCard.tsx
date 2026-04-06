@@ -102,6 +102,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             clonedCard.style.height = '284px';
             clonedCard.style.overflow = 'hidden';
             clonedCard.style.borderRadius = '20px';
+            clonedCard.style.opacity = '1';
+            
+            // Ensure all children are visible
+            const children = clonedCard.querySelectorAll('*');
+            children.forEach((child: any) => {
+              child.style.visibility = 'visible';
+              child.style.opacity = '1';
+            });
           }
         }
       });
@@ -236,11 +244,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="h-14 px-6 flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl">
-                {crestDataUrl ? (
+                {crestDataUrl || settings?.schoolCrest ? (
                   <img 
-                    src={crestDataUrl} 
+                    src={crestDataUrl || settings?.schoolCrest} 
                     className="w-full h-full object-contain" 
                     crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-lg">P</div>

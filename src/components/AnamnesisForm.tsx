@@ -4,6 +4,8 @@ import { Athlete, Anamnesis } from '../types';
 import { Save, ClipboardList, AlertCircle, X } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AnamnesisFormProps {
   athlete: Athlete;
@@ -55,6 +57,7 @@ const YesNoField = ({ label, value, onChange, placeholder = "Especifique se nece
 };
 
 export default function AnamnesisForm({ athlete, onSave, standalone }: AnamnesisFormProps) {
+  const { settings } = useTheme();
   const [formData, setFormData] = useState<Partial<Anamnesis>>({
     athlete_id: athlete.id,
     sleep_time: '',
@@ -301,9 +304,24 @@ export default function AnamnesisForm({ athlete, onSave, standalone }: Anamnesis
       </form>
 
       {/* Print Version */}
-      <div className="hidden print-only bg-white text-black p-8">
-        <h1 className="text-2xl font-black uppercase mb-2">Piruá Esporte Clube</h1>
-        <h2 className="text-xl font-bold mb-6 border-b-2 border-black pb-2">Ficha de Anamnese - Atleta: {athlete.name}</h2>
+      <div className="hidden print-only bg-white text-black p-8 min-h-screen">
+        <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+          <div className="flex items-center gap-4">
+            {settings?.schoolCrest && (
+              <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
+            )}
+            <div className="text-left">
+              <h1 className="text-2xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
+              <h2 className="text-sm font-bold uppercase text-zinc-600">Ficha de Anamnese / Avaliação de Saúde</h2>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-black uppercase text-zinc-500">Data da Avaliação:</p>
+            <p className="text-sm font-bold">{format(new Date(), 'dd/MM/yyyy')}</p>
+          </div>
+        </div>
+        
+        <h2 className="text-xl font-bold mb-6 border-b border-black pb-2 uppercase tracking-tighter italic">Atleta: {athlete.name}</h2>
         
         <div className="space-y-4 text-sm">
           <p><strong>Horário que dorme:</strong> {formData.sleep_time}</p>
