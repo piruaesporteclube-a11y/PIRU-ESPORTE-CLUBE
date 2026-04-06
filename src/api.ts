@@ -591,13 +591,17 @@ export const api = {
   },
 
   // Lineups (using a subcollection or separate collection)
-  getLineup: async (event_id: string): Promise<{ athletes: Athlete[], staff: Professor[] }> => {
-    const cacheKey = `lineup_${event_id}`;
+  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[] }> => {
+    const cacheKey = `lineup_${event_id}_${lineup_index}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
-      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+      const q = query(
+        collection(db, "event_lineups"), 
+        where("event_id", "==", event_id),
+        where("lineup_index", "==", lineup_index)
+      );
       const querySnapshot = await getDocsWithCacheFallback(q);
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
@@ -629,20 +633,25 @@ export const api = {
       return { athletes: [], staff: [] };
     }
   },
-  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = []) => {
+  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0) => {
     try {
       const batch = writeBatch(db);
       
-      // Delete existing
-      const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+      // Delete existing for this specific lineup
+      const q = query(
+        collection(db, "event_lineups"), 
+        where("event_id", "==", event_id),
+        where("lineup_index", "==", lineup_index)
+      );
       const querySnapshot = await getDocs(q);
       querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
       
       // Add athletes
       athlete_ids.forEach(aid => {
-        const id = `${event_id}_athlete_${aid}`;
+        const id = `${event_id}_${lineup_index}_athlete_${aid}`;
         batch.set(doc(db, "event_lineups", id), {
           event_id,
+          lineup_index,
           person_id: aid,
           type: 'athlete',
           confirmation: "Pendente"
@@ -651,9 +660,10 @@ export const api = {
 
       // Add staff
       staff_ids.forEach(sid => {
-        const id = `${event_id}_staff_${sid}`;
+        const id = `${event_id}_${lineup_index}_staff_${sid}`;
         batch.set(doc(db, "event_lineups", id), {
           event_id,
+          lineup_index,
           person_id: sid,
           type: 'staff',
           confirmation: "Pendente"
@@ -661,26 +671,32 @@ export const api = {
       });
       
       await batch.commit();
+      delete cache[`lineup_${event_id}_${lineup_index}`];
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
   },
-  confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string) => {
+  confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string, lineup_index: number = 0) => {
     try {
-      const id = `${event_id}_${type}_${person_id}`;
+      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
       // Check if doc exists with new ID format, fallback to old if needed for athletes
       const docRef = doc(db, "event_lineups", id);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
         await updateDoc(docRef, { confirmation });
-      } else if (type === 'athlete') {
-        // Fallback for old athlete ID format
+      } else if (type === 'athlete' && lineup_index === 0) {
+        // Fallback for old athlete ID format (only for index 0)
         const oldId = `${event_id}_${person_id}`;
-        await updateDoc(doc(db, "event_lineups", oldId), { confirmation });
+        const oldDocRef = doc(db, "event_lineups", oldId);
+        const oldDocSnap = await getDoc(oldDocRef);
+        if (oldDocSnap.exists()) {
+          await updateDoc(oldDocRef, { confirmation });
+        }
       }
+      delete cache[`lineup_${event_id}_${lineup_index}`];
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${type}_${person_id}`);
+      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
   },
 

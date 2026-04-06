@@ -21,6 +21,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [activeLineupIndex, setActiveLineupIndex] = useState(0);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [lineupAthletes, setLineupAthletes] = useState<Athlete[]>([]);
@@ -95,10 +96,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
-  const handleOpenLineup = async (event: Event) => {
+  const handleOpenLineup = async (event: Event, index: number = 0) => {
     try {
       setSelectedEvent(event);
-      const { athletes: lineup, staff } = await api.getLineup(event.id);
+      setActiveLineupIndex(index);
+      const { athletes: lineup, staff } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
       setLineupStaff(staff);
       setSelectedAthletes(lineup.map(a => a.id));
@@ -112,8 +114,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const handleConfirmAthlete = async (athleteId: string, type: 'athlete' | 'staff', status: string) => {
     if (selectedEvent) {
       try {
-        await api.confirmLineup(selectedEvent.id, athleteId, type, status);
-        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
+        await api.confirmLineup(selectedEvent.id, athleteId, type, status, activeLineupIndex);
+        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
         toast.success("Confirmação registrada!");
@@ -146,8 +148,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const handleSaveLineup = async () => {
     if (selectedEvent) {
       try {
-        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff);
-        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id);
+        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex);
+        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
         toast.success('Escalação salva com sucesso!');
@@ -296,9 +298,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-black border border-theme-primary/20 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800 no-print">
-              <div>
+              <div className="space-y-2">
                 <h2 className="text-xl font-bold text-white uppercase">Escalação: {selectedEvent.name}</h2>
-                {isAdmin && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22)</p>}
+                <div className="flex flex-wrap gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleOpenLineup(selectedEvent, i)}
+                      className={cn(
+                        "px-3 py-1 rounded-lg text-[10px] font-black transition-all border",
+                        activeLineupIndex === i 
+                          ? "bg-theme-primary border-theme-primary text-black" 
+                          : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                      )}
+                    >
+                      LISTA {i + 1}
+                    </button>
+                  ))}
+                </div>
+                {isAdmin && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
@@ -544,7 +562,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   )}
                   <div className="text-left">
                     <h1 className="text-xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
-                    <h2 className="text-sm font-bold uppercase text-zinc-600">Folha de Escalação Oficial</h2>
+                    <h2 className="text-sm font-bold uppercase text-zinc-600">Folha de Escalação Oficial - LISTA {activeLineupIndex + 1}</h2>
                   </div>
                 </div>
                 <div className="text-right">

@@ -126,6 +126,14 @@ export type UniformModel = {
   description?: string;
 };
 
+export type EventLineup = {
+  event_id: string;
+  lineup_index: number;
+  person_id: string;
+  type: 'athlete' | 'staff';
+  confirmation: "Pendente" | "Confirmado" | "Recusado";
+};
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();
