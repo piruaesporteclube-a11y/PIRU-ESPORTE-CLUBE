@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
@@ -30,7 +30,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       }
 
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      img.setAttribute('crossOrigin', 'anonymous');
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
@@ -39,7 +39,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0);
-            callback(canvas.toDataURL('image/png'));
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
           }
         } catch (e) {
           console.warn('Failed to convert image to data URL', e);
@@ -47,10 +50,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         }
       };
       img.onerror = () => {
-        console.warn('Failed to load image with CORS, falling back to direct URL');
+        console.warn('Failed to load image with CORS:', url);
         callback(url);
       };
-      img.src = url;
+      // Add a cache-busting parameter to avoid cached images without CORS headers
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
     };
 
     convertToDataUrl(athlete.photo || '', setPhotoDataUrl);
@@ -80,35 +85,50 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         });
       }));
 
+      // Small delay to ensure everything is settled
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const canvas = await html2canvas(cardRef.current, {
-        scale: 4, // Higher scale for better quality
+        scale: 2, // Use a more conservative scale for better compatibility
         useCORS: true,
-        allowTaint: false,
+        allowTaint: false, // Must be false to allow toDataURL
         backgroundColor: '#050505',
         logging: false,
         width: 450,
         height: 284,
-        windowWidth: 1200,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
           if (clonedCard) {
+            clonedCard.style.transform = 'none';
+            clonedCard.style.scale = '1';
+            clonedCard.style.position = 'relative';
+            clonedCard.style.margin = '0';
+            clonedCard.style.padding = '0';
+            clonedCard.style.left = '0';
+            clonedCard.style.top = '0';
             clonedCard.style.visibility = 'visible';
             clonedCard.style.display = 'flex';
-            clonedCard.style.boxShadow = 'none';
-            clonedCard.style.transform = 'none';
-            clonedCard.style.margin = '0';
-            clonedCard.style.position = 'relative';
+            clonedCard.style.opacity = '1';
             clonedCard.style.width = '450px';
             clonedCard.style.height = '284px';
-            clonedCard.style.overflow = 'hidden';
+            clonedCard.style.minWidth = '450px';
+            clonedCard.style.minHeight = '284px';
             clonedCard.style.borderRadius = '20px';
-            clonedCard.style.opacity = '1';
+            clonedCard.style.overflow = 'hidden';
+            clonedCard.style.backgroundColor = '#050505';
+            clonedCard.style.color = 'white';
+            clonedCard.style.boxShadow = 'none';
+            clonedCard.style.border = 'none';
             
-            // Ensure all children are visible
-            const children = clonedCard.querySelectorAll('*');
-            children.forEach((child: any) => {
-              child.style.visibility = 'visible';
-              child.style.opacity = '1';
+            // Ensure all images are visible and have crossOrigin
+            const images = clonedCard.querySelectorAll('img');
+            images.forEach(img => {
+              img.style.visibility = 'visible';
+              img.style.opacity = '1';
+              // If it's a data URL, it should be fine. If not, try to set crossOrigin
+              if (!img.src.startsWith('data:')) {
+                img.setAttribute('crossOrigin', 'anonymous');
+              }
             });
           }
         }
@@ -154,11 +174,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         </div>
       </div>
 
-      <div className="flex justify-center p-2 sm:p-4 print:p-0 card-print-container overflow-x-auto">
+      <div className="flex justify-center p-2 sm:p-8 print:p-0 card-print-container overflow-x-auto bg-zinc-950/50 rounded-[2.5rem] border border-zinc-800/50">
         {/* The Card Layout - Standard CR80 Size (85.6mm x 54mm) */}
         <div 
           ref={cardRef}
-          className="w-[450px] h-[284px] min-w-[450px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-2xl flex flex-col relative card border border-[rgba(39,39,42,0.5)] print:border-[#d4d4d8] transform scale-[0.8] sm:scale-100 origin-center box-border"
+          className="w-[450px] h-[284px] min-w-[450px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -243,10 +263,16 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           {/* Header */}
           <div className="h-14 px-6 flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl">
-                {crestDataUrl || settings?.schoolCrest ? (
+            <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
+                {crestDataUrl ? (
                   <img 
-                    src={crestDataUrl || settings?.schoolCrest} 
+                    src={crestDataUrl} 
+                    className="w-full h-full object-contain" 
+                    crossOrigin="anonymous"
+                  />
+                ) : settings?.schoolCrest ? (
+                  <img 
+                    src={settings.schoolCrest} 
                     className="w-full h-full object-contain" 
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
@@ -365,7 +391,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
               <div className="bg-white p-1 rounded-xl shadow-2xl flex items-center justify-center">
-                <QRCodeSVG 
+                <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
                   size={64} 
                   level="H"
