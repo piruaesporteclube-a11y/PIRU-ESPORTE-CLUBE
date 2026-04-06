@@ -5,17 +5,25 @@ import { BarChart3, PieChart, Users, UserMinus, UserCheck, Calendar, Filter, Pri
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 
-export default function Reports() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+interface ReportsProps {
+  athletes?: Athlete[];
+}
+
+export default function Reports({ athletes: athletesProp }: ReportsProps) {
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const { settings } = useTheme();
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [filterSub, setFilterSub] = useState('Todos');
 
   useEffect(() => {
-    api.getAthletes().then(setAthletes);
+    if (athletesProp) {
+      setAthletes(athletesProp);
+    } else {
+      api.getAthletes().then(setAthletes);
+    }
     api.getAttendance().then(setAttendance);
-  }, []);
+  }, [athletesProp]);
 
   const activeCount = athletes.filter(a => a.status === 'Ativo').length;
   const inactiveCount = athletes.filter(a => a.status === 'Inativo').length;

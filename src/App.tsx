@@ -12,12 +12,14 @@ import SponsorManager from './components/SponsorManager';
 import ModalityList from './components/ModalityList';
 import TrainingManagement from './components/TrainingManagement';
 import SettingsComponent from './components/Settings';
+import AthleteSearchSelect from './components/AthleteSearchSelect';
 import MembershipCard from './components/MembershipCard';
+import ContactList from './components/ContactList';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
-import { Athlete, User } from './types';
-import { api } from './api';
+import { Athlete, User, Professor, Event } from './types';
+import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
@@ -68,7 +70,14 @@ export default function App() {
     if (saved) return JSON.parse(saved);
     return null;
   });
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('pirua_user');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.role === 'student' ? 'my-card' : 'dashboard';
+    }
+    return 'dashboard';
+  });
   const { settings } = useTheme();
   const [isAthleteFormOpen, setIsAthleteFormOpen] = useState(false);
   const [isRegistering, setIsRegistering] = useState(() => {
@@ -85,25 +94,46 @@ export default function App() {
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [stats, setStats] = useState({ athletes: 0, active: 0, events: 0 });
   const [myAthleteData, setMyAthleteData] = useState<Athlete | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Real-time listener for athletes to ensure the dashboard and lists are always up to date
-    // This is useful for both admins (stats/list) and students (my-data)
-    const unsubscribe = api.subscribeToAthletes((data) => {
-      setAthletes(data);
-      if (user?.role === 'admin') {
+    // Optimized data fetching to save Firestore quota
+    if (!user?.id) return;
+
+    if (user.role === 'admin') {
+      // Use getAthletes which has a 15-minute cache to significantly reduce read operations
+      api.getAthletes().then(data => {
+        setAthletes(data);
         setStats(prev => ({
           ...prev,
           athletes: data.length,
           active: data.filter(a => a.status === 'Ativo').length
         }));
-      }
-    });
-    return () => unsubscribe();
-  }, [user?.id]); // Re-subscribe if user changes
+      }).catch(err => {
+        console.error("Erro ao carregar atletas para o dashboard:", err);
+      });
+
+      // Fetch professors and events at top level to share between components
+      api.getProfessors().then(setProfessors).catch(err => console.error("Erro ao carregar professores:", err));
+      api.getEvents().then(data => {
+        setEvents(data);
+        setStats(prev => ({ ...prev, events: data.length }));
+      }).catch(err => console.error("Erro ao carregar eventos:", err));
+    } else if (user.role === 'student' && user.athlete_id) {
+      // Students only subscribe to their own document, which is very efficient
+      const unsubscribe = api.subscribeToAthlete(user.athlete_id, (data) => {
+        if (data) {
+          setMyAthleteData(data);
+          setAthletes([data]);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user?.id, user?.role, user?.athlete_id]); // Re-subscribe if user changes
 
   useEffect(() => {
     if (user?.role === 'student' && user.athlete_id && athletes.length > 0) {
@@ -111,14 +141,6 @@ export default function App() {
       if (me) setMyAthleteData(me);
     }
   }, [user, athletes]);
-
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      api.getEvents().then(events => {
-        setStats(prev => ({ ...prev, events: events.length }));
-      });
-    }
-  }, [user]);
 
   useEffect(() => {
     // Sync user state with Firebase Auth
@@ -164,11 +186,12 @@ export default function App() {
   const handleLogin = (auth: any) => {
     setUser(auth.user);
     localStorage.setItem('pirua_user', JSON.stringify(auth.user));
-    setActiveTab('dashboard');
+    setActiveTab(auth.user.role === 'student' ? 'my-card' : 'dashboard');
   };
 
   const handleLogout = async () => {
     await api.logout();
+    clearCache();
     // Instead of null, we keep the default admin or just clear storage
     localStorage.removeItem('pirua_user');
     window.location.reload(); // Reload to reset state to default admin
@@ -424,6 +447,15 @@ export default function App() {
                 athletes={athletes}
                 onAdd={() => setIsAthleteFormOpen(true)} 
                 onEdit={(a) => { setEditingAthlete(a); setIsAthleteFormOpen(true); }} 
+                onRefresh={async () => {
+                  const data = await api.getAthletes();
+                  setAthletes(data);
+                  setStats(prev => ({
+                    ...prev,
+                    athletes: data.length,
+                    active: data.filter(a => a.status === 'Ativo').length
+                  }));
+                }}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
                 <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
@@ -432,21 +464,11 @@ export default function App() {
                     Ficha de Anamnese
                   </h3>
                   <p className="text-sm text-zinc-400 mb-4">Selecione um atleta para visualizar ou editar sua ficha de saúde.</p>
-                  <div className="flex gap-2">
-                    <select 
-                      className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none"
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        api.getAthletes().then(list => {
-                          const a = list.find(item => item.id === id);
-                          if (a) setSelectedAthleteForAnamnesis(a);
-                        });
-                      }}
-                    >
-                      <option value="">Selecionar Atleta</option>
-                      {stats.athletes > 0 && <AthleteOptions />}
-                    </select>
-                  </div>
+                  <AthleteSearchSelect 
+                    onSelect={(a) => setSelectedAthleteForAnamnesis(a)}
+                    selectedAthleteId={selectedAthleteForAnamnesis?.id}
+                    placeholder="SELECIONAR ATLETA..."
+                  />
                 </div>
                 <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
                   <h3 className="text-lg font-bold text-white mb-4 uppercase flex items-center gap-2">
@@ -454,21 +476,11 @@ export default function App() {
                     Carteirinha
                   </h3>
                   <p className="text-sm text-zinc-400 mb-4">Gere a carteirinha oficial do atleta com QR Code para chamada.</p>
-                  <div className="flex gap-2">
-                    <select 
-                      className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none"
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        api.getAthletes().then(list => {
-                          const a = list.find(item => item.id === id);
-                          if (a) setSelectedAthleteForCard(a);
-                        });
-                      }}
-                    >
-                      <option value="">Selecionar Atleta</option>
-                      {stats.athletes > 0 && <AthleteOptions />}
-                    </select>
-                  </div>
+                  <AthleteSearchSelect 
+                    onSelect={(a) => setSelectedAthleteForCard(a)}
+                    selectedAthleteId={selectedAthleteForCard?.id}
+                    placeholder="SELECIONAR ATLETA..."
+                  />
                 </div>
               </div>
 
@@ -515,9 +527,9 @@ export default function App() {
               {myAthleteData ? (
                 <AthleteForm 
                   athlete={myAthleteData} 
-                  onClose={() => setActiveTab('dashboard')} 
+                  onClose={() => setActiveTab('my-card')} 
                   onSave={() => {
-                    setActiveTab('dashboard');
+                    setActiveTab('my-card');
                   }} 
                 />
               ) : (
@@ -531,7 +543,7 @@ export default function App() {
           return (
             <div className="max-w-4xl mx-auto">
               {myAthleteData ? (
-                <AnamnesisForm athlete={myAthleteData} onSave={() => setActiveTab('dashboard')} />
+                <AnamnesisForm athlete={myAthleteData} onSave={() => setActiveTab('my-card')} />
               ) : (
                 <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
                   <p className="text-zinc-500">Carregando seus dados...</p>
@@ -564,20 +576,10 @@ export default function App() {
                     <p className="text-sm text-zinc-500 uppercase tracking-widest">Selecione um atleta para preencher ou visualizar a ficha</p>
                   </div>
                 </div>
-                <select 
-                  className="w-full px-6 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none text-lg uppercase font-bold"
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    api.getAthletes().then(list => {
-                      const a = list.find(item => item.id === id);
-                      if (a) setSelectedAthleteForAnamnesis(a);
-                    });
-                  }}
-                  value={selectedAthleteForAnamnesis?.id || ''}
-                >
-                  <option value="">SELECIONAR ATLETA...</option>
-                  {stats.athletes > 0 && <AthleteOptions />}
-                </select>
+                <AthleteSearchSelect 
+                  onSelect={(a) => setSelectedAthleteForAnamnesis(a)}
+                  selectedAthleteId={selectedAthleteForAnamnesis?.id}
+                />
               </div>
               {selectedAthleteForAnamnesis && (
                 <div className="animate-in fade-in slide-in-from-top-4">
@@ -605,20 +607,10 @@ export default function App() {
                     <p className="text-sm text-zinc-500 uppercase tracking-widest">Selecione um atleta para gerar a carteirinha oficial</p>
                   </div>
                 </div>
-                <select 
-                  className="w-full px-6 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none text-lg uppercase font-bold"
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    api.getAthletes().then(list => {
-                      const a = list.find(item => item.id === id);
-                      if (a) setSelectedAthleteForCard(a);
-                    });
-                  }}
-                  value={selectedAthleteForCard?.id || ''}
-                >
-                  <option value="">SELECIONAR ATLETA...</option>
-                  {stats.athletes > 0 && <AthleteOptions />}
-                </select>
+                <AthleteSearchSelect 
+                  onSelect={(a) => setSelectedAthleteForCard(a)}
+                  selectedAthleteId={selectedAthleteForCard?.id}
+                />
               </div>
               {selectedAthleteForCard && (
                 <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4">
@@ -630,23 +622,52 @@ export default function App() {
             </div>
           );
         case 'professors':
-          return <ProfessorManagement />;
+          return <ProfessorManagement professors={professors} />;
         case 'attendance':
           return <Attendance athletes={athletes} />;
         case 'events':
-          return <EventsManagement />;
+          return <EventsManagement athletes={athletes} events={events} />;
         case 'birthdays':
-          return <Birthdays />;
+          return <Birthdays athletes={athletes} />;
         case 'documents':
           return <Documents />;
         case 'sponsors':
           return <SponsorManager />;
         case 'modalities':
           return <ModalityList />;
+        case 'contacts':
+          return <ContactList athletes={athletes} />;
         case 'trainings':
-          return <TrainingManagement />;
+          return <TrainingManagement athletes={athletes} />;
         case 'settings':
           return <SettingsComponent />;
+        case 'my-data':
+          return athletes[0] ? (
+            <div className="max-w-4xl mx-auto">
+              <AthleteForm 
+                athlete={athletes[0]} 
+                standalone={true}
+                onClose={() => setActiveTab('dashboard')} 
+                onSave={() => toast.success("Dados atualizados com sucesso!")} 
+              />
+            </div>
+          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
+        case 'my-anamnesis':
+          return athletes[0] ? (
+            <div className="max-w-4xl mx-auto">
+              <AnamnesisForm 
+                athlete={athletes[0]} 
+                standalone={true}
+                onSave={() => toast.success("Ficha de saúde atualizada!")} 
+              />
+            </div>
+          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
+        case 'my-card':
+          return athletes[0] ? (
+            <div className="max-w-2xl mx-auto">
+              <MembershipCard athlete={athletes[0]} />
+            </div>
+          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
         default:
           return <div>Em desenvolvimento...</div>;
       }
@@ -773,15 +794,5 @@ export default function App() {
         <Toaster position="top-right" richColors />
       </Layout>
     </ErrorBoundary>
-  );
-}
-
-function AthleteOptions() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  useEffect(() => { api.getAthletes().then(setAthletes); }, []);
-  return (
-    <>
-      {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-    </>
   );
 }

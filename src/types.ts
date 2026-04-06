@@ -127,14 +127,31 @@ export type UniformModel = {
 };
 
 export const getSubCategory = (birthDate: string) => {
-  const age = differenceInYears(new Date(), parseISO(birthDate));
+  const birthYear = parseISO(birthDate).getFullYear();
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - birthYear;
+  
+  if (age <= 6) return "SUB 6";
   if (age <= 7) return "SUB 7";
+  if (age <= 8) return "SUB 8";
   if (age <= 9) return "SUB 9";
+  if (age <= 10) return "SUB 10";
   if (age <= 11) return "SUB 11";
+  if (age <= 12) return "SUB 12";
   if (age <= 13) return "SUB 13";
+  if (age <= 14) return "SUB 14";
   if (age <= 15) return "SUB 15";
+  if (age <= 16) return "SUB 16";
   if (age <= 17) return "SUB 17";
-  return "SUB ADULTO";
+  if (age <= 18) return "SUB 18";
+  if (age <= 19) return "SUB 19";
+  if (age <= 20) return "SUB 20";
+  return "ADULTO";
 };
 
-export const categories = ["SUB 7", "SUB 9", "SUB 11", "SUB 13", "SUB 15", "SUB 17", "SUB ADULTO"];
+export const categories = [
+  "SUB 6", "SUB 7", "SUB 8", "SUB 9", "SUB 10", 
+  "SUB 11", "SUB 12", "SUB 13", "SUB 14", "SUB 15", 
+  "SUB 16", "SUB 17", "SUB 18", "SUB 19", "SUB 20", 
+  "ADULTO"
+];

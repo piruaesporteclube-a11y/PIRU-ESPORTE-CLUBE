@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search } from 'lucide-react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
-export default function EventsManagement() {
+interface EventsManagementProps {
+  athletes?: Athlete[];
+  events?: Event[];
+}
+
+export default function EventsManagement({ athletes: athletesProp, events: eventsProp }: EventsManagementProps) {
   const { settings } = useTheme();
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>(eventsProp || []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLineupOpen, setIsLineupOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [lineupAthletes, setLineupAthletes] = useState<Athlete[]>([]);
   const [lineupStaff, setLineupStaff] = useState<Professor[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [filterSub, setFilterSub] = useState('Todos');
+  const [athleteSearch, setAthleteSearch] = useState('');
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -36,14 +42,24 @@ export default function EventsManagement() {
   });
 
   useEffect(() => {
-    loadEvents();
-    api.getAthletes().then(setAthletes);
+    if (athletesProp) {
+      setAthletes(athletesProp);
+    } else {
+      api.getAthletes().then(setAthletes);
+    }
+    
+    if (eventsProp) {
+      setEvents(eventsProp.sort((a, b) => b.start_date.localeCompare(a.start_date)));
+    } else {
+      loadEvents();
+    }
+    
     api.getProfessors().then(setProfessors);
-  }, []);
+  }, [athletesProp, eventsProp]);
 
   const loadEvents = async () => {
     const data = await api.getEvents();
-    setEvents(data);
+    setEvents(data.sort((a, b) => b.start_date.localeCompare(a.start_date)));
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -139,7 +155,13 @@ export default function EventsManagement() {
     }
   };
 
-  const filteredAthletes = athletes.filter(a => (filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub) && a.status === 'Ativo');
+  const filteredAthletes = athletes.filter(a => 
+    (filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub) && 
+    a.status === 'Ativo' &&
+    (a.name.toLowerCase().includes(athleteSearch.toLowerCase()) || 
+     (a.nickname && a.nickname.toLowerCase().includes(athleteSearch.toLowerCase())) ||
+     a.doc.includes(athleteSearch))
+  );
 
   return (
     <div className="space-y-6">
@@ -286,16 +308,28 @@ export default function EventsManagement() {
                 {/* Selection Area */}
                 <div className="lg:col-span-2 space-y-8">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Atletas ({selectedAthletes.length}/22)</h3>
-                      <select 
-                        className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none"
-                        value={filterSub}
-                        onChange={(e) => setFilterSub(e.target.value)}
-                      >
-                        <option value="Todos">Todas as Categorias</option>
-                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                          <input 
+                            type="text"
+                            placeholder="PESQUISAR..."
+                            className="pl-9 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:ring-1 focus:ring-theme-primary/50 uppercase font-bold"
+                            value={athleteSearch}
+                            onChange={(e) => setAthleteSearch(e.target.value)}
+                          />
+                        </div>
+                        <select 
+                          className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none"
+                          value={filterSub}
+                          onChange={(e) => setFilterSub(e.target.value)}
+                        >
+                          <option value="Todos">Todas as Categorias</option>
+                          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

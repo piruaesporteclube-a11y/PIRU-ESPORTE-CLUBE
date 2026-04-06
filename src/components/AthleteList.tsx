@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,11 +11,26 @@ interface AthleteListProps {
   athletes: Athlete[];
   onEdit: (athlete: Athlete) => void;
   onAdd: () => void;
+  onRefresh?: () => void;
 }
 
-export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProps) {
+export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: AthleteListProps) {
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      toast.success("Lista atualizada!");
+    } catch (err) {
+      // Error handled by api.ts
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const [filterSub, setFilterSub] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
 
@@ -38,20 +53,22 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
       toast.error(`Erro ao excluir atleta: ${err.message}`);
     }
   };
-
-  const filteredAthletes = athletes.filter(a => {
-    const normalizedSearch = search.replace(/\D/g, "");
-    const normalizedDoc = a.doc.replace(/\D/g, "");
-    
-    const matchesSearch = 
-      a.name.toLowerCase().includes(search.toLowerCase()) || 
-      (normalizedSearch.length > 0 && normalizedDoc.includes(normalizedSearch)) ||
-      a.doc.includes(search);
+  const filteredAthletes = athletes
+    .filter(a => {
+      const normalizedSearch = search.replace(/\D/g, "");
+      const normalizedDoc = a.doc.replace(/\D/g, "");
       
-    const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-    const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
-    return matchesSearch && matchesSub && matchesStatus;
-  });
+      const matchesSearch = 
+        a.name.toLowerCase().includes(search.toLowerCase()) || 
+        (normalizedSearch.length > 0 && normalizedDoc.includes(normalizedSearch)) ||
+        a.doc.includes(search) ||
+        (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase()));
+        
+      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
+      return matchesSearch && matchesSub && matchesStatus;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const handlePrint = () => {
     window.print();
@@ -133,6 +150,19 @@ export default function AthleteList({ athletes, onEdit, onAdd }: AthleteListProp
             <Printer size={18} />
             Imprimir
           </button>
+          {onRefresh && (
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={cn(
+                "p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-all border border-zinc-700",
+                isRefreshing && "animate-spin"
+              )}
+              title="Atualizar lista"
+            >
+              <RefreshCw size={18} />
+            </button>
+          )}
           <button 
             onClick={onAdd}
             className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors shadow-lg shadow-theme-primary/20"

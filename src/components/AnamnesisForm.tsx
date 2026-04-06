@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 interface AnamnesisFormProps {
   athlete: Athlete;
   onSave: () => void;
+  standalone?: boolean;
 }
 
 const YesNoField = ({ label, value, onChange, placeholder = "Especifique se necessário..." }: { label: string, value: string, onChange: (val: string) => void, placeholder?: string }) => {
@@ -53,7 +54,7 @@ const YesNoField = ({ label, value, onChange, placeholder = "Especifique se nece
   );
 };
 
-export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
+export default function AnamnesisForm({ athlete, onSave, standalone }: AnamnesisFormProps) {
   const [formData, setFormData] = useState<Partial<Anamnesis>>({
     athlete_id: athlete.id,
     sleep_time: '',
@@ -131,15 +132,17 @@ export default function AnamnesisForm({ athlete, onSave }: AnamnesisFormProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", !standalone && "bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl")}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={onSave}
-            className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group no-print"
-          >
-            <X size={20} className="group-hover:rotate-90 transition-transform" />
-          </button>
+          {!standalone && (
+            <button 
+              onClick={onSave}
+              className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group no-print"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+          )}
           <div>
             <h2 className="text-2xl font-bold text-white">Ficha de Anamnese</h2>
             <p className="text-zinc-400 text-sm">Histórico de saúde do atleta: <span className="text-theme-primary font-bold uppercase">{athlete.name}</span></p>

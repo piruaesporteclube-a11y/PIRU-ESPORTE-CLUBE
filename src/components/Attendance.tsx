@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn } from '../utils';
@@ -14,6 +14,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string }>>({});
   const [filterSub, setFilterSub] = useState('Todos');
+  const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
@@ -244,7 +245,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   };
 
   const activeAthletes = athletes.filter(a => a.status === 'Ativo');
-  const filteredAthletes = activeAthletes.filter(a => filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub);
+  const filteredAthletes = activeAthletes.filter(a => {
+    const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
+                         (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
+                         a.doc.includes(search);
+    return matchesSub && matchesSearch;
+  });
 
   const stats = {
     total: filteredAthletes.length,
@@ -373,6 +380,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <input 
+            type="text" 
+            placeholder="Buscar atleta por nome ou documento..." 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
             className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
             value={filterSub}

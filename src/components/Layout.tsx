@@ -14,7 +14,8 @@ import {
   LogOut,
   UserCheck,
   ClipboardList,
-  CreditCard
+  CreditCard,
+  MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,12 +31,13 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin', 'student'] },
+  { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin'] },
   { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'] },
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },
   { id: 'attendance', label: 'Chamada', icon: ClipboardCheck, roles: ['admin'] },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin'] },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },
+  { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'] },
   { id: 'documents', label: 'Documentos', icon: FileText, roles: ['admin'] },
   { id: 'anamnesis', label: 'Anamnese', icon: ClipboardList, roles: ['admin'] },
   { id: 'membership-card', label: 'Carteirinha', icon: CreditCard, roles: ['admin'] },

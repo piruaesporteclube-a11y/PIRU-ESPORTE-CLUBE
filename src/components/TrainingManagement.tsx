@@ -8,9 +8,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import Attendance from './Attendance';
 
-export default function TrainingManagement() {
+interface TrainingManagementProps {
+  athletes?: Athlete[];
+}
+
+export default function TrainingManagement({ athletes: athletesProp }: TrainingManagementProps) {
   const [trainings, setTrainings] = useState<Training[]>([]);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
@@ -26,18 +30,24 @@ export default function TrainingManagement() {
   });
 
   useEffect(() => {
+    if (athletesProp) {
+      setAthletes(athletesProp);
+    }
     loadData();
-  }, []);
+  }, [athletesProp]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [trainingsData, athletesData] = await Promise.all([
+      const promises: [Promise<Training[]>, Promise<Athlete[]> | null] = [
         api.getTrainings(),
-        api.getAthletes()
-      ]);
+        athletesProp ? null : api.getAthletes()
+      ];
+      
+      const [trainingsData, athletesData] = await Promise.all(promises);
+      
       setTrainings(trainingsData.sort((a, b) => b.date.localeCompare(a.date)));
-      setAthletes(athletesData);
+      if (athletesData) setAthletes(athletesData);
     } catch (err) {
       toast.error("Erro ao carregar treinos");
     } finally {

@@ -5,9 +5,13 @@ import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, Mess
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 
-export default function ProfessorManagement() {
+interface ProfessorManagementProps {
+  professors?: Professor[];
+}
+
+export default function ProfessorManagement({ professors: professorsProp }: ProfessorManagementProps) {
   const { settings } = useTheme();
-  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [professorToDelete, setProfessorToDelete] = useState<string | null>(null);
@@ -26,8 +30,12 @@ export default function ProfessorManagement() {
   });
 
   useEffect(() => {
-    loadProfessors();
-  }, []);
+    if (professorsProp) {
+      setProfessors(professorsProp);
+    } else {
+      loadProfessors();
+    }
+  }, [professorsProp]);
 
   const loadProfessors = async () => {
     const data = await api.getProfessors();

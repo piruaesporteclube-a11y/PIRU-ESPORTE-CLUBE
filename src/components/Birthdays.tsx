@@ -8,8 +8,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 
-export default function Birthdays() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+interface BirthdaysProps {
+  athletes?: Athlete[];
+}
+
+export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const { settings } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
@@ -17,12 +21,20 @@ export default function Birthdays() {
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
+    if (athletesProp) {
+      setAthletes(athletesProp);
+    }
     loadData();
-  }, []);
+  }, [athletesProp]);
 
   const loadData = async () => {
-    const [a, p] = await Promise.all([api.getAthletes(), api.getProfessors()]);
-    setAthletes(a);
+    const promises: [Promise<Athlete[]> | null, Promise<Professor[]>] = [
+      athletesProp ? null : api.getAthletes(),
+      api.getProfessors()
+    ];
+    
+    const [a, p] = await Promise.all(promises);
+    if (a) setAthletes(a);
     setProfessors(p);
   };
 
