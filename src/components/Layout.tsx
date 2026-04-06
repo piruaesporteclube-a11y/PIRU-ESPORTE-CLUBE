@@ -65,7 +65,9 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { settings } = useTheme();
 
-  const filteredNavItems = navItems.filter(item => user && item.roles.includes(user.role));
+  const filteredNavItems = navItems
+    .filter(item => user && item.roles.includes(user.role))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-theme-primary selection:text-black">
@@ -115,15 +117,15 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden",
+                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden border border-transparent",
                     activeTab === item.id 
-                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/20" 
-                      : "text-zinc-500 hover:bg-zinc-900 hover:text-white"
+                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/20 border-theme-primary" 
+                      : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
                   )}
                 >
                   <item.icon size={20} className={cn(
                     "transition-transform duration-300 group-hover:scale-110 relative z-10",
-                    activeTab === item.id ? "text-black" : "text-zinc-600 group-hover:text-theme-primary"
+                    activeTab === item.id ? "text-black" : "text-zinc-400 group-hover:text-theme-primary"
                   )} />
                   <span className="relative z-10 uppercase text-xs tracking-widest">{item.label}</span>
                   {activeTab === item.id && (
@@ -201,14 +203,14 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                           setIsMenuOpen(false);
                         }}
                         className={cn(
-                          "w-full flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-300",
+                          "w-full flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-300 border border-transparent",
                           activeTab === item.id 
-                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/20" 
-                            : "text-zinc-500 hover:bg-zinc-900 hover:text-white"
+                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/20 border-theme-primary" 
+                            : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
                         )}
                       >
                         <item.icon size={22} className={cn(
-                          activeTab === item.id ? "text-black" : "text-zinc-600"
+                          activeTab === item.id ? "text-black" : "text-zinc-400"
                         )} />
                         <span className="uppercase text-sm font-bold tracking-widest">{item.label}</span>
                         {activeTab === item.id && <ChevronRight size={18} className="ml-auto" />}
