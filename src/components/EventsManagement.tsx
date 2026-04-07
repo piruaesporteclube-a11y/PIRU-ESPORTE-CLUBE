@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { useRef } from 'react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -63,6 +66,91 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const loadEvents = async () => {
     const data = await api.getEvents();
     setEvents(data.sort((a, b) => b.start_date.localeCompare(a.start_date)));
+  };
+
+  const lineupRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!lineupRef.current || !selectedEvent) return;
+    
+    setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF da escalação...');
+    
+    try {
+      // Ensure images are loaded before capturing
+      const images = lineupRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
+      // Create a temporary container for capture
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '800px';
+      document.body.appendChild(container);
+
+      const clone = lineupRef.current.cloneNode(true) as HTMLElement;
+      
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '800px';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      clone.classList.remove('hidden'); // Ensure it's visible for capture
+
+      container.appendChild(clone);
+
+      // Wait for clone to be ready
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 800
+      });
+      
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
+      pdf.save(`escalacao_${selectedEvent.name.replace(/\s+/g, '_')}_lista_${activeLineupIndex + 1}.pdf`);
+      
+      toast.success('PDF gerado com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -543,6 +631,21 @@ export default function EventsManagement({ athletes: athletesProp, events: event
             <div className="p-6 border-t border-zinc-800 flex justify-between items-center no-print">
               {isAdmin && <p className="text-xs text-zinc-500 italic">Dica: Salve a escalação antes de gerenciar as confirmações.</p>}
               <div className="flex gap-3 ml-auto">
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all font-bold disabled:opacity-50"
+                >
+                  <FileDown size={18} />
+                  {isGeneratingPDF ? 'Gerando...' : 'Gerar PDF'}
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl hover:bg-zinc-100 transition-all font-bold"
+                >
+                  <Printer size={18} />
+                  Imprimir
+                </button>
                 <button onClick={() => setIsLineupOpen(false)} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Fechar</button>
                 {isAdmin && (
                   <button onClick={handleSaveLineup} className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2">
@@ -554,7 +657,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
             </div>
 
             {/* Print View */}
-            <div className="hidden print-only p-6 text-black bg-white min-h-screen">
+            <div className="hidden print-only p-6 text-black bg-white min-h-screen" ref={lineupRef}>
               <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
                 <div className="flex items-center gap-4">
                   {settings?.schoolCrest && (

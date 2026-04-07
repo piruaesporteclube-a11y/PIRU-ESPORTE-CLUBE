@@ -91,21 +91,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       // If we have data URLs, ensure they are used in the clone
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
-      // Replace images in clone with data URLs if available
-      const clonedImages = clone.querySelectorAll('img');
-      clonedImages.forEach(img => {
-        const src = img.getAttribute('src');
-        if (src === athlete.photo && photoDataUrl) {
-          img.setAttribute('src', photoDataUrl);
-        } else if (src === settings?.schoolCrest && crestDataUrl) {
-          img.setAttribute('src', crestDataUrl);
-        }
-        img.style.visibility = 'visible';
-        img.style.opacity = '1';
-        img.style.display = 'block';
-        img.setAttribute('crossOrigin', 'anonymous');
-      });
-
       // Create a temporary container for capture to avoid scaling/CSS issues
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -127,31 +112,38 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.visibility = 'visible';
       clone.style.display = 'flex';
       clone.style.opacity = '1';
-      clone.style.borderRadius = '20px';
+      clone.style.borderRadius = '0'; // Remove border radius for cleaner capture
       clone.style.overflow = 'hidden';
-      clone.style.backgroundColor = '#050505';
+      clone.style.backgroundColor = '#000000';
       clone.style.color = 'white';
       clone.style.boxShadow = 'none';
       clone.style.border = 'none';
       
-      // Ensure all images in clone are visible
-      const allClonedImages = clone.querySelectorAll('img');
-      allClonedImages.forEach(img => {
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const type = img.getAttribute('data-type');
+        if (type === 'photo' && photoDataUrl) {
+          img.setAttribute('src', photoDataUrl);
+        } else if (type === 'crest' && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
         img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
       });
 
       container.appendChild(clone);
 
       // Wait for clone to be ready and settled
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: 2, // 2 is enough for high quality
         useCORS: true,
         allowTaint: false,
-        backgroundColor: '#050505',
+        backgroundColor: '#000000',
         logging: false,
         width: 450,
         height: 284,
@@ -299,6 +291,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     src={crestDataUrl} 
                     className="w-full h-full object-contain" 
                     crossOrigin="anonymous"
+                    data-type="crest"
                   />
                 ) : settings?.schoolCrest ? (
                   <img 
@@ -306,6 +299,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     className="w-full h-full object-contain" 
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
+                    data-type="crest"
                   />
                 ) : (
                   <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-lg">P</div>
@@ -332,6 +326,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     src={photoDataUrl} 
                     className="w-full h-full object-cover" 
                     crossOrigin="anonymous"
+                    data-type="photo"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3f3f46] bg-[#09090b]">

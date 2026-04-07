@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Professor } from '../types';
-import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle } from 'lucide-react';
+import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle, FileDown } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -36,6 +39,91 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
       loadProfessors();
     }
   }, [professorsProp]);
+
+  const printRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!printRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF da ficha...');
+    
+    try {
+      // Ensure images are loaded before capturing
+      const images = printRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
+      // Create a temporary container for capture
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '800px';
+      document.body.appendChild(container);
+
+      const clone = printRef.current.cloneNode(true) as HTMLElement;
+      
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '800px';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      clone.classList.remove('hidden'); // Ensure it's visible for capture
+
+      container.appendChild(clone);
+
+      // Wait for clone to be ready
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 800
+      });
+      
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
+      pdf.save(`ficha_professor_${formData.name?.replace(/\s+/g, '_')}.pdf`);
+      
+      toast.success('PDF gerado com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const loadProfessors = async () => {
     const data = await api.getProfessors();
@@ -316,6 +404,25 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                 >
                   Cancelar
                 </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPDF}
+                    disabled={isGeneratingPDF}
+                    className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black rounded-xl font-black hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20 disabled:opacity-50"
+                  >
+                    <FileDown size={20} />
+                    {isGeneratingPDF ? 'Gerando...' : 'Gerar PDF'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-black hover:bg-zinc-100 transition-all shadow-lg"
+                  >
+                    <Printer size={20} />
+                    Imprimir
+                  </button>
+                </div>
                 <button 
                   type="submit"
                   className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2"
@@ -325,6 +432,91 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* Print View */}
+          <div className="hidden print-only bg-white text-black p-8 min-h-screen" ref={printRef}>
+            <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+              <div className="flex items-center gap-4">
+                {settings?.schoolCrest && (
+                  <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
+                )}
+                <div className="text-left">
+                  <h1 className="text-2xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
+                  <h2 className="text-sm font-bold uppercase text-zinc-600">Ficha de Cadastro de Membro da Comissão</h2>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase text-zinc-500">Data de Emissão:</p>
+                <p className="text-sm font-bold">{new Date().toLocaleDateString('pt-BR')}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-8 mb-8">
+              <div className="col-span-1">
+                <div className="w-full aspect-[3/4] border-2 border-black rounded-lg overflow-hidden flex items-center justify-center bg-zinc-100">
+                  {formData.photo ? (
+                    <img src={formData.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase text-zinc-400">Foto 3x4</span>
+                  )}
+                </div>
+              </div>
+              <div className="col-span-3 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Nome Completo</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.name || '___________________________'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">CPF/RG</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.doc || '___________________________'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Data de Nascimento</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.birth_date || '____/____/_______'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Telefone/WhatsApp</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.phone || '___________________________'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-black uppercase bg-zinc-100 p-2 mb-3">Endereço</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Endereço</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">
+                      {formData.street ? `${formData.street}, ${formData.number} - ${formData.neighborhood}` : '____________________________________________________________________'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Cidade/UF</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.city ? `${formData.city} - ${formData.uf}` : '___________________________'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-20 space-y-12">
+              <div className="flex justify-between gap-12">
+                <div className="flex-1 border-t border-black text-center pt-2">
+                  <p className="text-[10px] font-bold uppercase">Assinatura do Membro</p>
+                </div>
+                <div className="flex-1 border-t border-black text-center pt-2">
+                  <p className="text-[10px] font-bold uppercase">Assinatura da Diretoria</p>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-zinc-400 uppercase">Piruá Esporte Clube - Formando Atletas, Cidadãos e Campeões</p>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ export default function Documents() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [docType, setDocType] = useState<'travel' | 'responsibility' | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [manualEntry, setManualEntry] = useState(false);
@@ -38,6 +39,48 @@ export default function Documents() {
     api.getEvents().then(setEvents);
   }, []);
 
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
+
   const filteredAthletes = athletes.filter(a => {
     const matchesName = a.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || getSubCategory(a.birth_date) === selectedCategory;
@@ -52,31 +95,83 @@ export default function Documents() {
     if (!documentRef.current) return;
     
     setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF do documento...');
+    
     try {
-      const element = documentRef.current;
-      const canvas = await html2canvas(element, {
+      // Ensure images are loaded before capturing
+      const images = documentRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
+      // Create a temporary container for capture to avoid scaling/CSS issues
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '800px'; // Standard A4-ish width for capture
+      document.body.appendChild(container);
+
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '800px';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      
+      container.appendChild(clone);
+
+      // Wait for clone to be ready and settled
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        allowTaint: false,
         backgroundColor: '#ffffff',
-        windowWidth: 1200 // Force a consistent width for capture
+        logging: false,
+        width: 800
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      // Cleanup
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      // Add some margins
+      const imgProps = pdf.getImageProperties(imgData);
       const margin = 10;
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
 
       pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
       pdf.save(`${docType}_${selectedAthlete?.name.replace(/\s+/g, '_')}.pdf`);
+      
+      toast.success('PDF gerado com sucesso!', { id: loadingToast });
     } catch (error) {
       console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
     } finally {
       setIsGeneratingPDF(false);
     }
