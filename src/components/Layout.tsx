@@ -117,9 +117,9 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden border border-transparent",
+                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden border border-transparent mb-1",
                     activeTab === item.id 
-                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/20 border-theme-primary" 
+                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/40 border-theme-primary" 
                       : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
                   )}
                 >
@@ -127,11 +127,11 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                     "transition-transform duration-300 group-hover:scale-110 relative z-10",
                     activeTab === item.id ? "text-black" : "text-zinc-400 group-hover:text-theme-primary"
                   )} />
-                  <span className="relative z-10 uppercase text-xs tracking-widest">{item.label}</span>
+                  <span className="relative z-10 uppercase text-[11px] font-black tracking-widest">{item.label}</span>
                   {activeTab === item.id && (
                     <motion.div 
                       layoutId="activeNav"
-                      className="absolute inset-0 bg-theme-primary"
+                      className="absolute inset-0 bg-theme-primary shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.3)]"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -205,14 +205,14 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                         className={cn(
                           "w-full flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-300 border border-transparent",
                           activeTab === item.id 
-                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/20 border-theme-primary" 
+                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/40 border-theme-primary" 
                             : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
                         )}
                       >
                         <item.icon size={22} className={cn(
                           activeTab === item.id ? "text-black" : "text-zinc-400"
                         )} />
-                        <span className="uppercase text-sm font-bold tracking-widest">{item.label}</span>
+                        <span className="uppercase text-[13px] font-black tracking-widest">{item.label}</span>
                         {activeTab === item.id && <ChevronRight size={18} className="ml-auto" />}
                       </button>
                     ))}

@@ -4,6 +4,7 @@ import { Athlete, User } from '../types';
 import { X, Upload, Save, UserCircle, MessageCircle, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AthleteFormProps {
   athlete?: Athlete | null;
@@ -15,6 +16,7 @@ interface AthleteFormProps {
 }
 
 export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone }: AthleteFormProps) {
+  const { settings } = useTheme();
   const [formData, setFormData] = useState<Partial<Athlete>>({
     name: '',
     nickname: '',
@@ -103,20 +105,43 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       !standalone && "max-w-4xl my-auto"
     )}>
       <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-        <h2 className="text-xl font-bold text-white flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {!standalone && (
             <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 md:hidden">
               <X size={20} />
             </button>
           )}
-          {isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta')}
-        </h2>
-        {!standalone && (
-          <button onClick={onClose} className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
-            <X size={18} className="group-hover:rotate-90 transition-transform" />
-            <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
-          </button>
-        )}
+          <div className="w-12 h-12 flex items-center justify-center p-1.5 bg-zinc-800 rounded-xl border border-zinc-700 shadow-xl overflow-hidden">
+            {settings?.schoolCrest ? (
+              <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
+            )}
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white leading-tight">
+              {isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta')}
+            </h2>
+            {athlete && <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{athlete.name}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {athlete && (
+            <button 
+              onClick={() => window.print()}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-all no-print"
+            >
+              <Save size={18} />
+              <span className="font-bold uppercase text-xs tracking-widest">Imprimir Ficha</span>
+            </button>
+          )}
+          {!standalone && (
+            <button onClick={onClose} className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group no-print">
+              <X size={18} className="group-hover:rotate-90 transition-transform" />
+              <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-8">
@@ -398,12 +423,130 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         </form>
       </div>
     );
-
-  if (standalone) return formContent;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
-      {formContent}
-    </div>
-  );
-}
+  
+    const printContent = (
+      <div className="hidden print-only bg-white text-black p-8 min-h-screen">
+        <div className="flex items-center justify-between mb-8 border-b-2 border-black pb-4">
+          <div className="flex items-center gap-4">
+            {settings?.schoolCrest && (
+              <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
+            )}
+            <div className="text-left">
+              <h1 className="text-2xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
+              <h2 className="text-sm font-bold uppercase text-zinc-600">Ficha de Cadastro de Atleta</h2>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-black uppercase text-zinc-500">Data de Emissão:</p>
+            <p className="text-sm font-bold">{new Date().toLocaleDateString('pt-BR')}</p>
+          </div>
+        </div>
+  
+        <div className="grid grid-cols-4 gap-8 mb-8">
+          <div className="col-span-1">
+            <div className="w-full aspect-[3/4] border-2 border-black rounded-lg overflow-hidden flex items-center justify-center bg-zinc-100">
+              {formData.photo ? (
+                <img src={formData.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Foto 3x4</span>
+              )}
+            </div>
+          </div>
+          <div className="col-span-3 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Nome Completo</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.name || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Apelido</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.nickname || '___________________________'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Data de Nascimento</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.birth_date || '____/____/_______'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">CPF/RG</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.doc || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Uniforme</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">#{formData.jersey_number || '____'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-xs font-black uppercase bg-zinc-100 p-2 mb-3">Endereço e Contato</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <p className="text-[10px] font-black uppercase text-zinc-500">Endereço</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">
+                  {formData.street ? `${formData.street}, ${formData.number} - ${formData.neighborhood}` : '____________________________________________________________________'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Cidade/UF</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.city ? `${formData.city} - ${formData.uf}` : '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Telefone/WhatsApp</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.contact || '___________________________'}</p>
+              </div>
+            </div>
+          </div>
+  
+          <div>
+            <h3 className="text-xs font-black uppercase bg-zinc-100 p-2 mb-3">Responsável Legal</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Nome do Responsável</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.guardian_name || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">CPF/RG Responsável</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.guardian_doc || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">WhatsApp Responsável</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.guardian_phone || '___________________________'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <div className="mt-20 space-y-12">
+          <div className="flex justify-between gap-12">
+            <div className="flex-1 border-t border-black text-center pt-2">
+              <p className="text-[10px] font-bold uppercase">Assinatura do Responsável</p>
+            </div>
+            <div className="flex-1 border-t border-black text-center pt-2">
+              <p className="text-[10px] font-bold uppercase">Assinatura da Coordenação</p>
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-zinc-400 uppercase">Piruá Esporte Clube - Formando Atletas, Cidadãos e Campeões</p>
+          </div>
+        </div>
+      </div>
+    );
+  
+    if (standalone) return (
+      <>
+        {formContent}
+        {printContent}
+      </>
+    );
+  
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-start justify-center p-4 overflow-y-auto py-8">
+        {formContent}
+        {printContent}
+      </div>
+    );
+  }

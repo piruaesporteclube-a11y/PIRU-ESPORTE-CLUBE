@@ -146,6 +146,13 @@ export default function AnamnesisForm({ athlete, onSave, standalone }: Anamnesis
               <X size={20} className="group-hover:rotate-90 transition-transform" />
             </button>
           )}
+          <div className="w-14 h-14 flex items-center justify-center p-1.5 bg-zinc-800 rounded-xl border border-zinc-700 shadow-xl overflow-hidden">
+            {settings?.schoolCrest ? (
+              <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
+            )}
+          </div>
           <div>
             <h2 className="text-2xl font-bold text-white">Ficha de Anamnese</h2>
             <p className="text-zinc-400 text-sm">Histórico de saúde do atleta: <span className="text-theme-primary font-bold uppercase">{athlete.name}</span></p>

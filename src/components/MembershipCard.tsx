@@ -6,6 +6,7 @@ import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, 
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { toast } from 'sonner';
 
 interface MembershipCardProps {
   athlete: Athlete;
@@ -74,6 +75,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   const handleSavePDF = async () => {
     if (!cardRef.current) return;
     setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF da carteirinha...');
+    
     try {
       // Ensure images are loaded before capturing
       const images = cardRef.current.getElementsByTagName('img');
@@ -85,67 +88,94 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         });
       }));
 
-      // Small delay to ensure everything is settled
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // If we have data URLs, ensure they are used in the clone
+      const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2, // Use a more conservative scale for better compatibility
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === athlete.photo && photoDataUrl) {
+          img.setAttribute('src', photoDataUrl);
+        } else if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      // Create a temporary container for capture to avoid scaling/CSS issues
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '450px';
+      container.style.height = '284px';
+      document.body.appendChild(container);
+
+      clone.style.transform = 'none';
+      clone.style.scale = '1';
+      clone.style.margin = '0';
+      clone.style.padding = '0';
+      clone.style.width = '450px';
+      clone.style.height = '284px';
+      clone.style.position = 'relative';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.visibility = 'visible';
+      clone.style.display = 'flex';
+      clone.style.opacity = '1';
+      clone.style.borderRadius = '20px';
+      clone.style.overflow = 'hidden';
+      clone.style.backgroundColor = '#050505';
+      clone.style.color = 'white';
+      clone.style.boxShadow = 'none';
+      clone.style.border = 'none';
+      
+      // Ensure all images in clone are visible
+      const allClonedImages = clone.querySelectorAll('img');
+      allClonedImages.forEach(img => {
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+      });
+
+      container.appendChild(clone);
+
+      // Wait for clone to be ready and settled
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const canvas = await html2canvas(clone, {
+        scale: 3,
         useCORS: true,
-        allowTaint: false, // Must be false to allow toDataURL
+        allowTaint: false,
         backgroundColor: '#050505',
         logging: false,
         width: 450,
         height: 284,
-        onclone: (clonedDoc) => {
-          const clonedCard = clonedDoc.querySelector('.card') as HTMLElement;
-          if (clonedCard) {
-            clonedCard.style.transform = 'none';
-            clonedCard.style.scale = '1';
-            clonedCard.style.position = 'relative';
-            clonedCard.style.margin = '0';
-            clonedCard.style.padding = '0';
-            clonedCard.style.left = '0';
-            clonedCard.style.top = '0';
-            clonedCard.style.visibility = 'visible';
-            clonedCard.style.display = 'flex';
-            clonedCard.style.opacity = '1';
-            clonedCard.style.width = '450px';
-            clonedCard.style.height = '284px';
-            clonedCard.style.minWidth = '450px';
-            clonedCard.style.minHeight = '284px';
-            clonedCard.style.borderRadius = '20px';
-            clonedCard.style.overflow = 'hidden';
-            clonedCard.style.backgroundColor = '#050505';
-            clonedCard.style.color = 'white';
-            clonedCard.style.boxShadow = 'none';
-            clonedCard.style.border = 'none';
-            
-            // Ensure all images are visible and have crossOrigin
-            const images = clonedCard.querySelectorAll('img');
-            images.forEach(img => {
-              img.style.visibility = 'visible';
-              img.style.opacity = '1';
-              // If it's a data URL, it should be fine. If not, try to set crossOrigin
-              if (!img.src.startsWith('data:')) {
-                img.setAttribute('crossOrigin', 'anonymous');
-              }
-            });
-          }
-        }
       });
 
+      // Cleanup
+      document.body.removeChild(container);
+
       const imgData = canvas.toDataURL('image/png', 1.0);
+      
+      // Create PDF with custom size (CR80)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [85.6, 54],
+        format: [85.6, 54]
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      
+      toast.success('PDF gerado com sucesso!', { id: loadingToast });
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Erro ao gerar PDF. Tente imprimir e salvar como PDF pelo navegador.');
+      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir e salvar como PDF.', { id: loadingToast });
     } finally {
       setIsGeneratingPDF(false);
     }
