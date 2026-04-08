@@ -361,6 +361,22 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
       clone.style.display = 'block';
       clone.style.boxSizing = 'border-box';
       
+      // Force explicit font sizes and dimensions in the clone
+      const originalElements = reportRef.current.querySelectorAll('*');
+      const cloneElements = clone.querySelectorAll('*');
+      for (let i = 0; i < originalElements.length; i++) {
+        const orig = originalElements[i] as HTMLElement;
+        const cln = cloneElements[i] as HTMLElement;
+        const style = window.getComputedStyle(orig);
+        cln.style.fontSize = style.fontSize;
+        cln.style.lineHeight = style.lineHeight;
+        cln.style.fontFamily = style.fontFamily;
+        cln.style.fontWeight = style.fontWeight;
+        cln.style.letterSpacing = style.letterSpacing;
+        cln.style.textTransform = style.textTransform;
+        cln.style.color = style.color;
+      }
+
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
@@ -384,7 +400,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',

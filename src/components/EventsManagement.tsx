@@ -160,6 +160,22 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       clone.style.boxSizing = 'border-box';
       clone.classList.remove('hidden'); // Ensure it's visible for capture
 
+      // Force explicit font sizes and dimensions in the clone
+      const originalElements = lineupRef.current.querySelectorAll('*');
+      const cloneElements = clone.querySelectorAll('*');
+      for (let i = 0; i < originalElements.length; i++) {
+        const orig = originalElements[i] as HTMLElement;
+        const cln = cloneElements[i] as HTMLElement;
+        const style = window.getComputedStyle(orig);
+        cln.style.fontSize = style.fontSize;
+        cln.style.lineHeight = style.lineHeight;
+        cln.style.fontFamily = style.fontFamily;
+        cln.style.fontWeight = style.fontWeight;
+        cln.style.letterSpacing = style.letterSpacing;
+        cln.style.textTransform = style.textTransform;
+        cln.style.color = style.color;
+      }
+
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
@@ -179,7 +195,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',

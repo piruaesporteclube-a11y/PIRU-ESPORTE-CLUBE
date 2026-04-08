@@ -119,9 +119,26 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.backgroundColor = '#000000';
       clone.style.visibility = 'visible';
       clone.style.display = 'flex';
+      clone.style.flexDirection = 'column';
       clone.style.opacity = '1';
       clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
       
+      // Force explicit font sizes and dimensions in the clone
+      const originalElements = cardRef.current.querySelectorAll('*');
+      const cloneElements = clone.querySelectorAll('*');
+      for (let i = 0; i < originalElements.length; i++) {
+        const orig = originalElements[i] as HTMLElement;
+        const cln = cloneElements[i] as HTMLElement;
+        const style = window.getComputedStyle(orig);
+        cln.style.fontSize = style.fontSize;
+        cln.style.lineHeight = style.lineHeight;
+        cln.style.fontFamily = style.fontFamily;
+        cln.style.fontWeight = style.fontWeight;
+        cln.style.letterSpacing = style.letterSpacing;
+        cln.style.textTransform = style.textTransform;
+        cln.style.color = style.color;
+      }
+
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
@@ -131,6 +148,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         }
         if (type === 'photo' && photoDataUrl) {
           img.setAttribute('src', photoDataUrl);
+          // Manually handle object-fit: cover for the photo
+          img.style.objectFit = 'cover';
+          img.style.width = '100%';
+          img.style.height = '100%';
         }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
@@ -217,6 +238,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.top = '0';
       clone.style.visibility = 'visible';
       clone.style.display = 'flex';
+      clone.style.flexDirection = 'column';
       clone.style.opacity = '1';
       clone.style.borderRadius = '0';
       clone.style.overflow = 'hidden';
@@ -227,14 +249,34 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.boxSizing = 'border-box';
       clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
 
+      // Force explicit font sizes and dimensions in the clone
+      const originalElements = cardRef.current.querySelectorAll('*');
+      const cloneElements = clone.querySelectorAll('*');
+      for (let i = 0; i < originalElements.length; i++) {
+        const orig = originalElements[i] as HTMLElement;
+        const cln = cloneElements[i] as HTMLElement;
+        const style = window.getComputedStyle(orig);
+        cln.style.fontSize = style.fontSize;
+        cln.style.lineHeight = style.lineHeight;
+        cln.style.fontFamily = style.fontFamily;
+        cln.style.fontWeight = style.fontWeight;
+        cln.style.letterSpacing = style.letterSpacing;
+        cln.style.textTransform = style.textTransform;
+        cln.style.color = style.color;
+      }
+
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
         const type = img.getAttribute('data-type');
         if (type === 'photo' && photoDataUrl) {
           img.setAttribute('src', photoDataUrl);
+          img.style.objectFit = 'cover';
+          img.style.width = '100%';
+          img.style.height = '100%';
         } else if (type === 'crest' && crestDataUrl) {
           img.setAttribute('src', crestDataUrl);
+          img.style.objectFit = 'contain';
         }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
