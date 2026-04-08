@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
@@ -509,8 +509,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           {/* Body */}
           <div className="flex-1 flex p-5 gap-5 relative z-10 overflow-hidden">
             {/* Photo Section */}
-            <div className="relative group flex-shrink-0 flex flex-col items-center gap-3">
-              <div className="w-[105px] h-[135px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
+            <div className="relative group flex-shrink-0 flex flex-col items-center justify-center">
+              <div className="w-[105px] h-[140px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
                 {photoDataUrl ? (
                   <img 
                     src={photoDataUrl} 
@@ -523,9 +523,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     <UserCircle size={48} strokeWidth={1} />
                   </div>
                 )}
-              </div>
-              <div className="px-4 py-1 bg-theme-primary rounded-full shadow-lg border border-white/10 z-10">
-                <span className="text-[8px] font-black text-black uppercase tracking-widest">Foto 3x4</span>
               </div>
               {/* Photo Glow */}
               <div 
@@ -604,18 +601,18 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           {/* Footer */}
           <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-1 rounded-xl shadow-2xl flex items-center justify-center">
-                <QRCodeCanvas 
+              <div className="bg-white p-1.5 rounded-xl shadow-xl flex items-center justify-center">
+                <QRCodeSVG 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={64} 
+                  size={60} 
                   level="H"
                   includeMargin={false}
                   imageSettings={{
                     src: crestDataUrl || undefined,
                     x: undefined,
                     y: undefined,
-                    height: 16,
-                    width: 16,
+                    height: 12,
+                    width: 12,
                     excavate: true,
                   }}
                 />
