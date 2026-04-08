@@ -136,10 +136,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       // Create a temporary container for capture
       container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '0';
-      container.style.top = '0';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
       container.style.width = '1200px';
-      container.style.height = '1600px';
+      container.style.height = '2000px';
       container.style.zIndex = '-9999';
       container.style.opacity = '0';
       container.style.pointerEvents = 'none';
@@ -147,6 +147,19 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
       const clone = lineupRef.current.cloneNode(true) as HTMLElement;
       
+      // Reset styles for capture to ensure proportionality
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '800px';
+      clone.style.height = 'auto';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      clone.style.display = 'block';
+      clone.style.boxSizing = 'border-box';
+      clone.classList.remove('hidden'); // Ensure it's visible for capture
+
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
@@ -160,19 +173,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         img.setAttribute('crossOrigin', 'anonymous');
       });
 
-      clone.style.transform = 'none';
-      clone.style.margin = '0';
-      clone.style.padding = '40px';
-      clone.style.width = '800px';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.color = '#000000';
-      clone.style.visibility = 'visible';
-      clone.classList.remove('hidden'); // Ensure it's visible for capture
-
       container.appendChild(clone);
 
       // Wait for clone to be ready
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
         scale: 2,
@@ -189,13 +193,24 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       
       const imgProps = pdf.getImageProperties(imgData);
       const margin = 10;
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
 
-      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
+      let finalWidth = contentWidth;
+      let finalHeight = contentHeight;
+
+      if (finalHeight > (pdfHeight - margin * 2)) {
+        finalHeight = pdfHeight - margin * 2;
+        finalWidth = (imgProps.width * finalHeight) / imgProps.height;
+      }
+
+      const x = (pdfWidth - finalWidth) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
       pdf.save(`escalacao_${selectedEvent.name.replace(/\s+/g, '_')}_lista_${activeLineupIndex + 1}.pdf`);
       
       toast.success('PDF gerado com sucesso!', { id: loadingToast });

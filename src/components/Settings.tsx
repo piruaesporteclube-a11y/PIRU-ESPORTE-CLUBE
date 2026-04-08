@@ -73,6 +73,18 @@ export default function SettingsComponent() {
     }
   };
 
+  const handleClearPersistence = async () => {
+    if (window.confirm('Isso irá limpar o cache local e recarregar a página para sincronizar com o servidor. Deseja continuar?')) {
+      const loadingToast = toast.loading('Limpando cache e sincronizando...');
+      try {
+        await api.clearPersistence();
+        toast.success('Sincronização concluída!', { id: loadingToast });
+      } catch (error) {
+        toast.error('Erro ao sincronizar.', { id: loadingToast });
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await api.saveSettings(settings);
@@ -293,6 +305,21 @@ export default function SettingsComponent() {
               >
                 <Download size={20} className="text-theme-primary" />
                 Gerar Backup Agora
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-white uppercase">Sincronização & Cache</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Se você estiver vendo erros de "tempo no futuro" ou dados desatualizados, use esta opção para limpar o cache local e forçar uma nova sincronização com o servidor.
+              </p>
+              <button 
+                type="button"
+                onClick={handleClearPersistence}
+                className="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={20} className="text-theme-primary" />
+                Limpar Cache e Sincronizar
               </button>
             </div>
 

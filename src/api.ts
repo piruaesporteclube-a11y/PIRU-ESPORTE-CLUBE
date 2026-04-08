@@ -22,7 +22,10 @@ import {
   writeBatch,
   orderBy,
   getDocsFromCache,
-  getDocFromCache
+  getDocFromCache,
+  serverTimestamp,
+  terminate,
+  clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training } from "./types";
@@ -325,15 +328,17 @@ export const api = {
         id: athleteId,
         doc: normalizedDoc,
         status: "Ativo",
-        created_at: new Date().toISOString()
-      } as Athlete;
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      } as any;
       
       const newUser: User = {
         id: firebaseUser.uid,
         name: athleteData.name || "Novo Aluno",
         doc: normalizedDoc,
         role: "student",
-        athlete_id: athleteId
+        athlete_id: athleteId,
+        updated_at: serverTimestamp() as any
       };
 
       console.log("Setting batch docs...");
@@ -352,7 +357,8 @@ export const api = {
         const anamnesisDoc = {
           ...anamnesisData,
           athlete_id: athleteId,
-          created_at: new Date().toISOString()
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
         };
         batch.set(doc(db, "anamnesis", athleteId), sanitizeData(anamnesisDoc));
       }
@@ -400,6 +406,16 @@ export const api = {
   },
 
   logout: () => signOut(auth),
+  
+  clearPersistence: async () => {
+    try {
+      await terminate(db);
+      await clearIndexedDbPersistence(db);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error clearing persistence:", error);
+    }
+  },
 
   // Athletes
   subscribeToAthletes: (callback: (athletes: Athlete[]) => void) => {
@@ -449,6 +465,17 @@ export const api = {
     }
 
     try {
+      const sanitizedAthlete = { 
+        ...athlete,
+        updated_at: serverTimestamp()
+      };
+      if (sanitizedAthlete.doc) {
+        sanitizedAthlete.doc = sanitizedAthlete.doc.replace(/\D/g, "");
+      }
+      if (sanitizedAthlete.guardian_doc) {
+        sanitizedAthlete.guardian_doc = sanitizedAthlete.guardian_doc.replace(/\D/g, "");
+      }
+
       await setDoc(doc(db, "athletes", athlete.id), sanitizeData(sanitizedAthlete), { merge: true });
       delete cache["athletes"]; // Invalidate cache
     } catch (error) {
@@ -481,7 +508,8 @@ export const api = {
   saveProfessor: async (professor: Partial<Professor>) => {
     if (!professor.id) professor.id = doc(collection(db, "professors")).id;
     try {
-      await setDoc(doc(db, "professors", professor.id), sanitizeData(professor), { merge: true });
+      const data = { ...professor, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "professors", professor.id), sanitizeData(data), { merge: true });
       delete cache["professors"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `professors/${professor.id}`);
@@ -513,7 +541,8 @@ export const api = {
   saveEvent: async (event: Partial<Event>) => {
     if (!event.id) event.id = doc(collection(db, "events")).id;
     try {
-      await setDoc(doc(db, "events", event.id), sanitizeData(event), { merge: true });
+      const data = { ...event, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "events", event.id), sanitizeData(data), { merge: true });
       delete cache["events"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `events/${event.id}`);
@@ -552,7 +581,8 @@ export const api = {
   saveAttendance: async (attendance: Partial<Attendance>) => {
     if (!attendance.id) attendance.id = doc(collection(db, "attendance")).id;
     try {
-      await setDoc(doc(db, "attendance", attendance.id), sanitizeData(attendance), { merge: true });
+      const data = { ...attendance, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "attendance", attendance.id), sanitizeData(data), { merge: true });
       // Invalidate all attendance cache
       Object.keys(cache).forEach(key => {
         if (key.startsWith('attendance_')) delete cache[key];
@@ -583,7 +613,8 @@ export const api = {
   saveAnamnesis: async (anamnesis: Partial<Anamnesis>) => {
     if (!anamnesis.athlete_id) throw new Error("ID do atleta é obrigatório");
     try {
-      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), sanitizeData(anamnesis), { merge: true });
+      const data = { ...anamnesis, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), sanitizeData(data), { merge: true });
       delete cache[`anamnesis_${anamnesis.athlete_id}`]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `anamnesis/${anamnesis.athlete_id}`);
@@ -654,7 +685,8 @@ export const api = {
           lineup_index,
           person_id: aid,
           type: 'athlete',
-          confirmation: "Pendente"
+          confirmation: "Pendente",
+          updated_at: serverTimestamp()
         });
       });
 
@@ -666,7 +698,8 @@ export const api = {
           lineup_index,
           person_id: sid,
           type: 'staff',
-          confirmation: "Pendente"
+          confirmation: "Pendente",
+          updated_at: serverTimestamp()
         });
       });
       
@@ -684,14 +717,20 @@ export const api = {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        await updateDoc(docRef, { confirmation });
+        await updateDoc(docRef, { 
+          confirmation,
+          updated_at: serverTimestamp()
+        });
       } else if (type === 'athlete' && lineup_index === 0) {
         // Fallback for old athlete ID format (only for index 0)
         const oldId = `${event_id}_${person_id}`;
         const oldDocRef = doc(db, "event_lineups", oldId);
         const oldDocSnap = await getDoc(oldDocRef);
         if (oldDocSnap.exists()) {
-          await updateDoc(oldDocRef, { confirmation });
+          await updateDoc(oldDocRef, { 
+            confirmation,
+            updated_at: serverTimestamp()
+          });
         }
       }
       delete cache[`lineup_${event_id}_${lineup_index}`];
@@ -717,7 +756,8 @@ export const api = {
   saveSponsor: async (sponsor: Partial<Sponsor>) => {
     if (!sponsor.id) sponsor.id = doc(collection(db, "sponsors")).id;
     try {
-      await setDoc(doc(db, "sponsors", sponsor.id), sanitizeData(sponsor), { merge: true });
+      const data = { ...sponsor, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "sponsors", sponsor.id), sanitizeData(data), { merge: true });
       delete cache["sponsors"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `sponsors/${sponsor.id}`);
@@ -749,7 +789,8 @@ export const api = {
   saveUniformModel: async (model: Partial<UniformModel>) => {
     if (!model.id) model.id = doc(collection(db, "uniform_models")).id;
     try {
-      await setDoc(doc(db, "uniform_models", model.id), sanitizeData(model), { merge: true });
+      const data = { ...model, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "uniform_models", model.id), sanitizeData(data), { merge: true });
       delete cache["uniform_models"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `uniform_models/${model.id}`);
@@ -781,7 +822,8 @@ export const api = {
   saveTraining: async (training: Partial<Training>) => {
     if (!training.id) training.id = doc(collection(db, "trainings")).id;
     try {
-      await setDoc(doc(db, "trainings", training.id), sanitizeData(training), { merge: true });
+      const data = { ...training, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "trainings", training.id), sanitizeData(data), { merge: true });
       delete cache["trainings"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `trainings/${training.id}`);
@@ -841,7 +883,8 @@ export const api = {
   },
   saveSettings: async (settings: Partial<Settings>) => {
     try {
-      await setDoc(doc(db, "settings", "global_settings"), sanitizeData(settings), { merge: true });
+      const data = { ...settings, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "settings", "global_settings"), sanitizeData(data), { merge: true });
       delete cache["global_settings"]; // Invalidate memory cache
       // Update local storage cache
       const current = await api.getSettings();

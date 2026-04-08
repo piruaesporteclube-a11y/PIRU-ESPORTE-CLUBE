@@ -95,16 +95,31 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = '450px';
-      container.style.height = '284px';
+      container.style.top = '-9999px';
+      container.style.width = '1000px';
+      container.style.height = '1000px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
+      
+      // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
       clone.style.scale = '1';
       clone.style.margin = '0';
+      clone.style.padding = '0';
+      clone.style.width = '450px';
+      clone.style.height = '284px';
       clone.style.position = 'relative';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.boxSizing = 'border-box';
+      clone.style.backgroundColor = '#000000';
+      clone.style.visibility = 'visible';
+      clone.style.display = 'flex';
+      clone.style.opacity = '1';
       clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
       
       // Replace images in clone with data URLs if available
@@ -126,7 +141,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       container.appendChild(clone);
 
       // Wait for clone to be ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(clone, {
         scale: 3,
@@ -179,8 +194,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       // Create a temporary container for capture to avoid scaling/CSS issues
       container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '0';
-      container.style.top = '0';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
       container.style.width = '1000px'; // Large enough
       container.style.height = '1000px';
       container.style.zIndex = '-9999';
@@ -190,21 +205,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
-      // Replace images in clone with data URLs if available
-      const clonedImages = clone.querySelectorAll('img');
-      clonedImages.forEach(img => {
-        const type = img.getAttribute('data-type');
-        if (type === 'photo' && photoDataUrl) {
-          img.setAttribute('src', photoDataUrl);
-        } else if (type === 'crest' && crestDataUrl) {
-          img.setAttribute('src', crestDataUrl);
-        }
-        img.style.visibility = 'visible';
-        img.style.opacity = '1';
-        img.style.display = 'block';
-        img.setAttribute('crossOrigin', 'anonymous');
-      });
-
+      // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
       clone.style.scale = '1';
       clone.style.margin = '0';
@@ -223,18 +224,35 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.color = 'white';
       clone.style.boxShadow = 'none';
       clone.style.border = 'none';
-      
+      clone.style.boxSizing = 'border-box';
+      clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
+
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const type = img.getAttribute('data-type');
+        if (type === 'photo' && photoDataUrl) {
+          img.setAttribute('src', photoDataUrl);
+        } else if (type === 'crest' && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
       container.appendChild(clone);
 
       // Wait for clone to be ready and settled
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#000000',
-        logging: true,
+        logging: false,
         width: 450,
         height: 284,
         onclone: (clonedDoc) => {
@@ -251,7 +269,24 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         format: [85.6, 54]
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54, undefined, 'FAST');
+      // Use image properties to maintain aspect ratio perfectly
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = 85.6;
+      const pdfHeight = 54;
+      
+      const ratio = imgProps.width / imgProps.height;
+      let drawWidth = pdfWidth;
+      let drawHeight = pdfWidth / ratio;
+      
+      if (drawHeight > pdfHeight) {
+        drawHeight = pdfHeight;
+        drawWidth = pdfHeight * ratio;
+      }
+      
+      const x = (pdfWidth - drawWidth) / 2;
+      const y = (pdfHeight - drawHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, drawWidth, drawHeight, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
       
       toast.success('PDF gerado com sucesso!', { id: loadingToast });

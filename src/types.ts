@@ -20,6 +20,8 @@ export type Athlete = {
   status: "Ativo" | "Inativo";
   modality: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Professor = {
@@ -35,6 +37,8 @@ export type Professor = {
   uf: string;
   photo: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Event = {
@@ -49,6 +53,8 @@ export type Event = {
   end_date: string;
   start_time: string;
   end_time: string;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Attendance = {
@@ -59,6 +65,8 @@ export type Attendance = {
   status: "Presente" | "Faltou";
   justification?: string;
   arrival_time?: string;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Training = {
@@ -90,6 +98,8 @@ export type Anamnesis = {
   medication_restriction: string;
   pathologies: string; // JSON string
   pathologies_description?: string;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Settings = {
@@ -106,6 +116,8 @@ export type User = {
   doc: string;
   role: "admin" | "student";
   athlete_id?: string;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type AuthResponse = {
