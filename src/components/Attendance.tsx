@@ -413,7 +413,6 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }

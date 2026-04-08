@@ -185,7 +185,6 @@ export default function Documents() {
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -302,7 +301,6 @@ export default function Documents() {
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }

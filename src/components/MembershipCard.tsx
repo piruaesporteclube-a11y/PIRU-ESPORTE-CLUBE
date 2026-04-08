@@ -178,8 +178,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         allowTaint: false,
         backgroundColor: '#000000',
         logging: false,
-        width: 450,
-        height: 284,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -311,8 +309,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         allowTaint: false,
         backgroundColor: '#000000',
         logging: false,
-        width: 450,
-        height: 284,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -539,14 +535,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-center min-w-0 py-0.5 pr-2">
-              <div className="space-y-1.5">
+            <div className="flex-1 flex flex-col justify-center min-w-0 py-1 pr-2">
+              <div className="space-y-2">
                 <div>
                   <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome do Aluno
                   </div>
-                  <h4 className="text-[11px] font-black uppercase leading-tight text-white tracking-tight mb-0.5 break-words line-clamp-2">
+                  <h4 className="text-[11px] font-black uppercase leading-tight text-white tracking-tight mb-0.5 break-words line-clamp-2 max-h-[28px] overflow-hidden">
                     {athlete.name}
                   </h4>
                   {athlete.nickname && (
@@ -614,12 +610,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
+          <div className="h-16 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
               <div className="bg-white p-1 rounded-xl shadow-2xl flex items-center justify-center">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={64} 
+                  size={56} 
                   level="H"
                   includeMargin={false}
                   imageSettings={{
