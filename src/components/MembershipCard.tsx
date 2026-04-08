@@ -500,15 +500,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
-                <p className="text-[10px] font-black text-theme-primary">31/12/2026</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
-                <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
-              </div>
+            <div className="text-right">
+              <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+              <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
             </div>
           </div>
 
@@ -636,9 +630,15 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <ShieldCheck size={20} className="text-theme-primary" />
-              <p className="text-[6px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
+                <p className="text-[10px] font-black text-theme-primary">31/12/2026</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <ShieldCheck size={20} className="text-theme-primary" />
+                <p className="text-[6px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
+              </div>
             </div>
           </div>
 
