@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
@@ -180,7 +180,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800
+        width: 800,
+        onclone: (clonedDoc) => {
+          fixHtml2CanvasColors(clonedDoc.body);
+        }
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -512,7 +515,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             )}
                           >
                             <div className="w-10 h-10 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
-                              {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                              {a.photo && a.photo.trim() !== "" ? (
+                                <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                  <User size={20} />
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold truncate text-sm uppercase">{a.name}</p>
@@ -538,7 +547,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             )}
                           >
                             <div className="w-10 h-10 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
-                              {p.photo && <img src={p.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                              {p.photo && p.photo.trim() !== "" ? (
+                                <img src={p.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                  <User size={20} />
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold truncate text-sm uppercase">{p.name}</p>
@@ -562,7 +577,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
-                                  {s.photo && <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                                  {s.photo && s.photo.trim() !== "" ? (
+                                    <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                      <User size={16} />
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
@@ -613,7 +634,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
-                                  {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                                  {a.photo && a.photo.trim() !== "" ? (
+                                    <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                      <User size={16} />
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-bold truncate text-xs uppercase">{a.name}</p>
@@ -658,7 +685,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     {lineupStaff.map(s => (
                       <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4">
                         <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
-                          {s.photo && <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                          {s.photo && s.photo.trim() !== "" ? (
+                            <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                              <User size={24} />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-white uppercase">{s.name}</p>
@@ -669,7 +702,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     {lineupAthletes.map(a => (
                       <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4">
                         <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
-                          {a.photo && <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                          {a.photo && a.photo.trim() !== "" ? (
+                            <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                              <User size={24} />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-white uppercase">{a.name}</p>
@@ -714,9 +753,9 @@ export default function EventsManagement({ athletes: athletesProp, events: event
             <div className="hidden print-only p-6 text-black bg-white min-h-screen" ref={lineupRef}>
               <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
                 <div className="flex items-center gap-4">
-                  {settings?.schoolCrest && (
+                  {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                     <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
-                  )}
+                  ) : null}
                   <div className="text-left">
                     <h1 className="text-xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
                     <h2 className="text-sm font-bold uppercase text-zinc-600">Folha de Escalação Oficial - LISTA {activeLineupIndex + 1}</h2>

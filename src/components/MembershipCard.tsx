@@ -297,7 +297,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     crossOrigin="anonymous"
                     data-type="crest"
                   />
-                ) : settings?.schoolCrest ? (
+                ) : (settings?.schoolCrest && settings.schoolCrest.trim() !== "") ? (
                   <img 
                     src={settings.schoolCrest} 
                     className="w-full h-full object-contain" 
@@ -426,7 +426,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   level="H"
                   includeMargin={false}
                   imageSettings={{
-                    src: crestDataUrl || '',
+                    src: crestDataUrl || undefined,
                     x: undefined,
                     y: undefined,
                     height: 16,

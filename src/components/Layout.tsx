@@ -74,7 +74,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black/80 backdrop-blur-md sticky top-0 z-50 safe-top">
         <div className="flex items-center gap-3">
-          {settings?.schoolCrest ? (
+          {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
             <img src={settings.schoolCrest} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
           ) : (
             <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-sm">P</div>
@@ -95,7 +95,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         <aside className="hidden lg:flex flex-col w-64 bg-black border-r border-zinc-800 sticky top-0 h-screen">
           <div className="flex flex-col h-full p-6">
             <div className="flex items-center gap-3 mb-10 px-2">
-              {settings?.schoolCrest ? (
+              {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                 <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl">P</div>
@@ -172,7 +172,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                 <div className="flex flex-col h-full p-6 safe-top">
                   <div className="flex items-center justify-between mb-10">
                     <div className="flex items-center gap-3">
-                      {settings?.schoolCrest ? (
+                      {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                         <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg">P</div>

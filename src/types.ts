@@ -58,6 +58,7 @@ export type Attendance = {
   date: string;
   status: "Presente" | "Faltou";
   justification?: string;
+  arrival_time?: string;
 };
 
 export type Training = {

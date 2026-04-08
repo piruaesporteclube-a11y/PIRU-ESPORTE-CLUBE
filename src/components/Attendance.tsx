@@ -4,7 +4,7 @@ import { Athlete, getSubCategory, categories } from '../types';
 import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,7 +15,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
-  const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string }>>({});
+  const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string, arrival_time?: string }>>({});
   const [filterSub, setFilterSub] = useState('Todos');
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -98,9 +98,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
     try {
       const attendanceData = await api.getAttendance(date, undefined, trainingId);
       
-      const attMap: Record<string, { status: string, justification: string }> = {};
+      const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
       attendanceData.forEach(a => {
-        attMap[a.athlete_id] = { status: a.status, justification: a.justification || '' };
+        attMap[a.athlete_id] = { 
+          status: a.status, 
+          justification: a.justification || '',
+          arrival_time: a.arrival_time
+        };
       });
       setAttendance(attMap);
       if (!silent) toast.success("Presenças carregadas!");
@@ -268,12 +272,23 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
     }
   };
 
-  const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '') => {
+  const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '', arrival_time?: string) => {
     try {
       // Use a stable ID for the day to prevent duplicate records
       const attendanceId = trainingId ? `${athleteId}_training_${trainingId}` : `${athleteId}_${date}`;
-      await api.saveAttendance({ id: attendanceId, athlete_id: athleteId, training_id: trainingId, date, status, justification });
-      setAttendance(prev => ({ ...prev, [athleteId]: { status, justification } }));
+      
+      const finalArrivalTime = status === 'Presente' ? (arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm')) : undefined;
+      
+      await api.saveAttendance({ 
+        id: attendanceId, 
+        athlete_id: athleteId, 
+        training_id: trainingId, 
+        date, 
+        status, 
+        justification,
+        arrival_time: finalArrivalTime
+      });
+      setAttendance(prev => ({ ...prev, [athleteId]: { status, justification, arrival_time: finalArrivalTime } }));
     } catch (err: any) {
       toast.error(`Erro ao salvar presença: ${err.message}`);
     }
@@ -370,7 +385,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: true,
-        width: 800
+        width: 800,
+        onclone: (clonedDoc) => {
+          fixHtml2CanvasColors(clonedDoc.body);
+        }
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -468,7 +486,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                       className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5"
                     >
                       <div className="w-10 h-10 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0 border border-theme-primary/20">
-                        {scan.photo ? (
+                        {scan.photo && scan.photo.trim() !== "" ? (
                           <img src={scan.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-zinc-600">
@@ -553,6 +571,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
               <tr className="bg-black/50 border-b border-zinc-800">
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
               </tr>
@@ -565,7 +584,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                          {athlete.photo ? (
+                          {athlete.photo && athlete.photo.trim() !== "" ? (
                             <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <User size={16} />
@@ -576,6 +595,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {att?.status === 'Presente' ? (
+                        <span className="text-xs font-black text-theme-primary bg-theme-primary/10 px-2 py-1 rounded-lg">
+                          {att.arrival_time || '--:--'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-600">--:--</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -626,7 +654,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                      {athlete.photo ? (
+                      {athlete.photo && athlete.photo.trim() !== "" ? (
                         <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         <User size={20} />
@@ -635,6 +663,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                     <div>
                       <div className="font-bold text-white text-sm">{athlete.name}</div>
                       <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
+                      {att?.status === 'Presente' && (
+                        <div className="text-[10px] font-black text-theme-primary mt-1">
+                          CHEGADA: {att.arrival_time || '--:--'}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -721,9 +754,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
               <div className="space-y-6 print:space-y-4">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
                   <div className="flex items-center gap-4">
-                    {settings?.schoolCrest && (
+                    {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                       <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
-                    )}
+                    ) : null}
                     <div>
                       <h1 className="text-2xl font-black uppercase tracking-tighter">Piruá Esporte Clube</h1>
                       <p className="text-sm font-bold text-zinc-600 uppercase tracking-widest">Relatório Oficial de Frequência</p>
@@ -761,6 +794,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                       <tr className="bg-zinc-100">
                         <th className="border border-black p-2 text-left w-12">Nº</th>
                         <th className="border border-black p-2 text-left">Nome do Atleta</th>
+                        <th className="border border-black p-2 text-center w-24">Horário</th>
                         <th className="border border-black p-2 text-center w-24">Status</th>
                         <th className="border border-black p-2 text-left">Justificativa</th>
                       </tr>
@@ -774,6 +808,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                           )}>
                             <td className="border border-black p-2 text-center">{index + 1}</td>
                             <td className="border border-black p-2 font-bold uppercase">{athlete.name}</td>
+                            <td className="border border-black p-2 text-center font-mono">
+                              {att?.status === 'Presente' ? (att.arrival_time || '--:--') : '--:--'}
+                            </td>
                             <td className={cn(
                               "border border-black p-2 text-center font-black",
                               att?.status === 'Presente' ? "text-green-700" : att?.status === 'Faltou' ? "text-red-700" : "text-zinc-400"

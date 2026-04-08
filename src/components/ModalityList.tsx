@@ -92,7 +92,7 @@ export default function ModalityList() {
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 overflow-hidden">
-                            {athlete.photo ? (
+                            {athlete.photo && athlete.photo.trim() !== "" ? (
                               <img src={athlete.photo} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-zinc-600">

@@ -401,7 +401,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 <div className="w-full flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 md:w-16 md:h-16 bg-[#EAB308] p-1.5 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.4)]">
-                      {settings.schoolCrest ? (
+                      {settings.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                         <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="w-full h-full bg-[#000000] rounded-xl flex items-center justify-center text-[#EAB308] font-black text-xl">P</div>
@@ -431,7 +431,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                     
                     {/* Athlete Photo */}
                     <div className="w-48 h-48 md:w-64 md:h-64 bg-[#18181b] rounded-[48px] border-4 border-[#EAB308] overflow-hidden shadow-[0_0_50px_rgba(234,179,8,0.3)] relative z-10 group-hover:scale-105 transition-transform duration-500">
-                      {selectedPerson.photo ? (
+                      {selectedPerson.photo && selectedPerson.photo.trim() !== "" ? (
                         <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[#27272a]">
