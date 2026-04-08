@@ -17,6 +17,7 @@ interface EventsManagementProps {
 
 export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin' }: EventsManagementProps) {
   const { settings } = useTheme();
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const isAdmin = role === 'admin';
   const [events, setEvents] = useState<Event[]>(eventsProp || []);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -63,6 +64,48 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     api.getProfessors().then(setProfessors);
   }, [athletesProp, eventsProp]);
 
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
+
   const loadEvents = async () => {
     const data = await api.getEvents();
     setEvents(data.sort((a, b) => b.start_date.localeCompare(a.start_date)));
@@ -77,23 +120,29 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF da escalação...');
     
+    let container: HTMLDivElement | null = null;
     try {
       // Ensure images are loaded before capturing
       const images = lineupRef.current.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
         });
       }));
 
       // Create a temporary container for capture
-      const container = document.createElement('div');
+      container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '800px';
+      container.style.left = '0';
+      container.style.top = '0';
+      container.style.width = '1200px';
+      container.style.height = '1600px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
       const clone = lineupRef.current.cloneNode(true) as HTMLElement;
@@ -101,6 +150,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
         img.style.display = 'block';
@@ -130,8 +183,6 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         width: 800
       });
       
-      document.body.removeChild(container);
-
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -149,6 +200,9 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       console.error('Error generating PDF:', error);
       toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
     } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
       setIsGeneratingPDF(false);
     }
   };

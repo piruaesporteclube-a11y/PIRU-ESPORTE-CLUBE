@@ -97,23 +97,29 @@ export default function Documents() {
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF do documento...');
     
+    let container: HTMLDivElement | null = null;
     try {
       // Ensure images are loaded before capturing
       const images = documentRef.current.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
         });
       }));
 
       // Create a temporary container for capture to avoid scaling/CSS issues
-      const container = document.createElement('div');
+      container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '800px'; // Standard A4-ish width for capture
+      container.style.left = '0';
+      container.style.top = '0';
+      container.style.width = '1200px'; // Large enough for A4 width
+      container.style.height = '1600px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
       const clone = documentRef.current.cloneNode(true) as HTMLElement;
@@ -142,20 +148,17 @@ export default function Documents() {
       container.appendChild(clone);
 
       // Wait for clone to be ready and settled
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
-        logging: false,
+        logging: true,
         width: 800
       });
       
-      // Cleanup
-      document.body.removeChild(container);
-
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -173,6 +176,9 @@ export default function Documents() {
       console.error('Error generating PDF:', error);
       toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
     } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
       setIsGeneratingPDF(false);
     }
   };

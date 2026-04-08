@@ -20,6 +20,7 @@ interface AthleteFormProps {
 
 export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone }: AthleteFormProps) {
   const { settings } = useTheme();
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Athlete>>({
     name: '',
     nickname: '',
@@ -44,6 +45,48 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   useEffect(() => {
     if (athlete) setFormData(prev => ({ ...prev, ...athlete }));
   }, [athlete]);
+
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,23 +154,29 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF da ficha...');
     
+    let container: HTMLDivElement | null = null;
     try {
       // Ensure images are loaded before capturing
       const images = printRef.current.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
         });
       }));
 
       // Create a temporary container for capture
-      const container = document.createElement('div');
+      container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '800px';
+      container.style.left = '0';
+      container.style.top = '0';
+      container.style.width = '1200px';
+      container.style.height = '1600px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
       const clone = printRef.current.cloneNode(true) as HTMLElement;
@@ -135,6 +184,10 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
       clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
         img.style.display = 'block';
@@ -153,19 +206,17 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       container.appendChild(clone);
 
       // Wait for clone to be ready
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
-        logging: false,
+        logging: true,
         width: 800
       });
       
-      document.body.removeChild(container);
-
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -183,6 +234,9 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       console.error('Error generating PDF:', error);
       toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
     } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
       setIsGeneratingPDF(false);
     }
   };

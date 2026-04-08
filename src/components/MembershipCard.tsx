@@ -77,47 +77,32 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF da carteirinha...');
     
+    let container: HTMLDivElement | null = null;
     try {
       // Ensure images are loaded before capturing
       const images = cardRef.current.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
         });
       }));
 
-      // If we have data URLs, ensure they are used in the clone
-      const clone = cardRef.current.cloneNode(true) as HTMLElement;
-      
       // Create a temporary container for capture to avoid scaling/CSS issues
-      const container = document.createElement('div');
+      container = document.createElement('div');
       container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '450px';
-      container.style.height = '284px';
+      container.style.left = '0';
+      container.style.top = '0';
+      container.style.width = '1000px'; // Large enough
+      container.style.height = '1000px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
-      clone.style.transform = 'none';
-      clone.style.scale = '1';
-      clone.style.margin = '0';
-      clone.style.padding = '0';
-      clone.style.width = '450px';
-      clone.style.height = '284px';
-      clone.style.position = 'relative';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.visibility = 'visible';
-      clone.style.display = 'flex';
-      clone.style.opacity = '1';
-      clone.style.borderRadius = '0'; // Remove border radius for cleaner capture
-      clone.style.overflow = 'hidden';
-      clone.style.backgroundColor = '#000000';
-      clone.style.color = 'white';
-      clone.style.boxShadow = 'none';
-      clone.style.border = 'none';
+      const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
@@ -134,23 +119,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         img.setAttribute('crossOrigin', 'anonymous');
       });
 
+      clone.style.transform = 'none';
+      clone.style.scale = '1';
+      clone.style.margin = '0';
+      clone.style.padding = '0';
+      clone.style.width = '450px';
+      clone.style.height = '284px';
+      clone.style.position = 'relative';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.visibility = 'visible';
+      clone.style.display = 'flex';
+      clone.style.opacity = '1';
+      clone.style.borderRadius = '0';
+      clone.style.overflow = 'hidden';
+      clone.style.backgroundColor = '#000000';
+      clone.style.color = 'white';
+      clone.style.boxShadow = 'none';
+      clone.style.border = 'none';
+      
       container.appendChild(clone);
 
       // Wait for clone to be ready and settled
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(clone, {
-        scale: 2, // 2 is enough for high quality
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#000000',
-        logging: false,
+        logging: true,
         width: 450,
-        height: 284,
+        height: 284
       });
-
-      // Cleanup
-      document.body.removeChild(container);
 
       const imgData = canvas.toDataURL('image/png', 1.0);
       
@@ -169,6 +170,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       console.error('Error generating PDF:', error);
       toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir e salvar como PDF.', { id: loadingToast });
     } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
       setIsGeneratingPDF(false);
     }
   };
