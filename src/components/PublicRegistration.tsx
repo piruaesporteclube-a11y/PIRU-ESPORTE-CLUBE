@@ -34,7 +34,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     guardian_doc: '',
     guardian_phone: '',
     status: 'Ativo',
-    modality: ''
+    modality: '',
+    gender: 'Masculino'
   });
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
@@ -110,7 +111,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     const requiredAthleteFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
       'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
-      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality'
+      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender'
     ];
     
     const missingAthlete = requiredAthleteFields.filter(f => !athleteData[f]);
@@ -333,20 +334,48 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                       <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Modalidade Esportiva</label>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Sexo</label>
                       <select 
                         required 
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
-                        value={athleteData.modality} 
-                        onChange={e => setAthleteData({...athleteData, modality: e.target.value})}
+                        value={athleteData.gender || 'Masculino'} 
+                        onChange={e => setAthleteData({...athleteData, gender: e.target.value as any})}
                       >
-                        <option value="">Selecione a Modalidade</option>
-                        <option value="Futebol de Campo">Futebol de Campo</option>
-                        <option value="Futsal">Futsal</option>
-                        <option value="Volêi">Volêi</option>
-                        <option value="Corrida de Rua">Corrida de Rua</option>
-                        <option value="Outros">Outros</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Feminino">Feminino</option>
                       </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Modalidades Esportivas (Selecione uma ou mais)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {["Futebol de Campo", "Futsal", "Volêi", "Corrida de Rua", "Outros"].map(m => {
+                          const isSelected = athleteData.modality?.split(', ').includes(m);
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => {
+                                const current = athleteData.modality ? athleteData.modality.split(', ') : [];
+                                let next;
+                                if (current.includes(m)) {
+                                  next = current.filter(item => item !== m);
+                                } else {
+                                  next = [...current, m];
+                                }
+                                setAthleteData({...athleteData, modality: next.join(', ')});
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-xl border text-[10px] font-black uppercase transition-all",
+                                isSelected 
+                                  ? "bg-theme-primary border-theme-primary text-black" 
+                                  : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                              )}
+                            >
+                              {m}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

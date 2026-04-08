@@ -130,13 +130,21 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         const orig = originalElements[i] as HTMLElement;
         const cln = cloneElements[i] as HTMLElement;
         const style = window.getComputedStyle(orig);
-        cln.style.fontSize = style.fontSize;
-        cln.style.lineHeight = style.lineHeight;
-        cln.style.fontFamily = style.fontFamily;
-        cln.style.fontWeight = style.fontWeight;
-        cln.style.letterSpacing = style.letterSpacing;
-        cln.style.textTransform = style.textTransform;
-        cln.style.color = style.color;
+        
+        // Essential layout and typography styles
+        const propsToCopy = [
+          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
+          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
+          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
+          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
+          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
+        ];
+        
+        propsToCopy.forEach(prop => {
+          (cln.style as any)[prop] = (style as any)[prop];
+        });
       }
 
       // Replace images in clone with data URLs if available
@@ -256,13 +264,21 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         const orig = originalElements[i] as HTMLElement;
         const cln = cloneElements[i] as HTMLElement;
         const style = window.getComputedStyle(orig);
-        cln.style.fontSize = style.fontSize;
-        cln.style.lineHeight = style.lineHeight;
-        cln.style.fontFamily = style.fontFamily;
-        cln.style.fontWeight = style.fontWeight;
-        cln.style.letterSpacing = style.letterSpacing;
-        cln.style.textTransform = style.textTransform;
-        cln.style.color = style.color;
+        
+        // Essential layout and typography styles
+        const propsToCopy = [
+          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
+          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
+          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
+          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
+          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
+        ];
+        
+        propsToCopy.forEach(prop => {
+          (cln.style as any)[prop] = (style as any)[prop];
+        });
       }
 
       // Replace images in clone with data URLs if available
@@ -565,7 +581,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     </div>
                     <p className="text-[9px] font-black text-white">#{athlete.jersey_number || '--'}</p>
                   </div>
-                  <div className="col-span-3 min-w-0">
+                  <div className="min-w-0">
+                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                      Sexo
+                    </div>
+                    <p className="text-[9px] font-black text-white truncate">{athlete.gender || '--'}</p>
+                  </div>
+                  <div className="col-span-2 min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                       Modalidade

@@ -38,7 +38,8 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     guardian_doc: '',
     guardian_phone: '',
     status: 'Ativo',
-    modality: ''
+    modality: '',
+    gender: 'Masculino'
   });
   const [loading, setLoading] = useState(false);
 
@@ -113,7 +114,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     const requiredFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
       'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
-      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality'
+      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender'
     ];
     
     const missing = requiredFields.filter(f => !formData[f]);
@@ -201,13 +202,21 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         const orig = originalElements[i] as HTMLElement;
         const cln = cloneElements[i] as HTMLElement;
         const style = window.getComputedStyle(orig);
-        cln.style.fontSize = style.fontSize;
-        cln.style.lineHeight = style.lineHeight;
-        cln.style.fontFamily = style.fontFamily;
-        cln.style.fontWeight = style.fontWeight;
-        cln.style.letterSpacing = style.letterSpacing;
-        cln.style.textTransform = style.textTransform;
-        cln.style.color = style.color;
+        
+        // Essential layout and typography styles
+        const propsToCopy = [
+          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
+          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
+          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
+          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
+          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
+        ];
+        
+        propsToCopy.forEach(prop => {
+          (cln.style as any)[prop] = (style as any)[prop];
+        });
       }
 
       // Replace images in clone with data URLs if available
@@ -427,20 +436,48 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Modalidade Esportiva</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Sexo</label>
                     <select 
                       required 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase" 
-                      value={formData.modality || ''} 
-                      onChange={e => setFormData({...formData, modality: e.target.value})}
+                      value={formData.gender || 'Masculino'} 
+                      onChange={e => setFormData({...formData, gender: e.target.value as any})}
                     >
-                      <option value="">Selecione a Modalidade</option>
-                      <option value="Futebol de Campo">Futebol de Campo</option>
-                      <option value="Futsal">Futsal</option>
-                      <option value="Volêi">Volêi</option>
-                      <option value="Corrida de Rua">Corrida de Rua</option>
-                      <option value="Outros">Outros</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
                     </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Modalidades Esportivas (Selecione uma ou mais)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {["Futebol de Campo", "Futsal", "Volêi", "Corrida de Rua", "Outros"].map(m => {
+                        const isSelected = formData.modality?.split(', ').includes(m);
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.modality ? formData.modality.split(', ') : [];
+                              let next;
+                              if (current.includes(m)) {
+                                next = current.filter(item => item !== m);
+                              } else {
+                                next = [...current, m];
+                              }
+                              setFormData({...formData, modality: next.join(', ')});
+                            }}
+                            className={cn(
+                              "px-4 py-2 rounded-xl border text-[10px] font-black uppercase transition-all",
+                              isSelected 
+                                ? "bg-theme-primary border-theme-primary text-black" 
+                                : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                            )}
+                          >
+                            {m}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

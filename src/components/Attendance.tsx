@@ -368,13 +368,21 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
         const orig = originalElements[i] as HTMLElement;
         const cln = cloneElements[i] as HTMLElement;
         const style = window.getComputedStyle(orig);
-        cln.style.fontSize = style.fontSize;
-        cln.style.lineHeight = style.lineHeight;
-        cln.style.fontFamily = style.fontFamily;
-        cln.style.fontWeight = style.fontWeight;
-        cln.style.letterSpacing = style.letterSpacing;
-        cln.style.textTransform = style.textTransform;
-        cln.style.color = style.color;
+        
+        // Essential layout and typography styles
+        const propsToCopy = [
+          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
+          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
+          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
+          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
+          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
+        ];
+        
+        propsToCopy.forEach(prop => {
+          (cln.style as any)[prop] = (style as any)[prop];
+        });
       }
 
       // Replace images in clone with data URLs if available
@@ -823,10 +831,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                   <table className="w-full border-collapse border border-black text-xs">
                     <thead>
                       <tr className="bg-zinc-100">
-                        <th className="border border-black p-2 text-left w-12">Nº</th>
+                        <th className="border border-black p-2 text-left w-10">Nº</th>
                         <th className="border border-black p-2 text-left">Nome do Atleta</th>
-                        <th className="border border-black p-2 text-center w-24">Horário</th>
-                        <th className="border border-black p-2 text-center w-24">Status</th>
+                        <th className="border border-black p-2 text-center w-16">Sexo</th>
+                        <th className="border border-black p-2 text-left w-32">Modalidade</th>
+                        <th className="border border-black p-2 text-center w-16">Horário</th>
+                        <th className="border border-black p-2 text-center w-20">Status</th>
                         <th className="border border-black p-2 text-left">Justificativa</th>
                       </tr>
                     </thead>
@@ -839,7 +849,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                           )}>
                             <td className="border border-black p-2 text-center">{index + 1}</td>
                             <td className="border border-black p-2 font-bold uppercase">{athlete.name}</td>
-                            <td className="border border-black p-2 text-center font-mono">
+                            <td className="border border-black p-2 text-center uppercase text-[10px]">{athlete.gender?.charAt(0) || '-'}</td>
+                            <td className="border border-black p-2 uppercase text-[9px] leading-tight">{athlete.modality || '-'}</td>
+                            <td className="border border-black p-2 text-center font-mono text-[10px]">
                               {att?.status === 'Presente' ? (att.arrival_time || '--:--') : '--:--'}
                             </td>
                             <td className={cn(

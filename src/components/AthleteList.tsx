@@ -75,9 +75,10 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   };
 
   const exportToCSV = () => {
-    const headers = ['Nome', 'Categoria', 'Modalidade', 'Status', 'Documento', 'Uniforme'];
+    const headers = ['Nome', 'Sexo', 'Categoria', 'Modalidade', 'Status', 'Documento', 'Uniforme'];
     const rows = filteredAthletes.map(a => [
       a.name,
+      a.gender || '',
       getSubCategory(a.birth_date),
       a.modality || '',
       a.status,
@@ -216,6 +217,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             <thead>
               <tr className="bg-black/50 border-b border-zinc-800">
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Sexo</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Modalidade</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">UNIFORME</th>
@@ -266,6 +268,11 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                         </div>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-zinc-300 text-xs font-bold uppercase">
+                      {athlete.gender || '--'}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-bold rounded-md">
@@ -422,6 +429,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
           <thead>
             <tr className="bg-zinc-100">
               <th className="border border-black p-2 text-left">Nome</th>
+              <th className="border border-black p-2 text-left">Sexo</th>
               <th className="border border-black p-2 text-left">Doc</th>
               <th className="border border-black p-2 text-left">Nasc.</th>
               <th className="border border-black p-2 text-left">Cat.</th>
@@ -434,6 +442,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             {filteredAthletes.map(a => (
               <tr key={a.id}>
                 <td className="border border-black p-2">{a.name}</td>
+                <td className="border border-black p-2">{a.gender}</td>
                 <td className="border border-black p-2">{a.doc}</td>
                 <td className="border border-black p-2">{a.birth_date}</td>
                 <td className="border border-black p-2">{getSubCategory(a.birth_date)}</td>

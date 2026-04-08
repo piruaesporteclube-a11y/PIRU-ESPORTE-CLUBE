@@ -6,6 +6,7 @@ export type Athlete = {
   nickname?: string;
   birth_date: string;
   doc: string;
+  gender: "Masculino" | "Feminino";
   street: string;
   number: string;
   neighborhood: string;
@@ -18,7 +19,7 @@ export type Athlete = {
   guardian_doc: string;
   guardian_phone: string;
   status: "Ativo" | "Inativo";
-  modality: string;
+  modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   created_at?: any;
   updated_at?: any;
