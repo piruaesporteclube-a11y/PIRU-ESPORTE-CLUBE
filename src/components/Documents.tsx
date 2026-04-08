@@ -96,19 +96,69 @@ export default function Documents() {
     if (!documentRef.current) return;
     
     const loadingToast = toast.loading('Gerando imagem do documento...');
+    let container: HTMLDivElement | null = null;
+    
     try {
-      const canvas = await html2canvas(documentRef.current, {
+      // Ensure images are loaded
+      const images = documentRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 3000);
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
+        });
+      }));
+
+      // Create a temporary container for capture
+      container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '0';
+      container.style.top = '0';
+      container.style.width = '1200px';
+      container.style.height = '1600px';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
+      document.body.appendChild(container);
+
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '800px';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      
+      container.appendChild(clone);
+
+      // Wait for clone to be ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 800,
         onclone: (clonedDoc) => {
-          const content = clonedDoc.querySelector('.document-content') as HTMLElement;
-          if (content) {
-            content.style.padding = '40px';
-            fixHtml2CanvasColors(content);
-          }
+          fixHtml2CanvasColors(clonedDoc.body);
         }
       });
 
@@ -122,6 +172,10 @@ export default function Documents() {
     } catch (error) {
       console.error('Error generating image:', error);
       toast.error('Erro ao gerar imagem.', { id: loadingToast });
+    } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
     }
   };
 

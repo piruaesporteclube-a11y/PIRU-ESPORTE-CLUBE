@@ -77,19 +77,67 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     if (!cardRef.current) return;
     
     const loadingToast = toast.loading('Gerando imagem da carteirinha...');
+    let container: HTMLDivElement | null = null;
+    
     try {
-      const canvas = await html2canvas(cardRef.current, {
+      // Ensure images are loaded
+      const images = cardRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 3000);
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
+        });
+      }));
+
+      // Create a temporary container for capture
+      container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '450px';
+      container.style.height = '284px';
+      document.body.appendChild(container);
+
+      const clone = cardRef.current.cloneNode(true) as HTMLElement;
+      clone.style.transform = 'none';
+      clone.style.scale = '1';
+      clone.style.margin = '0';
+      clone.style.position = 'relative';
+      clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
+      
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const type = img.getAttribute('data-type');
+        if (type === 'crest' && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        if (type === 'photo' && photoDataUrl) {
+          img.setAttribute('src', photoDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      container.appendChild(clone);
+
+      // Wait for clone to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(clone, {
         scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#000000',
         logging: false,
+        width: 450,
+        height: 284,
         onclone: (clonedDoc) => {
-          const card = clonedDoc.querySelector('.card') as HTMLElement;
-          if (card) {
-            card.style.transform = 'none';
-            fixHtml2CanvasColors(card);
-          }
+          fixHtml2CanvasColors(clonedDoc.body);
         }
       });
 
@@ -103,6 +151,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     } catch (error) {
       console.error('Error generating image:', error);
       toast.error('Erro ao gerar imagem.', { id: loadingToast });
+    } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
     }
   };
 
