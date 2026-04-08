@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
+import { fixHtml2CanvasColors } from '../utils';
 
 export default function Documents() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -91,6 +92,39 @@ export default function Documents() {
     window.print();
   };
 
+  const handleDownloadImage = async () => {
+    if (!documentRef.current) return;
+    
+    const loadingToast = toast.loading('Gerando imagem do documento...');
+    try {
+      const canvas = await html2canvas(documentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+          const content = clonedDoc.querySelector('.document-content') as HTMLElement;
+          if (content) {
+            content.style.padding = '40px';
+            fixHtml2CanvasColors(content);
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `${docType}_${selectedAthlete?.name.replace(/\s+/g, '_')}.png`;
+      link.click();
+      
+      toast.success('Imagem gerada com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Erro ao gerar imagem.', { id: loadingToast });
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!documentRef.current) return;
     
@@ -156,7 +190,10 @@ export default function Documents() {
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: true,
-        width: 800
+        width: 800,
+        onclone: (clonedDoc) => {
+          fixHtml2CanvasColors(clonedDoc.body);
+        }
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -461,6 +498,14 @@ export default function Documents() {
                 </button>
  
                 <button 
+                  onClick={handleDownloadImage}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:text-black transition-all text-[10px] uppercase tracking-widest"
+                >
+                  <Download size={16} />
+                  Imagem
+                </button>
+
+                <button 
                   onClick={handleDownloadPDF}
                   disabled={isGeneratingPDF}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 text-[10px] uppercase tracking-widest"
@@ -482,9 +527,9 @@ export default function Documents() {
             {/* Document Content */}
             <div ref={documentRef} className="document-content text-justify leading-relaxed p-2 bg-white">
               <div className="text-center mb-6 border-b-2 border-black pb-4">
-                {settings?.schoolCrest && (
+                {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                   <img src={settings.schoolCrest} className="w-16 h-16 object-contain mx-auto mb-2" referrerPolicy="no-referrer" />
-                )}
+                ) : null}
                 <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
                 <p className="text-base font-bold uppercase">Departamento de Futebol de Base</p>
                 <h2 className="text-lg font-black mt-2 uppercase underline">
@@ -566,9 +611,9 @@ export default function Documents() {
         {docType && selectedAthlete && (
           <div className="document-content text-justify leading-relaxed">
             <div className="text-center mb-6 border-b-2 border-black pb-4">
-              {settings?.schoolCrest && (
+              {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
                 <img src={settings.schoolCrest} className="w-16 h-16 object-contain mx-auto mb-2" referrerPolicy="no-referrer" />
-              )}
+              ) : null}
               <h1 className="text-2xl font-black uppercase">Piruá Esporte Clube</h1>
               <p className="text-base font-bold uppercase">Departamento de Futebol de Base</p>
               <h2 className="text-lg font-black mt-2 uppercase underline">

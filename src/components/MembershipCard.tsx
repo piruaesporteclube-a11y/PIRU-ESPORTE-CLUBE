@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
+import { fixHtml2CanvasColors } from '../utils';
 
 interface MembershipCardProps {
   athlete: Athlete;
@@ -70,6 +71,39 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     setTimeout(() => {
       window.print();
     }, 500);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!cardRef.current) return;
+    
+    const loadingToast = toast.loading('Gerando imagem da carteirinha...');
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#000000',
+        logging: false,
+        onclone: (clonedDoc) => {
+          const card = clonedDoc.querySelector('.card') as HTMLElement;
+          if (card) {
+            card.style.transform = 'none';
+            fixHtml2CanvasColors(card);
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.click();
+      
+      toast.success('Imagem gerada com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Erro ao gerar imagem.', { id: loadingToast });
+    }
   };
 
   const handleSavePDF = async () => {
@@ -150,7 +184,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         backgroundColor: '#000000',
         logging: true,
         width: 450,
-        height: 284
+        height: 284,
+        onclone: (clonedDoc) => {
+          fixHtml2CanvasColors(clonedDoc.body);
+        }
       });
 
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -182,6 +219,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       <div className="flex items-center justify-between no-print">
         <h2 className="text-2xl font-bold text-white">Carteirinha do Atleta</h2>
         <div className="flex gap-2">
+          <button 
+            onClick={handleDownloadImage}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+            title="Baixar como Imagem (PNG)"
+          >
+            <Download size={18} />
+            Imagem
+          </button>
           <button 
             onClick={handleSavePDF}
             disabled={isGeneratingPDF}
