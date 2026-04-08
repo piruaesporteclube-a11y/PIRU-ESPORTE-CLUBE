@@ -500,9 +500,15 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
-              <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
+                <p className="text-[10px] font-black text-theme-primary">31/12/2026</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
+                <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
+              </div>
             </div>
           </div>
 
@@ -548,7 +554,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Nascimento
+                      DATA DE NASCIMENTO
                     </div>
                     <p className="text-[10px] font-black text-white whitespace-nowrap">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
@@ -579,9 +585,15 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
                 <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-2 rounded-xl border border-[rgba(255,255,255,0.05)]">
                   <div className="space-y-1.5">
-                    <div className="min-w-0">
-                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
-                      <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
+                        <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
+                        <p className="text-[9px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                      </div>
                     </div>
                     <div className="min-w-0">
                       <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço do Responsável</p>
