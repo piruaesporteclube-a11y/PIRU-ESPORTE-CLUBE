@@ -105,13 +105,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
-      // Reset styles for capture to ensure proportionality
+      // Reset styles for capture to ensure proportionality (11x8 ratio)
       clone.style.transform = 'none';
       clone.style.scale = '1';
       clone.style.margin = '0';
       clone.style.padding = '0';
-      clone.style.width = '450px';
-      clone.style.height = '284px';
+      clone.style.width = '440px';
+      clone.style.height = '320px';
       clone.style.position = 'relative';
       clone.style.left = '0';
       clone.style.top = '0';
@@ -232,13 +232,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
-      // Reset styles for capture to ensure proportionality
+      // Reset styles for capture to ensure proportionality (11x8 ratio)
       clone.style.transform = 'none';
       clone.style.scale = '1';
       clone.style.margin = '0';
       clone.style.padding = '0';
-      clone.style.width = '450px';
-      clone.style.height = '284px';
+      clone.style.width = '440px';
+      clone.style.height = '320px';
       clone.style.position = 'relative';
       clone.style.left = '0';
       clone.style.top = '0';
@@ -316,17 +316,17 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
       const imgData = canvas.toDataURL('image/png', 1.0);
       
-      // Create PDF with custom size (CR80)
+      // Create PDF with custom size (110mm x 80mm)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [85.6, 54]
+        format: [110, 80]
       });
 
       // Use image properties to maintain aspect ratio perfectly
       const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = 85.6;
-      const pdfHeight = 54;
+      const pdfWidth = 110;
+      const pdfHeight = 80;
       
       const ratio = imgProps.width / imgProps.height;
       let drawWidth = pdfWidth;
@@ -387,10 +387,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       </div>
 
       <div className="flex justify-center p-2 sm:p-8 print:p-0 card-print-container overflow-x-auto bg-zinc-950/50 rounded-[2.5rem] border border-zinc-800/50">
-        {/* The Card Layout - Standard CR80 Size (85.6mm x 54mm) */}
+        {/* The Card Layout - Custom Size (11cm x 8cm ratio) */}
         <div 
           ref={cardRef}
-          className="w-[450px] h-[284px] min-w-[450px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500"
+          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -432,8 +432,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 margin: 0 !important;
               }
               .card {
-                width: 85.6mm !important;
-                height: 54mm !important;
+                width: 110mm !important;
+                height: 80mm !important;
                 border: 0.5pt solid rgba(0,0,0,0.1) !important;
                 border-radius: 3mm !important;
                 box-shadow: none !important;
@@ -473,9 +473,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute top-0 left-0 w-full h-1.5 bg-theme-primary z-20"></div>
 
           {/* Header */}
-          <div className="h-14 px-6 flex items-center justify-between relative z-10">
+          <div className="h-16 px-6 flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
+            <div className="w-12 h-12 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
                 {crestDataUrl ? (
                   <img 
                     src={crestDataUrl} 
@@ -496,8 +496,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 )}
               </div>
               <div className="leading-tight">
-                <h3 className="text-base font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
-                <p className="text-[8px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
+                <h3 className="text-lg font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
+                <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
               </div>
             </div>
             <div className="text-right">
@@ -525,7 +525,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 )}
               </div>
               <div className="px-4 py-1 bg-theme-primary rounded-full shadow-lg border border-white/10 z-10">
-                <span className="text-[8px] font-black text-black uppercase tracking-widest">Atleta Oficial</span>
+                <span className="text-[8px] font-black text-black uppercase tracking-widest">Foto 3x4</span>
               </div>
               {/* Photo Glow */}
               <div 
@@ -542,15 +542,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome do Aluno
                   </div>
-                  <h4 className="text-[13px] font-black uppercase leading-tight text-white tracking-tight mb-1 break-words line-clamp-2 max-h-[32px] overflow-hidden">
+                  <h4 className="text-[14px] font-black uppercase leading-tight text-white tracking-tight mb-1 break-words line-clamp-2 max-h-[36px] overflow-hidden">
                     {athlete.name}
                   </h4>
-                  {athlete.nickname && (
-                    <div className="flex items-center gap-1.5 opacity-90">
-                      <span className="text-[8px] text-theme-primary font-black uppercase tracking-widest">Apelido:</span>
-                      <span className="text-[9px] font-bold text-[#d4d4d8] uppercase tracking-tight truncate">{athlete.nickname}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -566,7 +560,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Documento
+                      Categoria (Sub)
+                    </div>
+                    <p className="text-[10px] font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
+                      RG/CPF
                     </div>
                     <p className="text-[10px] font-black text-white truncate">{athlete.doc || '--'}</p>
                   </div>
@@ -577,31 +578,22 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     </div>
                     <p className="text-[10px] font-black text-white">#{athlete.jersey_number || '--'}</p>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Sexo
-                    </div>
-                    <p className="text-[10px] font-black text-white truncate">{athlete.gender || '--'}</p>
-                  </div>
-                  <div className="col-span-2 min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Modalidades
-                    </div>
-                    <p className="text-[10px] font-black text-white truncate uppercase">{athlete.modality || '--'}</p>
-                  </div>
                 </div>
 
                 <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-2 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
                     <div className="min-w-0">
-                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável</p>
+                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
                       <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
                     </div>
-                    <div className="text-right min-w-0">
-                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Contato Emergência</p>
-                      <p className="text-[9px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                    <div className="min-w-0">
+                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço do Responsável</p>
+                      <p className="text-[7px] font-medium text-[#a1a1aa] uppercase leading-tight truncate">
+                        {athlete.street}, {athlete.number} - {athlete.neighborhood}
+                      </p>
+                      <p className="text-[7px] font-black text-theme-primary uppercase tracking-tighter">
+                        {athlete.city} / {athlete.uf}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -610,12 +602,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-16 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
+          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
             <div className="flex items-center gap-4">
               <div className="bg-white p-1 rounded-xl shadow-2xl flex items-center justify-center">
                 <QRCodeCanvas 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={56} 
+                  size={64} 
                   level="H"
                   includeMargin={false}
                   imageSettings={{
@@ -628,20 +620,16 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   }}
                 />
               </div>
-              <div className="leading-tight max-w-[240px]">
-                <p className="text-[8px] text-white font-bold uppercase leading-tight">
-                  {athlete.street}, {athlete.number}
-                </p>
-                <p className="text-[8px] text-[#71717a] font-medium uppercase leading-tight">
-                  {athlete.neighborhood} - {athlete.city}/{athlete.uf}
+              <div className="leading-tight">
+                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validação Digital</p>
+                <p className="text-[7px] text-white/60 font-medium max-w-[180px] leading-relaxed">
+                  Aponte a câmera para o QR Code para validar a presença e situação do atleta.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-[7px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
-                <p className="text-xs font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
-              </div>
+            <div className="flex flex-col items-end gap-1">
+              <ShieldCheck size={20} className="text-theme-primary" />
+              <p className="text-[6px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
             </div>
           </div>
 
