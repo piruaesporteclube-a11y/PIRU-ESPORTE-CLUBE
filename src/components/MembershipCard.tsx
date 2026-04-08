@@ -390,7 +390,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Custom Size (11cm x 8cm ratio) */}
         <div 
           ref={cardRef}
-          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500"
+          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500 antialiased"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -507,7 +507,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Body */}
-          <div className="flex-1 flex p-5 gap-5 relative z-10 overflow-hidden">
+          <div className="flex-1 flex p-5 gap-5 relative z-10">
             {/* Photo Section */}
             <div className="relative group flex-shrink-0 flex flex-col items-center justify-center">
               <div className="w-[105px] h-[140px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
@@ -532,19 +532,19 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
-              <div className="space-y-3">
+            <div className="flex-1 flex flex-col justify-start min-w-0 py-1">
+              <div className="space-y-2">
                 <div>
                   <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome do Aluno
                   </div>
-                  <h4 className="text-[14px] font-black uppercase leading-tight text-white tracking-tight mb-1 break-words line-clamp-2 max-h-[36px] overflow-hidden">
+                  <h4 className="text-[13px] font-black uppercase leading-[1.1] text-white tracking-tight mb-0.5 break-words line-clamp-2">
                     {athlete.name}
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
