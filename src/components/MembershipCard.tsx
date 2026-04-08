@@ -507,10 +507,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Body */}
-          <div className="flex-1 flex p-4 gap-4 relative z-10 overflow-hidden">
+          <div className="flex-1 flex p-5 gap-5 relative z-10 overflow-hidden">
             {/* Photo Section */}
-            <div className="relative group flex-shrink-0 flex flex-col items-center gap-2">
-              <div className="w-[85px] h-[110px] bg-[#09090b] rounded-[1rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
+            <div className="relative group flex-shrink-0 flex flex-col items-center gap-3">
+              <div className="w-[105px] h-[135px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
                 {photoDataUrl ? (
                   <img 
                     src={photoDataUrl} 
@@ -520,88 +520,88 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3f3f46] bg-[#09090b]">
-                    <UserCircle size={40} strokeWidth={1} />
+                    <UserCircle size={48} strokeWidth={1} />
                   </div>
                 )}
               </div>
-              <div className="px-3 py-0.5 bg-theme-primary rounded-full shadow-lg border border-white/10 z-10">
-                <span className="text-[7px] font-black text-black uppercase tracking-widest">Atleta</span>
+              <div className="px-4 py-1 bg-theme-primary rounded-full shadow-lg border border-white/10 z-10">
+                <span className="text-[8px] font-black text-black uppercase tracking-widest">Atleta Oficial</span>
               </div>
               {/* Photo Glow */}
               <div 
-                className="absolute -inset-2 blur-2xl opacity-20 rounded-[1.2rem] -z-0"
+                className="absolute -inset-3 blur-3xl opacity-20 rounded-[1.5rem] -z-0"
                 style={{ backgroundColor: settings.primaryColor }}
               ></div>
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-center min-w-0 py-1 pr-2">
-              <div className="space-y-2">
+            <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
+              <div className="space-y-3">
                 <div>
-                  <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1.5">
+                  <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome do Aluno
                   </div>
-                  <h4 className="text-[11px] font-black uppercase leading-tight text-white tracking-tight mb-0.5 break-words line-clamp-2 max-h-[28px] overflow-hidden">
+                  <h4 className="text-[13px] font-black uppercase leading-tight text-white tracking-tight mb-1 break-words line-clamp-2 max-h-[32px] overflow-hidden">
                     {athlete.name}
                   </h4>
                   {athlete.nickname && (
-                    <div className="flex items-center gap-1.5 opacity-80">
-                      <span className="text-[7px] text-theme-primary font-black uppercase tracking-widest">Apelido:</span>
-                      <span className="text-[8px] font-bold text-[#d4d4d8] uppercase tracking-tight truncate">{athlete.nickname}</span>
+                    <div className="flex items-center gap-1.5 opacity-90">
+                      <span className="text-[8px] text-theme-primary font-black uppercase tracking-widest">Apelido:</span>
+                      <span className="text-[9px] font-bold text-[#d4d4d8] uppercase tracking-tight truncate">{athlete.nickname}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Nasc.
+                      Nascimento
                     </div>
-                    <p className="text-[9px] font-black text-white whitespace-nowrap">
+                    <p className="text-[10px] font-black text-white whitespace-nowrap">
                       {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
                     </p>
                   </div>
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      RG/CPF
+                      Documento
                     </div>
-                    <p className="text-[9px] font-black text-white truncate">{athlete.doc || '--'}</p>
+                    <p className="text-[10px] font-black text-white truncate">{athlete.doc || '--'}</p>
                   </div>
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Unif.
+                      Uniforme
                     </div>
-                    <p className="text-[9px] font-black text-white">#{athlete.jersey_number || '--'}</p>
+                    <p className="text-[10px] font-black text-white">#{athlete.jersey_number || '--'}</p>
                   </div>
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                       Sexo
                     </div>
-                    <p className="text-[9px] font-black text-white truncate">{athlete.gender || '--'}</p>
+                    <p className="text-[10px] font-black text-white truncate">{athlete.gender || '--'}</p>
                   </div>
                   <div className="col-span-2 min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Modalidade
+                      Modalidades
                     </div>
-                    <p className="text-[9px] font-black text-white truncate">{athlete.modality || '--'}</p>
+                    <p className="text-[10px] font-black text-white truncate uppercase">{athlete.modality || '--'}</p>
                   </div>
                 </div>
 
-                <div className="bg-[rgba(255,255,255,0.05)] backdrop-blur-md p-1.5 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-2 rounded-xl border border-[rgba(255,255,255,0.05)]">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="min-w-0">
                       <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável</p>
-                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
+                      <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right min-w-0">
-                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
-                      <p className="text-[8px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
+                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Contato Emergência</p>
+                      <p className="text-[9px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
                     </div>
                   </div>
                 </div>
@@ -642,8 +642,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <p className="text-[7px] text-[#71717a] uppercase font-black tracking-widest">Categoria</p>
                 <p className="text-xs font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
               </div>
-              <div className="w-px h-6 bg-[rgba(255,255,255,0.1)]"></div>
-              <ShieldCheck size={18} className="text-theme-primary" />
             </div>
           </div>
 
