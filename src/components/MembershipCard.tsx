@@ -511,7 +511,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Body */}
-          <div className="flex-1 flex px-5 py-3 gap-5 relative z-10">
+          <div className="flex-1 flex px-5 py-2 gap-5 relative z-10">
             {/* Photo Section */}
             <div className="relative group flex-shrink-0 flex flex-col items-center justify-center">
               <div className="w-[105px] h-[140px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
@@ -536,8 +536,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
-              <div className="space-y-2">
+            <div className="flex-1 flex flex-col justify-center min-w-0 py-0.5">
+              <div className="space-y-1.5">
                 <div>
                   <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
@@ -548,7 +548,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                   <div className="min-w-0">
                     <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
                       <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
@@ -581,27 +581,22 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   </div>
                 </div>
 
-                <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-2 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
-                        <p className="text-[8px] font-bold text-[#d4d4d8] uppercase leading-tight truncate">{athlete.guardian_name}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
-                        <p className="text-[9px] font-black text-theme-primary whitespace-nowrap">{athlete.guardian_phone}</p>
-                      </div>
-                    </div>
+                <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-1.5 rounded-lg border border-[rgba(255,255,255,0.05)]">
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="min-w-0">
-                      <p className="text-[6px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço do Responsável</p>
-                      <p className="text-[7px] font-medium text-[#a1a1aa] uppercase leading-tight truncate">
-                        {athlete.street}, {athlete.number} - {athlete.neighborhood}
-                      </p>
-                      <p className="text-[7px] font-black text-theme-primary uppercase tracking-tighter">
-                        {athlete.city} / {athlete.uf}
-                      </p>
+                      <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
+                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase truncate leading-tight">{athlete.guardian_name}</p>
                     </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
+                      <p className="text-[8px] font-black text-theme-primary whitespace-nowrap leading-tight">{athlete.guardian_phone}</p>
+                    </div>
+                  </div>
+                  <div className="mt-1 pt-1 border-t border-white/5 min-w-0">
+                    <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço</p>
+                    <p className="text-[6px] font-medium text-[#a1a1aa] uppercase leading-tight truncate">
+                      {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -609,27 +604,27 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-[72px] px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)] flex-shrink-0">
+          <div className="h-[64px] px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)] flex-shrink-0">
             <div className="flex items-center gap-4">
               <div className="bg-white p-1 rounded-lg shadow-xl flex items-center justify-center">
                 <QRCodeSVG 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={54} 
+                  size={48} 
                   level="H"
                   includeMargin={false}
                   imageSettings={{
                     src: crestDataUrl || undefined,
                     x: undefined,
                     y: undefined,
-                    height: 10,
-                    width: 10,
+                    height: 8,
+                    width: 8,
                     excavate: true,
                   }}
                 />
               </div>
               <div className="leading-tight">
                 <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validação Digital</p>
-                <p className="text-[7px] text-white/60 font-medium max-w-[180px] leading-relaxed">
+                <p className="text-[6px] text-white/60 font-medium max-w-[160px] leading-relaxed">
                   Aponte a câmera para o QR Code para validar a presença e situação do atleta.
                 </p>
               </div>
@@ -637,11 +632,11 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="flex items-center gap-6">
               <div className="text-right">
                 <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
-                <p className="text-[10px] font-black text-theme-primary">31/12/2026</p>
+                <p className="text-[9px] font-black text-theme-primary">31/12/2026</p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <ShieldCheck size={20} className="text-theme-primary" />
-                <p className="text-[6px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
+                <ShieldCheck size={18} className="text-theme-primary" />
+                <p className="text-[5px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
               </div>
             </div>
           </div>
