@@ -536,14 +536,14 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-center min-w-0 py-0.5">
+            <div className="flex-1 flex flex-col justify-start min-w-0 py-1">
               <div className="space-y-1.5">
                 <div>
-                  <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                  <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1.5">
                     <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
                     Nome do Aluno
                   </div>
-                  <h4 className="text-[13px] font-black uppercase leading-[1.1] text-white tracking-tight mb-0.5 break-words line-clamp-2">
+                  <h4 className="text-[12px] font-black uppercase leading-[1.1] text-white tracking-tighter mb-0.5 break-words line-clamp-2">
                     {athlete.name}
                   </h4>
                 </div>
@@ -585,7 +585,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="min-w-0">
                       <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
-                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase truncate leading-tight">{athlete.guardian_name}</p>
+                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase leading-tight break-words line-clamp-1">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
@@ -594,7 +594,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   </div>
                   <div className="mt-1 pt-1 border-t border-white/5 min-w-0">
                     <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço</p>
-                    <p className="text-[6px] font-medium text-[#a1a1aa] uppercase leading-tight truncate">
+                    <p className="text-[6px] font-medium text-[#a1a1aa] uppercase leading-tight break-words line-clamp-2">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
                     </p>
                   </div>
