@@ -585,7 +585,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="min-w-0">
                       <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
-                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase leading-tight break-words line-clamp-1">{athlete.guardian_name}</p>
+                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase leading-tight break-words line-clamp-2">{athlete.guardian_name}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
@@ -632,7 +632,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             <div className="flex items-center gap-6">
               <div className="text-right">
                 <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
-                <p className="text-[9px] font-black text-theme-primary">31/12/2026</p>
+                <p className="text-[9px] font-black text-theme-primary">31/12/{new Date().getFullYear()}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <ShieldCheck size={18} className="text-theme-primary" />

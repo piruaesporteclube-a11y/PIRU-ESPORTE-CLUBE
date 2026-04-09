@@ -16,6 +16,7 @@ import AthleteSearchSelect from './components/AthleteSearchSelect';
 import MembershipCard from './components/MembershipCard';
 import ContactList from './components/ContactList';
 import CategoryList from './components/CategoryList';
+import LineupManagement from './components/LineupManagement';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
@@ -673,6 +674,8 @@ export default function App() {
           return <ProfessorManagement professors={professors} />;
         case 'attendance':
           return <Attendance athletes={athletes} />;
+        case 'lineups':
+          return <LineupManagement />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':

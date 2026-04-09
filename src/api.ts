@@ -709,6 +709,39 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
   },
+  
+  // Named Lineup Templates
+  getNamedLineups: async (): Promise<{ id: string, name: string, athlete_ids: string[], staff_ids: string[], created_at: any }[]> => {
+    try {
+      const querySnapshot = await getDocsWithCacheFallback(collection(db, "named_lineups"));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "named_lineups");
+      return [];
+    }
+  },
+  saveNamedLineup: async (name: string, athlete_ids: string[], staff_ids: string[] = []) => {
+    try {
+      const id = doc(collection(db, "named_lineups")).id;
+      await setDoc(doc(db, "named_lineups", id), {
+        id,
+        name,
+        athlete_ids,
+        staff_ids,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "named_lineups");
+    }
+  },
+  deleteNamedLineup: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "named_lineups", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `named_lineups/${id}`);
+    }
+  },
   confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string, lineup_index: number = 0) => {
     try {
       const id = `${event_id}_${lineup_index}_${type}_${person_id}`;

@@ -34,6 +34,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [filterSub, setFilterSub] = useState('Todos');
   const [athleteSearch, setAthleteSearch] = useState('');
+  const [namedLineups, setNamedLineups] = useState<any[]>([]);
+  const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
+  const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -62,6 +66,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
     
     api.getProfessors().then(setProfessors);
+    api.getNamedLineups().then(setNamedLineups);
   }, [athletesProp, eventsProp]);
 
   useEffect(() => {
@@ -335,6 +340,29 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('Informe um nome para o modelo');
+      return;
+    }
+    try {
+      await api.saveNamedLineup(templateName, selectedAthletes, selectedStaff);
+      toast.success('Modelo de escalação salvo com sucesso!');
+      setIsSaveTemplateOpen(false);
+      setTemplateName('');
+      api.getNamedLineups().then(setNamedLineups);
+    } catch (err: any) {
+      toast.error('Erro ao salvar modelo');
+    }
+  };
+
+  const handleLoadTemplate = (template: any) => {
+    setSelectedAthletes(template.athlete_ids || []);
+    setSelectedStaff(template.staff_ids || []);
+    setIsLoadTemplateOpen(false);
+    toast.success(`Modelo "${template.name}" carregado!`);
+  };
+
   const filteredAthletes = athletes.filter(a => 
     (filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub) && 
     a.status === 'Ativo' &&
@@ -492,7 +520,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     </button>
                   ))}
                 </div>
-                {isAdmin && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
+                <div className="flex items-center gap-2">
+                  {isAdmin && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
+                  {isAdmin && (
+                    <div className="flex gap-2 ml-4">
+                      <button 
+                        onClick={() => setIsSaveTemplateOpen(true)}
+                        className="text-[10px] font-bold text-theme-primary hover:underline uppercase tracking-widest"
+                      >
+                        Salvar como Modelo
+                      </button>
+                      <button 
+                        onClick={() => setIsLoadTemplateOpen(true)}
+                        className="text-[10px] font-bold text-zinc-400 hover:text-white hover:underline uppercase tracking-widest"
+                      >
+                        Carregar Modelo
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
@@ -779,6 +825,82 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 )}
               </div>
             </div>
+
+            {/* Save Template Modal */}
+            {isSaveTemplateOpen && (
+              <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl p-6 shadow-2xl">
+                  <h3 className="text-lg font-bold text-white mb-4 uppercase">Salvar como Modelo</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome do Modelo</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-bold text-sm"
+                        placeholder="EX: TIME PRINCIPAL SUB-15"
+                        value={templateName}
+                        onChange={(e) => setTemplateName(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-4">
+                      <button 
+                        onClick={() => setIsSaveTemplateOpen(false)}
+                        className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        onClick={handleSaveAsTemplate}
+                        className="flex-1 px-4 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Load Template Modal */}
+            {isLoadTemplateOpen && (
+              <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-white uppercase">Carregar Modelo</h3>
+                    <button onClick={() => setIsLoadTemplateOpen(false)} className="text-zinc-500 hover:text-white">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                    {namedLineups.length === 0 ? (
+                      <p className="text-zinc-500 text-center py-8 italic text-sm">Nenhum modelo salvo encontrado.</p>
+                    ) : (
+                      namedLineups.map(template => (
+                        <button
+                          key={template.id}
+                          onClick={() => handleLoadTemplate(template)}
+                          className="w-full flex items-center justify-between p-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-2xl transition-all text-left group"
+                        >
+                          <div>
+                            <p className="font-bold text-white uppercase text-sm">{template.name}</p>
+                            <p className="text-[10px] text-zinc-500 uppercase font-bold">
+                              {template.athlete_ids?.length || 0} Atletas • {template.staff_ids?.length || 0} Comissão
+                            </p>
+                          </div>
+                          <ChevronRight size={18} className="text-zinc-600 group-hover:text-theme-primary transition-colors" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => setIsLoadTemplateOpen(false)}
+                    className="mt-6 w-full px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Print View */}
             <div className="hidden print-only p-6 text-black bg-white min-h-screen" ref={lineupRef}>
