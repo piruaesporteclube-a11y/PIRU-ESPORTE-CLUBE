@@ -178,6 +178,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         allowTaint: false,
         backgroundColor: '#000000',
         logging: false,
+        width: 440,
+        height: 320,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -309,6 +311,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         allowTaint: false,
         backgroundColor: '#000000',
         logging: false,
+        width: 440,
+        height: 320,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -473,9 +477,9 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute top-0 left-0 w-full h-1.5 bg-theme-primary z-20"></div>
 
           {/* Header */}
-          <div className="h-16 px-6 flex items-center justify-between relative z-10">
+          <div className="h-[56px] px-6 flex items-center justify-between relative z-10 flex-shrink-0">
             <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
+            <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
                 {crestDataUrl ? (
                   <img 
                     src={crestDataUrl} 
@@ -507,7 +511,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Body */}
-          <div className="flex-1 flex p-5 gap-5 relative z-10">
+          <div className="flex-1 flex px-5 py-3 gap-5 relative z-10">
             {/* Photo Section */}
             <div className="relative group flex-shrink-0 flex flex-col items-center justify-center">
               <div className="w-[105px] h-[140px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
@@ -532,7 +536,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-start min-w-0 py-1">
+            <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
               <div className="space-y-2">
                 <div>
                   <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
@@ -605,20 +609,20 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
 
           {/* Footer */}
-          <div className="h-20 px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)]">
+          <div className="h-[72px] px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)] flex-shrink-0">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-1.5 rounded-xl shadow-xl flex items-center justify-center">
+              <div className="bg-white p-1 rounded-lg shadow-xl flex items-center justify-center">
                 <QRCodeSVG 
                   value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={60} 
+                  size={54} 
                   level="H"
                   includeMargin={false}
                   imageSettings={{
                     src: crestDataUrl || undefined,
                     x: undefined,
                     y: undefined,
-                    height: 12,
-                    width: 12,
+                    height: 10,
+                    width: 10,
                     excavate: true,
                   }}
                 />
