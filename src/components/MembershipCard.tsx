@@ -394,7 +394,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         {/* The Card Layout - Custom Size (11cm x 8cm ratio) */}
         <div 
           ref={cardRef}
-          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border border-zinc-800/50 print:border-[#d4d4d8] transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500 antialiased"
+          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border-4 border-theme-primary transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500 antialiased"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -438,7 +438,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               .card {
                 width: 110mm !important;
                 height: 80mm !important;
-                border: none !important;
+                border: 1.5mm solid #eab308 !important;
                 border-radius: 4mm !important;
                 box-shadow: none !important;
                 overflow: hidden !important;
@@ -518,38 +518,38 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute inset-0 card-yellow-lines pointer-events-none"></div>
           
           {/* Main Layout Container */}
-          <div className="relative z-10 flex flex-col h-full p-2.5 pb-4">
+          <div className="relative z-10 flex flex-col h-full p-2 pb-3.5">
             
             {/* Top Section: Header & Photo */}
             <div className="flex justify-between items-start mb-0.5">
               {/* Crest */}
-              <div className="w-16 h-16 flex-shrink-0">
+              <div className="w-14 h-14 flex-shrink-0">
                 {crestDataUrl ? (
                   <img src={crestDataUrl} className="w-full h-full object-contain filter drop-shadow-lg" data-type="crest" />
                 ) : (
-                  <div className="w-full h-full bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-xl">P</div>
+                  <div className="w-full h-full bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-lg">P</div>
                 )}
               </div>
 
               {/* Center Header Info */}
-              <div className="flex-1 flex flex-col items-center text-center px-1 pt-0.5">
-                <h1 className="text-xl font-black text-theme-primary tracking-tighter leading-none mb-0.5 italic">PIRUÁ E.C</h1>
-                <p className="text-[8px] font-black text-white tracking-[0.2em] mb-1">ESCOLINHA DE FUTEBOL</p>
+              <div className="flex-1 flex flex-col items-center text-center px-1">
+                <h1 className="text-lg font-black text-theme-primary tracking-tighter leading-none mb-0.5 italic">PIRUÁ E.C</h1>
+                <p className="text-[7px] font-black text-white tracking-[0.2em] mb-0.5">ESCOLINHA DE FUTEBOL</p>
                 
-                <div className="bg-theme-primary px-3 py-0.5 rounded-full mb-0.5">
-                  <p className="text-[7px] font-black text-black uppercase">Carteirinha Oficial do Aluno</p>
+                <div className="bg-theme-primary px-2 py-0.5 rounded-full mb-0.5">
+                  <p className="text-[6px] font-black text-black uppercase">Carteirinha Oficial do Aluno</p>
                 </div>
-                <p className="text-[8px] font-black text-theme-primary italic">TEMPORADA 2026</p>
+                <p className="text-[7px] font-black text-theme-primary italic">TEMPORADA 2026</p>
               </div>
 
               {/* Athlete Photo */}
-              <div className="w-[75px] h-[95px] bg-white p-0.5 rounded-lg shadow-2xl flex-shrink-0">
+              <div className="w-[65px] h-[85px] bg-white p-0.5 rounded-lg shadow-2xl flex-shrink-0">
                 <div className="w-full h-full bg-zinc-200 rounded-md overflow-hidden relative">
                   {photoDataUrl ? (
                     <img src={photoDataUrl} className="w-full h-full object-cover" data-type="photo" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-400">
-                      <UserCircle size={32} />
+                      <UserCircle size={28} />
                     </div>
                   )}
                 </div>
@@ -557,23 +557,23 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Middle Section: Athlete Data */}
-            <div className="grid grid-cols-12 gap-x-2 gap-y-1 mb-1.5">
+            <div className="grid grid-cols-12 gap-x-2 gap-y-0.5 mb-1">
               {/* 1. Nome Completo */}
               <div className="col-span-12">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-3 !h-3 !text-[7px]">1</div>
-                  <span className="label-text !text-[8px]">Nome Completo do Aluno</span>
+                  <div className="number-circle !w-2 !h-2 !text-[5px]">1</div>
+                  <span className="label-text !text-[6px]">Nome Completo do Aluno</span>
                 </div>
-                <div className="input-box text-[10px] h-[20px]">{athlete.name}</div>
+                <div className="input-box text-[8px] h-[15px]">{athlete.name}</div>
               </div>
 
               {/* 2. Data de Nascimento */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-3 !h-3 !text-[7px]">2</div>
-                  <span className="label-text !text-[8px]">Data de Nascimento</span>
+                  <div className="number-circle !w-2 !h-2 !text-[5px]">2</div>
+                  <span className="label-text !text-[6px]">Data de Nascimento</span>
                 </div>
-                <div className="input-box h-[20px] text-[9px]">
+                <div className="input-box h-[15px] text-[7px]">
                   {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--/--/----'}
                 </div>
               </div>
@@ -581,83 +581,83 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               {/* 3. RG / CPF */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-3 !h-3 !text-[7px]">3</div>
-                  <span className="label-text !text-[8px]">RG / CPF</span>
+                  <div className="number-circle !w-2 !h-2 !text-[5px]">3</div>
+                  <span className="label-text !text-[6px]">RG / CPF</span>
                 </div>
-                <div className="input-box h-[20px] text-[9px]">{athlete.doc || '---.---.---/--'}</div>
+                <div className="input-box h-[15px] text-[7px]">{athlete.doc || '---.---.---/--'}</div>
               </div>
 
               {/* 4. Matrícula */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-3 !h-3 !text-[7px]">4</div>
-                  <span className="label-text !text-[8px]">Matrícula</span>
+                  <div className="number-circle !w-2 !h-2 !text-[5px]">4</div>
+                  <span className="label-text !text-[6px]">Matrícula</span>
                 </div>
-                <div className="input-box h-[20px] text-[9px]">#{athlete.id.slice(0, 8).toUpperCase()}</div>
+                <div className="input-box h-[15px] text-[7px]">#{athlete.id.slice(0, 8).toUpperCase()}</div>
               </div>
 
               {/* 5. Sub */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-3 !h-3 !text-[7px]">5</div>
-                  <span className="label-text !text-[8px]">Sub</span>
+                  <div className="number-circle !w-2 !h-2 !text-[5px]">5</div>
+                  <span className="label-text !text-[6px]">Sub</span>
                 </div>
-                <div className="input-box h-[20px] text-[9px]">{getSubCategory(athlete.birth_date)}</div>
+                <div className="input-box h-[15px] text-[7px]">{getSubCategory(athlete.birth_date)}</div>
               </div>
             </div>
 
             {/* Bottom Section: Responsável & QR Code */}
-            <div className="mt-auto border border-theme-primary/30 rounded-xl p-1.5 bg-black/40 backdrop-blur-sm relative overflow-hidden">
+            <div className="mt-auto border border-theme-primary/30 rounded-xl p-1 bg-black/40 backdrop-blur-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-full card-yellow-lines opacity-10 pointer-events-none"></div>
               
               <div className="flex gap-2 relative z-10">
                 {/* Left: Guardian Info */}
-                <div className="flex-1 space-y-1">
-                  <div className="bg-theme-primary/20 px-1.5 py-0.5 rounded inline-block mb-0.5">
-                    <p className="text-[6px] font-black text-theme-primary uppercase">Dados do Responsável</p>
+                <div className="flex-1 space-y-0.5">
+                  <div className="bg-theme-primary/20 px-1 py-0.5 rounded inline-block mb-0.5">
+                    <p className="text-[5px] font-black text-theme-primary uppercase">Dados do Responsável</p>
                   </div>
                   
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2.5 !h-2.5 !text-[5px]">7</div>
-                      <span className="label-text !text-[6px]">Nome Completo do Responsável</span>
+                      <div className="number-circle !w-2 !h-2 !text-[4px]">7</div>
+                      <span className="label-text !text-[5px]">Nome Completo do Responsável</span>
                     </div>
-                    <div className="input-box !h-4 !text-[7px]">{athlete.guardian_name}</div>
+                    <div className="input-box !h-3.5 !text-[6px]">{athlete.guardian_name}</div>
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2.5 !h-2.5 !text-[5px]">8</div>
-                      <span className="label-text !text-[6px]">Endereço Completo</span>
+                      <div className="number-circle !w-2 !h-2 !text-[4px]">8</div>
+                      <span className="label-text !text-[5px]">Endereço Completo</span>
                     </div>
-                    <div className="input-box !h-6 !text-[6px] items-start py-0.5 leading-tight overflow-hidden">
+                    <div className="input-box !h-5 !text-[5px] items-start py-0.5 leading-tight overflow-hidden">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
                     </div>
                   </div>
                 </div>
 
                 {/* Right: Phone, Validity & QR */}
-                <div className="w-[110px] flex flex-col gap-1">
+                <div className="w-[100px] flex flex-col gap-0.5">
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2.5 !h-2.5 !text-[5px]">10</div>
-                      <span className="label-text !text-[6px]">Telefone do Responsável</span>
+                      <div className="number-circle !w-2 !h-2 !text-[4px]">10</div>
+                      <span className="label-text !text-[5px]">Telefone do Responsável</span>
                     </div>
-                    <div className="input-box !h-4 !text-[7px]">{athlete.guardian_phone}</div>
+                    <div className="input-box !h-3.5 !text-[6px]">{athlete.guardian_phone}</div>
                   </div>
 
                   <div className="flex gap-1">
                     <div className="flex-1">
                       <div className="flex items-center gap-1 mb-0.5">
-                        <div className="number-circle !w-2.5 !h-2.5 !text-[5px]">9</div>
-                        <span className="label-text !text-[6px]">Validade</span>
+                        <div className="number-circle !w-2 !h-2 !text-[4px]">9</div>
+                        <span className="label-text !text-[5px]">Validade</span>
                       </div>
-                      <div className="input-box !h-4 !text-[7px] justify-center">31/12/{new Date().getFullYear()}</div>
+                      <div className="input-box !h-3.5 !text-[6px] justify-center">31/12/{new Date().getFullYear()}</div>
                     </div>
                     
                     <div className="bg-white p-0.5 rounded-md flex flex-col items-center shadow-xl flex-shrink-0">
-                      <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={30} level="H" />
-                      <p className="text-[3px] font-black text-black mt-0.5">PIRUÁ E.C</p>
+                      <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={26} level="H" />
+                      <p className="text-[2px] font-black text-black mt-0.5">PIRUÁ E.C</p>
                     </div>
                   </div>
                 </div>
@@ -666,7 +666,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
             {/* Motto */}
             <div className="mt-0.5 text-center">
-              <p className="text-[5px] font-black text-theme-primary tracking-[0.15em] uppercase">
+              <p className="text-[4px] font-black text-theme-primary tracking-[0.1em] uppercase">
                 Disciplina • Dedicação • Respeito • Evolução
               </p>
             </div>
