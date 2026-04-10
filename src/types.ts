@@ -18,6 +18,8 @@ export type Athlete = {
   guardian_name: string;
   guardian_doc: string;
   guardian_phone: string;
+  school?: string;
+  school_shift?: "Manhã" | "Tarde" | "Noite";
   status: "Ativo" | "Inativo";
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";

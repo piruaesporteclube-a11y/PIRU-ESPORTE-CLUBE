@@ -37,6 +37,8 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     guardian_name: '',
     guardian_doc: '',
     guardian_phone: '',
+    school: '',
+    school_shift: undefined,
     status: 'Ativo',
     modality: '',
     gender: 'Masculino'
@@ -447,6 +449,31 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       <option value="Feminino">Feminino</option>
                     </select>
                   </div>
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Escola onde Estuda</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                        value={formData.school || ''}
+                        onChange={e => setFormData({...formData, school: e.target.value.toUpperCase()})}
+                        placeholder="NOME DA ESCOLA"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Turno Escolar</label>
+                      <select 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                        value={formData.school_shift || ''}
+                        onChange={e => setFormData({...formData, school_shift: e.target.value as any})}
+                      >
+                        <option value="">SELECIONE O TURNO</option>
+                        <option value="Manhã">MANHÃ</option>
+                        <option value="Tarde">TARDE</option>
+                        <option value="Noite">NOITE</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Modalidades Esportivas (Selecione uma ou mais)</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -729,6 +756,14 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               <div>
                 <p className="text-[10px] font-black uppercase text-zinc-500">Telefone/WhatsApp</p>
                 <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.contact || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Escola</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.school || '___________________________'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Turno</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.school_shift || '___________________________'}</p>
               </div>
             </div>
           </div>
