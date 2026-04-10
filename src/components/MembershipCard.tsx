@@ -438,13 +438,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               .card {
                 width: 110mm !important;
                 height: 80mm !important;
-                border: 0.5pt solid rgba(0,0,0,0.1) !important;
-                border-radius: 3mm !important;
+                border: none !important;
+                border-radius: 4mm !important;
                 box-shadow: none !important;
                 overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
-                background-color: #050505 !important;
+                background-color: #000000 !important;
                 color: white !important;
                 transform: none !important;
                 margin: 0 auto !important;
@@ -459,192 +459,223 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               }
             }
 
-            .card-grid-pattern {
-              background-image: linear-gradient(${settings.primaryColor}10 1px, transparent 1px), linear-gradient(90deg, ${settings.primaryColor}10 1px, transparent 1px);
-              background-size: 20px 20px;
+            .card-pattern {
+              background-color: #000000;
+              background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+              background-size: 12px 12px;
             }
 
-            .card-diagonal-split {
-              background: linear-gradient(135deg, #050505 0%, #050505 60%, ${settings.primaryColor}20 60%, ${settings.primaryColor}20 100%);
+            .card-yellow-lines {
+              background: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 10px,
+                rgba(234, 179, 8, 0.1) 10px,
+                rgba(234, 179, 8, 0.1) 11px
+              );
+            }
+
+            .input-box {
+              background-color: white;
+              border-radius: 6px;
+              height: 24px;
+              display: flex;
+              align-items: center;
+              padding: 0 8px;
+              color: black;
+              font-weight: 900;
+              font-size: 10px;
+              text-transform: uppercase;
+              border: 1px solid #eab308;
+            }
+
+            .number-circle {
+              background-color: #eab308;
+              color: black;
+              width: 14px;
+              height: 14px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 9px;
+              font-weight: 900;
+              flex-shrink: 0;
+            }
+
+            .label-text {
+              color: white;
+              font-size: 9px;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
             }
           `}</style>
 
-          {/* Background Elements */}
-          <div className="absolute inset-0 card-diagonal-split pointer-events-none"></div>
-          <div className="absolute inset-0 card-grid-pattern opacity-40 pointer-events-none"></div>
+          {/* Background Layers */}
+          <div className="absolute inset-0 card-pattern pointer-events-none"></div>
+          <div className="absolute inset-0 card-yellow-lines pointer-events-none"></div>
           
-          {/* Top Accent Bar */}
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-theme-primary z-20"></div>
-
-          {/* Header */}
-          <div className="h-[56px] px-6 flex items-center justify-between relative z-10 flex-shrink-0">
-            <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center p-1 bg-[rgba(255,255,255,0.05)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl overflow-hidden">
+          {/* Main Layout Container */}
+          <div className="relative z-10 flex flex-col h-full p-2.5 pb-5">
+            
+            {/* Top Section: Header & Photo */}
+            <div className="flex justify-between items-start mb-1">
+              {/* Crest */}
+              <div className="w-20 h-20 flex-shrink-0">
                 {crestDataUrl ? (
-                  <img 
-                    src={crestDataUrl} 
-                    className="w-full h-full object-contain" 
-                    crossOrigin="anonymous"
-                    data-type="crest"
-                  />
-                ) : (settings?.schoolCrest && settings.schoolCrest.trim() !== "") ? (
-                  <img 
-                    src={settings.schoolCrest} 
-                    className="w-full h-full object-contain" 
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
-                    data-type="crest"
-                  />
+                  <img src={crestDataUrl} className="w-full h-full object-contain filter drop-shadow-lg" data-type="crest" />
                 ) : (
-                  <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-lg">P</div>
+                  <div className="w-full h-full bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-2xl">P</div>
                 )}
               </div>
-              <div className="leading-tight">
-                <h3 className="text-lg font-black uppercase tracking-tighter text-white">Piruá Esporte Clube</h3>
-                <p className="text-[9px] text-theme-primary uppercase font-black tracking-[0.2em]">Futebol de Base • Temporada 2026</p>
+
+              {/* Center Header Info */}
+              <div className="flex-1 flex flex-col items-center text-center px-2 pt-1">
+                <h1 className="text-2xl font-black text-theme-primary tracking-tighter leading-none mb-1 italic">PIRUÁ E.C</h1>
+                <p className="text-[9px] font-black text-white tracking-[0.25em] mb-1.5">ESCOLINHA DE FUTEBOL</p>
+                
+                <div className="bg-theme-primary px-3 py-0.5 rounded-full mb-1">
+                  <p className="text-[8px] font-black text-black uppercase">Carteirinha Oficial do Aluno</p>
+                </div>
+                <p className="text-[9px] font-black text-theme-primary italic">TEMPORADA 2026</p>
+              </div>
+
+              {/* Athlete Photo */}
+              <div className="w-[85px] h-[105px] bg-white p-1 rounded-xl shadow-2xl flex-shrink-0">
+                <div className="w-full h-full bg-zinc-200 rounded-lg overflow-hidden relative">
+                  {photoDataUrl ? (
+                    <img src={photoDataUrl} className="w-full h-full object-cover" data-type="photo" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                      <UserCircle size={36} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Matrícula</p>
-              <p className="text-sm font-mono font-black text-white">#{athlete.id.slice(0, 8).toUpperCase()}</p>
-            </div>
-          </div>
 
-          {/* Body */}
-          <div className="flex-1 flex px-5 py-2 gap-5 relative z-10">
-            {/* Photo Section */}
-            <div className="relative group flex-shrink-0 flex flex-col items-center justify-center">
-              <div className="w-[105px] h-[140px] bg-[#09090b] rounded-[1.2rem] border-2 border-[rgba(234,179,8,0.3)] overflow-hidden shadow-2xl relative z-10 group-hover:border-theme-primary transition-colors">
-                {photoDataUrl ? (
-                  <img 
-                    src={photoDataUrl} 
-                    className="w-full h-full object-cover" 
-                    crossOrigin="anonymous"
-                    data-type="photo"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#3f3f46] bg-[#09090b]">
-                    <UserCircle size={48} strokeWidth={1} />
-                  </div>
-                )}
+            {/* Middle Section: Athlete Data */}
+            <div className="grid grid-cols-12 gap-x-3 gap-y-1.5 mb-2">
+              {/* 1. Nome Completo */}
+              <div className="col-span-12">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="number-circle">1</div>
+                  <span className="label-text">Nome Completo do Aluno</span>
+                </div>
+                <div className="input-box text-[11px] h-[22px]">{athlete.name}</div>
               </div>
-              {/* Photo Glow */}
-              <div 
-                className="absolute -inset-3 blur-3xl opacity-20 rounded-[1.5rem] -z-0"
-                style={{ backgroundColor: settings.primaryColor }}
-              ></div>
+
+              {/* 2. Data de Nascimento */}
+              <div className="col-span-6">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="number-circle">2</div>
+                  <span className="label-text">Data de Nascimento</span>
+                </div>
+                <div className="input-box h-[22px]">
+                  {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--/--/----'}
+                </div>
+              </div>
+
+              {/* 3. RG / CPF */}
+              <div className="col-span-6">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="number-circle">3</div>
+                  <span className="label-text">RG / CPF</span>
+                </div>
+                <div className="input-box h-[22px]">{athlete.doc || '---.---.---/--'}</div>
+              </div>
+
+              {/* 4. Matrícula */}
+              <div className="col-span-6">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="number-circle">4</div>
+                  <span className="label-text">Matrícula</span>
+                </div>
+                <div className="input-box h-[22px]">#{athlete.id.slice(0, 8).toUpperCase()}</div>
+              </div>
+
+              {/* 5. Sub */}
+              <div className="col-span-6">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="number-circle">5</div>
+                  <span className="label-text">Sub</span>
+                </div>
+                <div className="input-box h-[22px]">{getSubCategory(athlete.birth_date)}</div>
+              </div>
             </div>
 
-            {/* Info Section */}
-            <div className="flex-1 flex flex-col justify-start min-w-0 py-1">
-              <div className="space-y-1.5">
-                <div>
-                  <div className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1.5">
-                    <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                    Nome do Aluno
+            {/* Bottom Section: Responsável & QR Code */}
+            <div className="mt-auto border-2 border-theme-primary/30 rounded-2xl p-1.5 bg-black/40 backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full card-yellow-lines opacity-20 pointer-events-none"></div>
+              
+              <div className="flex gap-2.5 relative z-10">
+                {/* Left: Guardian Info */}
+                <div className="flex-1 space-y-1.5">
+                  <div className="bg-theme-primary/20 px-2 py-0.5 rounded inline-block mb-0.5">
+                    <p className="text-[7px] font-black text-theme-primary uppercase">Dados do Responsável</p>
                   </div>
-                  <h4 className="text-[12px] font-black uppercase leading-[1.1] text-white tracking-tighter mb-0.5 break-words line-clamp-2">
-                    {athlete.name}
-                  </h4>
-                </div>
+                  
+                  <div>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <div className="number-circle !w-3 !h-3 !text-[6px]">7</div>
+                      <span className="label-text !text-[6px]">Nome Completo do Responsável</span>
+                    </div>
+                    <div className="input-box !h-4.5 !text-[7px]">{athlete.guardian_name}</div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  <div className="min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      DATA DE NASCIMENTO
+                  <div>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <div className="number-circle !w-3 !h-3 !text-[6px]">8</div>
+                      <span className="label-text !text-[6px]">Endereço Completo</span>
                     </div>
-                    <p className="text-[10px] font-black text-white whitespace-nowrap">
-                      {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Categoria (Sub)
-                    </div>
-                    <p className="text-[10px] font-black text-theme-primary uppercase">{getSubCategory(athlete.birth_date)}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      RG/CPF
-                    </div>
-                    <p className="text-[10px] font-black text-white truncate">{athlete.doc || '--'}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[7px] text-[#71717a] uppercase font-black tracking-widest mb-0.5 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-theme-primary"></div>
-                      Uniforme
-                    </div>
-                    <p className="text-[10px] font-black text-white">#{athlete.jersey_number || '--'}</p>
-                  </div>
-                </div>
-
-                <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-1.5 rounded-lg border border-[rgba(255,255,255,0.05)]">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Responsável Legal</p>
-                      <p className="text-[7px] font-bold text-[#d4d4d8] uppercase leading-tight break-words line-clamp-2">{athlete.guardian_name}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Telefone</p>
-                      <p className="text-[8px] font-black text-theme-primary whitespace-nowrap leading-tight">{athlete.guardian_phone}</p>
-                    </div>
-                  </div>
-                  <div className="mt-1 pt-1 border-t border-white/5 min-w-0">
-                    <p className="text-[5px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Endereço</p>
-                    <p className="text-[6px] font-medium text-[#a1a1aa] uppercase leading-tight break-words line-clamp-2">
+                    <div className="input-box !h-7 !text-[6.5px] items-start py-0.5 leading-tight overflow-hidden">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
-                    </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Phone, Validity & QR */}
+                <div className="w-[130px] flex flex-col gap-1.5">
+                  <div>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <div className="number-circle !w-3 !h-3 !text-[6px]">10</div>
+                      <span className="label-text !text-[6px]">Telefone do Responsável</span>
+                    </div>
+                    <div className="input-box !h-4.5 !text-[7px]">{athlete.guardian_phone}</div>
+                  </div>
+
+                  <div className="flex gap-1.5">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <div className="number-circle !w-3 !h-3 !text-[6px]">9</div>
+                        <span className="label-text !text-[6px]">Validade</span>
+                      </div>
+                      <div className="input-box !h-4.5 !text-[7px] justify-center">31/12/{new Date().getFullYear()}</div>
+                    </div>
+                    
+                    <div className="bg-white p-0.5 rounded-lg flex flex-col items-center shadow-xl">
+                      <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={34} level="H" />
+                      <p className="text-[4px] font-black text-black mt-0.5">PIRUÁ E.C</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="h-[64px] px-6 flex items-center justify-between relative z-10 bg-[rgba(0,0,0,0.6)] border-t border-[rgba(255,255,255,0.1)] flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="bg-white p-1 rounded-lg shadow-xl flex items-center justify-center">
-                <QRCodeSVG 
-                  value={`PIRUA-ATHLETE-${athlete.id}`} 
-                  size={48} 
-                  level="H"
-                  includeMargin={false}
-                  imageSettings={{
-                    src: crestDataUrl || undefined,
-                    x: undefined,
-                    y: undefined,
-                    height: 8,
-                    width: 8,
-                    excavate: true,
-                  }}
-                />
-              </div>
-              <div className="leading-tight">
-                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validação Digital</p>
-                <p className="text-[6px] text-white/60 font-medium max-w-[160px] leading-relaxed">
-                  Aponte a câmera para o QR Code para validar a presença e situação do atleta.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-[8px] text-[#71717a] uppercase font-black tracking-widest mb-0.5">Validade</p>
-                <p className="text-[9px] font-black text-theme-primary">31/12/{new Date().getFullYear()}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <ShieldCheck size={18} className="text-theme-primary" />
-                <p className="text-[5px] text-zinc-500 font-black uppercase tracking-widest">Documento Oficial</p>
-              </div>
+            {/* Motto */}
+            <div className="mt-1 text-center">
+              <p className="text-[6px] font-black text-theme-primary tracking-[0.2em] uppercase">
+                Disciplina • Dedicação • Respeito • Evolução
+              </p>
             </div>
           </div>
 
-          {/* Security Micro-text (Decorative) */}
-          <div className="absolute bottom-0 left-0 w-full overflow-hidden whitespace-nowrap opacity-5 pointer-events-none">
-            <p className="text-[24px] font-mono uppercase tracking-[0.5em]">
-              PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL • PIRUA ESPORTE CLUBE • GESTÃO DE BASE • OFICIAL
+          {/* Bottom Validity Bar */}
+          <div className="absolute bottom-0 left-0 w-full h-4 bg-theme-primary flex items-center justify-center z-20">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest">
+              Validade: 31/12/{new Date().getFullYear()}
             </p>
           </div>
         </div>
