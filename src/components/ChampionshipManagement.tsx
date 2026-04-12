@@ -825,6 +825,7 @@ function TeamDetailsModal({ team, onClose }: { team: ChampionshipTeam, onClose: 
             <div>
               <h2 className="text-xl font-bold text-white uppercase">{team.name}</h2>
               <p className="text-xs text-theme-primary font-black uppercase tracking-widest">{team.category}</p>
+              {team.contact && <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">Contato: {team.contact}</p>}
             </div>
           </div>
           <button onClick={onClose} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-xl transition-all"><X size={20} /></button>
@@ -841,7 +842,10 @@ function TeamDetailsModal({ team, onClose }: { team: ChampionshipTeam, onClose: 
                   </div>
                   <div>
                     <p className="font-bold text-white text-sm uppercase">{p.name}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase">{p.doc}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase">{p.doc}</p>
+                      {p.jersey_number && <span className="text-[10px] text-theme-primary font-black">#{p.jersey_number}</span>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -855,7 +859,10 @@ function TeamDetailsModal({ team, onClose }: { team: ChampionshipTeam, onClose: 
                 <div key={i} className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
                   <p className="font-bold text-white text-sm uppercase">{s.name}</p>
                   <p className="text-[10px] text-theme-primary font-bold uppercase tracking-widest">{s.role}</p>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">{s.doc}</p>
+                  <div className="flex flex-col mt-1">
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase">{s.doc}</p>
+                    {s.phone && <p className="text-[10px] text-zinc-500 font-bold uppercase">Zap: {s.phone}</p>}
+                  </div>
                 </div>
               ))}
             </div>

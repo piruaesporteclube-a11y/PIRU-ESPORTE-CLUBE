@@ -167,16 +167,19 @@ export type ChampionshipTeam = {
   name: string;
   logo: string;
   category: string;
+  contact?: string;
   players: {
     name: string;
     doc: string;
     birth_date: string;
     photo?: string;
+    jersey_number?: string;
   }[];
   staff: {
     name: string;
     role: string;
     doc: string;
+    phone?: string;
   }[];
   status: "Pendente" | "Aprovado" | "Recusado";
   created_at?: any;

@@ -149,6 +149,64 @@
         "description": { "type": "string" }
       },
       "required": ["id", "name", "image"]
+    },
+    "NamedLineup": {
+      "title": "NamedLineup",
+      "description": "Lineup template data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "athlete_ids": { "type": "array", "items": { "type": "string" } },
+        "staff_ids": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "athlete_ids"]
+    },
+    "Championship": {
+      "title": "Championship",
+      "description": "Championship data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "dispute_format": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "categories", "dispute_format", "status"]
+    },
+    "ChampionshipTeam": {
+      "title": "ChampionshipTeam",
+      "description": "Team registered in a championship",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "championship_id": { "type": "string" },
+        "name": { "type": "string" },
+        "logo": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "championship_id", "name", "category", "status"]
+    },
+    "ChampionshipMatch": {
+      "title": "ChampionshipMatch",
+      "description": "Match in a championship",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "championship_id": { "type": "string" },
+        "category": { "type": "string" },
+        "team_a_id": { "type": "string" },
+        "team_b_id": { "type": "string" },
+        "score_a": { "type": "number" },
+        "score_b": { "type": "number" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "championship_id", "category", "team_a_id", "team_b_id", "status"]
     }
   },
   "firestore": {
@@ -187,6 +245,22 @@
     "/uniform_models/{uniformId}": {
       "schema": "UniformModel",
       "description": "Uniform models collection"
+    },
+    "/named_lineups/{lineupId}": {
+      "schema": "NamedLineup",
+      "description": "Lineup templates"
+    },
+    "/championships/{championshipId}": {
+      "schema": "Championship",
+      "description": "Championships collection"
+    },
+    "/championship_teams/{teamId}": {
+      "schema": "ChampionshipTeam",
+      "description": "Teams in championships"
+    },
+    "/championship_matches/{matchId}": {
+      "schema": "ChampionshipMatch",
+      "description": "Matches in championships"
     }
   }
 }

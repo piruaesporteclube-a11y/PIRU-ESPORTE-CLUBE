@@ -33,6 +33,8 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     guardian_name: '',
     guardian_doc: '',
     guardian_phone: '',
+    school: '',
+    school_shift: undefined,
     status: 'Ativo',
     modality: '',
     gender: 'Masculino'
@@ -332,6 +334,25 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
                       <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Escola onde Estuda</label>
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.school} onChange={e => setAthleteData({...athleteData, school: e.target.value.toUpperCase()})} placeholder="NOME DA ESCOLA" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Turno Escolar</label>
+                        <select 
+                          className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                          value={athleteData.school_shift || ''}
+                          onChange={e => setAthleteData({...athleteData, school_shift: e.target.value as any})}
+                        >
+                          <option value="">SELECIONE O TURNO</option>
+                          <option value="Manhã">MANHÃ</option>
+                          <option value="Tarde">TARDE</option>
+                          <option value="Noite">NOITE</option>
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Sexo</label>

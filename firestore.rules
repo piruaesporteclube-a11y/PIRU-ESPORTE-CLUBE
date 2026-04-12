@@ -192,6 +192,26 @@ service cloud.firestore {
       allow write: if isAdmin() && isValidUniformModel(request.resource.data);
     }
 
+    match /named_lineups/{lineupId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /championships/{championshipId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /championship_teams/{teamId} {
+      allow read: if true;
+      allow create: if true; // Allow public registration
+      allow update, delete: if isAdmin();
+    }
+
+    match /championship_matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /test/connection {
       allow read: if true;
     }

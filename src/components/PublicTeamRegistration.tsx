@@ -17,6 +17,7 @@ export default function PublicTeamRegistration() {
     name: '',
     logo: '',
     category: '',
+    contact: '',
     players: [],
     staff: [],
     status: 'Pendente'
@@ -227,6 +228,17 @@ export default function PublicTeamRegistration() {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">WhatsApp de Contato</label>
+                  <input 
+                    required 
+                    type="text" 
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary transition-all uppercase font-bold"
+                    placeholder="(00) 00000-0000"
+                    value={teamData.contact}
+                    onChange={e => setTeamData({...teamData, contact: e.target.value.toUpperCase()})}
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Categoria</label>
                   <select 
                     required
@@ -315,6 +327,16 @@ export default function PublicTeamRegistration() {
                           onChange={e => updatePlayer(index, 'birth_date', e.target.value)}
                         />
                       </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Nº Camisa</label>
+                        <input 
+                          required 
+                          type="text" 
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-white text-sm focus:border-theme-primary transition-all uppercase font-bold"
+                          value={player.jersey_number}
+                          onChange={e => updatePlayer(index, 'jersey_number', e.target.value.toUpperCase())}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -384,6 +406,16 @@ export default function PublicTeamRegistration() {
                         className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-white text-sm focus:border-theme-primary transition-all uppercase font-bold"
                         value={s.doc}
                         onChange={e => updateStaff(index, 'doc', e.target.value.toUpperCase())}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">WhatsApp</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-white text-sm focus:border-theme-primary transition-all uppercase font-bold"
+                        value={s.phone}
+                        onChange={e => updateStaff(index, 'phone', e.target.value.toUpperCase())}
                       />
                     </div>
                   </div>
