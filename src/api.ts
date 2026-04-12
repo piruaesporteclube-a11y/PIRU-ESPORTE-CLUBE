@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -802,6 +802,77 @@ export const api = {
       delete cache["sponsors"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `sponsors/${id}`);
+    }
+  },
+
+  // Championships
+  getChampionships: async (): Promise<Championship[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "championships"));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Championship));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "championships");
+      return [];
+    }
+  },
+  saveChampionship: async (championship: Partial<Championship>) => {
+    if (!championship.id) championship.id = doc(collection(db, "championships")).id;
+    try {
+      const data = { ...championship, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "championships", championship.id), sanitizeData(data), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `championships/${championship.id}`);
+    }
+  },
+  deleteChampionship: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "championships", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `championships/${id}`);
+    }
+  },
+
+  // Championship Teams
+  getChampionshipTeams: async (championshipId?: string): Promise<ChampionshipTeam[]> => {
+    try {
+      let q = query(collection(db, "championship_teams"));
+      if (championshipId) q = query(q, where("championship_id", "==", championshipId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "championship_teams");
+      return [];
+    }
+  },
+  saveChampionshipTeam: async (team: Partial<ChampionshipTeam>) => {
+    if (!team.id) team.id = doc(collection(db, "championship_teams")).id;
+    try {
+      const data = { ...team, created_at: team.created_at || serverTimestamp() };
+      await setDoc(doc(db, "championship_teams", team.id), sanitizeData(data), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `championship_teams/${team.id}`);
+    }
+  },
+
+  // Championship Matches
+  getChampionshipMatches: async (championshipId?: string): Promise<ChampionshipMatch[]> => {
+    try {
+      let q = query(collection(db, "championship_matches"));
+      if (championshipId) q = query(q, where("championship_id", "==", championshipId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipMatch));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "championship_matches");
+      return [];
+    }
+  },
+  saveChampionshipMatch: async (match: Partial<ChampionshipMatch>) => {
+    if (!match.id) match.id = doc(collection(db, "championship_matches")).id;
+    try {
+      const data = { ...match, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "championship_matches", match.id), sanitizeData(data), { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `championship_matches/${match.id}`);
     }
   },
 

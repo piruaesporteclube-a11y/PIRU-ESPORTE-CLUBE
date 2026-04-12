@@ -150,6 +150,60 @@ export type EventLineup = {
   confirmation: "Pendente" | "Confirmado" | "Recusado";
 };
 
+export type Championship = {
+  id: string;
+  name: string;
+  description: string;
+  categories: string[];
+  dispute_format: "Eliminatória" | "Pontos Corridos" | "Grupos + Mata-mata";
+  status: "Inscrições Abertas" | "Em Andamento" | "Finalizado";
+  created_at?: any;
+  updated_at?: any;
+};
+
+export type ChampionshipTeam = {
+  id: string;
+  championship_id: string;
+  name: string;
+  logo: string;
+  category: string;
+  players: {
+    name: string;
+    doc: string;
+    birth_date: string;
+    photo?: string;
+  }[];
+  staff: {
+    name: string;
+    role: string;
+    doc: string;
+  }[];
+  status: "Pendente" | "Aprovado" | "Recusado";
+  created_at?: any;
+};
+
+export type ChampionshipMatch = {
+  id: string;
+  championship_id: string;
+  category: string;
+  team_a_id: string;
+  team_b_id: string;
+  score_a: number;
+  score_b: number;
+  date: string;
+  time: string;
+  location: string;
+  status: "Agendado" | "Em Andamento" | "Finalizado";
+  match_report?: MatchReport;
+  created_at?: any;
+};
+
+export type MatchReport = {
+  goals: { team_id: string; player_name: string; minute: number }[];
+  cards: { team_id: string; player_name: string; type: "Amarelo" | "Vermelho"; minute: number }[];
+  observations?: string;
+};
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();

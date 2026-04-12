@@ -17,6 +17,8 @@ import MembershipCard from './components/MembershipCard';
 import ContactList from './components/ContactList';
 import CategoryList from './components/CategoryList';
 import LineupManagement from './components/LineupManagement';
+import ChampionshipManagement from './components/ChampionshipManagement';
+import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
@@ -91,6 +93,9 @@ export default function App() {
   const [isAnamnesisOnly, setIsAnamnesisOnly] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('anamnesis') === 'true';
+  });
+  const [isTeamRegistration, setIsTeamRegistration] = useState(() => {
+    return window.location.pathname.startsWith('/register-team/');
   });
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
@@ -674,6 +679,8 @@ export default function App() {
           return <ProfessorManagement professors={professors} />;
         case 'attendance':
           return <Attendance athletes={athletes} />;
+        case 'championships':
+          return <ChampionshipManagement />;
         case 'lineups':
           return <LineupManagement />;
         case 'events':
@@ -747,9 +754,11 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const isReg = params.get('register') === 'true';
       const isAna = params.get('anamnesis') === 'true';
-      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna);
+      const isTeamReg = window.location.pathname.startsWith('/register-team/');
+      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg);
       setIsRegistering(isReg);
       setIsAnamnesisOnly(isAna);
+      setIsTeamRegistration(isTeamReg);
     };
 
     checkRegisterParam();
@@ -808,6 +817,14 @@ export default function App() {
             toast.success("Ficha de saúde enviada com sucesso!");
           }} 
         />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isTeamRegistration) {
+    return (
+      <ErrorBoundary>
+        <PublicTeamRegistration />
       </ErrorBoundary>
     );
   }

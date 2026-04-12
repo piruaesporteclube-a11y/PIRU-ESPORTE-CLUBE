@@ -38,6 +38,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
   const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [isEventFinished, setIsEventFinished] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -281,6 +282,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     try {
       setSelectedEvent(event);
       setActiveLineupIndex(index);
+      
+      // Check if event is finished
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const eventDate = new Date(event.end_date);
+      setIsEventFinished(eventDate < today);
+
       const { athletes: lineup, staff } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
       setLineupStaff(staff);
@@ -293,6 +301,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleConfirmAthlete = async (athleteId: string, type: 'athlete' | 'staff', status: string) => {
+    if (isEventFinished) {
+      toast.error("Este evento já finalizou. A escalação não pode ser alterada.");
+      return;
+    }
     if (selectedEvent) {
       try {
         await api.confirmLineup(selectedEvent.id, athleteId, type, status, activeLineupIndex);
@@ -327,6 +339,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleSaveLineup = async () => {
+    if (isEventFinished) {
+      toast.error("Este evento já finalizou. A escalação não pode ser alterada.");
+      return;
+    }
     if (selectedEvent) {
       try {
         await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex);
@@ -817,7 +833,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   Imprimir
                 </button>
                 <button onClick={() => setIsLineupOpen(false)} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Fechar</button>
-                {isAdmin && (
+                {isAdmin && !isEventFinished && (
                   <button onClick={handleSaveLineup} className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2">
                     <Save size={20} />
                     Salvar Escalação
