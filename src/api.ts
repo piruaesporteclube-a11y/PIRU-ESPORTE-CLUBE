@@ -530,7 +530,9 @@ export const api = {
     if (cached) return cached;
     try {
       const querySnapshot = await getDocsWithCacheFallback(collection(db, "events"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Event));
+      const data = querySnapshot.docs
+        .map(doc => ({ ...(doc.data() as any), id: doc.id } as Event))
+        .sort((a, b) => b.start_date.localeCompare(a.start_date));
       setCachedData("events", data);
       return data;
     } catch (error) {
@@ -785,17 +787,8 @@ export const api = {
       if (eventIds.length === 0) return [];
       
       const allEvents = await api.getEvents();
-      const now = new Date();
       
-      return allEvents.filter(e => {
-        if (!eventIds.includes(e.id)) return false;
-        
-        // Only return events that haven't finished yet
-        const [year, month, day] = e.end_date.split('-').map(Number);
-        const [hours, minutes] = e.end_time.split(':').map(Number);
-        const eventEnd = new Date(year, month - 1, day, hours, minutes);
-        return eventEnd >= now;
-      });
+      return allEvents.filter(e => eventIds.includes(e.id));
     } catch (error) {
       console.error("Error checking athlete lineups:", error);
       return [];

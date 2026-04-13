@@ -72,7 +72,7 @@ export default function StudentLineups({ athleteId }: { athleteId: string }) {
       {lineupEvents.length === 0 ? (
         <div className="py-20 text-center bg-zinc-900/50 rounded-3xl border border-dashed border-zinc-800">
           <Users size={48} className="mx-auto text-zinc-700 mb-4" />
-          <p className="text-zinc-500 font-bold uppercase tracking-widest">Você ainda não foi escalado para nenhum evento futuro</p>
+          <p className="text-zinc-500 font-bold uppercase tracking-widest">Você ainda não foi escalado para nenhum evento</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

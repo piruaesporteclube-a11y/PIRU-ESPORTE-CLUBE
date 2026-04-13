@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, Professor, Event, getSubCategory } from '../types';
-import { Users, User, Trash2, Search, Plus, Save, FileText, Calendar, ChevronRight, Clock, MapPin } from 'lucide-react';
+import { Users, User, Trash2, Search, Plus, Save, FileText, Calendar, ChevronRight, Clock, MapPin, Eye } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
+import EventsManagement from './EventsManagement';
 
 export default function LineupManagement() {
   const [activeSubTab, setActiveSubTab] = useState<'history' | 'templates'>('history');
@@ -13,6 +14,7 @@ export default function LineupManagement() {
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     loadData();
@@ -99,7 +101,18 @@ export default function LineupManagement() {
         />
       </div>
 
-      {isLoading ? (
+      {selectedEvent ? (
+        <div className="space-y-6">
+          <button 
+            onClick={() => setSelectedEvent(null)}
+            className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all font-bold uppercase text-xs tracking-widest flex items-center gap-2"
+          >
+            <ChevronRight className="rotate-180" size={14} />
+            Voltar para Histórico
+          </button>
+          <EventsManagement role="admin" events={[selectedEvent]} athletes={athletes} />
+        </div>
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-theme-primary"></div>
         </div>
@@ -145,7 +158,13 @@ export default function LineupManagement() {
                       +
                     </div>
                   </div>
-                  <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Ver Detalhes na Guia Eventos</p>
+                  <button 
+                    onClick={() => setSelectedEvent(event)}
+                    className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 text-theme-primary rounded-xl hover:bg-theme-primary hover:text-black transition-all text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <Eye size={14} />
+                    Ver Escalação
+                  </button>
                 </div>
               </div>
             ))
