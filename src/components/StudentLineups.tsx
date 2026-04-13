@@ -1,0 +1,101 @@
+import React, { useState, useEffect } from 'react';
+import { api } from '../api';
+import { Event } from '../types';
+import { Calendar, Users, MapPin, Clock } from 'lucide-react';
+import EventsManagement from './EventsManagement';
+
+export default function StudentLineups({ athleteId }: { athleteId: string }) {
+  const [lineupEvents, setLineupEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  useEffect(() => {
+    if (athleteId) {
+      loadLineups();
+    }
+  }, [athleteId]);
+
+  const loadLineups = async () => {
+    setIsLoading(true);
+    try {
+      const events = await api.checkAthleteLineups(athleteId);
+      setLineupEvents(events);
+    } catch (error) {
+      console.error('Error loading student lineups:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-theme-primary"></div>
+      </div>
+    );
+  }
+
+  if (selectedEvent) {
+    return (
+      <div className="space-y-6">
+        <button 
+          onClick={() => setSelectedEvent(null)}
+          className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all font-bold uppercase text-xs tracking-widest"
+        >
+          ← Voltar para Minhas Escalações
+        </button>
+        <EventsManagement role="student" events={[selectedEvent]} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Minhas Escalações</h2>
+          <p className="text-zinc-400 text-sm">Confira os eventos para os quais você foi escalado</p>
+        </div>
+      </div>
+
+      {lineupEvents.length === 0 ? (
+        <div className="py-20 text-center bg-zinc-900/50 rounded-3xl border border-dashed border-zinc-800">
+          <Users size={48} className="mx-auto text-zinc-700 mb-4" />
+          <p className="text-zinc-500 font-bold uppercase tracking-widest">Você ainda não foi escalado para nenhum evento futuro</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {lineupEvents.map(event => (
+            <div key={event.id} className="bg-zinc-900 border border-theme-primary/20 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
+                  <Calendar size={24} />
+                </div>
+                <div className="px-3 py-1 bg-green-500/10 text-green-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                  Você está escalado!
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2 uppercase">{event.name}</h3>
+              <div className="space-y-2 text-sm text-zinc-400 mb-6">
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-zinc-600" />
+                  {event.city}/{event.uf} - {event.neighborhood}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-zinc-600" />
+                  {event.start_date} às {event.start_time}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedEvent(event)}
+                className="w-full py-3 bg-theme-primary text-black font-black rounded-xl uppercase tracking-widest text-xs hover:opacity-90 transition-all"
+              >
+                Visualizar Escalação
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -772,6 +772,36 @@ export const api = {
     }
   },
 
+  checkAthleteLineups: async (athlete_id: string): Promise<Event[]> => {
+    try {
+      const q = query(
+        collection(db, "event_lineups"), 
+        where("person_id", "==", athlete_id),
+        where("type", "==", "athlete")
+      );
+      const querySnapshot = await getDocs(q);
+      const eventIds = [...new Set(querySnapshot.docs.map(doc => doc.data().event_id))];
+      
+      if (eventIds.length === 0) return [];
+      
+      const allEvents = await api.getEvents();
+      const now = new Date();
+      
+      return allEvents.filter(e => {
+        if (!eventIds.includes(e.id)) return false;
+        
+        // Only return events that haven't finished yet
+        const [year, month, day] = e.end_date.split('-').map(Number);
+        const [hours, minutes] = e.end_time.split(':').map(Number);
+        const eventEnd = new Date(year, month - 1, day, hours, minutes);
+        return eventEnd >= now;
+      });
+    } catch (error) {
+      console.error("Error checking athlete lineups:", error);
+      return [];
+    }
+  },
+
   // Sponsors
   getSponsors: async (): Promise<Sponsor[]> => {
     const cached = getCachedData("sponsors");

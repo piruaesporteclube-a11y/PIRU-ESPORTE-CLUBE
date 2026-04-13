@@ -98,7 +98,18 @@ service cloud.firestore {
              data.birth_date is string &&
              data.guardian_name is string &&
              data.guardian_phone is string &&
-             (!('modality' in data) || data.modality is string);
+             (!('modality' in data) || data.modality is string) &&
+             (!('school' in data) || data.school is string) &&
+             (!('school_shift' in data) || data.school_shift in ['Manhã', 'Tarde', 'Noite', '']);
+    }
+
+    function isValidChampionshipTeam(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.championship_id is string &&
+             data.category is string &&
+             data.players is list &&
+             data.staff is list &&
+             data.status in ['Pendente', 'Aprovado', 'Recusado'];
     }
 
     function isValidUser(data) {
@@ -203,7 +214,7 @@ service cloud.firestore {
 
     match /championship_teams/{teamId} {
       allow read: if true;
-      allow create: if true; // Allow public registration
+      allow create: if isValidChampionshipTeam(request.resource.data); // Allow public registration with validation
       allow update, delete: if isAdmin();
     }
 

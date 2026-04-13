@@ -17,6 +17,7 @@ import MembershipCard from './components/MembershipCard';
 import ContactList from './components/ContactList';
 import CategoryList from './components/CategoryList';
 import LineupManagement from './components/LineupManagement';
+import StudentLineups from './components/StudentLineups';
 import ChampionshipManagement from './components/ChampionshipManagement';
 import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
@@ -150,6 +151,23 @@ export default function App() {
   }, [user, athletes]);
 
   useEffect(() => {
+    if (user?.role === 'student' && user.athlete_id) {
+      api.checkAthleteLineups(user.athlete_id).then(events => {
+        if (events.length > 0) {
+          toast.success(`Você foi escalado para ${events.length} evento(s)!`, {
+            description: 'Confira os detalhes na aba Escalações.',
+            duration: 10000,
+            action: {
+              label: 'Ver Agora',
+              onClick: () => setActiveTab('lineups')
+            }
+          });
+        }
+      });
+    }
+  }, [user?.id, user?.athlete_id]);
+
+  useEffect(() => {
     // Sync user state with Firebase Auth
     const unsubscribe = api.onAuthChange((firebaseUser) => {
       if (!firebaseUser) {
@@ -240,8 +258,8 @@ export default function App() {
                       <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
                     </div>
                   </button>
- 
-                    <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+
+                  <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
                     <div className="p-3 lg:p-4 bg-blue-500/10 text-blue-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
                       <CreditCard size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                     </div>
@@ -251,6 +269,16 @@ export default function App() {
                     </div>
                   </button>
 
+                  <button onClick={() => setActiveTab('lineups')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+                    <div className="p-3 lg:p-4 bg-green-500/10 text-green-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+                      <Users size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Escalações</h3>
+                      <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Veja se você foi selecionado para jogos</p>
+                    </div>
+                  </button>
+ 
                   <button onClick={() => setActiveTab('events')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
                     <div className="p-3 lg:p-4 bg-purple-500/10 text-purple-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
                       <Calendar size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
@@ -682,7 +710,7 @@ export default function App() {
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
-          return <LineupManagement />;
+          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':

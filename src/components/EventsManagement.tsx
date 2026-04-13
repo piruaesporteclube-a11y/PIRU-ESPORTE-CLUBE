@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
@@ -283,11 +283,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setSelectedEvent(event);
       setActiveLineupIndex(index);
       
-      // Check if event is finished
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const eventDate = new Date(event.end_date);
-      setIsEventFinished(eventDate < today);
+      // Check if event is finished based on date and time
+      const now = new Date();
+      const [year, month, day] = event.end_date.split('-').map(Number);
+      const [hours, minutes] = event.end_time.split(':').map(Number);
+      const eventEnd = new Date(year, month - 1, day, hours, minutes);
+      
+      setIsEventFinished(eventEnd < now);
 
       const { athletes: lineup, staff } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
@@ -422,7 +424,17 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 </button>
                 {isAdmin && (
                   <button 
-                    onClick={() => handleDeleteEvent(event.id)}
+                    onClick={() => {
+                      const now = new Date();
+                      const [year, month, day] = event.end_date.split('-').map(Number);
+                      const [hours, minutes] = event.end_time.split(':').map(Number);
+                      const eventEnd = new Date(year, month - 1, day, hours, minutes);
+                      if (eventEnd < now) {
+                        toast.error("Não é possível excluir um evento que já finalizou.");
+                        return;
+                      }
+                      handleDeleteEvent(event.id);
+                    }}
                     className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-xl transition-colors"
                     title="Excluir Evento"
                   >
@@ -537,8 +549,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  {isAdmin && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
-                  {isAdmin && (
+                  {isAdmin && !isEventFinished && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
+                  {isAdmin && !isEventFinished && (
                     <div className="flex gap-2 ml-4">
                       <button 
                         onClick={() => setIsSaveTemplateOpen(true)}
@@ -566,7 +578,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 no-print">
-              {isAdmin ? (
+              {isEventFinished && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500">
+                  <AlertCircle size={20} />
+                  <p className="text-sm font-bold uppercase tracking-widest">Este evento já foi finalizado. A escalação está bloqueada para edições.</p>
+                </div>
+              )}
+              {isAdmin && !isEventFinished ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Selection Area */}
                   <div className="lg:col-span-2 space-y-8">

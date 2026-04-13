@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },
   { id: 'attendance', label: 'Chamada', icon: ClipboardCheck, roles: ['admin'] },
   { id: 'championships', label: 'Campeonatos', icon: Trophy, roles: ['admin'] },
-  { id: 'lineups', label: 'Escalações', icon: Users, roles: ['admin'] },
+  { id: 'lineups', label: 'Escalações', icon: Users, roles: ['admin', 'student'] },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student'] },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },
   { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'] },

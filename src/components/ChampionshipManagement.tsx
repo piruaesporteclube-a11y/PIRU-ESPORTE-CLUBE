@@ -639,7 +639,7 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                   <button onClick={() => handleAddGoal(match.team_a_id)} className="text-[10px] font-bold text-theme-primary uppercase">+ Adicionar</button>
                 </div>
                 {report.goals.filter((g: any) => g.team_id === match.team_a_id).map((g: any, i: number) => (
-                  <div key={i} className="flex gap-2">
+                  <div key={i} className="flex gap-2 items-center">
                     <input 
                       type="text" 
                       placeholder="Nome do Atleta" 
@@ -664,6 +664,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                         setReport({...report, goals: newGoals});
                       }}
                     />
+                    <button 
+                      onClick={() => {
+                        const newGoals = report.goals.filter((_: any, index: number) => report.goals.indexOf(g) !== index);
+                        setReport({...report, goals: newGoals});
+                      }}
+                      className="p-2 text-zinc-600 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -678,7 +687,7 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 </div>
                 {report.cards.filter((c: any) => c.team_id === match.team_a_id).map((c: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <div className={cn("w-2 h-3 rounded-sm", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
+                    <div className={cn("w-2 h-3 rounded-sm flex-shrink-0", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
                     <input 
                       type="text" 
                       placeholder="Nome do Atleta" 
@@ -703,6 +712,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                         setReport({...report, cards: newCards});
                       }}
                     />
+                    <button 
+                      onClick={() => {
+                        const newCards = report.cards.filter((_: any, index: number) => report.cards.indexOf(c) !== index);
+                        setReport({...report, cards: newCards});
+                      }}
+                      className="p-2 text-zinc-600 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -723,7 +741,7 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                   <button onClick={() => handleAddGoal(match.team_b_id)} className="text-[10px] font-bold text-theme-primary uppercase">+ Adicionar</button>
                 </div>
                 {report.goals.filter((g: any) => g.team_id === match.team_b_id).map((g: any, i: number) => (
-                  <div key={i} className="flex gap-2">
+                  <div key={i} className="flex gap-2 items-center">
                     <input 
                       type="text" 
                       placeholder="Nome do Atleta" 
@@ -748,6 +766,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                         setReport({...report, goals: newGoals});
                       }}
                     />
+                    <button 
+                      onClick={() => {
+                        const newGoals = report.goals.filter((_: any, index: number) => report.goals.indexOf(g) !== index);
+                        setReport({...report, goals: newGoals});
+                      }}
+                      className="p-2 text-zinc-600 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -762,7 +789,7 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 </div>
                 {report.cards.filter((c: any) => c.team_id === match.team_b_id).map((c: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <div className={cn("w-2 h-3 rounded-sm", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
+                    <div className={cn("w-2 h-3 rounded-sm flex-shrink-0", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
                     <input 
                       type="text" 
                       placeholder="Nome do Atleta" 
@@ -787,6 +814,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                         setReport({...report, cards: newCards});
                       }}
                     />
+                    <button 
+                      onClick={() => {
+                        const newCards = report.cards.filter((_: any, index: number) => report.cards.indexOf(c) !== index);
+                        setReport({...report, cards: newCards});
+                      }}
+                      className="p-2 text-zinc-600 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>

@@ -51,7 +51,7 @@ export default function PublicTeamRegistration() {
     if ((teamData.players?.length || 0) < 22) {
       setTeamData({
         ...teamData,
-        players: [...(teamData.players || []), { name: '', doc: '', birth_date: '', photo: '' }]
+        players: [...(teamData.players || []), { name: '', doc: '', birth_date: '', photo: '', jersey_number: '' }]
       });
     } else {
       toast.warning("Limite de 22 jogadores atingido");
@@ -85,7 +85,7 @@ export default function PublicTeamRegistration() {
     if ((teamData.staff?.length || 0) < 3) {
       setTeamData({
         ...teamData,
-        staff: [...(teamData.staff || []), { name: '', role: '', doc: '' }]
+        staff: [...(teamData.staff || []), { name: '', role: '', doc: '', phone: '' }]
       });
     } else {
       toast.warning("Limite de 3 membros da comissão atingido");
