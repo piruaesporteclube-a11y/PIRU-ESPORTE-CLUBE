@@ -39,6 +39,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [isEventFinished, setIsEventFinished] = useState(false);
+  const [lineupCounts, setLineupCounts] = useState<Record<string, number>>({});
+  const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -69,6 +71,20 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     api.getProfessors().then(setProfessors);
     api.getNamedLineups().then(setNamedLineups);
   }, [athletesProp, eventsProp]);
+
+  useEffect(() => {
+    if (events.length > 0) {
+      events.forEach(async (event) => {
+        try {
+          const { athletes } = await api.getLineup(event.id, 0);
+          setLineupCounts(prev => ({ ...prev, [event.id]: athletes.length }));
+          setLineupSummaries(prev => ({ ...prev, [event.id]: athletes.map(a => a.name) }));
+        } catch (err) {
+          console.error(`Error fetching lineup count for event ${event.id}:`, err);
+        }
+      });
+    }
+  }, [events]);
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -453,6 +469,22 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 <Clock size={14} className="text-zinc-600" />
                 {event.start_date} às {event.start_time}
               </div>
+              {lineupCounts[event.id] > 0 && (
+                <div className="pt-3 border-t border-zinc-800/50 mt-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Users size={14} className="text-theme-primary" />
+                    <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest">
+                      {lineupCounts[event.id]} Atletas Escalados
+                    </span>
+                  </div>
+                  {lineupSummaries[event.id] && (
+                    <p className="text-[10px] text-zinc-500 line-clamp-1 italic">
+                      {lineupSummaries[event.id].slice(0, 5).join(', ')}
+                      {lineupSummaries[event.id].length > 5 ? '...' : ''}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -584,6 +616,35 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   <p className="text-sm font-bold uppercase tracking-widest">Este evento já foi finalizado. A escalação está bloqueada para edições.</p>
                 </div>
               )}
+
+              {/* Summary Section */}
+              {(lineupAthletes.length > 0 || lineupStaff.length > 0) && (
+                <div className="mb-8 p-6 bg-zinc-900/50 border border-zinc-800 rounded-[2rem] space-y-4">
+                  <div className="flex items-center gap-2 text-theme-primary">
+                    <Users size={18} />
+                    <h3 className="text-sm font-black uppercase tracking-widest">Resumo da Escalação</h3>
+                  </div>
+                  
+                  {lineupStaff.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comissão Técnica:</p>
+                      <p className="text-xs text-zinc-300 font-medium">
+                        {lineupStaff.map(s => s.name).join(' • ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {lineupAthletes.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas Escalados ({lineupAthletes.length}):</p>
+                      <p className="text-xs text-zinc-300 font-medium leading-relaxed">
+                        {lineupAthletes.map(a => a.name).join(' • ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {isAdmin && !isEventFinished ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Selection Area */}
