@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, categories } from '../types';
-import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle2 } from 'lucide-react';
+import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -17,11 +17,15 @@ export default function PublicTeamRegistration() {
     name: '',
     logo: '',
     category: '',
-    contact: '',
+    responsible_name: '',
+    responsible_phone: '',
     players: [],
     staff: [],
     status: 'Pendente'
   });
+
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  const [registrationMessage, setRegistrationMessage] = useState('');
 
   useEffect(() => {
     if (championshipId) {
@@ -30,6 +34,30 @@ export default function PublicTeamRegistration() {
         if (found) {
           setChampionship(found);
           setTeamData(prev => ({ ...prev, category: found.categories[0] }));
+
+          // Check registration period
+          const now = new Date();
+          if (found.registration_start) {
+            const start = new Date(found.registration_start);
+            if (now < start) {
+              setIsRegistrationOpen(false);
+              setRegistrationMessage(`As inscrições para este campeonato ainda não começaram. Elas abrem em ${new Date(found.registration_start).toLocaleDateString()}.`);
+            }
+          }
+          if (found.registration_end) {
+            const end = new Date(found.registration_end);
+            // Set end to end of day
+            end.setHours(23, 59, 59, 999);
+            if (now > end) {
+              setIsRegistrationOpen(false);
+              setRegistrationMessage(`As inscrições para este campeonato foram encerradas em ${new Date(found.registration_end).toLocaleDateString()}.`);
+            }
+          }
+          
+          if (found.status !== 'Inscrições Abertas') {
+            setIsRegistrationOpen(false);
+            setRegistrationMessage('As inscrições para este campeonato não estão abertas no momento.');
+          }
         }
         setLoading(false);
       });
@@ -119,7 +147,7 @@ export default function PublicTeamRegistration() {
     if ((teamData.staff?.length || 0) < 3) {
       setTeamData({
         ...teamData,
-        staff: [...(teamData.staff || []), { name: '', role: '', doc: '', phone: '' }]
+        staff: [...(teamData.staff || []), { name: '', role: 'Técnico', doc: '', phone: '' }]
       });
     } else {
       toast.warning("Limite de 3 membros da comissão atingido");
@@ -217,6 +245,28 @@ export default function PublicTeamRegistration() {
     );
   }
 
+  if (!isRegistrationOpen) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle size={48} />
+          </div>
+          <h1 className="text-2xl font-bold text-white uppercase tracking-widest">Inscrições Encerradas</h1>
+          <p className="text-zinc-400">
+            {registrationMessage}
+          </p>
+          <button 
+            onClick={() => window.history.back()}
+            className="w-full py-4 bg-zinc-800 text-white font-black rounded-2xl uppercase tracking-widest hover:bg-zinc-700 transition-all"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -273,14 +323,25 @@ export default function PublicTeamRegistration() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">WhatsApp de Contato</label>
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Nome do Responsável</label>
+                  <input 
+                    required 
+                    type="text" 
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary transition-all uppercase font-bold"
+                    placeholder="NOME DO RESPONSÁVEL"
+                    value={teamData.responsible_name}
+                    onChange={e => setTeamData({...teamData, responsible_name: e.target.value.toUpperCase()})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">WhatsApp do Responsável</label>
                   <input 
                     required 
                     type="text" 
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary transition-all uppercase font-bold"
                     placeholder="(00) 00000-0000"
-                    value={teamData.contact}
-                    onChange={e => setTeamData({...teamData, contact: e.target.value.toUpperCase()})}
+                    value={teamData.responsible_phone}
+                    onChange={e => setTeamData({...teamData, responsible_phone: e.target.value.toUpperCase()})}
                   />
                 </div>
                 <div>
@@ -434,14 +495,18 @@ export default function PublicTeamRegistration() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Cargo (Ex: Técnico)</label>
-                      <input 
+                      <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Cargo</label>
+                      <select 
                         required 
-                        type="text" 
                         className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-white text-sm focus:border-theme-primary transition-all uppercase font-bold"
                         value={s.role}
-                        onChange={e => updateStaff(index, 'role', e.target.value.toUpperCase())}
-                      />
+                        onChange={e => updateStaff(index, 'role', e.target.value)}
+                      >
+                        <option value="">Selecione...</option>
+                        <option value="Técnico">Técnico</option>
+                        <option value="Auxiliar">Auxiliar</option>
+                        <option value="Massagista">Massagista</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">CPF/RG</label>

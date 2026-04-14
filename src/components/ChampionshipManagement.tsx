@@ -184,6 +184,17 @@ export default function ChampionshipManagement() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Início das Inscrições</label>
+                    <input type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.registration_start} onChange={e => setFormData({...formData, registration_start: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Fim das Inscrições</label>
+                    <input type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.registration_end} onChange={e => setFormData({...formData, registration_end: e.target.value})} />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Categorias</label>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -861,7 +872,10 @@ function TeamDetailsModal({ team, onClose }: { team: ChampionshipTeam, onClose: 
             <div>
               <h2 className="text-xl font-bold text-white uppercase">{team.name}</h2>
               <p className="text-xs text-theme-primary font-black uppercase tracking-widest">{team.category}</p>
-              {team.contact && <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">Contato: {team.contact}</p>}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase">Responsável: {team.responsible_name}</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase">WhatsApp: {team.responsible_phone}</p>
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-xl transition-all"><X size={20} /></button>

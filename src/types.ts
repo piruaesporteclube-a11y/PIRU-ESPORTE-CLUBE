@@ -157,6 +157,8 @@ export type Championship = {
   categories: string[];
   dispute_format: "Eliminatória" | "Pontos Corridos" | "Grupos + Mata-mata";
   status: "Inscrições Abertas" | "Em Andamento" | "Finalizado";
+  registration_start?: string;
+  registration_end?: string;
   created_at?: any;
   updated_at?: any;
 };
@@ -167,7 +169,8 @@ export type ChampionshipTeam = {
   name: string;
   logo: string;
   category: string;
-  contact?: string;
+  responsible_name: string;
+  responsible_phone: string;
   players: {
     name: string;
     doc: string;
@@ -177,7 +180,7 @@ export type ChampionshipTeam = {
   }[];
   staff: {
     name: string;
-    role: string;
+    role: "Técnico" | "Auxiliar" | "Massagista";
     doc: string;
     phone?: string;
   }[];
