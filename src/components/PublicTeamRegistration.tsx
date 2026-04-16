@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, categories } from '../types';
-import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
 interface PublicTeamRegistrationProps {
   championshipId?: string;
+  onBack?: () => void;
 }
 
-export default function PublicTeamRegistration({ championshipId: propChampionshipId }: PublicTeamRegistrationProps) {
+export default function PublicTeamRegistration({ championshipId: propChampionshipId, onBack }: PublicTeamRegistrationProps) {
   const { championshipId: urlChampionshipId } = useParams<{ championshipId: string }>();
   const championshipId = propChampionshipId || urlChampionshipId;
   
@@ -222,6 +223,14 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
           <Trophy size={64} className="mx-auto text-zinc-800" />
           <h1 className="text-2xl font-bold text-white">Campeonato não encontrado</h1>
           <p className="text-zinc-500">O link que você acessou pode estar incorreto ou o campeonato foi removido.</p>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="mt-4 px-6 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-all"
+            >
+              Voltar ao Início
+            </button>
+          )}
         </div>
       </div>
     );
@@ -264,7 +273,7 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
             {registrationMessage}
           </p>
           <button 
-            onClick={() => window.history.back()}
+            onClick={onBack || (() => window.history.back())}
             className="w-full py-4 bg-zinc-800 text-white font-black rounded-2xl uppercase tracking-widest hover:bg-zinc-700 transition-all"
           >
             Voltar
@@ -291,6 +300,17 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
             <span className="px-4 py-1 bg-green-500/10 text-green-500 text-xs font-bold rounded-full uppercase tracking-widest">
               Inscrições Abertas
             </span>
+            {championship.regulation_url && (
+              <a 
+                href={championship.regulation_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-full uppercase tracking-widest hover:bg-zinc-800 transition-all"
+              >
+                <FileText size={14} />
+                Regulamento
+              </a>
+            )}
           </div>
         </div>
 

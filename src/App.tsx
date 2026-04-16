@@ -390,12 +390,18 @@ export default function App() {
     return params.get('anamnesis') === 'true';
   });
   const [isTeamRegistration, setIsTeamRegistration] = useState(() => {
-    return window.location.pathname.startsWith('/register-team/');
+    const params = new URLSearchParams(window.location.search);
+    return params.has('register-team') || window.location.pathname.startsWith('/register-team/');
   });
   const [isTeamPortal, setIsTeamPortal] = useState(() => {
-    return window.location.pathname.startsWith('/team-portal/');
+    const params = new URLSearchParams(window.location.search);
+    return params.has('team-portal') || window.location.pathname.startsWith('/team-portal/');
   });
   const [teamChampionshipId, setTeamChampionshipId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get('register-team') || params.get('team-portal');
+    if (queryId) return queryId;
+
     const path = window.location.pathname;
     if (path.startsWith('/register-team/')) {
       return path.split('/register-team/')[1];
@@ -1081,11 +1087,15 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const isReg = params.get('register') === 'true';
       const isAna = params.get('anamnesis') === 'true';
-      const isTeamReg = window.location.pathname.startsWith('/register-team/');
-      const isPortal = window.location.pathname.startsWith('/team-portal/');
+      const queryTeamReg = params.get('register-team');
+      const queryPortal = params.get('team-portal');
       
-      const teamId = isTeamReg ? window.location.pathname.split('/register-team/')[1] : 
-                    isPortal ? window.location.pathname.split('/team-portal/')[1] : null;
+      const isTeamReg = !!queryTeamReg || window.location.pathname.startsWith('/register-team/');
+      const isPortal = !!queryPortal || window.location.pathname.startsWith('/team-portal/');
+      
+      const teamId = queryTeamReg || queryPortal || 
+                    (window.location.pathname.startsWith('/register-team/') ? window.location.pathname.split('/register-team/')[1] : 
+                    window.location.pathname.startsWith('/team-portal/') ? window.location.pathname.split('/team-portal/')[1] : null);
       
       console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'isTeamPortal:', isPortal, 'teamId:', teamId);
       setIsRegistering(isReg);
@@ -1158,7 +1168,13 @@ export default function App() {
   if (isTeamPortal) {
     return (
       <ErrorBoundary>
-        <TeamPortal championshipId={teamChampionshipId || undefined} />
+        <TeamPortal 
+          championshipId={teamChampionshipId || undefined} 
+          onBack={() => {
+            setIsTeamPortal(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
       </ErrorBoundary>
     );
   }
@@ -1166,7 +1182,13 @@ export default function App() {
   if (isTeamRegistration) {
     return (
       <ErrorBoundary>
-        <PublicTeamRegistration championshipId={teamChampionshipId || undefined} />
+        <PublicTeamRegistration 
+          championshipId={teamChampionshipId || undefined} 
+          onBack={() => {
+            setIsTeamRegistration(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
       </ErrorBoundary>
     );
   }

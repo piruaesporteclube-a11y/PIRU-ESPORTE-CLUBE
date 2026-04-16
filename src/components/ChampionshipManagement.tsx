@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, ChampionshipMatch, categories } from '../types';
-import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield } from 'lucide-react';
+import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield, FileText, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -16,6 +16,8 @@ export default function ChampionshipManagement() {
     description: '',
     categories: [],
     dispute_format: 'Grupos + Mata-mata',
+    category_formats: {},
+    regulation_url: '',
     status: 'Inscrições Abertas'
   });
 
@@ -28,6 +30,14 @@ export default function ChampionshipManagement() {
     setChampionships(data);
   };
 
+  const handleEditChampionship = (c: Championship) => {
+    setFormData({
+      ...c,
+      category_formats: c.category_formats || {}
+    });
+    setIsFormOpen(true);
+  };
+
   const handleCreateChampionship = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.categories?.length === 0) {
@@ -35,13 +45,45 @@ export default function ChampionshipManagement() {
       return;
     }
     try {
-      await api.saveChampionship(formData);
+      // Ensure all selected categories have a format
+      const formats = { ...formData.category_formats };
+      formData.categories?.forEach(cat => {
+        if (!formats[cat]) {
+          formats[cat] = formData.dispute_format || 'Grupos + Mata-mata';
+        }
+      });
+
+      await api.saveChampionship({ ...formData, category_formats: formats });
       toast.success("Campeonato salvo com sucesso!");
       setIsFormOpen(false);
-      setFormData({ name: '', description: '', categories: [], dispute_format: 'Grupos + Mata-mata', status: 'Inscrições Abertas' });
+      setFormData({ 
+        name: '', 
+        description: '', 
+        categories: [], 
+        dispute_format: 'Grupos + Mata-mata', 
+        category_formats: {},
+        regulation_url: '',
+        status: 'Inscrições Abertas' 
+      });
       loadChampionships();
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
+    }
+  };
+
+  const handleRegulationUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("O arquivo deve ter no máximo 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, regulation_url: reader.result as string });
+        toast.success("Regulamento carregado com sucesso!");
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -134,6 +176,12 @@ export default function ChampionshipManagement() {
                 Gerenciar
               </button>
               <button 
+                onClick={() => handleEditChampionship(c)}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-xl transition-colors"
+              >
+                <Plus size={16} className="rotate-45" />
+              </button>
+              <button 
                 onClick={() => handleDeleteChampionship(c.id)}
                 className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-xl transition-colors"
               >
@@ -148,8 +196,11 @@ export default function ChampionshipManagement() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-bold text-white">Novo Campeonato</h2>
-              <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+              <h2 className="text-xl font-bold text-white">{formData.id ? 'Editar Campeonato' : 'Novo Campeonato'}</h2>
+              <button onClick={() => {
+                setIsFormOpen(false);
+                setFormData({ name: '', description: '', categories: [], dispute_format: 'Grupos + Mata-mata', category_formats: {}, regulation_url: '', status: 'Inscrições Abertas' });
+              }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
               </button>
@@ -167,7 +218,7 @@ export default function ChampionshipManagement() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Forma de Disputa</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Forma de Disputa Padrão</label>
                     <select className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.dispute_format} onChange={e => setFormData({...formData, dispute_format: e.target.value as any})}>
                       <option value="Eliminatória">Eliminatória (Mata-mata)</option>
                       <option value="Pontos Corridos">Pontos Corridos</option>
@@ -184,6 +235,28 @@ export default function ChampionshipManagement() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Regulamento do Campeonato (PDF/Imagem)</label>
+                  <div className="flex items-center gap-4">
+                    <label className="flex-1 flex items-center gap-3 px-4 py-3 bg-zinc-800 border border-zinc-700 border-dashed rounded-xl cursor-pointer hover:border-theme-primary/50 transition-all">
+                      <Upload size={18} className="text-zinc-500" />
+                      <span className="text-sm text-zinc-400 truncate">
+                        {formData.regulation_url ? "Arquivo carregado" : "Clique para fazer upload do regulamento"}
+                      </span>
+                      <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleRegulationUpload} />
+                    </label>
+                    {formData.regulation_url && (
+                      <button 
+                        type="button" 
+                        onClick={() => setFormData({...formData, regulation_url: ''})}
+                        className="p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Início das Inscrições</label>
@@ -196,8 +269,8 @@ export default function ChampionshipManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Categorias</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Categorias e Formas de Disputa</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
                     {categories.map(cat => (
                       <button
                         key={cat}
@@ -214,11 +287,42 @@ export default function ChampionshipManagement() {
                       </button>
                     ))}
                   </div>
+
+                  {formData.categories && formData.categories.length > 0 && (
+                    <div className="space-y-3 p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Configurar Disputa por Categoria</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {formData.categories.map(cat => (
+                          <div key={cat} className="flex items-center justify-between gap-3 p-2 bg-zinc-800 rounded-lg border border-zinc-700">
+                            <span className="text-[10px] font-black text-white uppercase ml-2">{cat}</span>
+                            <select 
+                              className="bg-zinc-900 border-none text-[10px] font-bold text-theme-primary uppercase focus:ring-0 rounded-md py-1"
+                              value={formData.category_formats?.[cat] || formData.dispute_format}
+                              onChange={e => {
+                                const newFormats = { ...formData.category_formats };
+                                newFormats[cat] = e.target.value as any;
+                                setFormData({ ...formData, category_formats: newFormats });
+                              }}
+                            >
+                              <option value="Eliminatória">Mata-mata</option>
+                              <option value="Pontos Corridos">P. Corridos</option>
+                              <option value="Grupos + Mata-mata">Grupos + MM</option>
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Cancelar</button>
-                <button type="submit" className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20">Criar Campeonato</button>
+                <button type="button" onClick={() => {
+                  setIsFormOpen(false);
+                  setFormData({ name: '', description: '', categories: [], dispute_format: 'Grupos + Mata-mata', category_formats: {}, regulation_url: '', status: 'Inscrições Abertas' });
+                }} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Cancelar</button>
+                <button type="submit" className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20">
+                  {formData.id ? 'Salvar Alterações' : 'Criar Campeonato'}
+                </button>
               </div>
             </form>
           </div>
@@ -260,8 +364,8 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
     }
   };
 
-  const registrationLink = `${window.location.origin}/register-team/${championship.id}`;
-  const portalLink = `${window.location.origin}/team-portal/${championship.id}`;
+  const registrationLink = `${window.location.origin}/?register-team=${championship.id}`;
+  const portalLink = `${window.location.origin}/?team-portal=${championship.id}`;
 
   return (
     <div className="space-y-6">
@@ -272,7 +376,22 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
           </button>
           <div>
             <h2 className="text-2xl font-bold text-white uppercase">{championship.name}</h2>
-            <p className="text-zinc-400 text-sm">{championship.dispute_format} • {championship.status}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-zinc-400 text-sm">
+                {championship.dispute_format}{Object.keys(championship.category_formats || {}).length > 0 ? " (Personalizado)" : ""} • {championship.status}
+              </p>
+              {championship.regulation_url && (
+                <a 
+                  href={championship.regulation_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[10px] font-black text-theme-primary uppercase hover:underline"
+                >
+                  <FileText size={12} />
+                  Regulamento
+                </a>
+              )}
+            </div>
           </div>
         </div>
         
@@ -345,7 +464,9 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white uppercase">{team.name}</h3>
-                  <p className="text-xs text-theme-primary font-black uppercase tracking-widest">{team.category}</p>
+                  <p className="text-xs text-theme-primary font-black uppercase tracking-widest">
+                    {team.category} • {championship.category_formats?.[team.category] || championship.dispute_format}
+                  </p>
                   <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">
                     {team.players.length} Jogadores • {team.staff.length} Comissão
                   </p>

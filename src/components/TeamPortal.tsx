@@ -12,7 +12,8 @@ import {
   ChevronRight, 
   AlertCircle,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  FileText
 } from 'lucide-react';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, ChampionshipMatch } from '../types';
@@ -21,9 +22,10 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface TeamPortalProps {
   championshipId?: string;
+  onBack?: () => void;
 }
 
-export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propChampionshipId }) => {
+export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propChampionshipId, onBack }) => {
   const { championshipId: urlChampionshipId } = useParams<{ championshipId: string }>();
   const championshipId = propChampionshipId || urlChampionshipId;
 
@@ -103,6 +105,15 @@ export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propCham
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Campeonato não encontrado</h1>
           <p className="text-zinc-400 mb-6">O link que você acessou parece estar inválido ou o campeonato foi removido.</p>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <ArrowLeft size={18} />
+              Voltar ao Início
+            </button>
+          )}
         </div>
       </div>
     );
@@ -124,6 +135,15 @@ export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propCham
             O portal da equipe só fica disponível durante a realização da competição.
             Status atual: <span className="text-theme-primary font-bold">{championship.status}</span>
           </p>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <ArrowLeft size={18} />
+              Voltar ao Início
+            </button>
+          )}
         </div>
       </div>
     );
@@ -176,6 +196,17 @@ export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propCham
                 </>
               )}
             </button>
+
+            {onBack && (
+              <button 
+                type="button"
+                onClick={onBack}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-4 rounded-2xl transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Voltar
+              </button>
+            )}
           </form>
 
           <div className="mt-8 pt-6 border-t border-zinc-800 text-center">
@@ -248,6 +279,17 @@ export const TeamPortal: React.FC<TeamPortalProps> = ({ championshipId: propCham
                 <span className="bg-zinc-800 text-zinc-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-zinc-700">
                   {selectedTeam?.status}
                 </span>
+                {championship.regulation_url && (
+                  <a 
+                    href={championship.regulation_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-zinc-700 flex items-center gap-1 transition-all"
+                  >
+                    <FileText size={12} />
+                    Regulamento
+                  </a>
+                )}
               </div>
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">{selectedTeam?.name}</h1>
               <p className="text-zinc-400 font-medium">Responsável: <span className="text-white">{selectedTeam?.responsible_name}</span></p>

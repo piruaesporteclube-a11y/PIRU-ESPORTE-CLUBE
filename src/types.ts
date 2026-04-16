@@ -156,6 +156,8 @@ export type Championship = {
   description: string;
   categories: string[];
   dispute_format: "Eliminatória" | "Pontos Corridos" | "Grupos + Mata-mata";
+  category_formats?: Record<string, "Eliminatória" | "Pontos Corridos" | "Grupos + Mata-mata">;
+  regulation_url?: string;
   status: "Inscrições Abertas" | "Em Andamento" | "Finalizado";
   registration_start?: string;
   registration_end?: string;
