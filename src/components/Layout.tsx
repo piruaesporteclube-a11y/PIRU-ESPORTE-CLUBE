@@ -31,7 +31,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin'] },
+  { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin', 'student'] },
   { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'] },
   { id: 'categories', label: 'Categorias (SUB)', icon: ClipboardList, roles: ['admin'] },
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },

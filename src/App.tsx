@@ -23,11 +23,304 @@ import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
-import { Athlete, User, Professor, Event } from './types';
+import { Athlete, User, Professor, Event, Settings } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
+
+const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setIsAthleteFormOpen }: { 
+  stats: any, 
+  athletes: Athlete[], 
+  events: Event[], 
+  user: User, 
+  settings: Settings,
+  setActiveTab: (tab: string) => void,
+  setIsAthleteFormOpen: (open: boolean) => void
+}) => {
+  if (user.role === 'student') {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Olá, {user.name}</h2>
+            <p className="text-zinc-400">Bem-vindo ao seu portal do atleta no Piruá E.C.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            <button onClick={() => setActiveTab('my-data')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-theme-primary/10 text-theme-primary rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <UserPlus size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Meus Dados</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Atualize suas informações cadastrais</p>
+            </div>
+          </button>
+ 
+            <button onClick={() => setActiveTab('my-anamnesis')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-green-500/10 text-green-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <ClipboardCheck size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Minha Saúde</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Preencha sua ficha de anamnese</p>
+            </div>
+          </button>
+
+          <button onClick={() => setActiveTab('my-card')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-blue-500/10 text-blue-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <CreditCard size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Carteirinha</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Visualize sua carteirinha oficial</p>
+            </div>
+          </button>
+
+          <button onClick={() => setActiveTab('lineups')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-green-500/10 text-green-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <Users size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Escalações</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Veja se você foi selecionado para jogos</p>
+            </div>
+          </button>
+ 
+          <button onClick={() => setActiveTab('events')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-purple-500/10 text-purple-500 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <Calendar size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Eventos</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Veja os próximos eventos e jogos</p>
+            </div>
+          </button>
+
+          <button onClick={() => setActiveTab('trainings')} className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] shadow-xl hover:border-theme-primary/60 transition-all group flex flex-col items-center text-center gap-3 sm:gap-4">
+            <div className="p-3 lg:p-4 bg-theme-primary/10 text-theme-primary rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform">
+              <ClipboardList size={24} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-widest mb-1">Treinos</h3>
+              <p className="text-[9px] sm:text-[10px] lg:text-xs text-zinc-500">Confira a agenda de treinamentos</p>
+            </div>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+          {settings.instagram && (
+            <a 
+              href={settings.instagram.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-zinc-900/40 border border-pink-500/30 p-6 rounded-3xl shadow-xl hover:border-pink-500/60 transition-all group flex items-center gap-4"
+            >
+              <div className="p-3 bg-pink-500/10 text-pink-500 rounded-2xl group-hover:scale-110 transition-transform">
+                <Instagram size={24} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest">Instagram</h3>
+                <p className="text-[10px] text-zinc-500">Siga-nos para novidades</p>
+              </div>
+            </a>
+          )}
+          {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
+            <a 
+              href={`https://wa.me/55${settings.whatsapp.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-zinc-900/40 border border-green-500/30 p-6 rounded-3xl shadow-xl hover:border-green-500/60 transition-all group flex items-center gap-4"
+            >
+              <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
+                <MessageCircle size={24} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest">WhatsApp</h3>
+                <p className="text-[10px] text-zinc-500">Fale conosco agora</p>
+              </div>
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Painel de Controle</h2>
+          <p className="text-zinc-400">Bem-vindo ao sistema de gestão do Piruá Esporte Clube</p>
+        </div>
+        <div className="hidden md:block text-right">
+          <p className="text-sm font-bold text-theme-primary uppercase">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <p className="text-xs text-zinc-500">Temporada 2026</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+          <div className="flex items-center gap-4 mb-3 sm:mb-4">
+            <div className="p-2.5 sm:p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
+              <Users size={20} className="sm:w-6 sm:h-6" />
+            </div>
+            <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Totais</h3>
+          </div>
+          <p className="text-3xl sm:text-4xl font-black text-white">{stats.athletes}</p>
+        </div>
+        <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+          <div className="flex items-center gap-4 mb-3 sm:mb-4">
+            <div className="p-2.5 sm:p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
+              <UserCheck size={20} className="sm:w-6 sm:h-6" />
+            </div>
+            <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Atletas Ativos</h3>
+          </div>
+          <p className="text-3xl sm:text-4xl font-black text-white">{stats.active}</p>
+        </div>
+        <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+          <div className="flex items-center gap-4 mb-3 sm:mb-4">
+            <div className="p-2.5 sm:p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
+              <Calendar size={20} className="sm:w-6 sm:h-6" />
+            </div>
+            <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Eventos</h3>
+          </div>
+          <p className="text-3xl sm:text-4xl font-black text-white">{stats.events}</p>
+        </div>
+        <div className="bg-zinc-900/40 border border-theme-primary/30 p-5 sm:p-6 rounded-3xl shadow-xl hover:border-theme-primary/60 transition-all group">
+          <div className="flex items-center gap-4 mb-3 sm:mb-4">
+            <div className="p-2.5 sm:p-3 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
+              <Trophy size={20} className="sm:w-6 sm:h-6" />
+            </div>
+            <h3 className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest">Ranking</h3>
+          </div>
+          <p className="text-3xl sm:text-4xl font-black text-white">#1</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl">
+          <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+            <Activity size={20} className="text-theme-primary" />
+            Ações Rápidas
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <Users size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Novo Atleta</span>
+            </button>
+            <button onClick={() => setActiveTab('attendance')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <ClipboardCheck size={20} className="text-green-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Fazer Chamada</span>
+            </button>
+            <button onClick={() => setActiveTab('categories')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <ClipboardList size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Categorias (SUB)</span>
+            </button>
+            <button onClick={() => { setActiveTab('attendance'); localStorage.setItem('auto_scan', 'true'); }} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <QrCode size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Chamada QR</span>
+            </button>
+            <button onClick={() => setActiveTab('events')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <Calendar size={20} className="text-blue-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Novo Evento</span>
+            </button>
+            <button onClick={() => setActiveTab('documents')} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center">
+              <FileText size={20} className="text-purple-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Documentos</span>
+            </button>
+            <button 
+              onClick={() => {
+                const link = `${window.location.origin}/?register=true`;
+                navigator.clipboard.writeText(link);
+                toast.success('Link de matrícula copiado!');
+              }}
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
+            >
+              <LinkIcon size={20} className="text-theme-primary group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Link Matrícula</span>
+            </button>
+            <button 
+              onClick={() => {
+                const link = `${window.location.origin}/`;
+                navigator.clipboard.writeText(link);
+                toast.success('Link do Portal do Atleta copiado!');
+              }}
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
+            >
+              <UserCheck size={20} className="text-blue-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Link Portal</span>
+            </button>
+            <button 
+              onClick={() => {
+                const link = `${window.location.origin}/?anamnesis=true`;
+                navigator.clipboard.writeText(link);
+                toast.success('Link de anamnese copiado!');
+              }}
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition-all gap-2 sm:gap-3 group text-center"
+            >
+              <ClipboardCheck size={20} className="text-green-500 group-hover:scale-110 transition-transform sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase">Link Anamnese</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Cake size={120} />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+            <Cake size={20} className="text-pink-500" />
+            Aniversariantes
+          </h3>
+          <Birthdays />
+        </div>
+
+        <div className="bg-zinc-900/40 border border-theme-primary/30 rounded-3xl p-8 shadow-xl lg:col-span-2">
+          <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+            <LinkIcon size={20} className="text-theme-primary" />
+            Redes Sociais & Contato
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {settings.instagram && (
+              <a 
+                href={settings.instagram.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-zinc-800/50 border border-pink-500/20 p-6 rounded-2xl hover:border-pink-500/50 transition-all group flex items-center gap-4"
+              >
+                <div className="p-3 bg-pink-500/10 text-pink-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <Instagram size={24} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-widest">Instagram</h4>
+                  <p className="text-xs text-zinc-500">@pirua_ec</p>
+                </div>
+              </a>
+            )}
+            {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
+              <a 
+                href={`https://wa.me/55${settings.whatsapp.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-zinc-800/50 border border-green-500/20 p-6 rounded-2xl hover:border-green-500/50 transition-all group flex items-center gap-4"
+              >
+                <div className="p-3 bg-green-500/10 text-green-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <MessageCircle size={24} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-widest">WhatsApp</h4>
+                  <p className="text-xs text-zinc-500">Suporte e Informações</p>
+                </div>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
   constructor(props: {children: React.ReactNode}) {
@@ -97,6 +390,13 @@ export default function App() {
   });
   const [isTeamRegistration, setIsTeamRegistration] = useState(() => {
     return window.location.pathname.startsWith('/register-team/');
+  });
+  const [teamChampionshipId, setTeamChampionshipId] = useState<string | null>(() => {
+    const path = window.location.pathname;
+    if (path.startsWith('/register-team/')) {
+      return path.split('/register-team/')[1];
+    }
+    return null;
   });
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
@@ -609,10 +909,12 @@ export default function App() {
               {myAthleteData ? (
                 <AthleteForm 
                   athlete={myAthleteData} 
-                  onClose={() => setActiveTab('my-card')} 
+                  onClose={() => setActiveTab('dashboard')} 
                   onSave={() => {
-                    setActiveTab('my-card');
+                    setActiveTab('dashboard');
+                    toast.success("Dados atualizados com sucesso!");
                   }} 
+                  standalone
                 />
               ) : (
                 <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
@@ -625,7 +927,14 @@ export default function App() {
           return (
             <div className="max-w-4xl mx-auto">
               {myAthleteData ? (
-                <AnamnesisForm athlete={myAthleteData} onSave={() => setActiveTab('my-card')} />
+                <AnamnesisForm 
+                  athlete={myAthleteData} 
+                  onSave={() => {
+                    setActiveTab('dashboard');
+                    toast.success("Ficha de saúde atualizada!");
+                  }} 
+                  standalone
+                />
               ) : (
                 <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
                   <p className="text-zinc-500">Carregando seus dados...</p>
@@ -727,35 +1036,18 @@ export default function App() {
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'settings':
           return <SettingsComponent />;
-        case 'my-data':
-          return athletes[0] ? (
-            <div className="max-w-4xl mx-auto">
-              <AthleteForm 
-                athlete={athletes[0]} 
-                standalone={true}
-                onClose={() => setActiveTab('dashboard')} 
-                onSave={() => toast.success("Dados atualizados com sucesso!")} 
-              />
-            </div>
-          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
-        case 'my-anamnesis':
-          return athletes[0] ? (
-            <div className="max-w-4xl mx-auto">
-              <AnamnesisForm 
-                athlete={athletes[0]} 
-                standalone={true}
-                onSave={() => toast.success("Ficha de saúde atualizada!")} 
-              />
-            </div>
-          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
-        case 'my-card':
-          return athletes[0] ? (
-            <div className="max-w-2xl mx-auto">
-              <MembershipCard athlete={athletes[0]} />
-            </div>
-          ) : <div className="text-center p-12 text-zinc-500 italic">Carregando dados do atleta...</div>;
         default:
-          return <div>Em desenvolvimento...</div>;
+          return (
+            <Dashboard 
+              stats={stats} 
+              athletes={athletes} 
+              events={events} 
+              user={user} 
+              settings={settings}
+              setActiveTab={setActiveTab}
+              setIsAthleteFormOpen={setIsAthleteFormOpen}
+            />
+          );
       }
     })();
 
@@ -783,10 +1075,12 @@ export default function App() {
       const isReg = params.get('register') === 'true';
       const isAna = params.get('anamnesis') === 'true';
       const isTeamReg = window.location.pathname.startsWith('/register-team/');
-      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg);
+      const teamId = isTeamReg ? window.location.pathname.split('/register-team/')[1] : null;
+      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'teamId:', teamId);
       setIsRegistering(isReg);
       setIsAnamnesisOnly(isAna);
       setIsTeamRegistration(isTeamReg);
+      setTeamChampionshipId(teamId);
     };
 
     checkRegisterParam();
@@ -852,7 +1146,7 @@ export default function App() {
   if (isTeamRegistration) {
     return (
       <ErrorBoundary>
-        <PublicTeamRegistration />
+        <PublicTeamRegistration championshipId={teamChampionshipId || undefined} />
       </ErrorBoundary>
     );
   }

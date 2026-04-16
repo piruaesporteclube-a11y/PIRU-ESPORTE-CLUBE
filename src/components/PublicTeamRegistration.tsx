@@ -6,8 +6,14 @@ import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
-export default function PublicTeamRegistration() {
-  const { championshipId } = useParams<{ championshipId: string }>();
+interface PublicTeamRegistrationProps {
+  championshipId?: string;
+}
+
+export default function PublicTeamRegistration({ championshipId: propChampionshipId }: PublicTeamRegistrationProps) {
+  const { championshipId: urlChampionshipId } = useParams<{ championshipId: string }>();
+  const championshipId = propChampionshipId || urlChampionshipId;
+  
   const [championship, setChampionship] = useState<Championship | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);

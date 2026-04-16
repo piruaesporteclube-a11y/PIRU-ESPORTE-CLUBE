@@ -142,7 +142,10 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
 
           <div className="mt-8 pt-8 border-t border-zinc-800 flex flex-col gap-4">
             <button
-              onClick={onRegisterClick}
+              onClick={() => {
+                window.history.pushState({}, '', '/?register=true');
+                onRegisterClick();
+              }}
               className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
             >
               <UserPlus size={20} className="text-theme-primary" />
