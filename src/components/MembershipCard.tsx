@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
@@ -16,11 +16,12 @@ interface MembershipCardProps {
 export default function MembershipCard({ athlete }: MembershipCardProps) {
   const { settings } = useTheme();
   const cardRef = useRef<HTMLDivElement>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
       if (!url) {
         callback(null);
@@ -34,6 +35,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       const img = new Image();
       img.setAttribute('crossOrigin', 'anonymous');
       img.onload = () => {
+        if (!isMounted) return;
         try {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
@@ -52,6 +54,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         }
       };
       img.onerror = () => {
+        if (!isMounted) return;
         console.warn('Failed to load image with CORS:', url);
         callback(url);
       };
@@ -62,6 +65,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
 
     convertToDataUrl(athlete.photo || '', setPhotoDataUrl);
     convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+
+    return () => {
+      isMounted = false;
+    };
   }, [athlete.photo, settings?.schoolCrest]);
 
   const handlePrint = () => {
@@ -73,36 +80,22 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
     }, 500);
   };
 
-  const handleDownloadImage = async () => {
-    if (!cardRef.current) return;
-    
-    const loadingToast = toast.loading('Gerando imagem da carteirinha...');
-    let container: HTMLDivElement | null = null;
-    
+  const captureCard = async (scale = 3) => {
+    if (!cardRef.current) return null;
+
+    // Create a temporary container for capture
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '1000px';
+    container.style.height = '1000px';
+    container.style.zIndex = '-9999';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+    document.body.appendChild(container);
+
     try {
-      // Ensure images are loaded
-      const images = cardRef.current.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          const timeout = setTimeout(resolve, 3000);
-          img.onload = () => { clearTimeout(timeout); resolve(null); };
-          img.onerror = () => { clearTimeout(timeout); resolve(null); };
-        });
-      }));
-
-      // Create a temporary container for capture
-      container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '1000px';
-      container.style.height = '1000px';
-      container.style.zIndex = '-9999';
-      container.style.opacity = '0';
-      container.style.pointerEvents = 'none';
-      document.body.appendChild(container);
-
       const clone = cardRef.current.cloneNode(true) as HTMLElement;
       
       // Reset styles for capture to ensure proportionality (11x8 ratio)
@@ -121,6 +114,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.display = 'flex';
       clone.style.flexDirection = 'column';
       clone.style.opacity = '1';
+      clone.style.borderRadius = '20px';
+      clone.style.overflow = 'hidden';
       clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
       
       // Force explicit font sizes and dimensions in the clone
@@ -139,7 +134,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
           'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
           'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
-          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap', 'flex', 'flexGrow', 'flexShrink'
         ];
         
         propsToCopy.forEach(prop => {
@@ -156,7 +151,6 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         }
         if (type === 'photo' && photoDataUrl) {
           img.setAttribute('src', photoDataUrl);
-          // Manually handle object-fit: cover for the photo
           img.style.objectFit = 'cover';
           img.style.width = '100%';
           img.style.height = '100%';
@@ -167,13 +161,36 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         img.setAttribute('crossOrigin', 'anonymous');
       });
 
+      // Handle QR Code - ensure it's captured correctly
+      const qrContainer = clone.querySelector('.qr-code-container');
+      if (qrContainer) {
+        const originalCanvas = cardRef.current.querySelector('.qr-code-container canvas');
+        if (originalCanvas) {
+          const qrImage = document.createElement('img');
+          qrImage.src = (originalCanvas as HTMLCanvasElement).toDataURL();
+          qrImage.style.width = '26px';
+          qrImage.style.height = '26px';
+          qrImage.style.display = 'block';
+          qrContainer.innerHTML = '';
+          qrContainer.appendChild(qrImage);
+          
+          const label = document.createElement('p');
+          label.innerText = 'PIRUÁ E.C';
+          label.style.fontSize = '2px';
+          label.style.fontWeight = '900';
+          label.style.color = 'black';
+          label.style.marginTop = '2px';
+          qrContainer.appendChild(label);
+        }
+      }
+
       container.appendChild(clone);
 
       // Wait for clone to be ready
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: scale,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#000000',
@@ -185,7 +202,26 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         }
       });
 
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      return canvas.toDataURL('image/png', 1.0);
+    } catch (error) {
+      console.error('Error capturing card:', error);
+      return null;
+    } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    const loadingToast = toast.loading('Gerando imagem da carteirinha...');
+    
+    try {
+      const imgData = await captureCard(4); // Higher scale for image
+      if (!imgData) throw new Error('Failed to capture card');
+
       const link = document.createElement('a');
       link.href = imgData;
       link.download = `carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.png`;
@@ -196,129 +232,18 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       console.error('Error generating image:', error);
       toast.error('Erro ao gerar imagem.', { id: loadingToast });
     } finally {
-      if (container && container.parentNode) {
-        document.body.removeChild(container);
-      }
+      setIsGenerating(false);
     }
   };
 
   const handleSavePDF = async () => {
-    if (!cardRef.current) return;
-    setIsGeneratingPDF(true);
+    if (isGenerating) return;
+    setIsGenerating(true);
     const loadingToast = toast.loading('Gerando PDF da carteirinha...');
     
-    let container: HTMLDivElement | null = null;
     try {
-      // Ensure images are loaded before capturing
-      const images = cardRef.current.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
-          img.onload = () => { clearTimeout(timeout); resolve(null); };
-          img.onerror = () => { clearTimeout(timeout); resolve(null); };
-        });
-      }));
-
-      // Create a temporary container for capture to avoid scaling/CSS issues
-      container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '1000px'; // Large enough
-      container.style.height = '1000px';
-      container.style.zIndex = '-9999';
-      container.style.opacity = '0';
-      container.style.pointerEvents = 'none';
-      document.body.appendChild(container);
-
-      const clone = cardRef.current.cloneNode(true) as HTMLElement;
-      
-      // Reset styles for capture to ensure proportionality (11x8 ratio)
-      clone.style.transform = 'none';
-      clone.style.scale = '1';
-      clone.style.margin = '0';
-      clone.style.padding = '0';
-      clone.style.width = '440px';
-      clone.style.height = '320px';
-      clone.style.position = 'relative';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.visibility = 'visible';
-      clone.style.display = 'flex';
-      clone.style.flexDirection = 'column';
-      clone.style.opacity = '1';
-      clone.style.borderRadius = '0';
-      clone.style.overflow = 'hidden';
-      clone.style.backgroundColor = '#000000';
-      clone.style.color = 'white';
-      clone.style.boxShadow = 'none';
-      clone.style.border = 'none';
-      clone.style.boxSizing = 'border-box';
-      clone.classList.remove('scale-[0.7]', 'xs:scale-[0.8]', 'sm:scale-100');
-
-      // Force explicit font sizes and dimensions in the clone
-      const originalElements = cardRef.current.querySelectorAll('*');
-      const cloneElements = clone.querySelectorAll('*');
-      for (let i = 0; i < originalElements.length; i++) {
-        const orig = originalElements[i] as HTMLElement;
-        const cln = cloneElements[i] as HTMLElement;
-        const style = window.getComputedStyle(orig);
-        
-        // Essential layout and typography styles
-        const propsToCopy = [
-          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
-          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
-          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
-          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
-          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
-          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
-          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
-        ];
-        
-        propsToCopy.forEach(prop => {
-          (cln.style as any)[prop] = (style as any)[prop];
-        });
-      }
-
-      // Replace images in clone with data URLs if available
-      const clonedImages = clone.querySelectorAll('img');
-      clonedImages.forEach(img => {
-        const type = img.getAttribute('data-type');
-        if (type === 'photo' && photoDataUrl) {
-          img.setAttribute('src', photoDataUrl);
-          img.style.objectFit = 'cover';
-          img.style.width = '100%';
-          img.style.height = '100%';
-        } else if (type === 'crest' && crestDataUrl) {
-          img.setAttribute('src', crestDataUrl);
-          img.style.objectFit = 'contain';
-        }
-        img.style.visibility = 'visible';
-        img.style.opacity = '1';
-        img.style.display = 'block';
-        img.setAttribute('crossOrigin', 'anonymous');
-      });
-
-      container.appendChild(clone);
-
-      // Wait for clone to be ready and settled
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const canvas = await html2canvas(clone, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#000000',
-        logging: false,
-        width: 440,
-        height: 320,
-        onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgData = await captureCard(3);
+      if (!imgData) throw new Error('Failed to capture card');
       
       // Create PDF with custom size (110mm x 80mm)
       const pdf = new jsPDF({
@@ -327,24 +252,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         format: [110, 80]
       });
 
-      // Use image properties to maintain aspect ratio perfectly
-      const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = 110;
       const pdfHeight = 80;
       
-      const ratio = imgProps.width / imgProps.height;
-      let drawWidth = pdfWidth;
-      let drawHeight = pdfWidth / ratio;
-      
-      if (drawHeight > pdfHeight) {
-        drawHeight = pdfHeight;
-        drawWidth = pdfHeight * ratio;
-      }
-      
-      const x = (pdfWidth - drawWidth) / 2;
-      const y = (pdfHeight - drawHeight) / 2;
-
-      pdf.addImage(imgData, 'PNG', x, y, drawWidth, drawHeight, undefined, 'FAST');
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
       
       toast.success('PDF gerado com sucesso!', { id: loadingToast });
@@ -352,10 +263,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       console.error('Error generating PDF:', error);
       toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir e salvar como PDF.', { id: loadingToast });
     } finally {
-      if (container && container.parentNode) {
-        document.body.removeChild(container);
-      }
-      setIsGeneratingPDF(false);
+      setIsGenerating(false);
     }
   };
 
@@ -366,19 +274,20 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         <div className="flex gap-2">
           <button 
             onClick={handleDownloadImage}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
             title="Baixar como Imagem (PNG)"
           >
-            <Download size={18} />
+            {isGenerating ? <Loader2 size={18} className="animate-spin text-theme-primary" /> : <Download size={18} />}
             Imagem
           </button>
           <button 
             onClick={handleSavePDF}
-            disabled={isGeneratingPDF}
+            disabled={isGenerating}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
           >
-            {isGeneratingPDF ? <Loader2 size={18} className="animate-spin text-theme-primary" /> : <FileDown size={18} />}
-            {isGeneratingPDF ? 'Gerando...' : 'Salvar em PDF'}
+            {isGenerating ? <Loader2 size={18} className="animate-spin text-theme-primary" /> : <FileDown size={18} />}
+            {isGenerating ? 'Gerando...' : 'Salvar em PDF'}
           </button>
           <button 
             onClick={handlePrint}
@@ -655,8 +564,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                       <div className="input-box !h-3.5 !text-[6px] justify-center">31/12/{new Date().getFullYear()}</div>
                     </div>
                     
-                    <div className="bg-white p-0.5 rounded-md flex flex-col items-center shadow-xl flex-shrink-0">
-                      <QRCodeSVG value={`PIRUA-ATHLETE-${athlete.id}`} size={26} level="H" />
+                    <div className="bg-white p-0.5 rounded-md flex flex-col items-center shadow-xl flex-shrink-0 qr-code-container">
+                      <QRCodeCanvas value={`PIRUA-ATHLETE-${athlete.id}`} size={26} level="H" />
                       <p className="text-[2px] font-black text-black mt-0.5">PIRUÁ E.C</p>
                     </div>
                   </div>

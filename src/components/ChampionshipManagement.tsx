@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, ChampionshipMatch, categories } from '../types';
-import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon } from 'lucide-react';
+import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -261,6 +261,7 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   };
 
   const registrationLink = `${window.location.origin}/register-team/${championship.id}`;
+  const portalLink = `${window.location.origin}/team-portal/${championship.id}`;
 
   return (
     <div className="space-y-6">
@@ -275,22 +276,32 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button 
             onClick={() => {
               navigator.clipboard.writeText(registrationLink);
               toast.success("Link de inscrição copiado!");
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest"
           >
-            <LinkIcon size={16} />
-            Link de Inscrição
+            <LinkIcon size={14} />
+            Inscrição
+          </button>
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(portalLink);
+              toast.success("Link do portal da equipe copiado!");
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest"
+          >
+            <Shield size={14} />
+            Portal Equipe
           </button>
           <button 
             onClick={() => setIsMatchFormOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black text-sm font-bold rounded-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black text-xs font-black rounded-xl transition-colors uppercase tracking-widest"
           >
-            <Plus size={16} />
+            <Plus size={14} />
             Nova Partida
           </button>
         </div>

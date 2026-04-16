@@ -170,6 +170,7 @@ export type ChampionshipTeam = {
   logo: string;
   category: string;
   responsible_name: string;
+  responsible_doc: string;
   responsible_phone: string;
   players: {
     name: string;

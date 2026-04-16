@@ -867,6 +867,20 @@ export const api = {
       return [];
     }
   },
+  getChampionshipTeamsByResponsibleDoc: async (championshipId: string, docNum: string): Promise<ChampionshipTeam[]> => {
+    try {
+      const q = query(
+        collection(db, "championship_teams"), 
+        where("championship_id", "==", championshipId),
+        where("responsible_doc", "==", docNum.replace(/\D/g, ""))
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "championship_teams_by_doc");
+      return [];
+    }
+  },
   saveChampionshipTeam: async (team: Partial<ChampionshipTeam>) => {
     if (!team.id) team.id = doc(collection(db, "championship_teams")).id;
     try {

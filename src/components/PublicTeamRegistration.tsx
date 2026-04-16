@@ -24,6 +24,7 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
     logo: '',
     category: '',
     responsible_name: '',
+    responsible_doc: '',
     responsible_phone: '',
     players: [],
     staff: [],
@@ -337,6 +338,17 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
                     placeholder="NOME DO RESPONSÁVEL"
                     value={teamData.responsible_name}
                     onChange={e => setTeamData({...teamData, responsible_name: e.target.value.toUpperCase()})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">CPF do Responsável</label>
+                  <input 
+                    required 
+                    type="text" 
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary transition-all uppercase font-bold"
+                    placeholder="000.000.000-00"
+                    value={teamData.responsible_doc}
+                    onChange={e => setTeamData({...teamData, responsible_doc: e.target.value.replace(/\D/g, '')})}
                   />
                 </div>
                 <div>

@@ -23,6 +23,7 @@ import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
+import TeamPortal from './components/TeamPortal';
 import { Athlete, User, Professor, Event, Settings } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
@@ -391,10 +392,16 @@ export default function App() {
   const [isTeamRegistration, setIsTeamRegistration] = useState(() => {
     return window.location.pathname.startsWith('/register-team/');
   });
+  const [isTeamPortal, setIsTeamPortal] = useState(() => {
+    return window.location.pathname.startsWith('/team-portal/');
+  });
   const [teamChampionshipId, setTeamChampionshipId] = useState<string | null>(() => {
     const path = window.location.pathname;
     if (path.startsWith('/register-team/')) {
       return path.split('/register-team/')[1];
+    }
+    if (path.startsWith('/team-portal/')) {
+      return path.split('/team-portal/')[1];
     }
     return null;
   });
@@ -1075,11 +1082,16 @@ export default function App() {
       const isReg = params.get('register') === 'true';
       const isAna = params.get('anamnesis') === 'true';
       const isTeamReg = window.location.pathname.startsWith('/register-team/');
-      const teamId = isTeamReg ? window.location.pathname.split('/register-team/')[1] : null;
-      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'teamId:', teamId);
+      const isPortal = window.location.pathname.startsWith('/team-portal/');
+      
+      const teamId = isTeamReg ? window.location.pathname.split('/register-team/')[1] : 
+                    isPortal ? window.location.pathname.split('/team-portal/')[1] : null;
+      
+      console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'isTeamPortal:', isPortal, 'teamId:', teamId);
       setIsRegistering(isReg);
       setIsAnamnesisOnly(isAna);
       setIsTeamRegistration(isTeamReg);
+      setIsTeamPortal(isPortal);
       setTeamChampionshipId(teamId);
     };
 
@@ -1139,6 +1151,14 @@ export default function App() {
             toast.success("Ficha de saúde enviada com sucesso!");
           }} 
         />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isTeamPortal) {
+    return (
+      <ErrorBoundary>
+        <TeamPortal championshipId={teamChampionshipId || undefined} />
       </ErrorBoundary>
     );
   }
