@@ -210,12 +210,12 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white">Aniversariantes</h2>
-          <p className="text-zinc-400 text-sm">Comemore o aniversário dos nossos atletas e membros da comissão técnica</p>
+          <p className="text-zinc-400 text-sm sm:text-base">Comemore o aniversário dos nossos atletas e membros da comissão técnica</p>
         </div>
         
         <div className="flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Filtrar por Data</label>
+            <label className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Filtrar por Data</label>
             <input 
               type="date" 
               value={filterDate}
@@ -225,7 +225,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
           </div>
           <button 
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors font-bold uppercase text-xs tracking-widest no-print"
+            className="flex items-center gap-2 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors font-bold uppercase text-sm tracking-widest no-print"
           >
             <Printer size={16} />
             Imprimir Lista
@@ -252,8 +252,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 )}
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-white">{person.name}</h4>
-                <p className="text-xs text-zinc-400">
+                <h4 className="font-bold text-white text-base sm:text-lg">{person.name}</h4>
+                <p className="text-sm text-zinc-400">
                   {getAge(person.birth_date)} anos • {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd/MM/yyyy') : 'Data inválida'}
                 </p>
               </div>
@@ -293,8 +293,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-white truncate text-sm">{person.name}</h4>
-                <p className="text-[10px] text-zinc-500">
+                <h4 className="font-bold text-white truncate text-base">{person.name}</h4>
+                <p className="text-xs sm:text-sm text-zinc-500 font-medium">
                   Dia {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd') : '--'} • {getAge(person.birth_date)} anos
                 </p>
               </div>

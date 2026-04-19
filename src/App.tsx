@@ -56,15 +56,15 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
       <div className="space-y-12">
         <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">
+            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">
               Olá, {user.name.split(' ')[0]}
             </h2>
-            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Bem-vindo ao seu portal oficial de atleta.</p>
+            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial de atleta.</p>
           </div>
           <div className="flex items-center gap-4 bg-zinc-900/50 p-4 rounded-3xl border border-zinc-800">
              <div className="text-right">
                <p className="text-sm font-black text-theme-primary uppercase">{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
-               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{new Date().toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
+               <p className="text-xs sm:text-sm text-zinc-500 font-bold uppercase tracking-widest">{new Date().toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
              </div>
              <div className="w-12 h-12 bg-theme-primary rounded-2xl flex items-center justify-center text-black font-black">
                {new Date().getDate()}
@@ -82,52 +82,66 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="flex flex-col items-center justify-center p-6 bg-zinc-900/40 border border-zinc-800 hover:border-theme-primary hover:bg-zinc-900 rounded-[2.5rem] transition-all group text-center gap-3 relative overflow-hidden"
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
               >
-                <item.icon size={48} className="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-125 transition-all text-theme-primary" />
-                <div className={`p-4 rounded-3xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                  <item.icon size={28} className="transition-transform group-hover:scale-110" />
+                <div className={`p-4 rounded-2xl bg-zinc-800/50 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
+                  <item.icon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-black uppercase tracking-tighter text-white block leading-none">{item.label}</span>
-                  {item.description && <p className="text-[8px] text-zinc-500 uppercase font-bold tracking-tight opacity-50 group-hover:opacity-100 transition-opacity whitespace-nowrap">{item.description}</p>}
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
+                  {item.description && <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">{item.description}</p>}
                 </div>
               </button>
             ))}
+
+            {settings.instagram && (
+              <a 
+                href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              >
+                <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                  <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
+                  <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Siga @piruaec</p>
+                </div>
+              </a>
+            )}
+
+            {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
+              <a 
+                href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              >
+                <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
+                  <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                  <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Fale Conosco</p>
+                </div>
+              </a>
+            )}
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section>
           <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2.5rem] p-8 shadow-xl overflow-hidden relative group">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-              <Instagram size={120} />
+              <Cake size={160} />
             </div>
-            <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Social Piruá</h4>
-            <p className="text-zinc-500 text-xs mb-6 max-w-xs uppercase font-bold">Confira as últimas novidades e conquistas do clube.</p>
-            <a 
-              href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-pink-500 text-white font-black px-8 py-4 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-pink-600 transition-all shadow-xl shadow-pink-500/20"
-            >
-              Seguir @piruaec
-            </a>
-          </div>
-
-          <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2.5rem] p-8 shadow-xl overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-              <MessageCircle size={120} />
-            </div>
-            <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Suporte Direto</h4>
-            <p className="text-zinc-500 text-xs mb-6 max-w-xs uppercase font-bold">Precisa de ajuda ou informações? Fale agora.</p>
-            <a 
-              href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 text-white font-black px-8 py-4 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"
-            >
-              WhatsApp
-            </a>
+            <h3 className="text-2xl font-black text-white mb-8 uppercase tracking-tighter flex items-center gap-3">
+              <div className="p-3 bg-pink-500/10 text-pink-500 rounded-2xl">
+                <Cake size={24} />
+              </div>
+              Aniversariantes do Mês
+            </h3>
+            <Birthdays />
           </div>
         </section>
       </div>
@@ -138,13 +152,13 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">Painel de Controle</h2>
-          <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Gestão centralizada do Piruá Esporte Clube.</p>
+          <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">Painel de Controle</h2>
+          <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Gestão centralizada do Piruá Esporte Clube.</p>
         </div>
         <div className="flex items-center gap-4 bg-zinc-900/50 p-4 rounded-3xl border border-zinc-800">
            <div className="text-right">
              <p className="text-sm font-black text-theme-primary uppercase">{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
-             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{new Date().toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
+             <p className="text-xs sm:text-sm text-zinc-500 font-bold uppercase tracking-widest">{new Date().toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
            </div>
            <div className="w-12 h-12 bg-theme-primary rounded-2xl flex items-center justify-center text-black font-black">
              {new Date().getDate()}
@@ -160,10 +174,10 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
           { label: 'Eventos', value: stats.events, icon: Calendar, color: 'text-blue-500' },
           { label: 'Ranking', value: '#1', icon: Trophy, color: 'text-purple-500' },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-[2.5rem] hover:border-theme-primary/30 transition-all group overflow-hidden relative">
-            <stat.icon size={40} className={`absolute -right-2 -bottom-2 opacity-5 ${stat.color} group-hover:scale-110 group-hover:opacity-10 transition-all`} />
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className="text-3xl font-black text-white">{stat.value}</p>
+          <div key={idx} className="bg-zinc-900/40 border border-zinc-800 p-5 sm:p-6 rounded-[2rem] hover:border-theme-primary/30 transition-all group overflow-hidden relative">
+            <stat.icon size={32} className={`absolute -right-2 -bottom-2 opacity-5 ${stat.color} group-hover:scale-110 group-hover:opacity-10 transition-all sm:w-10 sm:h-10`} />
+            <p className="text-sm sm:text-base font-black text-zinc-500 uppercase tracking-widest mb-1">{stat.label}</p>
+            <p className="text-2xl sm:text-3xl font-black text-white">{stat.value}</p>
           </div>
         ))}
       </section>
@@ -180,24 +194,60 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className="flex flex-col items-center justify-center p-6 bg-zinc-900/40 border border-zinc-800 hover:border-theme-primary hover:bg-zinc-900 rounded-[2.5rem] transition-all group text-center gap-3 relative overflow-hidden"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
             >
-              <item.icon size={48} className="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-125 transition-all text-theme-primary" />
-              <div className={`p-4 rounded-3xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                <item.icon size={28} className="transition-transform group-hover:scale-110" />
+              <div className={`p-4 rounded-2xl bg-zinc-800/50 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
+                <item.icon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] font-black uppercase tracking-tighter text-white block leading-none">{item.label}</span>
-                {item.description && <p className="text-[8px] text-zinc-500 uppercase font-bold tracking-tight opacity-50 group-hover:opacity-100 transition-opacity whitespace-nowrap">{item.description}</p>}
+                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
+                {item.description && <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">{item.description}</p>}
               </div>
             </button>
           ))}
 
-          <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-6 bg-theme-primary/10 border-2 border-dashed border-theme-primary/30 hover:border-theme-primary hover:bg-theme-primary/20 rounded-[2.5rem] transition-all group text-center gap-3">
-            <div className="p-4 rounded-3xl bg-theme-primary text-black group-hover:scale-110 transition-transform shadow-lg shadow-theme-primary/20">
-              <UserPlus size={28} />
+          {settings.instagram && (
+            <a 
+              href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+            >
+              <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
+                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Social</p>
+              </div>
+            </a>
+          )}
+
+          {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
+            <a 
+              href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+            >
+              <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
+                <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Suporte</p>
+              </div>
+            </a>
+          )}
+
+          <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-theme-primary shadow-xl border border-theme-primary/50 hover:bg-theme-primary/90 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden">
+            <div className="p-4 rounded-2xl bg-black/20 text-black group-hover:scale-110 transition-transform">
+              <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <span className="text-[11px] font-black uppercase tracking-tighter text-theme-primary">Novo Atleta</span>
+            <div className="space-y-1">
+              <span className="text-base sm:text-lg font-black tracking-tight text-black block leading-tight">Novo Atleta</span>
+              <p className="text-sm sm:text-base text-black/60 font-black uppercase tracking-widest">Matrícula</p>
+            </div>
           </button>
 
           {copyLinks.map((link, idx) => (
@@ -207,14 +257,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
                 navigator.clipboard.writeText(link.url);
                 toast.success(`${link.label} copiado!`);
               }}
-              className="flex flex-col items-center justify-center p-6 bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/60 rounded-[2.5rem] transition-all group text-center gap-3 border-zinc-800/50"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
             >
-              <div className={`p-4 rounded-3xl bg-zinc-800/80 ${link.color} group-hover:scale-110 transition-transform`}>
-                <link.icon size={28} />
+              <div className={`p-4 rounded-2xl bg-zinc-800/80 ${link.color} group-hover:scale-110 transition-transform`}>
+                <link.icon className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] font-black uppercase tracking-tighter text-zinc-400 block leading-none">{link.label}</span>
-                <p className="text-[8px] text-zinc-600 uppercase font-bold tracking-tight">Copiar URL</p>
+                <span className="text-base sm:text-lg font-black tracking-tight text-zinc-400 block leading-tight">{link.label}</span>
+                <p className="text-sm sm:text-base text-zinc-600 font-medium tracking-tight uppercase">Link</p>
               </div>
             </button>
           ))}
@@ -222,7 +272,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
       </section>
 
       {/* Widgets */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section>
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2.5rem] p-8 shadow-xl overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
             <Cake size={160} />
@@ -234,51 +284,6 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
             Aniversariantes
           </h3>
           <Birthdays />
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2.5rem] p-8 shadow-xl relative group">
-            <h3 className="text-2xl font-black text-white mb-8 uppercase tracking-tighter flex items-center gap-3">
-              <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
-                <MessageCircle size={24} />
-              </div>
-              Redes Sociais
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {settings.instagram && (
-                <a 
-                  href={settings.instagram.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-zinc-800/50 border border-pink-500/10 p-6 rounded-2xl hover:border-pink-500/40 transition-all group flex items-center gap-4"
-                >
-                  <div className="p-3 bg-pink-500/10 text-pink-500 rounded-xl group-hover:scale-110 transition-transform">
-                    <Instagram size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-widest leading-none mb-1">Instagram</h4>
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold">@pirua_ec</p>
-                  </div>
-                </a>
-              )}
-              {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
-                <a 
-                  href={`https://wa.me/55${settings.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-zinc-800/50 border border-green-500/10 p-6 rounded-2xl hover:border-green-500/40 transition-all group flex items-center gap-4"
-                >
-                  <div className="p-3 bg-green-500/10 text-green-500 rounded-xl group-hover:scale-110 transition-transform">
-                    <MessageCircle size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-widest leading-none mb-1">WhatsApp</h4>
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold">Suporte</p>
-                  </div>
-                </a>
-              )}
-            </div>
-          </div>
         </div>
       </section>
     </div>
@@ -567,7 +572,7 @@ export default function App() {
                         className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
                       >
                         <X size={18} className="group-hover:rotate-90 transition-transform" />
-                        <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
+                        <span className="font-bold uppercase text-sm tracking-widest">Voltar</span>
                       </button>
                     </div>
                     <AnamnesisForm athlete={selectedAthleteForAnamnesis} onSave={() => setSelectedAthleteForAnamnesis(null)} />
@@ -584,7 +589,7 @@ export default function App() {
                         className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
                       >
                         <X size={18} className="group-hover:rotate-90 transition-transform" />
-                        <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
+                        <span className="font-bold uppercase text-sm tracking-widest">Voltar</span>
                       </button>
                     </div>
                     <div className="bg-black p-8 rounded-3xl border border-theme-primary/20">
@@ -765,7 +770,7 @@ export default function App() {
               className="flex items-center gap-2 px-4 py-2 bg-black border border-zinc-800 text-zinc-400 hover:text-theme-primary hover:border-theme-primary/50 rounded-xl transition-all group"
             >
             <Trophy size={18} className="group-hover:scale-110 transition-transform" />
-            <span className="font-bold uppercase text-xs tracking-widest">Voltar ao Início</span>
+            <span className="font-bold uppercase text-sm tracking-widest">Voltar ao Início</span>
           </button>
         </div>
         {content}

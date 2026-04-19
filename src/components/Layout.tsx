@@ -36,7 +36,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             )}
             <div className="hidden sm:block">
               <h1 className="font-black text-lg tracking-tighter uppercase leading-none">Piruá E.C.</h1>
-              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
             </div>
           </div>
 
@@ -46,14 +46,14 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
               className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-theme-primary rounded-xl transition-all border border-zinc-800 group"
             >
               <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest hidden xs:block">Início</span>
+              <span className="text-xs font-black uppercase tracking-widest hidden xs:block">Início</span>
             </button>
           )}
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="hidden lg:flex flex-col items-end mr-2">
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Conectado como</p>
+            <p className="text-xs font-black text-zinc-500 uppercase tracking-widest leading-none">Conectado como</p>
             <p className="text-sm font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
           </div>
           
@@ -63,7 +63,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             title="Sair do sistema"
           >
             <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Sair</span>
+            <span className="text-xs font-black uppercase tracking-widest hidden sm:block">Sair</span>
           </button>
         </div>
       </header>
