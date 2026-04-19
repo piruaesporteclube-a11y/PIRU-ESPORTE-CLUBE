@@ -1,59 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
-  Users, 
-  UserPlus, 
-  Calendar, 
-  ClipboardCheck, 
-  Cake, 
-  Trophy, 
-  Settings as SettingsIcon, 
-  FileText,
-  Menu,
-  X,
-  ChevronRight,
   LogOut,
-  UserCheck,
-  ClipboardList,
-  CreditCard,
-  MessageCircle
+  ArrowLeft,
+  LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
-
 import { User } from '../types';
-
-type NavItem = {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  roles: ("admin" | "student")[];
-};
-
-const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Trophy, roles: ['admin', 'student'] },
-  { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'] },
-  { id: 'categories', label: 'Categorias (SUB)', icon: ClipboardList, roles: ['admin'] },
-  { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'] },
-  { id: 'attendance', label: 'Chamada', icon: ClipboardCheck, roles: ['admin'] },
-  { id: 'championships', label: 'Campeonatos', icon: Trophy, roles: ['admin'] },
-  { id: 'lineups', label: 'Escalações', icon: Users, roles: ['admin', 'student'] },
-  { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student'] },
-  { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin'] },
-  { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'] },
-  { id: 'documents', label: 'Documentos', icon: FileText, roles: ['admin'] },
-  { id: 'anamnesis', label: 'Anamnese', icon: ClipboardList, roles: ['admin'] },
-  { id: 'membership-card', label: 'Carteirinha', icon: CreditCard, roles: ['admin'] },
-  { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'] },
-  { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'] },
-  { id: 'trainings', label: 'Treinos', icon: Calendar, roles: ['admin', 'student'] },
-  { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'] },
-  
-  // Student items
-  { id: 'my-data', label: 'Meus Dados', icon: UserPlus, roles: ['student'] },
-  { id: 'my-anamnesis', label: 'Minha Saúde', icon: ClipboardCheck, roles: ['student'] },
-  { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student'] },
-];
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -64,235 +18,84 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, activeTab, setActiveTab, user, onLogout }: LayoutProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { settings } = useTheme();
 
-  const filteredNavItems = navItems
-    .filter(item => user && item.roles.includes(user.role))
-    .sort((a, b) => a.label.localeCompare(b.label));
-
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-theme-primary selection:text-black">
-      {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-black/80 backdrop-blur-md sticky top-0 z-50 safe-top">
-        <div className="flex items-center gap-3">
-          {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-            <img src={settings.schoolCrest} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
-          ) : (
-            <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-sm">P</div>
-          )}
-          <h1 className="font-black text-lg tracking-tighter uppercase">Piruá E.C.</h1>
-        </div>
-        <button 
-          onClick={() => setIsMenuOpen(true)}
-          className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400"
-          aria-label="Abrir menu"
-        >
-          <Menu size={24} />
-        </button>
-      </header>
-
-      <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar Desktop */}
-        <aside className="hidden lg:flex flex-col w-64 bg-black border-r border-zinc-800 sticky top-0 h-screen">
-          <div className="flex flex-col h-full p-6">
-            <div className="flex items-center gap-3 mb-10 px-2">
-              {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-                <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl">P</div>
-              )}
-              <div>
-                <h1 className="font-black text-xl tracking-tighter uppercase">Piruá E.C.</h1>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{user?.role === 'admin' ? 'Gestão de Base' : 'Portal do Aluno'}</p>
-              </div>
-            </div>
-
-            <div className="mb-8 px-4 py-4 bg-zinc-900/50 rounded-[1.5rem] border border-theme-primary/10 shadow-inner">
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1">Usuário</p>
-              <p className="text-sm font-black truncate text-theme-primary uppercase tracking-tight">{user?.name}</p>
-            </div>
-
-            <nav className="flex-1 space-y-1">
-              {filteredNavItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden border border-transparent mb-1",
-                    activeTab === item.id 
-                      ? "bg-theme-primary text-black font-black shadow-lg shadow-theme-primary/40 border-theme-primary" 
-                      : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
-                  )}
-                >
-                  <item.icon size={20} className={cn(
-                    "transition-transform duration-300 group-hover:scale-110 relative z-10",
-                    activeTab === item.id ? "text-black" : "text-zinc-400 group-hover:text-theme-primary"
-                  )} />
-                  <span className="relative z-10 uppercase text-[11px] font-black tracking-widest">{item.label}</span>
-                  {activeTab === item.id && (
-                    <motion.div 
-                      layoutId="activeNav"
-                      className="absolute inset-0 bg-theme-primary shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.3)]"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-              ))}
-            </nav>
-
-            <div className="mt-auto pt-6 border-t border-zinc-900">
-              <button 
-                onClick={onLogout}
-                className="w-full flex items-center gap-3 px-4 py-4 text-zinc-500 hover:text-red-500 transition-all rounded-2xl hover:bg-red-500/5 group"
-              >
-                <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="uppercase text-xs font-bold tracking-widest">Sair do Sistema</span>
-              </button>
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-theme-primary selection:text-black flex flex-col">
+      {/* Sleek Top Header */}
+      <header className="bg-black/80 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-50 px-4 sm:px-8 h-20 flex items-center justify-between safe-top">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div 
+            onClick={() => setActiveTab('dashboard')} 
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
+              <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg group-hover:scale-110 transition-transform">P</div>
+            )}
+            <div className="hidden sm:block">
+              <h1 className="font-black text-lg tracking-tighter uppercase leading-none">Piruá E.C.</h1>
+              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
             </div>
           </div>
-        </aside>
 
-        {/* Mobile Sidebar (Drawer) */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsMenuOpen(false)}
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] lg:hidden"
-              />
-              <motion.aside 
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 left-0 z-[80] w-[85%] max-w-sm bg-black border-r border-zinc-800 lg:hidden flex flex-col"
-              >
-                <div className="flex flex-col h-full p-6 safe-top">
-                  <div className="flex items-center justify-between mb-10">
-                    <div className="flex items-center gap-3">
-                      {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-                        <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg">P</div>
-                      )}
-                      <h1 className="font-black text-lg tracking-tighter uppercase">Piruá E.C.</h1>
-                    </div>
-                    <button 
-                      onClick={() => setIsMenuOpen(false)}
-                      className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"
-                      aria-label="Fechar menu"
-                    >
-                      <X size={24} />
-                    </button>
-                  </div>
-
-                  <div className="mb-8 px-5 py-5 bg-zinc-900 rounded-[2rem] border border-theme-primary/10">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1">Usuário Conectado</p>
-                    <p className="text-base font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
-                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-1">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
-                  </div>
-
-                  <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-                    {filteredNavItems.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveTab(item.id);
-                          setIsMenuOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-300 border border-transparent",
-                          activeTab === item.id 
-                            ? "bg-theme-primary text-black font-black shadow-xl shadow-theme-primary/40 border-theme-primary" 
-                            : "text-zinc-300 hover:bg-zinc-900 hover:text-white hover:border-zinc-800"
-                        )}
-                      >
-                        <item.icon size={22} className={cn(
-                          activeTab === item.id ? "text-black" : "text-zinc-400"
-                        )} />
-                        <span className="uppercase text-[13px] font-black tracking-widest">{item.label}</span>
-                        {activeTab === item.id && <ChevronRight size={18} className="ml-auto" />}
-                      </button>
-                    ))}
-                  </nav>
-
-                  <div className="mt-auto pt-6 border-t border-zinc-900">
-                    <button 
-                      onClick={onLogout}
-                      className="w-full flex items-center gap-4 px-5 py-5 text-zinc-500 hover:text-red-500 transition-all rounded-[1.5rem] hover:bg-red-500/5"
-                    >
-                      <LogOut size={22} />
-                      <span className="uppercase text-sm font-bold tracking-widest">Sair da Conta</span>
-                    </button>
-                  </div>
-                </div>
-              </motion.aside>
-            </>
+          {activeTab !== 'dashboard' && (
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-theme-primary rounded-xl transition-all border border-zinc-800 group"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden xs:block">Início</span>
+            </button>
           )}
-        </AnimatePresence>
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-screen lg:h-screen lg:overflow-y-auto bg-black p-4 sm:p-6 lg:p-10">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="hidden lg:flex flex-col items-end mr-2">
+            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Conectado como</p>
+            <p className="text-sm font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
+          </div>
+          
+          <button 
+            onClick={onLogout}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all border border-red-500/20 group"
+            title="Sair do sistema"
+          >
+            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Sair</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 bg-black p-4 sm:p-8 lg:p-12 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="max-w-6xl mx-auto"
             >
               {children}
             </motion.div>
           </AnimatePresence>
-        </main>
-      </div>
+        </div>
+      </main>
 
-      {/* Overlay for mobile menu */}
-      {isMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden"
-          onClick={() => setIsMenuOpen(false)}
-        />
-      )}
-
-      {/* Print Styles */}
+      {/* Global Theme Overrides */}
       <style>{`
         @media print {
-          aside, header, button, .no-print {
-            display: none !important;
-          }
-          main {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .print-only, .list-print-only {
-            display: block !important;
-          }
-          .card {
-            box-shadow: none !important;
-            border: 1px solid #eee !important;
-          }
+          header, button, .no-print { display: none !important; }
+          main { padding: 0 !important; margin: 0 !important; }
         }
-
-        .safe-top {
-          padding-top: env(safe-area-inset-top);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #27272a;
-          border-radius: 10px;
-        }
+        .safe-top { padding-top: env(safe-area-inset-top); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
       `}</style>
     </div>
   );
