@@ -116,8 +116,27 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         allowTaint: false,
         windowWidth: 1200,
         onclone: (clonedDoc) => {
+          // Fix for oklch error in html2canvas (unsupported color function)
+          // We remove any CSS rules that use oklch to prevent the parser from crashing
+          try {
+            for (let i = 0; i < clonedDoc.styleSheets.length; i++) {
+              const sheet = clonedDoc.styleSheets[i];
+              const rules = sheet.cssRules || sheet.rules;
+              for (let j = rules.length - 1; j >= 0; j--) {
+                if (rules[j].cssText.includes('oklch')) {
+                  sheet.deleteRule(j);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Could not sanitize stylesheets for oklch:', e);
+          }
+
           const clonedElement = clonedDoc.getElementById('birthday-card');
           if (clonedElement) {
+            // Further protect the cloned element by using explicit hex colors for problematic areas
+            clonedElement.style.backgroundColor = '#000000';
+            
             // Remove animations and complex effects that break html2canvas
             const animatedElements = clonedElement.querySelectorAll('.animate-spin-slow, .animate-spin-slow-reverse, .animate-pulse');
             animatedElements.forEach(el => {
@@ -385,17 +404,17 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 
                 {/* Team Crest - Positioned near the top or corner naturally */}
                 <div className="absolute top-10 left-8">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-yellow-500 p-1 rounded-2xl shadow-xl border-4 border-black">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#EAB308] p-1 rounded-2xl shadow-xl border-4 border-black">
                     {settings.schoolCrest ? (
                       <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
-                      <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-yellow-500 font-black text-2xl">P</div>
+                      <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-[#EAB308] font-black text-2xl">P</div>
                     )}
                   </div>
                 </div>
 
                 {/* Athlete Photo - Exactly over the placeholder box in the template */}
-                <div className="absolute right-[11%] top-[45.5%] w-[128px] h-[178px] md:w-[160px] md:h-[222px] bg-zinc-900 border-[3px] border-[#eab308] shadow-2xl overflow-hidden rounded-sm transform rotate-[-0.5deg]">
+                <div className="absolute right-[11%] top-[45.5%] w-[128px] h-[178px] md:w-[160px] md:h-[222px] bg-[#18181b] border-[3px] border-[#eab308] shadow-2xl overflow-hidden rounded-sm transform rotate-[-0.5deg]">
                   {selectedPerson.photo ? (
                     <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
@@ -409,7 +428,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
                 {/* Athlete Name - Positioned over the 'Aniversariante do Mês' area */}
                 <div className="absolute right-[5%] top-[72%] w-[45%] text-center">
-                  <div className="bg-black/80 backdrop-blur-sm border border-yellow-500/50 py-1 px-4 rounded-lg inline-block shadow-lg">
+                  <div className="bg-[rgba(0,0,0,0.8)] backdrop-blur-sm border border-[#eab308] py-1 px-4 rounded-lg inline-block shadow-lg">
                     <h3 className="text-white font-black text-lg md:text-xl uppercase italic tracking-tighter leading-none whitespace-nowrap overflow-hidden text-ellipsis">
                       {selectedPerson.name.split(' ')[0]} {selectedPerson.name.split(' ')[1] || ''}
                     </h3>
