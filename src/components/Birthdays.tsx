@@ -117,17 +117,22 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         windowWidth: 1200,
         onclone: (clonedDoc) => {
           // Fix for oklch error in html2canvas (unsupported color function)
-          // We remove any CSS rules that use oklch to prevent the parser from crashing
+          // We wrap in try-catch and check for SecurityError when accessing rules
           try {
-            for (let i = 0; i < clonedDoc.styleSheets.length; i++) {
-              const sheet = clonedDoc.styleSheets[i];
-              const rules = sheet.cssRules || sheet.rules;
-              for (let j = rules.length - 1; j >= 0; j--) {
-                if (rules[j].cssText.includes('oklch')) {
-                  sheet.deleteRule(j);
+            Array.from(clonedDoc.styleSheets).forEach(sheet => {
+              try {
+                const rules = sheet.cssRules || sheet.rules;
+                if (!rules) return;
+                for (let j = rules.length - 1; j >= 0; j--) {
+                  if (rules[j] && rules[j].cssText && rules[j].cssText.includes('oklch')) {
+                    sheet.deleteRule(j);
+                  }
                 }
+              } catch (e) {
+                // This happens for cross-origin stylesheets (SecurityError)
+                console.warn('Could not access rules for stylesheet:', e);
               }
-            }
+            });
           } catch (e) {
             console.warn('Could not sanitize stylesheets for oklch:', e);
           }
@@ -135,17 +140,18 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
           const clonedElement = clonedDoc.getElementById('birthday-card');
           if (clonedElement) {
             // Further protect the cloned element by using explicit hex colors for problematic areas
-            clonedElement.style.backgroundColor = '#000000';
+            (clonedElement as HTMLElement).style.backgroundColor = '#000000';
             
             // Remove animations and complex effects that break html2canvas
             const animatedElements = clonedElement.querySelectorAll('.animate-spin-slow, .animate-spin-slow-reverse, .animate-pulse');
             animatedElements.forEach(el => {
               (el as HTMLElement).style.animation = 'none';
+              (el as HTMLElement).style.transition = 'none';
               (el as HTMLElement).style.transform = 'none';
             });
             
             // Remove the scanline effect which uses complex gradients that often fail
-            const scanline = clonedElement.querySelector('.bg-\\[linear-gradient');
+            const scanline = clonedDoc.querySelector('.bg-\\[linear-gradient');
             if (scanline) scanline.remove();
           }
         }
@@ -383,71 +389,110 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               Fechar [X]
             </button>
             
-            {/* Modern Phoenix Birthday Card - Instagram Stories Size (9:16) */}
+            {/* Comic Style Birthday Card - High Fidelity Recreation */}
             <div 
               id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-black" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-[#111827] font-sans" 
             >
-              {/* Background Template */}
-              <div className="absolute inset-0 z-0 text-white flex items-center justify-center">
-                <img 
-                  src={BIRTHDAY_TEMPLATE_IMAGE} 
-                  alt="Template Background" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                />
+              {/* High-Fidelity Comic Background Recreation */}
+              <div className="absolute inset-0 z-0 bg-[#065f46]">
+                {/* Stadium Lights / Crowd Pattern */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.2) 2px, transparent 0)', backgroundSize: '30px 30px' }}></div>
+                
+                {/* Field & Goal */}
+                <div className="absolute bottom-0 left-0 right-0 h-[40%] bg-[linear-gradient(to_bottom,#10b981,#065f46)] border-t-4 border-white/20">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-full border-2 border-white/30 rounded-t-full"></div>
+                </div>
+
+                {/* Comic Bursts */}
+                <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[40%] bg-yellow-500 transform rotate-12 -skew-x-12 opacity-90"></div>
+                <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[30%] bg-yellow-400 transform -rotate-6 skew-x-6 opacity-80"></div>
               </div>
 
               {/* Dynamic Content Overlay */}
-              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none">
+              <div className="relative flex-1 z-20 flex flex-col h-full p-4 pointer-events-none">
                 
-                {/* Team Crest - Positioned near the top or corner naturally */}
-                <div className="absolute top-10 left-8">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#EAB308] p-1 rounded-2xl shadow-xl border-4 border-black">
-                    {settings.schoolCrest ? (
-                      <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-[#EAB308] font-black text-2xl">P</div>
-                    )}
+                {/* Header: FELIZ ANIVERSÁRIO */}
+                <div className="text-center mt-6 space-y-[-10px] transform -rotate-2">
+                  <h2 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter drop-shadow-[0_8px_0_rgba(0,0,0,1)] uppercase">
+                    FELIZ
+                  </h2>
+                  <h2 className="text-4xl md:text-6xl font-black text-yellow-400 italic tracking-tighter drop-shadow-[0_8px_0_rgba(0,0,0,1)] uppercase">
+                    ANIVERSÁRIO!
+                  </h2>
+                </div>
+
+                {/* Banner: PARABÉNS CAMPEÃO */}
+                <div className="mt-4 flex justify-center">
+                  <div className="bg-yellow-400 border-4 border-black px-6 py-2 transform rotate-1 shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center gap-3">
+                    <Cake size={20} className="text-black" />
+                    <span className="text-black font-black text-lg md:text-xl uppercase tracking-tighter italic">PARABÉNS, CAMPEÃO!</span>
                   </div>
                 </div>
 
-                {/* Athlete Photo - Exactly over the placeholder box in the template */}
-                <div className="absolute right-[11%] top-[45.5%] w-[128px] h-[178px] md:w-[160px] md:h-[222px] bg-[#18181b] border-[3px] border-[#eab308] shadow-2xl overflow-hidden rounded-sm transform rotate-[-0.5deg]">
-                  {selectedPerson.photo ? (
-                    <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-800 bg-black">
-                      <UserCircle size={80} strokeWidth={1} />
+                {/* Middle Section: Player Interaction */}
+                <div className="flex-1 relative mt-8">
+                  {/* Team Crest - Floating left */}
+                  <div className="absolute top-0 left-0">
+                    <div className="w-20 h-20 bg-yellow-400 p-1 rounded-2xl shadow-[8px_8px_0_rgba(0,0,0,1)] border-4 border-black relative">
+                      {settings.schoolCrest ? (
+                        <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-yellow-500 font-black text-3xl">P</div>
+                      )}
+                      
+                      {/* Badge Crown */}
+                      <div className="absolute -top-6 -right-6 text-yellow-400 transform rotate-12 drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5Z" /></svg>
+                      </div>
                     </div>
-                  )}
-                  {/* Subtle vignette/shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
-                </div>
+                  </div>
 
-                {/* Athlete Name - Positioned over the 'Aniversariante do Mês' area */}
-                <div className="absolute right-[5%] top-[72%] w-[45%] text-center">
-                  <div className="bg-[rgba(0,0,0,0.8)] backdrop-blur-sm border border-[#eab308] py-1 px-4 rounded-lg inline-block shadow-lg">
-                    <h3 className="text-white font-black text-lg md:text-xl uppercase italic tracking-tighter leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-                      {selectedPerson.name.split(' ')[0]} {selectedPerson.name.split(' ')[1] || ''}
-                    </h3>
+                  {/* Photo Frame - Big square on the right */}
+                  <div className="absolute right-0 top-10 w-[180px] h-[240px] md:w-[220px] md:h-[300px] bg-zinc-900 border-8 border-black shadow-[12px_12px_0_rgba(0,0,0,1)] overflow-hidden transform rotate-2">
+                    {selectedPerson.photo ? (
+                      <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-[#1a1a1a]">
+                        <UserCircle size={100} strokeWidth={1} />
+                      </div>
+                    )}
+                    {/* Header Label inside frame */}
+                    <div className="absolute top-0 left-0 right-0 py-1 bg-black/60 text-center">
+                      <span className="text-[10px] text-yellow-400 font-black uppercase tracking-widest">FOTO DO ATLETA</span>
+                    </div>
+                  </div>
+
+                  {/* Name Label - Below Photo */}
+                  <div className="absolute right-[-10px] top-[260px] md:top-[330px] w-full text-right pointer-events-none">
+                    <div className="bg-black border-4 border-yellow-400 px-6 py-2 inline-block shadow-[8px_8px_0_rgba(0,0,0,0.5)] transform -rotate-2 min-w-[200px]">
+                      <h3 className="text-white font-black text-xl md:text-2xl uppercase tracking-tighter leading-none italic truncate">
+                        {selectedPerson.name}
+                      </h3>
+                      <p className="text-yellow-400 text-[10px] font-black uppercase text-center mt-1 tracking-widest">Aniversariante do Mês</p>
+                    </div>
+                  </div>
+
+                  {/* Cartoon Cake - Bottom Left */}
+                  <div className="absolute bottom-4 left-0 transform -rotate-6 animate-bounce-slow">
+                    <div className="text-5xl md:text-7xl drop-shadow-[4px_4px_0_rgba(0,0,0,1)]">🎂</div>
+                    <div className="absolute -top-4 -right-4 bg-yellow-400 text-black text-[10px] font-black px-2 py-1 border-2 border-black rounded-lg transform rotate-12">YAY!</div>
                   </div>
                 </div>
 
-                {/* Previous Wording - Elegant overlay at the bottom */}
-                <div className="absolute bottom-10 left-10 right-10 text-center">
-                  <div className="bg-black/90 backdrop-blur-sm border-2 border-[#eab308] p-4 rounded-3xl shadow-2xl">
-                    <p className="text-[11px] md:text-[13px] text-white font-black uppercase tracking-tight leading-relaxed italic">
-                      "A escolinha <span className="text-[#EAB308]">Piruá Esporte Clube</span> deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde."
+                {/* Footer Message */}
+                <div className="mt-auto mb-6 px-4">
+                  <div className="bg-white border-4 border-black p-4 shadow-[8px_8px_0_rgba(0,0,0,1)] transform rotate-1">
+                    <p className="text-[11px] md:text-[13px] text-black font-black uppercase tracking-tight leading-relaxed italic text-center">
+                      "A escolinha <span className="text-emerald-700">Piruá Esporte Clube</span> deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde."
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Decorative Effects */}
-              <div className="absolute inset-0 pointer-events-none z-30 mix-blend-overlay opacity-30">
-                <div className="w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]"></div>
+              {/* Halftone / Comic Texture Overlays */}
+              <div className="absolute inset-0 pointer-events-none z-30 opacity-10 mix-blend-overlay">
+                <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(black 1px, transparent 0)', backgroundSize: '10px 10px' }}></div>
               </div>
             </div>
 
