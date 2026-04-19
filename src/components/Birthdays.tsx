@@ -187,10 +187,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     }
   };
 
-  const BIRTHDAY_TEMPLATE_URL = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop"; // High quality soccer stadium as fallback
-  // The user provided image URL (I'll use a high-quality recreation or the provided one if I could, 
-  // but I'll use the provided image as a background if I can reference it).
-  // For now, I'll use a high-quality soccer background and overlay the elements to match the requested style.
+  const BIRTHDAY_TEMPLATE_IMAGE = "https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media"; // Placeholder for the provided image URL
   
   return (
     <div className="space-y-8">
@@ -370,121 +367,69 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             {/* Modern Phoenix Birthday Card - Instagram Stories Size (9:16) */}
             <div 
               id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-[#000000] font-sans italic" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-black" 
             >
-              {/* Background Layers */}
-              <div className="absolute inset-0 z-0">
-                {/* Dark Soccer Field Background */}
+              {/* Background Template */}
+              <div className="absolute inset-0 z-0 text-white flex items-center justify-center">
                 <img 
-                  src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop" 
-                  alt="Stadium Background" 
-                  className="w-full h-full object-cover opacity-30 grayscale"
+                  src={BIRTHDAY_TEMPLATE_IMAGE} 
+                  alt="Template Background" 
+                  className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
                 />
-                
-                {/* Phoenix Wings / Fire Effect (Standard RGBA) */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(234,179,8,0.15),transparent_70%)]"></div>
-                <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-[rgba(234,179,8,0.1)] blur-[100px] rounded-full animate-pulse"></div>
-                <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-[rgba(234,179,8,0.1)] blur-[100px] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-                
-                {/* Phoenix Motif (Stylized Wings) */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                  <svg viewBox="0 0 200 200" className="w-[120%] h-[120%] text-[#EAB308] fill-current">
-                    <path d="M100 20C100 20 80 50 40 60C20 65 10 80 10 100C10 140 40 170 100 180C160 170 190 140 190 100C190 80 180 65 160 60C120 50 100 20 100 20ZM100 40C110 60 140 75 170 80C175 82 180 85 180 100C180 130 155 155 100 165C45 155 20 130 20 100C20 85 25 82 30 80C60 75 90 60 100 40Z" />
-                  </svg>
-                </div>
               </div>
 
-              {/* Content Overlay */}
-              <div className="relative flex-1 flex flex-col items-center justify-between p-8 z-20">
-                {/* Header: Logo & Title */}
-                <div className="w-full flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 md:w-16 md:h-16 bg-[#EAB308] p-1.5 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.4)]">
-                      {settings.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-                        <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-full h-full bg-[#000000] rounded-xl flex items-center justify-center text-[#EAB308] font-black text-xl">P</div>
-                      )}
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-white font-black uppercase tracking-tighter text-sm md:text-base leading-none">Piruá E.C.</h4>
-                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#EAB308]">Fênix do Campo</p>
-                    </div>
-                  </div>
-                  <div className="bg-[rgba(234,179,8,0.1)] px-4 py-2 rounded-full border border-[rgba(234,179,8,0.2)]">
-                    <p className="text-[10px] font-black text-[#EAB308] uppercase tracking-widest">#RENASCENDO</p>
+              {/* Dynamic Content Overlay */}
+              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none">
+                
+                {/* Team Crest - Positioned near the top or corner naturally */}
+                <div className="absolute top-10 left-8">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-yellow-500 p-1 rounded-2xl shadow-xl border-4 border-black">
+                    {settings.schoolCrest ? (
+                      <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-yellow-500 font-black text-2xl">P</div>
+                    )}
                   </div>
                 </div>
 
-                {/* Main Section: Photo & Name */}
-                <div className="flex flex-col items-center w-full relative">
-                  {/* Large Background Text */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none whitespace-nowrap">
-                    <h2 className="text-[150px] md:text-[220px] font-black uppercase italic tracking-tighter text-white">BIRTHDAY</h2>
-                  </div>
-
-                  <div className="relative mb-8">
-                    {/* Modern Hexagon/Diamond Frame */}
-                    <div className="absolute -inset-4 border-2 border-[rgba(234,179,8,0.3)] rotate-12 rounded-[40px] animate-spin-slow"></div>
-                    <div className="absolute -inset-4 border-2 border-[rgba(234,179,8,0.3)] -rotate-12 rounded-[40px] animate-spin-slow-reverse"></div>
-                    
-                    {/* Athlete Photo */}
-                    <div className="w-48 h-48 md:w-64 md:h-64 bg-[#18181b] rounded-[48px] border-4 border-[#EAB308] overflow-hidden shadow-[0_0_50px_rgba(234,179,8,0.3)] relative z-10 group-hover:scale-105 transition-transform duration-500">
-                      {selectedPerson.photo && selectedPerson.photo.trim() !== "" ? (
-                        <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#27272a]">
-                          <UserCircle size={120} strokeWidth={1} />
-                        </div>
-                      )}
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent"></div>
+                {/* Athlete Photo - Exactly over the placeholder box in the template */}
+                <div className="absolute right-[11%] top-[45.5%] w-[128px] h-[178px] md:w-[160px] md:h-[222px] bg-zinc-900 border-[3px] border-[#eab308] shadow-2xl overflow-hidden rounded-sm transform rotate-[-0.5deg]">
+                  {selectedPerson.photo ? (
+                    <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-800 bg-black">
+                      <UserCircle size={80} strokeWidth={1} />
                     </div>
+                  )}
+                  {/* Subtle vignette/shimmer */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+                </div>
 
-                    {/* Birthday Badge */}
-                    <div className="absolute -bottom-4 -right-4 px-6 py-3 bg-[#EAB308] text-black rounded-2xl flex items-center gap-2 shadow-2xl z-20 -rotate-6 font-black uppercase text-xs tracking-tighter border-2 border-black">
-                      Parabéns!
-                    </div>
-                  </div>
-
-                  <div className="text-center space-y-2 z-20">
-                    <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
-                      FELIZ <span className="text-[#EAB308]">ANIVERSÁRIO</span>
-                    </h2>
-                    <div className="inline-block px-8 py-2 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl">
-                      <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight">
-                        {selectedPerson.name}
-                      </h3>
-                    </div>
+                {/* Athlete Name - Positioned over the 'Aniversariante do Mês' area */}
+                <div className="absolute right-[5%] top-[72%] w-[45%] text-center">
+                  <div className="bg-black/80 backdrop-blur-sm border border-yellow-500/50 py-1 px-4 rounded-lg inline-block shadow-lg">
+                    <h3 className="text-white font-black text-lg md:text-xl uppercase italic tracking-tighter leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                      {selectedPerson.name.split(' ')[0]} {selectedPerson.name.split(' ')[1] || ''}
+                    </h3>
                   </div>
                 </div>
 
-                {/* Footer: Message */}
-                <div className="w-full text-center space-y-4">
-                  <div className="h-px w-full bg-gradient-to-r from-transparent via-[rgba(234,179,8,0.5)] to-transparent"></div>
-                  <div className="px-4">
-                    <p className="text-[11px] md:text-sm text-white font-bold uppercase tracking-wider leading-relaxed">
-                      A escolinha <span className="text-[#EAB308]">Piruá Esporte Clube</span> deseja a você um feliz aniversário!
+                {/* Previous Wording - Elegant overlay at the bottom */}
+                <div className="absolute bottom-10 left-10 right-10 text-center">
+                  <div className="bg-black/90 backdrop-blur-sm border-2 border-[#eab308] p-4 rounded-3xl shadow-2xl">
+                    <p className="text-[11px] md:text-[13px] text-white font-black uppercase tracking-tight leading-relaxed italic">
+                      "A escolinha <span className="text-[#EAB308]">Piruá Esporte Clube</span> deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde."
                     </p>
-                    <p className="text-[10px] md:text-xs text-[#a1a1aa] font-medium uppercase tracking-widest mt-1 italic">
-                      "Que Deus ilumine sempre sua vida, muita paz e saúde."
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center gap-4 opacity-50">
-                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
-                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
-                    <div className="h-2 w-2 bg-[#EAB308] rounded-full"></div>
                   </div>
                 </div>
               </div>
 
-              {/* Modern Edge Accents */}
-              <div className="absolute top-0 right-0 w-2 h-full bg-[#EAB308] opacity-20"></div>
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#EAB308] opacity-20"></div>
-              
-              {/* Scanline Effect */}
-              <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+              {/* Decorative Effects */}
+              <div className="absolute inset-0 pointer-events-none z-30 mix-blend-overlay opacity-30">
+                <div className="w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]"></div>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-col md:flex-row justify-center gap-4">
