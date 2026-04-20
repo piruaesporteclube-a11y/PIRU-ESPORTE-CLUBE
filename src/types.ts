@@ -228,8 +228,10 @@ export const getSubCategory = (birthDate: string) => {
   const currentYear = new Date().getFullYear();
   const age = currentYear - birthYear;
   
-  if (age >= 3 && age <= 6) return "FRALDINHAS";
-  if (age <= 6) return "FRALDINHAS"; // Fallback for very young children
+  if (age <= 3) return "SUB 3";
+  if (age === 4) return "SUB 4";
+  if (age === 5) return "SUB 5";
+  if (age === 6) return "SUB 6";
   if (age <= 7) return "SUB 7";
   if (age <= 8) return "SUB 8";
   if (age <= 9) return "SUB 9";
@@ -248,7 +250,7 @@ export const getSubCategory = (birthDate: string) => {
 };
 
 export const categories = [
-  "FRALDINHAS", "SUB 7", "SUB 8", "SUB 9", "SUB 10", 
+  "SUB 3", "SUB 4", "SUB 5", "SUB 6", "SUB 7", "SUB 8", "SUB 9", "SUB 10", 
   "SUB 11", "SUB 12", "SUB 13", "SUB 14", "SUB 15", 
   "SUB 16", "SUB 17", "SUB 18", "SUB 19", "SUB 20", 
   "ADULTO"

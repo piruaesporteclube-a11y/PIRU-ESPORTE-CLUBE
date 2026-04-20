@@ -222,8 +222,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* Background Layers */}
               {backgroundType === 'carbon' ? (
                 <>
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40 mix-blend-overlay" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
+                  <div className="absolute inset-0 scale-110">
+                    <img src="https://images.unsplash.com/photo-1541252260730-0412e3e2107e?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover opacity-40 grayscale" referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30 mix-blend-overlay" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/80 via-black/90 to-zinc-900/80" />
                 </>
               ) : backgroundType === 'stadium' ? (
                 <>
