@@ -27,15 +27,15 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         <div className="flex items-center gap-4 sm:gap-6">
           <div 
             onClick={() => setActiveTab('dashboard')} 
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-4 cursor-pointer group"
           >
             {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-              <img src={settings.schoolCrest} alt="Logo" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" referrerPolicy="no-referrer" />
+              <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain group-hover:scale-110 transition-transform" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-lg group-hover:scale-110 transition-transform">P</div>
+              <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl group-hover:scale-110 transition-transform">P</div>
             )}
             <div className="hidden sm:block">
-              <h1 className="font-black text-lg tracking-tighter uppercase leading-none">Piruá E.C.</h1>
+              <h1 className="font-black text-xl tracking-tighter uppercase leading-none">Piruá E.C.</h1>
               <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
             </div>
           </div>
@@ -54,16 +54,16 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="hidden lg:flex flex-col items-end mr-2">
             <p className="text-xs font-black text-zinc-500 uppercase tracking-widest leading-none">Conectado como</p>
-            <p className="text-sm font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
+            <p className="text-base font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
           </div>
           
           <button 
             onClick={onLogout}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all border border-red-500/20 group"
+            className="flex items-center gap-3 px-4 sm:px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all border border-red-500/20 group"
             title="Sair do sistema"
           >
-            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-            <span className="text-xs font-black uppercase tracking-widest hidden sm:block">Sair</span>
+            <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
+            <span className="text-sm font-black uppercase tracking-widest hidden sm:block">Sair</span>
           </button>
         </div>
       </header>
@@ -71,17 +71,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
       {/* Main Content Area */}
       <main className="flex-1 bg-black p-4 sm:p-8 lg:p-12 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          {children}
         </div>
       </main>
 

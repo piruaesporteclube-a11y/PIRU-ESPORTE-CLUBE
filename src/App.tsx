@@ -82,14 +82,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
               >
-                <div className={`p-4 rounded-2xl bg-zinc-800/50 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                  <item.icon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                <div className={`p-4 sm:p-5 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
+                  <item.icon className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                 </div>
                 <div className="space-y-1">
                   <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
-                  {item.description && <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">{item.description}</p>}
+                  {item.description && <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.description}</p>}
                 </div>
               </button>
             ))}
@@ -194,14 +194,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
             >
-              <div className={`p-4 rounded-2xl bg-zinc-800/50 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                <item.icon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+              <div className={`p-4 sm:p-5 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
+                <item.icon className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
               </div>
               <div className="space-y-1">
                 <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
-                {item.description && <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">{item.description}</p>}
+                {item.description && <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.description}</p>}
               </div>
             </button>
           ))}
@@ -211,14 +211,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
               href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
             >
               <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
                 <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
               </div>
               <div className="space-y-1">
-                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
-                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Social</p>
+                <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">Instagram</span>
+                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Social</p>
               </div>
             </a>
           )}
@@ -228,25 +228,25 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
               href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
             >
               <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
                 <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
               </div>
               <div className="space-y-1">
-                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
-                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Suporte</p>
+                <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Suporte</p>
               </div>
             </a>
           )}
 
-          <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-theme-primary shadow-xl border border-theme-primary/50 hover:bg-theme-primary/90 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden">
+          <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-theme-primary shadow-xl border border-theme-primary/50 hover:bg-theme-primary/90 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden">
             <div className="p-4 rounded-2xl bg-black/20 text-black group-hover:scale-110 transition-transform">
               <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="space-y-1">
-              <span className="text-base sm:text-lg font-black tracking-tight text-black block leading-tight">Novo Atleta</span>
-              <p className="text-sm sm:text-base text-black/60 font-black uppercase tracking-widest">Matrícula</p>
+              <span className="text-lg sm:text-xl font-black tracking-tight text-black block leading-tight">Novo Atleta</span>
+              <p className="text-[10px] sm:text-xs text-black/60 font-black uppercase tracking-widest">Matrícula</p>
             </div>
           </button>
 
@@ -257,14 +257,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
                 navigator.clipboard.writeText(link.url);
                 toast.success(`${link.label} copiado!`);
               }}
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
             >
               <div className={`p-4 rounded-2xl bg-zinc-800/80 ${link.color} group-hover:scale-110 transition-transform`}>
                 <link.icon className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="space-y-1">
-                <span className="text-base sm:text-lg font-black tracking-tight text-zinc-400 block leading-tight">{link.label}</span>
-                <p className="text-sm sm:text-base text-zinc-600 font-medium tracking-tight uppercase">Link</p>
+                <span className="text-lg sm:text-xl font-black tracking-tight text-zinc-400 block leading-tight">{link.label}</span>
+                <p className="text-[10px] sm:text-xs text-zinc-600 font-bold uppercase tracking-widest">Link</p>
               </div>
             </button>
           ))}

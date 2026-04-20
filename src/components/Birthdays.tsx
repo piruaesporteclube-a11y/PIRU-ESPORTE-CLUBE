@@ -389,76 +389,116 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               Fechar [X]
             </button>
             
-            {/* Instagram Style Birthday Card - Using User Provided Template */}
+            {/* Instagram Style Birthday Card - Modern Sports Poster */}
             <div 
               id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col group bg-black font-sans" 
+              className="w-[340px] h-[600px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-xl border-4 border-theme-primary" 
             >
-              {/* Template Background Image */}
+              {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
+                {/* Soccer Stadium Background - Dramatic Night View (Matches Uploaded Image) */}
                 <img 
-                  src="https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media" 
-                  alt="Birthday Template" 
-                  className="w-full h-full object-cover"
+                  src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
+                  alt="Soccer Stadium" 
+                  className="w-full h-full object-cover opacity-70"
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
-                  onLoad={(e) => (e.target as HTMLImageElement).classList.add('opacity-100')}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop";
-                  }}
                 />
+
+                {/* Secondary Template Layer (User's provided image if it loads) */}
+                <img 
+                  src="https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media" 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-60"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  loading="eager"
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+                
+                {/* Stylized Gradients for "Modern/Attractive" look */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-theme-primary/10 via-transparent to-theme-primary/10 z-10" />
               </div>
 
-              {/* Dynamic Content Overlay - Positioned according to the provided image layout */}
-              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none">
+              {/* Dynamic Content Overlay - Centered Design */}
+              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-12 px-6">
                 
-                {/* Team Crest - Top Left Corner Area */}
-                <div className="absolute top-10 left-10">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-[#EAB308] p-1.5 rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.5)] border-4 border-black">
+                {/* TOP: Crest & Title */}
+                <div className="w-full flex flex-col items-center gap-2">
+                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center -mt-2 bg-transparent">
                     {settings.schoolCrest ? (
-                      <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      <img 
+                        src={settings.schoolCrest} 
+                        className="w-full h-full object-contain relative z-10 bg-transparent" 
+                        referrerPolicy="no-referrer" 
+                        crossOrigin="anonymous" 
+                        style={{ 
+                          mixBlendMode: 'multiply'
+                        }}
+                      />
                     ) : (
-                      <div className="w-full h-full bg-black rounded-xl flex items-center justify-center text-[#EAB308] font-black text-2xl">P</div>
+                      <div className="font-black text-theme-primary text-4xl md:text-6xl italic">P</div>
                     )}
                   </div>
-                </div>
-
-                {/* Athlete Photo - Placed inside the 'FOTO DO JOGADOR' box area */}
-                {/* Based on the template, it's roughly at right-central area */}
-                <div className="absolute right-[11%] top-[45.8%] w-[126px] h-[178px] md:w-[158px] md:h-[222px] bg-[#18181b] border-[4px] border-black shadow-2xl overflow-hidden rounded-sm transform rotate-[-0.5deg]">
-                  {selectedPerson.photo ? (
-                    <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-black">
-                      <UserCircle size={100} strokeWidth={1} />
-                    </div>
-                  )}
-                  {/* Glass Shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent opacity-50"></div>
-                </div>
-
-                {/* Athlete Name Area - Directly below the photo box */}
-                <div className="absolute right-[6%] top-[72.5%] w-[46%] text-center">
-                  <div className="bg-black/90 border-2 border-[#EAB308] py-1.5 px-4 rounded-xl shadow-2xl backdrop-blur-sm">
-                    <h3 className="text-white font-black text-base md:text-xl uppercase italic tracking-tighter leading-none truncate">
-                      {selectedPerson.name}
-                    </h3>
+                  <div className="text-center mt-1">
+                    <h2 className="text-theme-primary font-black text-2xl md:text-3xl italic tracking-tighter uppercase drop-shadow-[5px_5px_0_rgba(0,0,0,1)]">
+                      FELIZ ANIVERSÁRIO!
+                    </h2>
                   </div>
                 </div>
 
-                {/* Message Box - Bottom Area */}
-                <div className="absolute bottom-12 left-10 right-10 text-center">
-                  <div className="bg-black/80 backdrop-blur-md border-2 border-[#EAB308]/50 p-4 rounded-3xl shadow-2xl">
-                    <p className="text-[10px] md:text-[13px] text-white font-black uppercase tracking-tight leading-relaxed italic drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
-                      "A escolinha <span className="text-[#EAB308]">Piruá Esporte Clube</span> deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde."
+                  {/* CENTER: Athlete Photo (3x4 Portrait) */}
+                <div className="relative group mt-2">
+                  {/* Decorative Border for "Attractive" look */}
+                  <div className="absolute -inset-4 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                  
+                  <div className="w-[150px] h-[200px] md:w-[210px] md:h-[280px] bg-zinc-900 border-[3px] border-theme-primary shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
+                    {selectedPerson.photo ? (
+                      <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
+                        <UserCircle size={60} strokeWidth={1} />
+                        <span className="text-[8px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                      </div>
+                    )}
+                    
+                    {/* Corner accents */}
+                    <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-theme-primary z-20" />
+                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-theme-primary z-20" />
+                  </div>
+
+                  {/* Name Banner - HIGH IMPACT */}
+                  <div className="absolute -bottom-8 inset-x-[-30%] z-30">
+                    <div className="bg-white text-black py-3 px-6 shadow-2xl transform skew-x-[-15deg] border-[3px] border-theme-primary">
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none whitespace-nowrap italic">
+                        {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BOTTOM: Message */}
+                <div className="w-full flex flex-col items-center gap-4 mt-12 pb-4">
+                  <div className="max-w-xs text-center">
+                    <p className="text-white font-black leading-none text-[10px] md:text-xs drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
+                      "A escolinha <span className="text-theme-primary underline">Piruá Esporte Clube</span> te deseja um feliz aniversário! que Deus ilumine sempre sua vida, muita paz e saúde."
                     </p>
+                  </div>
+                  
+                  {/* Soccer ball icon accent */}
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Scanline / Texture */}
-              <div className="absolute inset-0 pointer-events-none z-30 opacity-5 mix-blend-overlay">
-                <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(white 1px, transparent 0)', backgroundSize: '4px 4px' }}></div>
+              {/* Modern Graphic Elements */}
+              <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 overflow-hidden opacity-20">
+                <div className="absolute top-[20%] -left-10 w-40 h-40 border-8 border-white rounded-full opacity-10 transform -rotate-12 translate-x-[-20%] translate-y-[-20%]" />
+                <div className="absolute bottom-[20%] -right-10 w-60 h-60 border-8 border-white rounded-full opacity-10 transform rotate-12 translate-x-[20%] translate-y-[20%]" />
               </div>
             </div>
 
