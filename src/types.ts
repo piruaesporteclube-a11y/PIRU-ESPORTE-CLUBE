@@ -77,6 +77,7 @@ export type TrainingSchedule = {
   categories: string[];
   start_time: string;
   end_time: string;
+  notes?: string;
 };
 
 export type Training = {

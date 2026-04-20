@@ -351,6 +351,13 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                                         </span>
                                       ))}
                                     </div>
+                                    {s.notes && (
+                                      <div className="mt-1 pt-2 border-t border-zinc-800/50">
+                                        <p className="text-[9px] text-zinc-500 italic leading-relaxed">
+                                          {s.notes}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -382,7 +389,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                                 ended ? "text-red-500" : "text-green-500"
                               )}>
                                 <FileText size={10} />
-                                Anotações
+                                Observações Gerais
                               </p>
                               <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
                                 {training.notes}
@@ -533,6 +540,17 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                         </div>
 
                         <div className="space-y-2">
+                          <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Atividade / Observações</label>
+                          <textarea 
+                            rows={2}
+                            placeholder="Descreva o foco deste horário..."
+                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-xs outline-none focus:ring-1 focus:ring-theme-primary/30 resize-none"
+                            value={schedule.notes || ''}
+                            onChange={e => updateSchedule(idx, 'notes', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
                           <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Categorias (Subs)</label>
                           <div className="flex flex-wrap gap-2">
                             {['Todos', ...categories].map(c => {
@@ -598,10 +616,10 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Anotações / Instruções do Treino</label>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Observações Gerais / Instruções</label>
                   <textarea 
-                    placeholder="Descreva o foco do treino, materiais necessários ou instruções específicas..."
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none h-32 resize-none text-sm leading-relaxed"
+                    placeholder="Instruções gerais, materiais ou recados para o dia..."
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none h-24 resize-none text-sm leading-relaxed"
                     value={formData.notes}
                     onChange={e => setFormData({...formData, notes: e.target.value})}
                   />
