@@ -275,8 +275,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
 
                 <div className="text-right">
-                   <p className="text-theme-primary text-[10px] font-black uppercase tracking-widest italic">{dayOfWeek}</p>
-                   <p className="text-white text-2xl font-black italic tracking-tighter leading-none mt-1">{formattedDate}</p>
+                   <p className="text-theme-primary text-[12px] font-black uppercase tracking-widest italic">{dayOfWeek}</p>
+                   <p className="text-white text-4xl font-black italic tracking-tighter leading-none mt-1">{formattedDate}</p>
                 </div>
               </div>
 
@@ -284,29 +284,29 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="flex-1 px-8 flex gap-8 relative z-10">
                 {/* Dates & Schedules */}
                 <div className="flex-1 flex flex-col justify-center space-y-4">
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {trainings.map((t, idx) => (
                       <div key={idx} className="relative group overflow-hidden">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-theme-primary"></div>
-                        <div className="pl-6 py-1 space-y-2">
-                          <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter skew-x-[-10deg]">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-theme-primary"></div>
+                        <div className="pl-6 py-1 space-y-3">
+                          <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter skew-x-[-10deg]">
                              {t.modality}
                           </h3>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {t.schedules?.slice(0, 3).map((s, si) => (
-                              <div key={si} className="flex flex-col gap-1">
+                              <div key={si} className="flex flex-col gap-1.5">
                                 <div className="flex items-center gap-3">
-                                  <span className="text-theme-primary font-mono text-sm font-black tracking-tighter">{s.start_time} — {s.end_time}</span>
-                                  <div className="flex flex-wrap gap-1">
+                                  <span className="text-theme-primary font-mono text-lg font-black tracking-tighter leading-none">{s.start_time} — {s.end_time}</span>
+                                  <div className="flex flex-wrap gap-1.5">
                                     {s.categories.map((c, ci) => (
-                                      <span key={ci} className="text-black bg-theme-primary px-1.5 py-0.5 rounded text-[8px] font-black uppercase">
+                                      <span key={ci} className="text-black bg-theme-primary px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-lg shadow-theme-primary/10">
                                         {c}
                                       </span>
                                     ))}
                                   </div>
                                 </div>
                                 {s.notes && (
-                                   <p className="text-zinc-500 text-[9px] font-bold uppercase truncate max-w-[200px] italic">
+                                   <p className="text-zinc-400 text-[10px] font-bold uppercase truncate max-w-[220px] italic leading-tight">
                                      {s.notes}
                                    </p>
                                 )}

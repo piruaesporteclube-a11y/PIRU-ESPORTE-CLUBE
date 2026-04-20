@@ -30,7 +30,13 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             className="flex items-center gap-4 cursor-pointer group"
           >
             {settings?.schoolCrest && settings.schoolCrest.trim() !== "" ? (
-              <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 object-contain group-hover:scale-110 transition-transform" referrerPolicy="no-referrer" />
+              <img 
+                src={settings.schoolCrest} 
+                alt="Logo" 
+                className="object-contain group-hover:scale-110 transition-transform" 
+                style={{ height: '51px', textAlign: 'center' }}
+                referrerPolicy="no-referrer" 
+              />
             ) : (
               <div className="w-12 h-12 bg-theme-primary rounded-full flex items-center justify-center text-black font-bold text-xl group-hover:scale-110 transition-transform">P</div>
             )}
