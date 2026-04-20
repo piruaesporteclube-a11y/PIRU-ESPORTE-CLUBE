@@ -363,8 +363,6 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const isAthleteLocked = (athlete: Athlete) => {
-    if (isAdmin) return false; 
-    
     const now = new Date();
     const todayString = format(now, 'yyyy-MM-dd');
     const currentTimeStr = format(now, 'HH:mm');
@@ -402,6 +400,42 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     if (!training || !training.schedules || training.schedules.length === 0) return null;
     const sub = getSubCategory(athlete.birth_date);
     return training.schedules.filter(s => s.categories.includes('Todos') || s.categories.includes(sub));
+  };
+
+  const markAllPresent = async () => {
+    if (isLocked) return;
+    if (!confirm(`Deseja marcar todos os ${filteredAthletes.length} atletas filtrados como PRESENTES?`)) return;
+    
+    const loadingToast = toast.loading('Marcando presenças...');
+    try {
+      const now = format(new Date(), 'HH:mm');
+      const promises = filteredAthletes.map(athlete => {
+        let attendanceId = `${athlete.id}_${date}`;
+        if (trainingId) attendanceId = `${athlete.id}_training_${trainingId}`;
+        if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
+        
+        return api.saveAttendance({ 
+          id: attendanceId, 
+          athlete_id: athlete.id, 
+          training_id: trainingId,
+          event_id: eventId,
+          date, 
+          status: 'Presente', 
+          arrival_time: now
+        });
+      });
+
+      await Promise.all(promises);
+      
+      const newAttendance = { ...attendance };
+      filteredAthletes.forEach(athlete => {
+        newAttendance[athlete.id] = { status: 'Presente', justification: '', arrival_time: now };
+      });
+      setAttendance(newAttendance);
+      toast.success('Todas as presenças foram registradas!', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(`Erro ao salvar presenças: ${err.message}`, { id: loadingToast });
+    }
   };
 
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '', arrival_time?: string) => {
@@ -615,15 +649,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </button>
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              Chamada de Presença
+              {isLocked ? 'Consulta de Chamada' : 'Chamada de Presença'}
               {isLocked && (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-lg border border-red-500/20 animate-pulse">
-                  <Lock size={10} />
-                  Finalizada
+                <span className="flex items-center gap-1 px-3 py-1 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-xl border border-red-500/20 shadow-lg shadow-red-500/5">
+                  <Lock size={12} />
+                  Finalizada (Somente Leitura)
                 </span>
               )}
             </h2>
-            <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
+            <p className="text-zinc-400 text-sm">
+              {isLocked 
+                ? 'Este treino foi encerrado. A lista está disponível para visualização e impressão.' 
+                : 'Registre a presença dos atletas por QR Code ou manualmente'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -656,6 +694,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           >
             <FileText size={20} />
           </button>
+
+          {!isLocked && (
+            <button 
+              onClick={markAllPresent}
+              className="flex items-center gap-2 px-4 py-3 bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
+            >
+              <CheckCircle2 size={16} />
+              Presença Rápida
+            </button>
+          )}
 
           <div className="hidden sm:block">
             <input 
@@ -834,23 +882,25 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           onClick={() => markAttendance(athlete.id, 'Presente')}
                           disabled={isAthleteLocked(athlete)}
                           className={cn(
-                            "p-2 rounded-lg transition-all",
-                            att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                            "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
+                            att?.status === 'Presente' ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
                             isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <CheckCircle2 size={20} />
+                          <CheckCircle2 size={18} />
+                          <span className="text-[10px] uppercase font-black">Presente</span>
                         </button>
                         <button 
                           onClick={() => markAttendance(athlete.id, 'Faltou')}
                           disabled={isAthleteLocked(athlete)}
                           className={cn(
-                            "p-2 rounded-lg transition-all",
-                            att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                            "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
+                            att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
                             isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <XCircle size={20} />
+                          <XCircle size={18} />
+                          <span className="text-[10px] uppercase font-black">Faltou</span>
                         </button>
                       </div>
                     </td>
@@ -858,11 +908,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       {att?.status === 'Faltou' && (
                         <input 
                           type="text" 
-                          disabled={isLocked}
+                          disabled={isAthleteLocked(athlete)}
                           placeholder="Justificar falta..."
                           className={cn(
                             "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                            isLocked && "opacity-50 cursor-not-allowed"
+                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                           value={att.justification || ''}
                           onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
@@ -916,23 +966,25 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       onClick={() => markAttendance(athlete.id, 'Presente')}
                       disabled={isAthleteLocked(athlete)}
                       className={cn(
-                        "p-2 rounded-lg transition-all",
-                        att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500",
+                        "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
+                        att?.status === 'Presente' ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
                         isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      <CheckCircle2 size={20} />
+                      <CheckCircle2 size={18} />
+                      <span className="text-[10px] uppercase font-black">Presente</span>
                     </button>
                     <button 
                       onClick={() => markAttendance(athlete.id, 'Faltou')}
-                      disabled={isLocked}
+                      disabled={isAthleteLocked(athlete)}
                       className={cn(
-                        "p-2 rounded-lg transition-all",
-                        att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500",
-                        isLocked && "opacity-50 cursor-not-allowed"
+                        "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
+                        att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
+                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      <XCircle size={20} />
+                      <XCircle size={18} />
+                      <span className="text-[10px] uppercase font-black">Faltou</span>
                     </button>
                   </div>
                 </div>
@@ -941,11 +993,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   <div className="pt-1">
                     <input 
                       type="text" 
-                      disabled={isLocked}
+                      disabled={isAthleteLocked(athlete)}
                       placeholder="Justificar falta..."
                       className={cn(
                         "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                        isLocked && "opacity-50 cursor-not-allowed"
+                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                       )}
                       value={att.justification || ''}
                       onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}

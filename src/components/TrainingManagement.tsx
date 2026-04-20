@@ -141,6 +141,24 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
     setIsModalOpen(true);
   };
 
+  const isTrainingEnded = (training: Training) => {
+    const now = new Date();
+    const todayString = format(now, 'yyyy-MM-dd');
+    const currentTimeStr = format(now, 'HH:mm');
+
+    if (training.date < todayString) return true;
+    if (training.date > todayString) return false;
+
+    // It's today
+    let latestEnd = '00:00';
+    if (training.schedules && training.schedules.length > 0) {
+      latestEnd = training.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
+    } else {
+      latestEnd = training.end_time || '00:00';
+    }
+    return currentTimeStr > latestEnd;
+  };
+
   if (activeAttendanceTraining) {
     return (
       <div className="space-y-6">
@@ -219,99 +237,164 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {trainings.map((training) => (
-            <motion.div
-              key={training.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden group hover:border-theme-primary/50 transition-all"
-            >
-              <div className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
-                    <Trophy size={24} />
-                  </div>
-                  {isAdmin && (
+          {trainings.map((training) => {
+            const ended = isTrainingEnded(training);
+            return (
+              <motion.div
+                key={training.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "bg-zinc-900/50 border rounded-3xl overflow-hidden group transition-all",
+                  ended 
+                    ? "border-red-500/30 hover:border-red-500/60 shadow-lg shadow-red-500/5" 
+                    : "border-green-500/30 hover:border-green-500/60 shadow-lg shadow-green-500/5"
+                )}
+              >
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className={cn(
+                      "p-3 rounded-2xl",
+                      ended ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                    )}>
+                      <Trophy size={24} />
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(training)} className="p-2 text-zinc-500 hover:text-white transition-colors">
-                        <Edit2 size={18} />
-                      </button>
-                      <button onClick={() => handleDelete(training.id)} className="p-2 text-zinc-500 hover:text-red-500 transition-colors">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none">{training.modality}</h3>
-                  <div className="flex items-center gap-2 mt-2 text-zinc-500">
-                    <Calendar size={14} className="text-theme-primary/60" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{format(new Date(training.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
-                    <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                    <MapPin size={14} className="text-theme-primary/60" />
-                    <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">{training.location}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={12} />
-                    Grade de Horários
-                  </p>
-                  
-                  {training.schedules && training.schedules.length > 0 ? (
-                    <div className="space-y-2">
-                      {training.schedules.map((s, i) => (
-                        <div key={i} className="bg-black/30 border border-zinc-800/40 rounded-xl p-3 flex flex-col gap-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black text-white font-mono">{s.start_time} — {s.end_time}</span>
-                            <div className="w-8 h-[1px] bg-zinc-800"></div>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {s.categories.map((c, ci) => (
-                              <span key={ci} className="text-[9px] bg-theme-primary/10 text-theme-primary px-1.5 py-0.5 rounded border border-theme-primary/20 font-bold uppercase">
-                                {c}
-                              </span>
-                            ))}
-                          </div>
+                      <div className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5",
+                        ended ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                      )}>
+                        {ended ? (
+                          <>
+                            <X size={10} />
+                            Encerrado
+                          </>
+                        ) : (
+                          <>
+                            <Calendar size={10} />
+                            Agendado
+                          </>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <button onClick={() => openEdit(training)} className="p-2 text-zinc-500 hover:text-white transition-colors">
+                            <Edit2 size={18} />
+                          </button>
+                          <button onClick={() => handleDelete(training.id)} className="p-2 text-zinc-500 hover:text-red-500 transition-colors">
+                            <Trash2 size={18} />
+                          </button>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  ) : (
-                    <div className="bg-black/30 border border-zinc-800/40 rounded-xl p-3">
-                      <p className="text-xs font-black text-white font-mono mb-2">{training.start_time} — {training.end_time}</p>
-                      <span className="text-[9px] bg-theme-primary/10 text-theme-primary px-1.5 py-0.5 rounded border border-theme-primary/20 font-bold uppercase">
-                        {training.category}
-                      </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none">{training.modality}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-zinc-500">
+                      <Calendar size={14} className={ended ? "text-red-500/60" : "text-green-500/60"} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{format(new Date(training.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                      <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
+                      <MapPin size={14} className={ended ? "text-red-500/60" : "text-green-500/60"} />
+                      <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">{training.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={12} />
+                      Grade de Horários
+                    </p>
+                    
+                    {training.schedules && training.schedules.length > 0 ? (
+                      <div className="space-y-2">
+                        {training.schedules.map((s, i) => (
+                          <div key={i} className={cn(
+                            "bg-black/30 border rounded-xl p-3 flex flex-col gap-2",
+                            ended ? "border-red-500/10" : "border-green-500/10"
+                          )}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-white font-mono">{s.start_time} — {s.end_time}</span>
+                              <div className={cn("w-8 h-[1px]", ended ? "bg-red-500/20" : "bg-green-500/20")}></div>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {s.categories.map((c, ci) => (
+                                <span key={ci} className={cn(
+                                  "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase",
+                                  ended 
+                                    ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                                    : "bg-green-500/10 text-green-500 border-green-500/20"
+                                )}>
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={cn(
+                        "bg-black/30 border rounded-xl p-3",
+                        ended ? "border-red-500/10" : "border-green-500/10"
+                      )}>
+                        <p className="text-xs font-black text-white font-mono mb-2">{training.start_time} — {training.end_time}</p>
+                        <span className={cn(
+                          "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase",
+                          ended 
+                            ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                            : "bg-green-500/10 text-green-500 border-green-500/20"
+                        )}>
+                          {training.category}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {training.notes && (
+                    <div className={cn(
+                      "p-3 bg-black/30 rounded-xl border",
+                      ended ? "border-red-500/5" : "border-green-500/5"
+                    )}>
+                      <p className={cn(
+                        "text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1",
+                        ended ? "text-red-500" : "text-green-500"
+                      )}>
+                        <FileText size={10} />
+                        Instruções do Treino
+                      </p>
+                      <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                        {training.notes}
+                      </p>
                     </div>
                   )}
+
+                  {isAdmin && (
+                    <button 
+                      onClick={() => setActiveAttendanceTraining(training)}
+                      className={cn(
+                        "w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+                        ended 
+                          ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-white" 
+                          : "bg-green-500 text-black hover:bg-green-400"
+                      )}
+                    >
+                      {ended ? (
+                        <>
+                          <FileText size={18} />
+                          Ver Chamada
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={18} />
+                          Fazer Chamada
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
-
-                {training.notes && (
-                  <div className="p-3 bg-black/30 rounded-xl border border-zinc-800/50">
-                    <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-1 flex items-center gap-1">
-                      <FileText size={10} />
-                      Instruções do Treino
-                    </p>
-                    <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
-                      {training.notes}
-                    </p>
-                  </div>
-                )}
-
-                {isAdmin && (
-                  <button 
-                    onClick={() => setActiveAttendanceTraining(training)}
-                    className="w-full py-4 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle2 size={18} />
-                    Fazer Chamada
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
