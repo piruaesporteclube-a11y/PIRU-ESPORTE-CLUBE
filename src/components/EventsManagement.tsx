@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { cn, fixHtml2CanvasColors } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+import Attendance from './Attendance';
 
 interface EventsManagementProps {
   athletes?: Athlete[];
@@ -26,6 +27,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeLineupIndex, setActiveLineupIndex] = useState(0);
+  const [activeAttendanceEvent, setActiveAttendanceEvent] = useState<Event | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [lineupAthletes, setLineupAthletes] = useState<Athlete[]>([]);
@@ -405,6 +407,36 @@ export default function EventsManagement({ athletes: athletesProp, events: event
      a.doc.includes(athleteSearch))
   );
 
+  if (activeAttendanceEvent) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
+              <Calendar size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white uppercase tracking-tighter">
+                Chamada: {activeAttendanceEvent.name}
+              </h2>
+              <p className="text-xs text-zinc-500 uppercase tracking-widest">
+                {activeAttendanceEvent.start_date} às {activeAttendanceEvent.start_time} - {activeAttendanceEvent.city}/{activeAttendanceEvent.uf}
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setActiveAttendanceEvent(null)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+          >
+            <X size={18} />
+            Fechar Chamada
+          </button>
+        </div>
+        <Attendance athletes={athletes} eventId={activeAttendanceEvent.id} initialDate={activeAttendanceEvent.start_date} role={role} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
@@ -484,6 +516,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     </p>
                   )}
                 </div>
+              )}
+              {isAdmin && (
+                <button 
+                  onClick={() => setActiveAttendanceEvent(event)}
+                  className="w-full mt-4 py-3 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2 text-xs"
+                >
+                  <CheckCircle2 size={16} />
+                  Fazer Chamada
+                </button>
               )}
             </div>
           </div>

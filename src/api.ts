@@ -560,8 +560,8 @@ export const api = {
   },
 
   // Attendance
-  getAttendance: async (date?: string, athlete_id?: string, training_id?: string): Promise<Attendance[]> => {
-    const cacheKey = `attendance_${date || 'all'}_${athlete_id || 'all'}_${training_id || 'all'}`;
+  getAttendance: async (date?: string, athlete_id?: string, training_id?: string, event_id?: string): Promise<Attendance[]> => {
+    const cacheKey = `attendance_${date || 'all'}_${athlete_id || 'all'}_${training_id || 'all'}_${event_id || 'all'}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
 
@@ -570,6 +570,7 @@ export const api = {
       if (date) q = query(q, where("date", "==", date));
       if (athlete_id) q = query(q, where("athlete_id", "==", athlete_id));
       if (training_id) q = query(q, where("training_id", "==", training_id));
+      if (event_id) q = query(q, where("event_id", "==", event_id));
       
       const querySnapshot = await getDocsWithCacheFallback(q);
       const data = querySnapshot.docs.map(doc => doc.data() as Attendance);

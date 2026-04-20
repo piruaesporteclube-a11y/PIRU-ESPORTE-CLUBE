@@ -539,7 +539,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                       <div className="number-circle !w-2 !h-2 !text-[4px]">8</div>
                       <span className="label-text !text-[5px]">Endereço Completo</span>
                     </div>
-                    <div className="input-box !h-auto min-h-[20px] !text-[5px] items-start py-1 leading-[1.1] overflow-hidden break-words">
+                    <div className="input-box !h-auto min-h-[26px] !text-[5.5px] items-start py-1 px-1 leading-[1.2] overflow-visible break-words flex flex-wrap">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
                     </div>
                   </div>

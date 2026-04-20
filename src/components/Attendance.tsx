@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Athlete, getSubCategory, categories, Training } from '../types';
+import { Athlete, getSubCategory, categories, Training, Event } from '../types';
 import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export default function Attendance({ athletes: athletesProp, trainingId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, initialDate?: string, role?: string }) {
+export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string }) {
   const isAdmin = role === 'admin';
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
@@ -25,6 +25,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
@@ -60,6 +61,23 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
         } catch (err) {
           console.error("Error fetching training for lock check:", err);
         }
+      } else if (eventId) {
+        try {
+          const events = await api.getEvents();
+          const found = events.find(e => e.id === eventId);
+          if (found) {
+            setEvent(found);
+            if (found.end_date < todayString) {
+              setIsLocked(true);
+            } else if (found.end_date === todayString && found.end_time < currentTimeStr) {
+              setIsLocked(true);
+            } else {
+              setIsLocked(false);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching event for lock check:", err);
+        }
       } else {
         // General attendance: lock if date is in the past
         if (date < todayString) {
@@ -71,10 +89,28 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
     };
 
     checkLock();
-    // Re-check periodically or on interval if needed, but per-render/effect is usually enough for UI
     const interval = setInterval(checkLock, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [trainingId, date]);
+  }, [trainingId, eventId, date]);
+
+  useEffect(() => {
+    const fetchEventAthletes = async () => {
+      if (eventId) {
+        try {
+          const { athletes: lineup } = await api.getLineup(eventId);
+          // Only show athletes in lineup for events if requested or if we want to limit
+          // For now, let's keep all athletes available but maybe highlight lineup ones?
+          // Actually, common requirement is only to mark attendance for those in lineup.
+          if (lineup.length > 0) {
+            setAthletes(lineup);
+          }
+        } catch (err) {
+          console.error("Error fetching event lineup:", err);
+        }
+      }
+    };
+    if (eventId) fetchEventAthletes();
+  }, [eventId]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -90,7 +126,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
       setIsScanning(true);
       localStorage.removeItem('auto_scan');
     }
-  }, [date, trainingId]);
+  }, [date, trainingId, eventId]);
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -146,7 +182,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
 
   const loadAttendance = async (silent = false) => {
     try {
-      const attendanceData = await api.getAttendance(date, undefined, trainingId);
+      const attendanceData = await api.getAttendance(date, undefined, trainingId, eventId);
       
       const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
       attendanceData.forEach(a => {
@@ -327,9 +363,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   };
 
   const isAthleteLocked = (athlete: Athlete) => {
-    if (isAdmin) return false; // Admins are never locked out of editing (optional, but usually helpful)
+    if (isAdmin) return false; 
     
-    // Actually, keep it strict as per user request: "não poderão ser alteradas após a data de finalização"
     const now = new Date();
     const todayString = format(now, 'yyyy-MM-dd');
     const currentTimeStr = format(now, 'HH:mm');
@@ -346,11 +381,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
           );
           
           if (relevantSchedules.length > 0) {
-            // Locked if ALL matching slots have passed
             return relevantSchedules.every(s => s.end_time < currentTimeStr);
           }
         }
         return training.end_time < currentTimeStr;
+      }
+    } else if (eventId && event) {
+      if (event.end_date < todayString) return true;
+      if (event.start_date > todayString) return false;
+      if (event.end_date === todayString) {
+        return event.end_time < currentTimeStr;
       }
     }
 
@@ -371,15 +411,18 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
       return;
     }
     try {
-      // Use a stable ID for the day to prevent duplicate records
-      const attendanceId = trainingId ? `${athleteId}_training_${trainingId}` : `${athleteId}_${date}`;
+      // Use a stable ID to prevent duplicate records
+      let attendanceId = `${athleteId}_${date}`;
+      if (trainingId) attendanceId = `${athleteId}_training_${trainingId}`;
+      if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
       
       const finalArrivalTime = status === 'Presente' ? (arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm')) : undefined;
       
       await api.saveAttendance({ 
         id: attendanceId, 
         athlete_id: athleteId, 
-        training_id: trainingId, 
+        training_id: trainingId,
+        event_id: eventId,
         date, 
         status, 
         justification,
@@ -589,10 +632,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
           </button>
           <input 
             type="date" 
-            disabled={!!trainingId}
+            disabled={!!trainingId || !!eventId}
             className={cn(
               "px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50",
-              trainingId && "opacity-50 cursor-not-allowed"
+              (trainingId || eventId) && "opacity-50 cursor-not-allowed"
             )}
             value={date}
             onChange={(e) => setDate(e.target.value)}

@@ -64,6 +64,7 @@ export type Attendance = {
   id: string;
   athlete_id: string;
   training_id?: string;
+  event_id?: string;
   date: string;
   status: "Presente" | "Faltou";
   justification?: string;

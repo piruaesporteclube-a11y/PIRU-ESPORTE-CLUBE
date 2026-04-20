@@ -245,7 +245,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             onClick={() => setIsAthleteFormOpen(true)} 
             className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
           >
-            <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-theme-primary">
+            <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-zinc-400">
               <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
             </div>
             <div className="space-y-1">

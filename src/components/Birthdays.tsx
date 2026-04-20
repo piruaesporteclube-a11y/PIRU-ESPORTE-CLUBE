@@ -425,24 +425,24 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-12 px-6">
                 
                 {/* TOP: Crest & Title */}
-                <div className="w-full flex flex-col items-center gap-2">
-                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center -mt-2 bg-transparent">
+                <div className="w-full flex flex-col items-center gap-4">
+                  <div className="w-28 h-28 md:w-40 md:h-40 relative flex items-center justify-center bg-transparent mt-4">
                     {settings.schoolCrest ? (
                       <img 
                         src={settings.schoolCrest} 
-                        className="w-full h-full object-contain relative z-10 bg-transparent" 
+                        className="w-full h-full object-contain relative z-10" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous" 
                         style={{ 
-                          mixBlendMode: 'multiply'
+                          filter: 'drop-shadow(0 0 20px rgba(234, 179, 8, 0.4))'
                         }}
                       />
                     ) : (
                       <div className="font-black text-theme-primary text-4xl md:text-6xl italic">P</div>
                     )}
                   </div>
-                  <div className="text-center mt-1">
-                    <h2 className="text-theme-primary font-black text-2xl md:text-3xl italic tracking-tighter uppercase drop-shadow-[5px_5px_0_rgba(0,0,0,1)]">
+                  <div className="text-center mt-2">
+                    <h2 className="text-theme-primary font-black text-lg md:text-xl italic tracking-tighter uppercase drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">
                       FELIZ ANIVERSÁRIO!
                     </h2>
                   </div>
