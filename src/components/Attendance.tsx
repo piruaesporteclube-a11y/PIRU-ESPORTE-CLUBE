@@ -854,7 +854,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
+                        {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
+                          <div key={i} className="flex items-center gap-1 opacity-60">
+                            <FileText size={8} className="text-theme-primary" />
+                            <span className="text-[8px] text-zinc-500 italic max-w-[120px] truncate" title={s.notes}>{s.notes}</span>
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center gap-1">
@@ -945,11 +953,21 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       <div className="font-bold text-white text-sm">{athlete.name}</div>
                       <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
                       {getAthleteSchedules(athlete) && (
-                        <div className="flex gap-1 mt-1">
-                          {getAthleteSchedules(athlete)?.map((s, i) => (
-                            <span key={i} className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded border border-zinc-700 font-bold uppercase">
-                              {s.start_time}-{s.end_time}
-                            </span>
+                        <div className="space-y-1 mt-2">
+                          <div className="flex flex-wrap gap-1">
+                            {getAthleteSchedules(athlete)?.map((s, i) => (
+                              <span key={i} className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded border border-zinc-700 font-bold uppercase">
+                                {s.start_time}-{s.end_time}
+                              </span>
+                            ))}
+                          </div>
+                          {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
+                            <div key={i} className="bg-theme-primary/5 p-2 rounded-lg border border-theme-primary/10">
+                              <p className="text-[9px] text-zinc-400 leading-tight italic">
+                                <span className="font-black text-theme-primary not-italic mr-1 uppercase text-[7px]">Atividade:</span>
+                                {s.notes}
+                              </p>
+                            </div>
                           ))}
                         </div>
                       )}

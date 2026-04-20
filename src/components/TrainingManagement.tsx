@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Training, Athlete, categories } from '../types';
-import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import Attendance from './Attendance';
+import TrainingFlyer from './TrainingFlyer';
 
 interface TrainingManagementProps {
   athletes?: Athlete[];
@@ -21,6 +22,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
   const [activeAttendanceTraining, setActiveAttendanceTraining] = useState<Training | null>(null);
+  const [flyerData, setFlyerData] = useState<{ date: string, trainings: Training[] } | null>(null);
   
   const [formData, setFormData] = useState<Partial<Training>>({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -256,9 +258,20 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                     <span className="text-2xl font-black text-white leading-none">{format(new Date(date + 'T12:00:00'), 'dd')}</span>
                   </div>
                   <div className="h-[1px] flex-1 bg-zinc-800/50"></div>
-                  {isToday && (
-                    <span className="px-3 py-1 bg-theme-primary text-black text-[10px] font-black uppercase rounded-full">Hoje</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isToday && (
+                      <span className="px-3 py-1 bg-theme-primary text-black text-[10px] font-black uppercase rounded-full">Hoje</span>
+                    )}
+                    {isAdmin && (
+                      <button 
+                        onClick={() => setFlyerData({ date, trainings: dayTrainings })}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-theme-primary/50 text-zinc-400 hover:text-theme-primary rounded-xl transition-all group"
+                      >
+                        <Instagram size={14} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Gerar Encarte</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -352,8 +365,15 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                                       ))}
                                     </div>
                                     {s.notes && (
-                                      <div className="mt-1 pt-2 border-t border-zinc-800/50">
-                                        <p className="text-[9px] text-zinc-500 italic leading-relaxed">
+                                      <div className={cn(
+                                        "mt-2 p-2 rounded-lg border flex flex-col gap-1",
+                                        ended ? "bg-red-500/5 border-red-500/10" : "bg-green-500/5 border-green-500/10"
+                                      )}>
+                                        <div className="flex items-center gap-1 opacity-60">
+                                          <FileText size={8} />
+                                          <span className="text-[7px] font-black uppercase tracking-widest">Atividade do Horário</span>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-400 font-medium leading-tight">
                                           {s.notes}
                                         </p>
                                       </div>
@@ -429,6 +449,16 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
             );
           })}
         </div>
+      )}
+
+      {/* Instagram Flyer Modal */}
+      {flyerData && (
+        <TrainingFlyer 
+          date={flyerData.date}
+          trainings={flyerData.trainings}
+          athletes={athletes}
+          onClose={() => setFlyerData(null)}
+        />
       )}
 
       {/* Modal */}
