@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
@@ -43,6 +44,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isEventFinished, setIsEventFinished] = useState(false);
   const [lineupCounts, setLineupCounts] = useState<Record<string, number>>({});
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
+  const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -526,10 +528,72 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   Fazer Chamada
                 </button>
               )}
+              {isAdmin && (
+                <button 
+                  onClick={() => setActiveQRCodeEvent(event)}
+                  className="w-full mt-2 py-3 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2 text-xs"
+                >
+                  <QrCode size={16} />
+                  QR Check-in
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {/* QR Code Modal */}
+      {activeQRCodeEvent && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="bg-black border border-theme-primary/20 w-full max-w-md rounded-3xl shadow-2xl p-8 relative">
+            <button 
+              onClick={() => setActiveQRCodeEvent(null)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+            >
+              <X size={24} />
+            </button>
+            <div className="text-center space-y-6">
+              <div className="bg-white p-6 rounded-2xl inline-block shadow-2xl">
+                <QRCodeCanvas 
+                  value={`${window.location.origin}/?checkin=true&eventId=${activeQRCodeEvent.id}`} 
+                  size={256} 
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">QR Check-in</h3>
+                <p className="text-theme-primary font-black uppercase tracking-widest text-sm mb-4 leading-none">
+                  {activeQRCodeEvent.name}
+                </p>
+                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl text-left space-y-2">
+                  <div className="flex items-center gap-2 text-zinc-400 text-xs">
+                    <AlertCircle size={14} className="text-theme-primary" />
+                    <p className="font-bold uppercase tracking-widest leading-none">Como funciona?</p>
+                  </div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Apresente este QR Code para os atletas. Ao escanear, eles serão direcionados para o formulário de check-in oficial deste evento.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  const canvas = document.querySelector('canvas');
+                  if (canvas) {
+                    const link = document.createElement('a');
+                    link.download = `checkin-qr-${activeQRCodeEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                  }
+                }}
+                className="w-full py-4 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/20"
+              >
+                Baixar QR Code
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Event Form Modal */}
       {isFormOpen && (

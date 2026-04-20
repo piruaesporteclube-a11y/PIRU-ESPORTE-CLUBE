@@ -24,6 +24,7 @@ import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
 import TeamPortal from './components/TeamPortal';
+import PublicEventCheckin from './components/PublicEventCheckin';
 import { Athlete, User, Professor, Event, Settings } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
@@ -367,6 +368,14 @@ export default function App() {
   const [isTeamPortal, setIsTeamPortal] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.has('team-portal') || window.location.pathname.startsWith('/team-portal/');
+  });
+  const [isEventCheckin, setIsEventCheckin] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('checkin') === 'true' && params.has('eventId');
+  });
+  const [checkinEventId, setCheckinEventId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('eventId');
   });
   const [teamChampionshipId, setTeamChampionshipId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -888,6 +897,36 @@ export default function App() {
           championshipId={teamChampionshipId || undefined} 
           onBack={() => {
             setIsTeamRegistration(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isEventCheckin && checkinEventId) {
+    return (
+      <ErrorBoundary>
+        <PublicEventCheckin 
+          eventId={checkinEventId} 
+          onBack={() => {
+            setIsEventCheckin(false);
+            setCheckinEventId(null);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isEventCheckin && checkinEventId) {
+    return (
+      <ErrorBoundary>
+        <PublicEventCheckin 
+          eventId={checkinEventId} 
+          onBack={() => {
+            setIsEventCheckin(false);
+            setCheckinEventId(null);
             window.history.replaceState({}, '', window.location.pathname);
           }}
         />

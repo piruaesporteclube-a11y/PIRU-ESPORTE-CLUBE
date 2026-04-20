@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Training, Athlete, categories } from '../types';
-import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,7 +26,8 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
     date: format(new Date(), 'yyyy-MM-dd'),
     location: '',
     modality: 'Futebol de Campo',
-    schedules: []
+    schedules: [],
+    notes: ''
   });
 
   const addSchedule = () => {
@@ -115,7 +116,8 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
         date: format(new Date(), 'yyyy-MM-dd'),
         location: '',
         modality: 'Futebol de Campo',
-        schedules: []
+        schedules: [],
+        notes: ''
       });
       loadData();
     } catch (err) {
@@ -198,7 +200,8 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 date: format(new Date(), 'yyyy-MM-dd'),
                 location: '',
                 modality: 'Futebol de Campo',
-                schedules: []
+                schedules: [],
+                notes: ''
               });
               setIsModalOpen(true);
             }}
@@ -282,6 +285,18 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                     <span className="text-xs font-bold uppercase truncate">{training.location}</span>
                   </div>
                 </div>
+
+                {training.notes && (
+                  <div className="p-3 bg-black/30 rounded-xl border border-zinc-800/50">
+                    <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-1 flex items-center gap-1">
+                      <FileText size={10} />
+                      Instruções do Treino
+                    </p>
+                    <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                      {training.notes}
+                    </p>
+                  </div>
+                )}
 
                 {isAdmin && (
                   <button 
@@ -465,6 +480,16 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                       </div>
                     )}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Anotações / Instruções do Treino</label>
+                  <textarea 
+                    placeholder="Descreva o foco do treino, materiais necessários ou instruções específicas..."
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none h-32 resize-none text-sm leading-relaxed"
+                    value={formData.notes}
+                    onChange={e => setFormData({...formData, notes: e.target.value})}
+                  />
                 </div>
 
                 <button 

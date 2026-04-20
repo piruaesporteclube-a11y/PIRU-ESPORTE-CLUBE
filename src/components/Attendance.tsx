@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -603,24 +603,35 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            Chamada de Presença
-            {isLocked && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-lg border border-red-500/20 animate-pulse">
-                <Lock size={10} />
-                Finalizada
-              </span>
-            )}
-          </h2>
-          <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleScanning}
+            disabled={isLocked}
+            className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl hover:bg-theme-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative"
+            title="Abrir Scanner"
+          >
+            <QrCode size={28} className="group-hover:scale-110 transition-transform" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-theme-primary rounded-full animate-pulse border-2 border-black" />
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              Chamada de Presença
+              {isLocked && (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-lg border border-red-500/20 animate-pulse">
+                  <Lock size={10} />
+                  Finalizada
+                </span>
+              )}
+            </h2>
+            <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => loadData()}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
           >
-            <QrCode size={18} />
+            <RotateCcw size={18} />
             Atualizar
           </button>
           <button 
@@ -647,10 +658,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
               "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors shadow-lg",
               isLocked 
                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
-                : "bg-theme-primary hover:opacity-90 text-black shadow-theme-primary/20"
+                : (isScanning ? "bg-red-500 text-white shadow-red-500/20" : "bg-theme-primary text-black shadow-theme-primary/20 hover:opacity-90")
             )}
           >
-            <Camera size={18} />
+            {isScanning ? <XCircle size={18} /> : <QrCode size={18} />}
             {isScanning ? 'Fechar Scanner' : 'Escanear QR Code'}
           </button>
         </div>

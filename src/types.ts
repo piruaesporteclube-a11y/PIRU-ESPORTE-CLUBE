@@ -88,6 +88,7 @@ export type Training = {
   modality: string;
   category: string;
   schedules?: TrainingSchedule[];
+  notes?: string;
 };
 
 export type Anamnesis = {
