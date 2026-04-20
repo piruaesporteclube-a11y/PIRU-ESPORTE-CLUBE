@@ -31,12 +31,13 @@ import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { navItems } from './navigation';
 
-const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setIsAthleteFormOpen }: { 
+const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
   stats: any, 
   athletes: Athlete[], 
   events: Event[], 
   user: User, 
   settings: Settings,
+  activeTab: string,
   setActiveTab: (tab: string) => void,
   setIsAthleteFormOpen: (open: boolean) => void
 }) => {
@@ -82,14 +83,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
+                className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
               >
-                <div className={`p-4 sm:p-5 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                  <item.icon className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
+                <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
+                  <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
-                  {item.description && <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.description}</p>}
+                  <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
+                  {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
                 </div>
               </button>
             ))}
@@ -194,14 +195,14 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
+              className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
             >
-              <div className={`p-4 sm:p-5 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all ${item.color || 'text-theme-primary'}`}>
-                <item.icon className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
+              <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
+                <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
               </div>
               <div className="space-y-1">
-                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">{item.label}</span>
-                {item.description && <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.description}</p>}
+                <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
+                {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
               </div>
             </button>
           ))}
@@ -240,13 +241,16 @@ const Dashboard = ({ stats, athletes, events, user, settings, setActiveTab, setI
             </a>
           )}
 
-          <button onClick={() => setIsAthleteFormOpen(true)} className="flex flex-col items-center justify-center p-4 sm:p-6 bg-theme-primary shadow-xl border border-theme-primary/50 hover:bg-theme-primary/90 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden">
-            <div className="p-4 rounded-2xl bg-black/20 text-black group-hover:scale-110 transition-transform">
-              <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" />
+          <button 
+            onClick={() => setIsAthleteFormOpen(true)} 
+            className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
+          >
+            <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-theme-primary">
+              <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
             </div>
             <div className="space-y-1">
-              <span className="text-lg sm:text-xl font-black tracking-tight text-black block leading-tight">Novo Atleta</span>
-              <p className="text-[10px] sm:text-xs text-black/60 font-black uppercase tracking-widest">Matrícula</p>
+              <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Novo Atleta</span>
+              <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity uppercase">Matrícula</p>
             </div>
           </button>
 
@@ -515,6 +519,7 @@ export default function App() {
               events={events} 
               user={user} 
               settings={settings}
+              activeTab={activeTab}
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
             />
