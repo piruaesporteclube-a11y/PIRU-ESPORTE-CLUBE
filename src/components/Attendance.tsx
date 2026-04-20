@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -628,42 +628,47 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => loadData()}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
-          >
-            <RotateCcw size={18} />
-            Atualizar
-          </button>
-          <button 
-            onClick={() => setIsReportOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
-          >
-            <FileText size={18} />
-            Relatório
-          </button>
-          <input 
-            type="date" 
-            disabled={!!trainingId || !!eventId}
-            className={cn(
-              "px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50",
-              (trainingId || eventId) && "opacity-50 cursor-not-allowed"
-            )}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-          <button 
             onClick={toggleScanning}
             disabled={isLocked}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors shadow-lg",
+              "flex items-center gap-2 px-6 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/20",
               isLocked 
                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
-                : (isScanning ? "bg-red-500 text-white shadow-red-500/20" : "bg-theme-primary text-black shadow-theme-primary/20 hover:opacity-90")
+                : (isScanning ? "bg-red-500 text-white shadow-red-500/20" : "bg-theme-primary text-black hover:scale-105 active:scale-95")
             )}
           >
-            {isScanning ? <XCircle size={18} /> : <QrCode size={18} />}
+            {isScanning ? <X size={20} /> : <QrCode size={20} />}
             {isScanning ? 'Fechar Scanner' : 'Escanear QR Code'}
           </button>
+
+          <button 
+            onClick={() => loadData()}
+            title="Recarregar dados"
+            className="p-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl transition-colors"
+          >
+            <RotateCcw size={20} />
+          </button>
+          
+          <button 
+            onClick={() => setIsReportOpen(true)}
+            title="Ver Relatório"
+            className="p-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl transition-colors"
+          >
+            <FileText size={20} />
+          </button>
+
+          <div className="hidden sm:block">
+            <input 
+              type="date" 
+              disabled={!!trainingId || !!eventId}
+              className={cn(
+                "px-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs",
+                (trainingId || eventId) && "opacity-50 cursor-not-allowed"
+              )}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

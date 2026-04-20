@@ -244,46 +244,48 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{training.modality}</h3>
-                  {training.schedules && training.schedules.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {training.schedules.map((s, i) => (
-                        <span key={i} className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-lg border border-zinc-700 font-bold uppercase font-mono">
-                          {s.categories.join('/')}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{training.category}</p>
-                  )}
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none">{training.modality}</h3>
+                  <div className="flex items-center gap-2 mt-2 text-zinc-500">
+                    <Calendar size={14} className="text-theme-primary/60" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{format(new Date(training.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                    <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
+                    <MapPin size={14} className="text-theme-primary/60" />
+                    <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">{training.location}</span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <Calendar size={14} className="text-theme-primary" />
-                    <span className="text-xs font-bold uppercase">{format(new Date(training.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
-                  </div>
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={12} />
+                    Grade de Horários
+                  </p>
+                  
                   {training.schedules && training.schedules.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {training.schedules.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 text-zinc-400">
-                          <Clock size={12} className="text-theme-primary opacity-50" />
-                          <span className="text-[10px] font-bold uppercase">
-                            {s.start_time} - {s.end_time}
-                          </span>
+                        <div key={i} className="bg-black/30 border border-zinc-800/40 rounded-xl p-3 flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-white font-mono">{s.start_time} — {s.end_time}</span>
+                            <div className="w-8 h-[1px] bg-zinc-800"></div>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {s.categories.map((c, ci) => (
+                              <span key={ci} className="text-[9px] bg-theme-primary/10 text-theme-primary px-1.5 py-0.5 rounded border border-theme-primary/20 font-bold uppercase">
+                                {c}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-zinc-400">
-                      <Clock size={14} className="text-theme-primary" />
-                      <span className="text-xs font-bold uppercase">{training.start_time} - {training.end_time}</span>
+                    <div className="bg-black/30 border border-zinc-800/40 rounded-xl p-3">
+                      <p className="text-xs font-black text-white font-mono mb-2">{training.start_time} — {training.end_time}</p>
+                      <span className="text-[9px] bg-theme-primary/10 text-theme-primary px-1.5 py-0.5 rounded border border-theme-primary/20 font-bold uppercase">
+                        {training.category}
+                      </span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <MapPin size={14} className="text-theme-primary" />
-                    <span className="text-xs font-bold uppercase truncate">{training.location}</span>
-                  </div>
                 </div>
 
                 {training.notes && (
@@ -375,13 +377,17 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Horários por Sub</label>
+                    <div>
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Grade de Horários</label>
+                      <p className="text-[9px] text-zinc-600 font-bold uppercase">Defina tempos específicos para cada categoria</p>
+                    </div>
                     <button 
                       type="button"
                       onClick={addSchedule}
-                      className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1 rounded-lg hover:bg-theme-primary/10 transition-all"
+                      className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1.5 rounded-xl hover:bg-theme-primary/10 transition-all flex items-center gap-1.5"
                     >
-                      + Adicionar Horário
+                      <Plus size={12} />
+                      Novo Horário
                     </button>
                   </div>
 
