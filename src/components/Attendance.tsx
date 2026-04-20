@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Athlete, getSubCategory, categories } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Athlete, getSubCategory, categories, Training } from '../types';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, Camera, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -11,7 +11,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export default function Attendance({ athletes: athletesProp, trainingId, initialDate }: { athletes?: Athlete[], trainingId?: string, initialDate?: string }) {
+export default function Attendance({ athletes: athletesProp, trainingId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, initialDate?: string, role?: string }) {
+  const isAdmin = role === 'admin';
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
@@ -23,8 +24,57 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
+  const [training, setTraining] = useState<Training | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
+
+  useEffect(() => {
+    const checkLock = async () => {
+      const now = new Date();
+      const todayString = format(now, 'yyyy-MM-dd');
+      const currentTimeStr = format(now, 'HH:mm');
+
+      if (trainingId) {
+        try {
+          const trainings = await api.getTrainings();
+          const found = trainings.find(t => t.id === trainingId);
+          if (found) {
+            setTraining(found);
+            
+            // Calculate global lock
+            if (found.date < todayString) {
+              setIsLocked(true);
+            } else if (found.date === todayString) {
+              // If there are schedules, find the latest end time
+              if (found.schedules && found.schedules.length > 0) {
+                const latestEnd = found.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
+                setIsLocked(latestEnd < currentTimeStr);
+              } else {
+                setIsLocked(found.end_time < currentTimeStr);
+              }
+            } else {
+              setIsLocked(false);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching training for lock check:", err);
+        }
+      } else {
+        // General attendance: lock if date is in the past
+        if (date < todayString) {
+          setIsLocked(true);
+        } else {
+          setIsLocked(false);
+        }
+      }
+    };
+
+    checkLock();
+    // Re-check periodically or on interval if needed, but per-render/effect is usually enough for UI
+    const interval = setInterval(checkLock, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [trainingId, date]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -207,6 +257,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
   };
 
   const handleScan = async (data: string) => {
+    if (isLocked) {
+      setScanResult("Chamada finalizada. Não é permitido registrar novas presenças.");
+      return;
+    }
     console.log("QR Scanned:", data);
     // Expected format: PIRUA-ATHLETE-ID
     // Using a more permissive regex to capture any ID format
@@ -272,7 +326,50 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
     }
   };
 
+  const isAthleteLocked = (athlete: Athlete) => {
+    if (isAdmin) return false; // Admins are never locked out of editing (optional, but usually helpful)
+    
+    // Actually, keep it strict as per user request: "não poderão ser alteradas após a data de finalização"
+    const now = new Date();
+    const todayString = format(now, 'yyyy-MM-dd');
+    const currentTimeStr = format(now, 'HH:mm');
+
+    if (trainingId && training) {
+      if (training.date < todayString) return true;
+      if (training.date > todayString) return false;
+      
+      if (training.date === todayString) {
+        if (training.schedules && training.schedules.length > 0) {
+          const sub = getSubCategory(athlete.birth_date);
+          const relevantSchedules = training.schedules.filter(s => 
+            s.categories.includes('Todos') || s.categories.includes(sub)
+          );
+          
+          if (relevantSchedules.length > 0) {
+            // Locked if ALL matching slots have passed
+            return relevantSchedules.every(s => s.end_time < currentTimeStr);
+          }
+        }
+        return training.end_time < currentTimeStr;
+      }
+    }
+
+    if (date < todayString) return true;
+    return false;
+  };
+
+  const getAthleteSchedules = (athlete: Athlete) => {
+    if (!training || !training.schedules || training.schedules.length === 0) return null;
+    const sub = getSubCategory(athlete.birth_date);
+    return training.schedules.filter(s => s.categories.includes('Todos') || s.categories.includes(sub));
+  };
+
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '', arrival_time?: string) => {
+    const athlete = athletes.find(a => a.id === athleteId);
+    if (athlete && isAthleteLocked(athlete)) {
+      toast.error("Esta chamada para este atleta já foi finalizada.");
+      return;
+    }
     try {
       // Use a stable ID for the day to prevent duplicate records
       const attendanceId = trainingId ? `${athleteId}_training_${trainingId}` : `${athleteId}_${date}`;
@@ -464,7 +561,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Chamada de Presença</h2>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            Chamada de Presença
+            {isLocked && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-lg border border-red-500/20 animate-pulse">
+                <Lock size={10} />
+                Finalizada
+              </span>
+            )}
+          </h2>
           <p className="text-zinc-400 text-sm">Registre a presença dos atletas por QR Code ou manualmente</p>
         </div>
         <div className="flex items-center gap-3">
@@ -484,13 +589,23 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
           </button>
           <input 
             type="date" 
-            className="px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+            disabled={!!trainingId}
+            className={cn(
+              "px-4 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50",
+              trainingId && "opacity-50 cursor-not-allowed"
+            )}
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
           <button 
             onClick={toggleScanning}
-            className="flex items-center gap-2 px-4 py-2 bg-theme-primary hover:opacity-90 text-black font-bold rounded-xl transition-colors shadow-lg shadow-theme-primary/20"
+            disabled={isLocked}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors shadow-lg",
+              isLocked 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : "bg-theme-primary hover:opacity-90 text-black shadow-theme-primary/20"
+            )}
           >
             <Camera size={18} />
             {isScanning ? 'Fechar Scanner' : 'Escanear QR Code'}
@@ -635,30 +750,45 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                       <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {att?.status === 'Presente' ? (
-                        <span className="text-xs font-black text-theme-primary bg-theme-primary/10 px-2 py-1 rounded-lg">
-                          {att.arrival_time || '--:--'}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-zinc-600">--:--</span>
-                      )}
+                      <div className="flex flex-col items-center gap-1">
+                        {att?.status === 'Presente' ? (
+                          <span className="text-xs font-black text-theme-primary bg-theme-primary/10 px-2 py-1 rounded-lg">
+                            {att.arrival_time || '--:--'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-600">--:--</span>
+                        )}
+                        {getAthleteSchedules(athlete) && (
+                          <div className="flex flex-col gap-0.5">
+                            {getAthleteSchedules(athlete)?.map((s, i) => (
+                              <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none">
+                                {s.start_time}-{s.end_time}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => markAttendance(athlete.id, 'Presente')}
+                          disabled={isAthleteLocked(athlete)}
                           className={cn(
                             "p-2 rounded-lg transition-all",
-                            att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                            att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                         >
                           <CheckCircle2 size={20} />
                         </button>
                         <button 
                           onClick={() => markAttendance(athlete.id, 'Faltou')}
+                          disabled={isAthleteLocked(athlete)}
                           className={cn(
                             "p-2 rounded-lg transition-all",
-                            att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                            att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                         >
                           <XCircle size={20} />
@@ -669,8 +799,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                       {att?.status === 'Faltou' && (
                         <input 
                           type="text" 
+                          disabled={isLocked}
                           placeholder="Justificar falta..."
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                          className={cn(
+                            "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
+                            isLocked && "opacity-50 cursor-not-allowed"
+                          )}
                           value={att.justification || ''}
                           onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
                         />
@@ -701,6 +835,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                     <div>
                       <div className="font-bold text-white text-sm">{athlete.name}</div>
                       <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
+                      {getAthleteSchedules(athlete) && (
+                        <div className="flex gap-1 mt-1">
+                          {getAthleteSchedules(athlete)?.map((s, i) => (
+                            <span key={i} className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded border border-zinc-700 font-bold uppercase">
+                              {s.start_time}-{s.end_time}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {att?.status === 'Presente' && (
                         <div className="text-[10px] font-black text-theme-primary mt-1">
                           CHEGADA: {att.arrival_time || '--:--'}
@@ -712,18 +855,22 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => markAttendance(athlete.id, 'Presente')}
+                      disabled={isAthleteLocked(athlete)}
                       className={cn(
                         "p-2 rounded-lg transition-all",
-                        att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500"
+                        att?.status === 'Presente' ? "bg-green-500 text-black font-bold" : "bg-zinc-800 text-zinc-500",
+                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <CheckCircle2 size={20} />
                     </button>
                     <button 
                       onClick={() => markAttendance(athlete.id, 'Faltou')}
+                      disabled={isLocked}
                       className={cn(
                         "p-2 rounded-lg transition-all",
-                        att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500"
+                        att?.status === 'Faltou' ? "bg-red-500 text-black font-bold" : "bg-zinc-800 text-zinc-500",
+                        isLocked && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <XCircle size={20} />
@@ -735,8 +882,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, initial
                   <div className="pt-1">
                     <input 
                       type="text" 
+                      disabled={isLocked}
                       placeholder="Justificar falta..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                      className={cn(
+                        "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
+                        isLocked && "opacity-50 cursor-not-allowed"
+                      )}
                       value={att.justification || ''}
                       onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
                     />

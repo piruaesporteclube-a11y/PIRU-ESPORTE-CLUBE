@@ -72,6 +72,12 @@ export type Attendance = {
   updated_at?: any;
 };
 
+export type TrainingSchedule = {
+  categories: string[];
+  start_time: string;
+  end_time: string;
+};
+
 export type Training = {
   id: string;
   date: string;
@@ -80,6 +86,7 @@ export type Training = {
   location: string;
   modality: string;
   category: string;
+  schedules?: TrainingSchedule[];
 };
 
 export type Anamnesis = {

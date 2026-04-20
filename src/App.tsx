@@ -729,7 +729,7 @@ export default function App() {
         case 'professors':
           return <ProfessorManagement professors={professors} />;
         case 'attendance':
-          return <Attendance athletes={athletes} />;
+          return <Attendance athletes={athletes} role={user?.role} />;
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
