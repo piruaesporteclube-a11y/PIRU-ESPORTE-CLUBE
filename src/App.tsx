@@ -758,6 +758,7 @@ export default function App() {
               events={events} 
               user={user} 
               settings={settings}
+              activeTab={activeTab}
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
             />

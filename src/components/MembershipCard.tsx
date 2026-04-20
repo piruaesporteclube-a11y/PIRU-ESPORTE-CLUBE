@@ -473,7 +473,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="number-circle !w-2 !h-2 !text-[5px]">1</div>
                   <span className="label-text !text-[6px]">Nome Completo do Aluno</span>
                 </div>
-                <div className="input-box text-[8px] h-[15px]">{athlete.name}</div>
+                <div className="input-box text-[8px] !h-auto min-h-[15px] py-0.5 leading-none">{athlete.name}</div>
               </div>
 
               {/* 2. Data de Nascimento */}
@@ -531,7 +531,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                       <div className="number-circle !w-2 !h-2 !text-[4px]">7</div>
                       <span className="label-text !text-[5px]">Nome Completo do Responsável</span>
                     </div>
-                    <div className="input-box !h-3.5 !text-[6px]">{athlete.guardian_name}</div>
+                    <div className="input-box !h-auto min-h-[14px] !text-[6px] py-0.5 leading-none">{athlete.guardian_name}</div>
                   </div>
 
                   <div>
@@ -539,7 +539,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                       <div className="number-circle !w-2 !h-2 !text-[4px]">8</div>
                       <span className="label-text !text-[5px]">Endereço Completo</span>
                     </div>
-                    <div className="input-box !h-5 !text-[5px] items-start py-0.5 leading-tight overflow-hidden">
+                    <div className="input-box !h-auto min-h-[20px] !text-[5px] items-start py-1 leading-[1.1] overflow-hidden break-words">
                       {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
                     </div>
                   </div>
