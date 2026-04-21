@@ -48,6 +48,11 @@
     from { transform: rotate(360deg); }
     to { transform: rotate(0deg); }
   }
+  @keyframes scanline {
+    from { transform: translateY(-100px); opacity: 0; }
+    50% { opacity: 0.5; }
+    to { transform: translateY(700px); opacity: 0; }
+  }
   .animate-spin-slow {
     animation: spin-slow 12s linear infinite;
   }
@@ -56,6 +61,13 @@
   }
   .animate-bounce-slow {
     animation: bounce-slow 3s infinite ease-in-out;
+  }
+  .animate-scan-slow {
+    animation: scanline 8s linear infinite;
+  }
+  .animate-scan-slow-delayed {
+    animation: scanline 8s linear infinite;
+    animation-delay: 4s;
   }
 }
 

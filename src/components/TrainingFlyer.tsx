@@ -111,14 +111,22 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               const htmlEl = el as HTMLElement;
               const style = htmlEl.style as any;
               
-              // Clear complex filters
+              // Clear complex filters and blend modes
               style.backdropFilter = 'none';
               style.webkitBackdropFilter = 'none';
               style.filter = 'none';
+              style.mixBlendMode = 'normal';
+              style.maskImage = 'none';
+              style.webkitMaskImage = 'none';
               
               // Ensure no transitions interfere
               style.transition = 'none';
               style.animation = 'none';
+              style.transform = 'none';
+              
+              // Force visibility
+              style.visibility = 'visible';
+              style.display = window.getComputedStyle(htmlEl).display;
               
               // Force basic background colors if they use modern syntax
               if (htmlEl.className.includes('bg-black/60')) {
@@ -126,6 +134,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               }
               if (htmlEl.className.includes('bg-zinc-900')) {
                 style.backgroundColor = '#18181b';
+              }
+              if (htmlEl.className.includes('bg-theme-primary/80')) {
+                style.backgroundColor = 'rgba(234, 179, 8, 0.8)'; // Use explicit RGB for primary fallback
+              }
+              if (htmlEl.className.includes('bg-theme-primary/20')) {
+                style.backgroundColor = 'rgba(234, 179, 8, 0.2)';
               }
             });
 
@@ -370,6 +384,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         crossOrigin="anonymous"
                       />
                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40 mix-blend-overlay" />
+                      {/* Scanline Effect for Personalization */}
+                      <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-1/4 animate-scan-slow blur-[1px]" />
+                      <div className="absolute inset-x-0 h-[1px] bg-theme-primary/10 top-2/3 animate-scan-slow-delayed blur-[0.5px]" />
+                      
                       {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/30" />}
                     </div>
                   )}
@@ -405,18 +423,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="relative z-20 mt-3 px-6">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-theme-primary blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-r from-theme-primary to-theme-primary/80 py-2 px-4 rounded-xl flex items-center justify-center gap-3 shadow-2xl overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                      <Calendar size={30} className="text-black" />
+                  <div className="relative bg-gradient-to-r from-theme-primary to-theme-primary/80 py-1.5 px-4 rounded-xl flex items-center justify-center gap-3 shadow-2xl overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                      <Calendar size={24} className="text-black" />
                     </div>
                     <div className="flex flex-col items-center leading-none">
-                      <span className="text-[10px] font-black text-black/70 uppercase tracking-widest">{dayOfWeek.split('-')[0]}</span>
-                      <span className="text-2xl font-black text-black leading-none">{formattedDate.split(' de ')[0]}</span>
+                      <span className="text-[9px] font-black text-black/70 uppercase tracking-widest">{dayOfWeek.split('-')[0]}</span>
+                      <span className="text-xl font-black text-black leading-none">{formattedDate.split(' de ')[0]}</span>
                     </div>
-                    <div className="w-[1px] h-8 bg-black/10"></div>
+                    <div className="w-[1px] h-6 bg-black/10"></div>
                     <div className="flex flex-col leading-tight">
-                      <span className="text-xs font-black text-black uppercase tracking-tight">{formattedDate.split(' de ').slice(1).join(' ')}</span>
-                      <span className="text-[8px] font-black text-black/60 uppercase tracking-[0.2em] italic">Agenda do Dia</span>
+                      <span className="text-[10px] font-black text-black uppercase tracking-tight">{formattedDate.split(' de ').slice(1).join(' ')}</span>
+                      <span className="text-[7px] font-black text-black/60 uppercase tracking-[0.2em] italic">Agenda do Dia</span>
                     </div>
                   </div>
                 </div>
@@ -472,7 +490,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
               </div>
 
-              <div className="h-4" />
+              <div className="relative z-20 px-6 pb-6 text-center">
+                <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-widest drop-shadow-md">
+                  Foco, Disciplina e Raça! O sucesso começa no treino.
+                </p>
+              </div>
             </div>
           </div>
           <p className="text-zinc-500 text-[10px] italic font-medium uppercase tracking-widest opacity-60">Story Pro Render 2026 • High-Fidelity</p>
