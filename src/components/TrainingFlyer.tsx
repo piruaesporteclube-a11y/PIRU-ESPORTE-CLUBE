@@ -74,24 +74,40 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   ).slice(0, 5);
 
   const handleDownload = async () => {
+    // helper to ensure all images in an element are loaded
+    const waitForImages = async (el: HTMLElement) => {
+      const imgs = Array.from(el.querySelectorAll('img'));
+      const promises = imgs.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve; // Continue even if one fails
+        });
+      });
+      await Promise.all(promises);
+    };
+
     if (!flyerRef.current) return;
     setIsExporting(true);
     
-    // Ensure all images are loaded and fonts are ready
-    await document.fonts.ready;
-    
-    // Small delay to ensure any potential layout shifts or animations finish
-    await new Promise(resolve => setTimeout(resolve, 800));
-
     try {
+      // Ensure all images are loaded and fonts are ready
+      await Promise.all([
+        document.fonts.ready,
+        waitForImages(flyerRef.current)
+      ]);
+      
+      // Small delay to ensure any potential layout shifts or animations finish
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
         allowTaint: false,
-        scale: 2, // Scale 2 is safer for many devices/browsers
+        scale: 1.5, // Reduced slightly for better stability on mobile
         backgroundColor: '#000000',
         logging: true,
         width: 360,
         height: 640,
+        removeContainer: true,
         onclone: (clonedDoc) => {
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
@@ -123,26 +139,28 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               style.transition = 'none';
               style.animation = 'none';
               
-              // Remove external background textures that might taint the canvas
-              // and clear absolute background images that use external URLs or problematic gradients
+              // Simplify gradients and background images that are problematic
               if (style.backgroundImage && 
                  (style.backgroundImage.includes('transparenttextures.com') || 
-                  style.backgroundImage.includes('radial-gradient'))) {
+                  style.backgroundImage.includes('radial-gradient') ||
+                  style.backgroundImage.includes('halftone'))) {
                 style.backgroundImage = 'none';
-              }
-              
-              // Also check for className based background images
-              if (className.includes('bg-[url(')) {
-                 style.backgroundImage = 'none';
-              }
-
-              // Simplify gradients for carbon layer if no image is present
-              if (style.backgroundColor && !style.backgroundImage) {
-                 // Keep the background color
+                
+                // If it's the carbon texture layer, give it a subtle solid overlay instead
+                if (className.includes('bg-[url(') && className.includes('opacity-')) {
+                   style.backgroundColor = 'rgba(0,0,0,0.2)';
+                   style.opacity = '1';
+                }
               }
               
               const primary = settings.primaryColor || '#EAB308';
               const secondary = settings.secondaryColor || '#000000';
+              const isActiveCarbon = selectedBackgrounds.includes('carbon');
+
+              // Force carbon color if visible
+              if (isActiveCarbon && (className.includes('z-[2]') || htmlEl.getAttribute('data-bg-layer') === 'carbon')) {
+                 style.backgroundColor = carbonColor;
+              }
               
               if (className.includes('bg-theme-primary/80')) {
                 style.backgroundColor = primary + 'CC'; // 80% opacity in hex
@@ -384,7 +402,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     >
                       <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
                         {athlete.photo ? (
-                          <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center"><User size={20} /></div>
                         )}
@@ -466,7 +484,9 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
                   {/* Layer 3: Carbon */}
                   {selectedBackgrounds.includes('carbon') && (
-                    <div className={cn(
+                    <div 
+                      data-bg-layer="carbon"
+                      className={cn(
                       "absolute inset-0 z-[2]",
                       (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100"
                     )}
