@@ -90,6 +90,7 @@ export type Training = {
   category: string;
   schedules?: TrainingSchedule[];
   notes?: string;
+  order?: number;
 };
 
 export type Anamnesis = {
@@ -116,6 +117,7 @@ export type Anamnesis = {
 };
 
 export type Settings = {
+  schoolName: string;
   primaryColor: string;
   secondaryColor: string;
   instagram: string;

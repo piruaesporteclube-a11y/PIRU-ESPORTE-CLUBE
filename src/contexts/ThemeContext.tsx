@@ -11,6 +11,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>({
+    schoolName: 'Piruá Esporte Clube',
     primaryColor: '#EAB308',
     secondaryColor: '#000000',
     instagram: '',

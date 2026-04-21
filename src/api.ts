@@ -979,6 +979,21 @@ export const api = {
       handleFirestoreError(error, OperationType.DELETE, `trainings/${id}`);
     }
   },
+  updateTrainingsOrder: async (orderedTrainings: Training[]) => {
+    try {
+      const batch = writeBatch(db);
+      orderedTrainings.forEach((training, index) => {
+        batch.update(doc(db, "trainings", training.id), { 
+          order: index,
+          updated_at: serverTimestamp()
+        });
+      });
+      await batch.commit();
+      delete cache["trainings"];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "trainings/reorder");
+    }
+  },
 
   // Settings
   getSettings: async (): Promise<Settings | null> => {

@@ -107,6 +107,20 @@ export default function SettingsComponent() {
             <h3 className="text-lg font-bold uppercase tracking-widest">Identidade Visual</h3>
           </div>
 
+          <div className="grid grid-cols-1 gap-8 mb-8 pb-8 border-b border-zinc-800">
+            <div className="space-y-4">
+              <label className="block text-xs font-bold text-zinc-400 uppercase">Nome da Equipe</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                placeholder="Ex: Piruá Esporte Clube"
+                value={settings.schoolName}
+                onChange={e => setSettings({...settings, schoolName: e.target.value})}
+              />
+              <p className="text-[10px] text-zinc-500 italic">Este nome aparecerá nos documentos e encartes gerados pelo sistema.</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
             {/* Crest Upload */}
             <div className="space-y-4">

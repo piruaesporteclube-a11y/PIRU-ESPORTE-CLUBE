@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Training, Athlete, categories } from '../types';
-import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { cn } from '../utils';
 import Attendance from './Attendance';
 import TrainingFlyer from './TrainingFlyer';
@@ -17,6 +17,7 @@ interface TrainingManagementProps {
 export default function TrainingManagement({ athletes: athletesProp, role = 'admin' }: TrainingManagementProps) {
   const isAdmin = role === 'admin';
   const [trainings, setTrainings] = useState<Training[]>([]);
+  const [isReordering, setIsReordering] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,7 +100,12 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
       
       const [trainingsData, athletesData] = await Promise.all(promises);
       
-      setTrainings(trainingsData.sort((a, b) => b.date.localeCompare(a.date)));
+      const sortedTrainings = trainingsData.sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return (a.order ?? 0) - (b.order ?? 0);
+      });
+      
+      setTrainings(sortedTrainings);
       if (athletesData) setAthletes(athletesData);
     } catch (err) {
       toast.error("Erro ao carregar treinos");
@@ -135,6 +141,29 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
       loadData();
     } catch (err) {
       toast.error("Erro ao excluir treino");
+    }
+  };
+
+  const handleReorder = async (date: string, newDayTrainings: Training[]) => {
+    // Assign new order values locally so sorting works correctly
+    const reorderedWithNewIndices = newDayTrainings.map((t, i) => ({ ...t, order: i }));
+
+    // Update local state first for responsiveness
+    setTrainings(current => {
+      const otherDays = current.filter(t => t.date !== date);
+      const combined = [...otherDays, ...reorderedWithNewIndices];
+      
+      return combined.sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return (a.order ?? 0) - (b.order ?? 0);
+      });
+    });
+
+    try {
+      await api.updateTrainingsOrder(newDayTrainings);
+    } catch (error) {
+      toast.error("Erro ao salvar nova ordem");
+      loadData(); // Revert on error
     }
   };
 
@@ -214,22 +243,36 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
           <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Confira a agenda de treinamentos</p>
         </div>
         {isAdmin && (
-          <button 
-            onClick={() => {
-              setFormData({
-                date: format(new Date(), 'yyyy-MM-dd'),
-                location: '',
-                modality: 'Futebol de Campo',
-                schedules: [],
-                notes: ''
-              });
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl uppercase tracking-tighter hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
-          >
-            <Plus size={20} />
-            Novo Treino
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsReordering(!isReordering)}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 font-black rounded-2xl uppercase tracking-tighter transition-all border",
+                isReordering 
+                  ? "bg-black border-theme-primary text-theme-primary" 
+                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+              )}
+            >
+              <GripVertical size={20} />
+              {isReordering ? 'Parar Reordenação' : 'Reordenar'}
+            </button>
+            <button 
+              onClick={() => {
+                setFormData({
+                  date: format(new Date(), 'yyyy-MM-dd'),
+                  location: '',
+                  modality: 'Futebol de Campo',
+                  schedules: [],
+                  notes: ''
+                });
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl uppercase tracking-tighter hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
+            >
+              <Plus size={20} />
+              Novo Treino
+            </button>
+          </div>
         )}
       </div>
 
@@ -274,21 +317,34 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Reorder.Group 
+                  axis="y" 
+                  values={dayTrainings} 
+                  onReorder={(vals) => handleReorder(date, vals)}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
                   {dayTrainings.map((training) => {
                     const ended = isTrainingEnded(training);
                     return (
-                      <motion.div
+                      <Reorder.Item
                         key={training.id}
+                        value={training}
+                        dragListener={isReordering}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={cn(
-                          "bg-zinc-900/50 border rounded-3xl overflow-hidden group transition-all",
+                          "bg-zinc-900/50 border rounded-3xl overflow-hidden group transition-all relative",
                           ended 
                             ? "border-red-500/30 hover:border-red-500/60 shadow-lg shadow-red-500/5" 
-                            : "border-green-500/30 hover:border-green-500/60 shadow-lg shadow-green-500/5"
+                            : "border-green-500/30 hover:border-green-500/60 shadow-lg shadow-green-500/5",
+                          isReordering && "cursor-grab active:cursor-grabbing"
                         )}
                       >
+                        {isReordering && (
+                          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-theme-primary/20 p-1.5 rounded-full z-10 animate-pulse">
+                            <GripVertical size={16} className="text-theme-primary" />
+                          </div>
+                        )}
                         <div className="p-6 space-y-4">
                           <div className="flex items-start justify-between">
                             <div className={cn(
@@ -441,10 +497,10 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                             </button>
                           )}
                         </div>
-                      </motion.div>
+                      </Reorder.Item>
                     );
                   })}
-                </div>
+                </Reorder.Group>
               </div>
             );
           })}
