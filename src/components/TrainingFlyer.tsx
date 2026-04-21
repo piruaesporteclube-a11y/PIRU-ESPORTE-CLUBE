@@ -25,6 +25,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [search, setSearch] = useState('');
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
+  const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
@@ -116,7 +117,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               style.filter = 'none';
               
               // We only keep basic blend modes if they're known to work, but normal is safest
-              style.mixBlendMode = 'normal';
+              // style.mixBlendMode = 'normal'; // RE-ENABLE BLEND MODES FOR EXPORT
               
               // Ensure no transitions/animations are active
               style.transition = 'none';
@@ -129,6 +130,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 if (className.includes('bg-[url(')) {
                    style.opacity = '0';
                 }
+              }
+
+              // Simplify gradients for carbon layer if no image is present
+              if (style.backgroundColor && !style.backgroundImage) {
+                 // Keep the background color
               }
               
               const primary = settings.primaryColor || '#EAB308';
@@ -252,6 +258,62 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               })}
             </div>
           </div>
+
+          {/* Carbon Color Selection */}
+          {selectedBackgrounds.includes('carbon') && (
+            <div className="space-y-4 p-4 bg-black/40 rounded-2xl border border-zinc-800 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-3 bg-theme-primary rounded-full" />
+                <label className="text-[10px] font-black text-zinc-300 uppercase tracking-widest block font-sans">Tom do Carbono</label>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { color: '#1a1a1a', label: 'Padrão' },
+                    { color: '#0a0a0a', label: 'Ebon' },
+                    { color: '#1e3a8a', label: 'Azul' },
+                    { color: '#312e81', label: 'Índigo' },
+                    { color: '#164e63', label: 'Ciano' },
+                    { color: '#064e3b', label: 'Verde' },
+                    { color: '#4c1d95', label: 'Roxo' },
+                    { color: '#701a75', label: 'Magenta' },
+                    { color: '#831843', label: 'Vinho' },
+                  ].map(c => (
+                    <button
+                      key={c.color}
+                      onClick={() => setCarbonColor(c.color)}
+                      className={cn(
+                        "group relative w-10 h-10 rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden",
+                        carbonColor === c.color ? "border-theme-primary scale-110 shadow-[0_0_15px_rgba(234,179,8,0.4)]" : "border-zinc-800 hover:border-zinc-700 hover:scale-105"
+                      )}
+                      title={c.label}
+                    >
+                      <div className="absolute inset-0" style={{ backgroundColor: c.color }} />
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40" />
+                      {carbonColor === c.color && (
+                        <div className="relative z-10 bg-theme-primary w-2 h-2 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/50">
+                  <div className="relative w-full">
+                    <input 
+                      type="color" 
+                      value={carbonColor}
+                      onChange={(e) => setCarbonColor(e.target.value)}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    />
+                    <div className="flex items-center justify-between px-3 py-2 bg-black/60 rounded-lg border border-zinc-700 pointer-events-none">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight">Cor Customizada</span>
+                      <div className="w-4 h-4 rounded shadow-inner" style={{ backgroundColor: carbonColor }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Image Upload / Athlete Selection */}
           <div className="space-y-4">
@@ -403,20 +465,27 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div className={cn(
                       "absolute inset-0 z-[2]",
                       (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-60" : "opacity-100"
-                    )}>
-                      <img 
-                        src={customBackgrounds['carbon'] || "https://images.unsplash.com/photo-1541252260730-0412e3e2107e?auto=format&fit=crop&q=80&w=1200"} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer" 
-                        crossOrigin="anonymous"
-                      />
-                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40 mix-blend-overlay" />
+                    )}
+                    style={{ 
+                      backgroundColor: carbonColor,
+                      backgroundImage: !customBackgrounds['carbon'] ? `radial-gradient(circle at center, ${carbonColor} 0%, #000000 100%)` : 'none'
+                    }}
+                    >
+                      {customBackgrounds['carbon'] && (
+                        <img 
+                          src={customBackgrounds['carbon']} 
+                          className="w-full h-full object-cover" 
+                          referrerPolicy="no-referrer" 
+                          crossOrigin="anonymous"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60 mix-blend-overlay" />
                       {/* Scanline Effect for Personalization */}
                       <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
                       <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-2/3 animate-scan-slow-delayed blur-[1px]" />
                       
                       {/* Tech Grid Overlay for Carbon personalization */}
-                      <div className="absolute inset-0 z-[1] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60 mix-blend-overlay" />
+                      <div className="absolute inset-0 z-[1] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-80 mix-blend-overlay" />
                       <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
                       
                       {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/40" />}
