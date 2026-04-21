@@ -102,6 +102,20 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             flyer.style.top = '0';
             flyer.style.left = '0';
             
+            // html2canvas doesn't support backdrop-blur or modern color spaces
+            // We strip them from the clone to prevent parsing errors
+            const allElements = flyer.querySelectorAll('*');
+            allElements.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              const style = htmlEl.style as any;
+              if (style.backdropFilter) style.backdropFilter = 'none';
+              if (style.webkitBackdropFilter) style.webkitBackdropFilter = 'none';
+              
+              // Ensure we don't have transition styles that might interfere
+              style.transition = 'none';
+              style.animation = 'none';
+            });
+
             // Remove any internal scrolling during capture
             const scrollable = flyer.querySelector('.flyer-scrollable') as HTMLElement;
             if (scrollable) {
@@ -295,127 +309,130 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               ref={flyerRef}
               data-flyer-container="true"
               style={{ width: '360px', height: '640px' }} // Instagram Story 9:16
-              className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
+              className="bg-black relative overflow-hidden flex flex-col font-sans select-none border-[10px] border-theme-primary"
             >
               {/* Layered Background System */}
-              <div className="absolute inset-0 pointer-events-none">
-                {/* Layer 1: Stadium */}
-                {selectedBackgrounds.includes('stadium') && (
-                  <div className="absolute inset-0 z-0">
-                    <img 
-                      src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
-                      className="w-full h-full object-cover" 
-                      referrerPolicy="no-referrer" 
-                    />
-                    <div className="absolute inset-0 bg-black/40" />
-                  </div>
-                )}
+              <div className="absolute inset-x-0 inset-y-0 pointer-events-none">
+                {/* Backgrounds now start after the border */}
+                <div className="absolute inset-0">
+                  {/* Layer 1: Stadium */}
+                  {selectedBackgrounds.includes('stadium') && (
+                    <div className="absolute inset-0 z-0">
+                      <img 
+                        src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
+                      <div className="absolute inset-0 bg-black/40" />
+                    </div>
+                  )}
 
-                {/* Layer 2: Grass */}
-                {selectedBackgrounds.includes('grass') && (
-                  <div className={cn(
-                    "absolute inset-0 z-[1]",
-                    selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100"
-                  )}>
-                    <img 
-                      src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
-                      className="w-full h-full object-cover" 
-                      referrerPolicy="no-referrer" 
-                    />
-                    {!selectedBackgrounds.includes('stadium') && <div className="absolute inset-0 bg-black/40" />}
-                  </div>
-                )}
+                  {/* Layer 2: Grass */}
+                  {selectedBackgrounds.includes('grass') && (
+                    <div className={cn(
+                      "absolute inset-0 z-[1]",
+                      selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100"
+                    )}>
+                      <img 
+                        src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
+                      {!selectedBackgrounds.includes('stadium') && <div className="absolute inset-0 bg-black/40" />}
+                    </div>
+                  )}
 
-                {/* Layer 3: Carbon Overlay */}
-                {selectedBackgrounds.includes('carbon') && (
-                  <div className="absolute inset-0 z-[2] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30 mix-blend-color-dodge" />
-                )}
+                  {/* Layer 3: Carbon Overlay */}
+                  {selectedBackgrounds.includes('carbon') && (
+                    <div className="absolute inset-0 z-[2] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30 mix-blend-color-dodge" />
+                  )}
 
-                {/* Global Gradients */}
-                <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
-                <div className="absolute inset-x-0 bottom-0 z-[4] h-64 bg-gradient-to-t from-black to-transparent" />
+                  {/* Global Gradients */}
+                  <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
+                  <div className="absolute inset-x-0 bottom-0 z-[4] h-64 bg-gradient-to-t from-black to-transparent" />
+                </div>
               </div>
 
               {/* Elements */}
               <div className="absolute inset-0 z-[5] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
               
               {/* Header Info */}
-              <div className="relative z-20 pt-10 px-6 flex flex-col items-center">
-                <div className="w-20 h-20 mb-4 filter drop-shadow-[0_0_20px_rgba(255,255,0,0.4)] transform hover:scale-110 transition-transform duration-700">
+              <div className="relative z-20 pt-6 px-6 flex flex-col items-center">
+                <div className="w-16 h-16 mb-2 filter drop-shadow-[0_0_20px_rgba(255,255,0,0.4)] transform hover:scale-110 transition-transform duration-700">
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   ) : (
-                    <Trophy size={60} className="text-theme-primary" />
+                    <Trophy size={48} className="text-theme-primary" />
                   )}
                 </div>
                 <div className="relative">
-                  <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                  <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
                     {settings.schoolName || 'Piruá Esporte Clube'}
                   </h1>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-1 bg-theme-primary rounded-full shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-theme-primary rounded-full shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
                 </div>
-                <p className="mt-4 text-theme-primary text-[10px] font-black uppercase tracking-[0.4em] italic opacity-80">Oficial Training Schedule</p>
+                <p className="mt-2 text-theme-primary text-[10px] font-black uppercase tracking-[0.4em] italic opacity-80" />
               </div>
 
-              {/* Date Section - High Visibility Impact */}
-              <div className="relative z-20 mt-6 px-6">
+              {/* Date Section - Adjusted spacing */}
+              <div className="relative z-20 mt-3 px-6">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-theme-primary blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-r from-theme-primary to-theme-primary/80 py-3 px-6 rounded-2xl flex items-center justify-center gap-4 shadow-2xl overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                      <Calendar size={40} className="text-black" />
+                  <div className="relative bg-gradient-to-r from-theme-primary to-theme-primary/80 py-2 px-4 rounded-xl flex items-center justify-center gap-3 shadow-2xl overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                      <Calendar size={30} className="text-black" />
                     </div>
                     <div className="flex flex-col items-center leading-none">
-                      <span className="text-[11px] font-black text-black/70 uppercase tracking-widest">{dayOfWeek.split('-')[0]}</span>
-                      <span className="text-3xl font-black text-black leading-none">{formattedDate.split(' de ')[0]}</span>
+                      <span className="text-[10px] font-black text-black/70 uppercase tracking-widest">{dayOfWeek.split('-')[0]}</span>
+                      <span className="text-2xl font-black text-black leading-none">{formattedDate.split(' de ')[0]}</span>
                     </div>
-                    <div className="w-[1.5px] h-10 bg-black/10"></div>
+                    <div className="w-[1px] h-8 bg-black/10"></div>
                     <div className="flex flex-col leading-tight">
-                      <span className="text-sm font-black text-black uppercase tracking-tight">{formattedDate.split(' de ').slice(1).join(' ')}</span>
-                      <span className="text-[9px] font-black text-black/60 uppercase tracking-[0.2em] italic">Agenda do Dia</span>
+                      <span className="text-xs font-black text-black uppercase tracking-tight">{formattedDate.split(' de ').slice(1).join(' ')}</span>
+                      <span className="text-[8px] font-black text-black/60 uppercase tracking-[0.2em] italic">Agenda do Dia</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Trainings List */}
-              <div className="relative z-20 flex-1 px-6 py-6 overflow-hidden flex flex-col min-h-0">
-                <div className="flyer-scrollable space-y-4 overflow-y-auto custom-scrollbar pr-1 flex-1">
+              <div className="relative z-20 flex-1 px-6 py-4 flex flex-col min-h-0">
+                <div className="flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1">
                   {trainings.map((t, idx) => (
-                    <div key={idx} className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                      <div className="bg-gradient-to-r from-white/10 to-transparent px-4 py-2.5 flex items-center justify-between border-b border-white/10">
+                    <div key={idx} className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                      <div className="bg-gradient-to-r from-white/10 to-transparent px-3 py-1.5 flex items-center justify-between border-b border-white/10">
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-4 bg-theme-primary rounded-full"></div>
-                          <h3 className="text-sm font-black text-white uppercase italic tracking-widest">
+                          <div className="w-1 h-3 bg-theme-primary rounded-full"></div>
+                          <h3 className="text-[12px] font-black text-white uppercase italic tracking-widest">
                             {t.modality}
                           </h3>
                         </div>
-                        <div className="flex items-center gap-1.5 text-zinc-400">
-                          <MapPin size={11} className="text-theme-primary" />
-                          <span className="text-[9px] font-bold uppercase truncate max-w-[90px]">{t.location}</span>
+                        <div className="flex items-center gap-1 text-zinc-400">
+                          <MapPin size={9} className="text-theme-primary" />
+                          <span className="text-[8px] font-bold uppercase truncate max-w-[80px]">{t.location}</span>
                         </div>
                       </div>
-                      <div className="p-3.5 space-y-2.5">
+                      <div className="p-2 space-y-2">
                         {t.schedules?.map((s, si) => (
-                          <div key={si} className="bg-zinc-900/80 rounded-xl p-3 border border-white/5 space-y-2 relative overflow-hidden group">
+                          <div key={si} className="bg-zinc-900/80 rounded-lg p-2 border border-white/5 space-y-1.5 relative overflow-hidden group">
                             <div className="absolute inset-0 bg-theme-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             <div className="relative flex items-center justify-between">
-                              <div className="flex items-center gap-2 px-2 py-1 bg-black/60 rounded border border-theme-primary/20">
-                                <Clock size={10} className="text-theme-primary" />
-                                <span className="text-theme-primary font-mono text-[11px] font-black tracking-tighter">{s.start_time} — {s.end_time}</span>
+                              <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-black/60 rounded border border-theme-primary/20">
+                                <Clock size={9} className="text-theme-primary" />
+                                <span className="text-theme-primary font-mono text-[10px] font-black tracking-tighter">{s.start_time} — {s.end_time}</span>
                               </div>
-                              <div className="flex flex-wrap gap-1 md:gap-1.5">
+                              <div className="flex flex-wrap gap-1">
                                 {s.categories.map((c, ci) => (
-                                  <span key={ci} className="text-[8px] bg-theme-primary text-black px-2 py-0.5 rounded font-black uppercase italic shadow-sm">
+                                  <span key={ci} className="text-[7px] bg-theme-primary text-black px-1.5 py-0.5 rounded font-black uppercase italic shadow-sm">
                                     {c}
                                   </span>
                                 ))}
                               </div>
                             </div>
                             {s.notes && (
-                              <div className="relative flex items-start gap-2 pt-1 border-t border-white/5">
-                                <FileText size={10} className="text-theme-primary mt-0.5 flex-shrink-0" />
-                                <p className="text-zinc-400 text-[9px] font-bold uppercase italic leading-tight">
+                              <div className="relative flex items-start gap-1.5 pt-1 border-t border-white/5">
+                                <FileText size={9} className="text-theme-primary mt-0.5 flex-shrink-0" />
+                                <p className="text-zinc-400 text-[8px] font-bold uppercase italic leading-tight">
                                   {s.notes}
                                 </p>
                               </div>
@@ -428,36 +445,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
               </div>
 
-              {/* Lower Section: Athlete/Logo */}
-              <div className="relative z-20 px-6 pb-8 space-y-4 mt-auto">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-zinc-950 rounded-2xl border-2 border-theme-primary overflow-hidden shadow-2xl rotate-[-3deg]">
-                    {(customImage || selectedAthlete?.photo) ? (
-                      <img 
-                        src={customImage || selectedAthlete?.photo} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-900 bg-zinc-950">
-                        <User size={30} strokeWidth={1} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-theme-primary text-[8px] font-black uppercase tracking-[0.3em] italic leading-none mb-1">Destaque do Treino</p>
-                    <h4 className="text-white font-black uppercase leading-none text-lg italic tracking-tighter">
-                      {customImage 
-                        ? "CONVOCADO" 
-                        : (selectedAthlete ? `${selectedAthlete.name.split(' ')[0]} ${selectedAthlete.name.split(' ').slice(-1)}` : 'PREPARE-SE')}
-                    </h4>
-                  </div>
-                  <div className="flex items-center gap-1.5 opacity-60">
-                    <Instagram size={14} className="text-theme-primary" />
-                    <span className="text-white text-[10px] font-black tracking-tight uppercase">@{settings.instagram || 'piruaec'}</span>
-                  </div>
-                </div>
-              </div>
+              <div className="h-4" />
             </div>
           </div>
           <p className="text-zinc-500 text-[10px] italic font-medium uppercase tracking-widest opacity-60">Story Pro Render 2026 • High-Fidelity</p>
