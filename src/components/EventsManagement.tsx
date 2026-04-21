@@ -42,6 +42,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [isEventFinished, setIsEventFinished] = useState(false);
+  const [lineupCategory, setLineupCategory] = useState('');
+  const [lineupIndicesWithData, setLineupIndicesWithData] = useState<Record<number, string>>({});
   const [lineupCounts, setLineupCounts] = useState<Record<string, number>>({});
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
@@ -311,11 +313,29 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       
       setIsEventFinished(eventEnd < now);
 
-      const { athletes: lineup, staff } = await api.getLineup(event.id, index);
+      const { athletes: lineup, staff, category } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
       setLineupStaff(staff);
+      setLineupCategory(category || '');
       setSelectedAthletes(lineup.map(a => a.id));
       setSelectedStaff(staff.map(s => s.id));
+      
+      // Also fetch which other indices have data to show in tabs
+      const indices: Record<number, string> = {};
+      await Promise.all(Array.from({ length: 10 }).map(async (_, i) => {
+        if (i === index) {
+          indices[i] = category || '';
+        } else {
+          try {
+            const { athletes, category: cat } = await api.getLineup(event.id, i);
+            if (athletes.length > 0) {
+              indices[i] = cat || 'Com Dados';
+            }
+          } catch (e) {}
+        }
+      }));
+      setLineupIndicesWithData(indices);
+      
       setIsLineupOpen(true);
     } catch (err: any) {
       toast.error(`Erro ao carregar escalação: ${err.message}`);
@@ -367,10 +387,17 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
     if (selectedEvent) {
       try {
-        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex);
+        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex, lineupCategory);
         const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
+        
+        // Update indices data for UI
+        setLineupIndicesWithData(prev => ({
+          ...prev,
+          [activeLineupIndex]: lineupCategory || 'Com Dados'
+        }));
+        
         toast.success('Escalação salva com sucesso!');
       } catch (err: any) {
         toast.error(`Erro ao salvar escalação: ${err.message}`);
@@ -675,17 +702,38 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                       key={i}
                       onClick={() => handleOpenLineup(selectedEvent, i)}
                       className={cn(
-                        "px-3 py-1 rounded-lg text-[10px] font-black transition-all border",
+                        "px-3 py-1 rounded-lg text-[10px] font-black transition-all border flex flex-col items-center min-w-[60px]",
                         activeLineupIndex === i 
                           ? "bg-theme-primary border-theme-primary text-black" 
                           : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
                       )}
                     >
-                      LISTA {i + 1}
+                      <span>LISTA {i + 1}</span>
+                      {lineupIndicesWithData[i] && (
+                        <span className={cn(
+                          "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[50px]",
+                          activeLineupIndex === i ? "text-black/60" : "text-theme-primary"
+                        )}>
+                          {lineupIndicesWithData[i]}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                  {isAdmin && !isEventFinished && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Sub/Categoria:</label>
+                      <select 
+                        className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                        value={lineupCategory}
+                        onChange={(e) => setLineupCategory(e.target.value)}
+                      >
+                        <option value="">Selecione...</option>
+                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
                   {isAdmin && !isEventFinished && <p className="text-xs text-zinc-500">Selecione até 22 atletas ({selectedAthletes.length}/22) para a LISTA {activeLineupIndex + 1}</p>}
                   {isAdmin && !isEventFinished && (
                     <div className="flex gap-2 ml-4">

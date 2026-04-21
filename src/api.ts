@@ -625,7 +625,7 @@ export const api = {
   },
 
   // Lineups (using a subcollection or separate collection)
-  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[] }> => {
+  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[], category?: string }> => {
     const cacheKey = `lineup_${event_id}_${lineup_index}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
@@ -639,6 +639,7 @@ export const api = {
       const querySnapshot = await getDocsWithCacheFallback(q);
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
+      const category = lineupData.length > 0 ? lineupData[0].category : undefined;
       const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
       const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
       
@@ -659,7 +660,7 @@ export const api = {
           return { ...p, confirmation: el?.confirmation || "Pendente" };
         });
       
-      const result = { athletes, staff };
+      const result = { athletes, staff, category };
       setCachedData(cacheKey, result);
       return result;
     } catch (error) {
@@ -667,7 +668,7 @@ export const api = {
       return { athletes: [], staff: [] };
     }
   },
-  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0) => {
+  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0, category?: string) => {
     try {
       const batch = writeBatch(db);
       
@@ -688,6 +689,7 @@ export const api = {
           lineup_index,
           person_id: aid,
           type: 'athlete',
+          category,
           confirmation: "Pendente",
           updated_at: serverTimestamp()
         });
@@ -701,6 +703,7 @@ export const api = {
           lineup_index,
           person_id: sid,
           type: 'staff',
+          category,
           confirmation: "Pendente",
           updated_at: serverTimestamp()
         });
