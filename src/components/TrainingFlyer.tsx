@@ -3,6 +3,7 @@ import { Training, Athlete } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'motion/react';
@@ -84,16 +85,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     try {
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: true, // Switched back to true for local storage images
-        scale: 3, // Slightly lower but still high to prevent timeouts
+        allowTaint: false,
+        scale: 2, // Scale 2 is safer for many devices/browsers
         backgroundColor: '#000000',
-        logging: false,
+        logging: true,
         width: 360,
         height: 640,
-        scrollX: 0,
-        scrollY: 0, 
-        windowWidth: 360,
-        windowHeight: 640,
         onclone: (clonedDoc) => {
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
@@ -105,49 +102,75 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             flyer.style.padding = '0';
             
             // html2canvas doesn't support backdrop-blur or modern color spaces
-            // We strip them from the clone to prevent parsing errors
             const allElements = flyer.querySelectorAll('*');
             allElements.forEach((el) => {
               const htmlEl = el as HTMLElement;
               const style = htmlEl.style as any;
               
-              // Clear complex filters and blend modes
+              // Strip modern CSS filters and blend modes that break html2canvas
               style.backdropFilter = 'none';
               style.webkitBackdropFilter = 'none';
               style.filter = 'none';
-              style.mixBlendMode = 'normal';
-              style.maskImage = 'none';
-              style.webkitMaskImage = 'none';
               
-              // Ensure no transitions interfere
+              // We only keep basic blend modes if they're known to work, but normal is safest
+              style.mixBlendMode = 'normal';
+              
+              // Ensure no transitions/animations are active
               style.transition = 'none';
               style.animation = 'none';
-              style.transform = 'none';
               
-              // Force visibility
-              style.visibility = 'visible';
-              style.display = window.getComputedStyle(htmlEl).display;
+              // Remove external background textures that might taint the canvas
+              if (style.backgroundImage && style.backgroundImage.includes('transparenttextures.com')) {
+                style.backgroundImage = 'none';
+                // Also clear the content of the element if it's purely for the background
+                if (htmlEl.className.includes('bg-[url(')) {
+                   style.opacity = '0';
+                }
+              }
               
-              // Force basic background colors if they use modern syntax
-              if (htmlEl.className.includes('bg-black/60')) {
+              const primary = settings.primaryColor || '#EAB308';
+              const secondary = settings.secondaryColor || '#000000';
+              
+              if (htmlEl.className.includes('bg-theme-primary/80')) {
+                style.backgroundColor = primary + 'CC'; // 80% opacity in hex
+              } else if (htmlEl.className.includes('bg-theme-primary/20')) {
+                style.backgroundColor = primary + '33'; // 20% opacity in hex
+              } else if (htmlEl.className.includes('bg-theme-primary/10')) {
+                style.backgroundColor = primary + '1A'; // 10% opacity in hex
+              } else if (htmlEl.className.includes('bg-theme-primary/5')) {
+                style.backgroundColor = primary + '0D'; // 5% opacity in hex
+              } else if (htmlEl.className.includes('bg-theme-primary')) {
+                style.backgroundColor = primary;
+              }
+
+              if (htmlEl.className.includes('bg-black/40')) {
+                style.backgroundColor = 'rgba(0,0,0,0.4)';
+              } else if (htmlEl.className.includes('bg-black/60')) {
                 style.backgroundColor = 'rgba(0,0,0,0.6)';
               }
-              if (htmlEl.className.includes('bg-zinc-900')) {
-                style.backgroundColor = '#18181b';
+
+              if (htmlEl.className.includes('ring-1')) {
+                style.outline = '1px solid rgba(255,255,255,0.05)';
               }
-              if (htmlEl.className.includes('bg-theme-primary/80')) {
-                style.backgroundColor = 'rgba(234, 179, 8, 0.8)'; // Use explicit RGB for primary fallback
+              
+              if (htmlEl.className.includes('text-theme-primary')) {
+                style.color = primary;
               }
-              if (htmlEl.className.includes('bg-theme-primary/20')) {
-                style.backgroundColor = 'rgba(234, 179, 8, 0.2)';
+              if (htmlEl.className.includes('border-theme-primary')) {
+                style.borderColor = primary;
               }
             });
 
+            // Flatten background images if they cause issues
+            const stadiumLayer = flyer.querySelector('.stadium-overlay') as HTMLElement;
+            if (stadiumLayer) stadiumLayer.style.backgroundColor = 'rgba(0,0,0,0.4)';
+            
             // Remove any internal scrolling during capture
             const scrollable = flyer.querySelector('.flyer-scrollable') as HTMLElement;
             if (scrollable) {
               scrollable.style.overflow = 'visible';
               scrollable.style.height = 'auto';
+              scrollable.style.maxHeight = 'none';
             }
           }
         }
@@ -157,9 +180,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       link.download = `agenda-treino-${date}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
+      toast.success('Encarte baixado com sucesso!');
     } catch (error) {
       console.error('Error generating flyer:', error);
-      alert('Houve um erro ao gerar a imagem. Verifique se todas as fotos carregaram corretamente.');
+      toast.error('Houve um erro ao gerar a imagem. Verifique se todas as fotos carregaram corretamente.');
     } finally {
       setIsExporting(false);
     }
@@ -385,10 +409,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       />
                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40 mix-blend-overlay" />
                       {/* Scanline Effect for Personalization */}
-                      <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-1/4 animate-scan-slow blur-[1px]" />
-                      <div className="absolute inset-x-0 h-[1px] bg-theme-primary/10 top-2/3 animate-scan-slow-delayed blur-[0.5px]" />
+                      <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
+                      <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-2/3 animate-scan-slow-delayed blur-[1px]" />
                       
-                      {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/30" />}
+                      {/* Tech Grid Overlay for Carbon personalization */}
+                      <div className="absolute inset-0 z-[1] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60 mix-blend-overlay" />
+                      <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
+                      
+                      {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
@@ -419,22 +447,31 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 <p className="mt-2 text-theme-primary text-[10px] font-black uppercase tracking-[0.4em] italic opacity-80" />
               </div>
 
-              {/* Date Section - Adjusted spacing */}
-              <div className="relative z-20 mt-3 px-6">
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-theme-primary blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-r from-theme-primary to-theme-primary/80 py-1.5 px-4 rounded-xl flex items-center justify-center gap-3 shadow-2xl overflow-hidden">
-                    <div className="absolute top-0 right-0 p-2 opacity-10">
-                      <Calendar size={24} className="text-black" />
+              {/* Date Section - Minimal Glass Style */}
+              <div className="relative z-20 mt-2 px-6">
+                <div className="flex items-center justify-center">
+                  <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 flex items-center gap-3 shadow-xl ring-1 ring-white/5">
+                    <div className="bg-theme-primary p-1.5 rounded-full">
+                      <Calendar size={12} className="text-black" />
                     </div>
-                    <div className="flex flex-col items-center leading-none">
-                      <span className="text-[9px] font-black text-black/70 uppercase tracking-widest">{dayOfWeek.split('-')[0]}</span>
-                      <span className="text-xl font-black text-black leading-none">{formattedDate.split(' de ')[0]}</span>
-                    </div>
-                    <div className="w-[1px] h-6 bg-black/10"></div>
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-[10px] font-black text-black uppercase tracking-tight">{formattedDate.split(' de ').slice(1).join(' ')}</span>
-                      <span className="text-[7px] font-black text-black/60 uppercase tracking-[0.2em] italic">Agenda do Dia</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col leading-none">
+                        <span className="text-[7px] font-black text-theme-primary uppercase tracking-widest leading-none mb-0.5">
+                          {dayOfWeek.split('-')[0]}
+                        </span>
+                        <span className="text-[14px] font-black text-white leading-none tracking-tight">
+                          {formattedDate.split(' de ')[0]}
+                        </span>
+                      </div>
+                      <div className="w-px h-6 bg-white/10" />
+                      <div className="flex flex-col leading-none">
+                        <span className="text-[9px] font-black text-zinc-300 uppercase tracking-tight">
+                          {formattedDate.split(' de ').slice(1).join(' ')}
+                        </span>
+                        <span className="text-[6px] font-black text-theme-primary uppercase tracking-[0.2em] italic">
+                          Agenda
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -491,8 +528,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               <div className="relative z-20 px-6 pb-6 text-center">
-                <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-widest drop-shadow-md">
-                  Foco, Disciplina e Raça! O sucesso começa no treino.
+                <div className="py-2 border-y border-theme-primary/10 mb-2">
+                  <p className="text-theme-primary text-[9px] font-black uppercase italic tracking-[0.2em] drop-shadow-md">
+                    Foco, Disciplina e Raça! O sucesso começa no treino.
+                  </p>
+                </div>
+                <p className="text-zinc-500 text-[7px] font-bold uppercase tracking-widest opacity-40">
+                  {settings.schoolName || 'Piruá Esporte Clube'} • 2026
                 </p>
               </div>
             </div>
