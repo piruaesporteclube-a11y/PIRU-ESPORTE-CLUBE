@@ -10,6 +10,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import Webcam from 'react-webcam';
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string }) {
   const isAdmin = role === 'admin';
@@ -27,6 +31,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [training, setTraining] = useState<Training | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [isFaceMode, setIsFaceMode] = useState(false);
+  const [isIdentifying, setIsIdentifying] = useState(false);
+  const webcamRef = useRef<Webcam>(null);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
 
@@ -289,6 +296,130 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       oscillator.stop(audioCtx.currentTime + 0.1);
     } catch (e) {
       console.warn("Audio feedback failed", e);
+    }
+  };
+
+  const handleFaceIdentify = async () => {
+    if (!webcamRef.current) return;
+    
+    setIsIdentifying(true);
+    const screenshot = webcamRef.current.getScreenshot();
+    if (!screenshot) {
+      toast.error("Erro ao capturar imagem da câmera.");
+      setIsIdentifying(false);
+      return;
+    }
+
+    try {
+      // Filter athletes who have photos for reference
+      // We only use athletes from the current category filter to save context tokens and focus matching
+      const referenceAthletes = filteredAthletes.filter(a => a.photo && a.photo.trim() !== "");
+      
+      if (referenceAthletes.length === 0) {
+        toast.error("Nenhum atleta com foto cadastrada no filtro atual para comparação.");
+        setIsIdentifying(false);
+        return;
+      }
+
+      const webcamData = screenshot.split(',')[1];
+      
+      // Prepare parts for Gemini
+      const parts: any[] = [
+        { text: "Você é um sistema de reconhecimento facial especializado em escolinhas de futebol. Sua tarefa é identificar o atleta na IMAGEM DA WEBCAM entre as fotos de referência fornecidas. Se encontrar um par perfeito ou muito próximo (mesma pessoa), retorne EXATAMENTE o ID do atleta. Se não tiver certeza absoluta, retorne 'NÃO_ENCONTRADO'." }
+      ];
+
+      // Add reference photos
+      // To keep it efficient, we'll limit to first 20 athletes in the filter if it's too large
+      const limitedRefs = referenceAthletes.slice(0, 20);
+      
+      for (const athlete of limitedRefs) {
+        try {
+          // Fetch the photo as base64 if it's a URL
+          // If it's already a data URL, we use it directly
+          let base64Data = "";
+          if (athlete.photo.startsWith('data:')) {
+            base64Data = athlete.photo.split(',')[1];
+          } else {
+            // Need to fetch and convert
+            const response = await fetch(athlete.photo);
+            const blob = await response.blob();
+            base64Data = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+              reader.readAsDataURL(blob);
+            });
+          }
+          
+          parts.push({
+            inlineData: {
+              data: base64Data,
+              mimeType: "image/jpeg"
+            }
+          });
+          parts.push({ text: `ID: ${athlete.id} - Nome: ${athlete.name}` });
+        } catch (e) {
+          console.warn(`Erro ao processar foto do atleta ${athlete.name}`, e);
+        }
+      }
+
+      // Add the probe image (webcam)
+      parts.push({
+        inlineData: {
+          data: webcamData,
+          mimeType: "image/jpeg"
+        }
+      });
+      parts.push({ text: "IMAGEM DA WEBCAM (Identifique esta pessoa)" });
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: { parts }
+      });
+
+      const responseText = result.text.trim();
+      console.log("Gemini identified ID:", responseText);
+
+      // Extract the ID from the response (it might have some explanation though we asked for exactly the ID)
+      const identifiedId = responseText.split('\n')[0].replace(/['"]/g, '').trim();
+      
+      if (identifiedId !== 'NÃO_ENCONTRADO') {
+        // If Gemini returned a valid ID that exists in our list
+        const athlete = athletes.find(a => a.id === identifiedId);
+        if (athlete) {
+          playBeep();
+          await markAttendance(athlete.id, 'Presente');
+          setRecentScans(prev => [{ 
+            id: athlete.id, 
+            name: athlete.name, 
+            time: format(new Date(), 'HH:mm'),
+            photo: athlete.photo 
+          }, ...prev].slice(0, 5));
+          toast.success(`Identificado: ${athlete.name}`);
+        } else {
+          // Try searching by name if ID didn't match perfectly
+          const athleteByName = athletes.find(a => responseText.includes(a.name));
+          if (athleteByName) {
+            playBeep();
+            await markAttendance(athleteByName.id, 'Presente');
+            setRecentScans(prev => [{ 
+              id: athleteByName.id, 
+              name: athleteByName.name, 
+              time: format(new Date(), 'HH:mm'),
+              photo: athleteByName.photo 
+            }, ...prev].slice(0, 5));
+            toast.success(`Identificado: ${athleteByName.name}`);
+          } else {
+            toast.error("Não foi possível identificar o atleta com clareza.");
+          }
+        }
+      } else {
+        toast.error("Atleta não reconhecido.");
+      }
+    } catch (error) {
+      console.error("Erro no reconhecimento facial:", error);
+      toast.error("Erro ao processar reconhecimento facial.");
+    } finally {
+      setIsIdentifying(false);
     }
   };
 
@@ -667,7 +798,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         <div className="flex items-center gap-3">
           <button 
             onClick={toggleScanning}
-            disabled={isLocked}
+            disabled={isLocked || isFaceMode}
             className={cn(
               "flex items-center gap-2 px-6 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/20",
               isLocked 
@@ -677,6 +808,23 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           >
             {isScanning ? <X size={20} /> : <QrCode size={20} />}
             {isScanning ? 'Fechar Scanner' : 'Escanear QR Code'}
+          </button>
+
+          <button 
+            onClick={() => {
+              setIsFaceMode(!isFaceMode);
+              setIsScanning(false);
+            }}
+            disabled={isLocked || isScanning}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-blue-500/20",
+              isLocked 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : (isFaceMode ? "bg-red-500 text-white shadow-red-500/20" : "bg-blue-600 text-white hover:scale-105 active:scale-95")
+            )}
+          >
+            {isFaceMode ? <X size={20} /> : <Camera size={20} />}
+            {isFaceMode ? 'Fechar Facial' : 'Chamada Facial'}
           </button>
 
           <button 
@@ -719,6 +867,83 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </div>
         </div>
       </div>
+
+      {isFaceMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-zinc-900/40 border border-zinc-800 rounded-3xl p-6 flex flex-col items-center">
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border-4 border-blue-500/20 shadow-2xl bg-black relative">
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                className="w-full h-auto"
+                videoConstraints={{ facingMode: "user" }}
+              />
+              {isIdentifying && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-blue-500 font-black uppercase tracking-widest text-xs animate-pulse">Identificando Atleta...</p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleFaceIdentify}
+              disabled={isIdentifying}
+              className="mt-6 flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
+            >
+              <Camera size={24} />
+              Capturar e Identificar
+            </button>
+            <div className="mt-4 flex items-center gap-3 text-zinc-400">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest leading-none">Câmera Ativa - Posicione o Atleta em frente à Câmera</p>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-3xl p-6">
+            <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <CheckCircle2 size={14} className="text-blue-500" />
+              Identificados Hoje
+            </h3>
+            <div className="space-y-4">
+              <AnimatePresence initial={false}>
+                {recentScans.length > 0 ? (
+                  recentScans.map((scan, idx) => (
+                    <motion.div 
+                      key={`${scan.id}-${scan.time}-${idx}-face`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5"
+                    >
+                      <div className="w-10 h-10 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0 border border-blue-500/20">
+                        {scan.photo && scan.photo.trim() !== "" ? (
+                          <img src={scan.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                            <User size={20} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate uppercase">{scan.name}</p>
+                        <p className="text-[10px] text-blue-500 font-black">{scan.time}</p>
+                      </div>
+                      <div className="p-1.5 bg-blue-500/10 text-blue-500 rounded-lg">
+                        <CheckCircle2 size={14} />
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center text-zinc-600">
+                    <Camera size={40} className="mx-auto mb-3 opacity-20" />
+                    <p className="text-xs uppercase font-bold tracking-widest">Aguardando Captura...</p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isScanning && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
