@@ -23,6 +23,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
   const [activeAttendanceTraining, setActiveAttendanceTraining] = useState<Training | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>('Todos');
   const [flyerData, setFlyerData] = useState<{ date: string, trainings: Training[] } | null>(null);
   
   const [formData, setFormData] = useState<Partial<Training>>({
@@ -191,9 +192,11 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   };
 
   if (activeAttendanceTraining) {
+    const isToday = activeAttendanceTraining.date === format(new Date(), 'yyyy-MM-dd');
+
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
               <Trophy size={24} />
@@ -206,31 +209,66 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 <p className="text-xs text-zinc-500 uppercase tracking-widest">
                   {format(new Date(activeAttendanceTraining.date + 'T12:00:00'), 'dd/MM/yyyy')} - {activeAttendanceTraining.location}
                 </p>
-                {activeAttendanceTraining.schedules && activeAttendanceTraining.schedules.length > 0 ? (
+                {activeAttendanceTraining.schedules && activeAttendanceTraining.schedules.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-1">
                     {activeAttendanceTraining.schedules.map((s, i) => (
-                      <span key={i} className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-bold uppercase">
+                      <button 
+                        key={i} 
+                        onClick={() => setFilterCategory(s.categories[0])}
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-md font-bold uppercase transition-all",
+                          s.categories.includes(filterCategory)
+                            ? "bg-theme-primary text-black"
+                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        )}
+                      >
                         {s.categories.join(', ')}: {s.start_time}-{s.end_time}
-                      </span>
+                      </button>
                     ))}
+                    <button 
+                      onClick={() => setFilterCategory('Todos')}
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-md font-bold uppercase transition-all",
+                        filterCategory === 'Todos'
+                          ? "bg-theme-primary text-black"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                      )}
+                    >
+                      Ver Todos
+                    </button>
                   </div>
-                ) : (
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase">
-                    {activeAttendanceTraining.start_time} às {activeAttendanceTraining.end_time}
-                  </p>
                 )}
               </div>
             </div>
           </div>
           <button 
-            onClick={() => setActiveAttendanceTraining(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
+            onClick={() => {
+              setActiveAttendanceTraining(null);
+              setFilterCategory('Todos');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors self-start md:self-center"
           >
             <X size={18} />
             Fechar Chamada
           </button>
         </div>
-        <Attendance athletes={athletes} trainingId={activeAttendanceTraining.id} initialDate={activeAttendanceTraining.date} role={role} />
+        
+        {!isToday && (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center gap-3">
+            <Calendar size={20} className="text-yellow-500" />
+            <p className="text-sm font-bold text-yellow-500 uppercase tracking-tight">
+              Aviso: Você está visualizando a chamada de uma data retroativa ({format(new Date(activeAttendanceTraining.date + 'T12:00:00'), 'dd/MM/yyyy')}).
+            </p>
+          </div>
+        )}
+
+        <Attendance 
+          athletes={athletes} 
+          trainingId={activeAttendanceTraining.id} 
+          initialDate={activeAttendanceTraining.date} 
+          role={role} 
+          filterCategory={filterCategory}
+        />
       </div>
     );
   }

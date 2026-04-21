@@ -76,6 +76,18 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Immediate type check
+      if (!file.type.startsWith('image/')) {
+        toast.error("O arquivo selecionado não é uma imagem válida. Por favor, escolha um arquivo JPG ou PNG.");
+        return;
+      }
+
+      // Check for extremely large raw files (e.g. > 10MB) to prevent browser hang
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("A imagem é excessivamente grande. Por favor, utilize um arquivo menor que 10MB.");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;

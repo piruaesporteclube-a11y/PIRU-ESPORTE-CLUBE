@@ -187,13 +187,22 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 500 * 1024) { // 500KB limit
-        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 500KB.");
+      if (!file.type.startsWith('image/')) {
+        toast.error("O arquivo selecionado não é uma imagem válida.");
+        return;
+      }
+      if (file.size > 1024 * 1024) { // 1MB initial limit
+        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 1MB.");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo: reader.result as string }));
+        const base64 = reader.result as string;
+        if (base64.length > 700000) { // Approx 500KB
+          toast.error("A foto processada ainda é muito grande. Tente uma imagem com menor resolução.");
+          return;
+        }
+        setFormData(prev => ({ ...prev, photo: base64 }));
       };
       reader.onerror = () => {
         toast.error("Erro ao ler o arquivo da foto.");

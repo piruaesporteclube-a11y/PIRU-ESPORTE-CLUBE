@@ -94,13 +94,29 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 400 * 1024) { // Reduced to 400KB to avoid Firestore document size limits
-        toast.error("O arquivo é muito grande. Por favor, escolha um arquivo com menos de 400KB.");
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("O arquivo selecionado não é uma imagem válida. Por favor, escolha um arquivo JPG, PNG ou similar.");
         return;
       }
+
+      // Validate file size
+      if (file.size > 1024 * 1024) { // 1MB limit for raw input, will be checked again or compressed
+        toast.error("O arquivo é muito grande. Para melhor desempenho, escolha uma foto com menos de 1MB.");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo: reader.result as string }));
+        const base64 = reader.result as string;
+        
+        // Final size check for Firestore (400KB roughly translates to ~550k base64 characters)
+        if (base64.length > 550000) {
+          toast.error("A foto processada ainda é muito grande para o sistema. Tente uma imagem com menor resolução.");
+          return;
+        }
+
+        setFormData(prev => ({ ...prev, photo: base64 }));
       };
       reader.onerror = () => {
         toast.error("Erro ao ler o arquivo.");

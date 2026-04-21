@@ -49,13 +49,17 @@ const getBase64FromUrl = (url: string): Promise<string> => {
   });
 };
 
-export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string }) {
+export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin', filterCategory = 'Todos' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string, filterCategory?: string }) {
   const isAdmin = role === 'admin';
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string, arrival_time?: string }>>({});
-  const [filterSub, setFilterSub] = useState('Todos');
+  const [filterSub, setFilterSub] = useState(filterCategory);
+
+  useEffect(() => {
+    setFilterSub(filterCategory);
+  }, [filterCategory]);
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
