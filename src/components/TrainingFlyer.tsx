@@ -62,21 +62,40 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const handleDownload = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    // Small delay to ensure styles are applied
-    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Ensure all images are loaded and fonts are ready
+    await document.fonts.ready;
+    
+    // Small delay to ensure any potential layout shifts or animations finish
+    await new Promise(resolve => setTimeout(resolve, 800));
+
     try {
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        scale: 3, // Higher scale for Instagram quality
+        allowTaint: true,
+        scale: 4, // Very high quality for professional look
         backgroundColor: '#000000',
         logging: false,
+        width: 360,
+        height: 640,
+        scrollX: 0,
+        scrollY: -window.scrollY, // Fix for scrolled pages
+        onclone: (clonedDoc) => {
+          // You can perform last-minute adjustments to the cloned DOM here if needed
+          const flyer = clonedDoc.querySelector('[data-flyer-container]');
+          if (flyer) {
+            (flyer as HTMLElement).style.transform = 'none';
+          }
+        }
       });
+      
       const link = document.createElement('a');
       link.download = `agenda-treino-${date}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error('Error generating flyer:', error);
+      alert('Houve um erro ao gerar a imagem. Verifique se todas as fotos carregaram corretamente.');
     } finally {
       setIsExporting(false);
     }
@@ -248,6 +267,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             {/* The actual Flyer target */}
             <div 
               ref={flyerRef}
+              data-flyer-container="true"
               style={{ width: '360px', height: '640px' }} // Instagram Story 9:16
               className="bg-black relative overflow-hidden flex flex-col font-sans"
             >
@@ -297,7 +317,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   )}
                 </div>
                 <div className="space-y-1">
-                  <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-lg">
+                  <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-lg">
                     Piruá <span className="text-theme-primary">Esporte</span> Clube
                   </h1>
                   <div className="flex items-center justify-center gap-3 mt-1">
@@ -309,39 +329,39 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               <div className="px-8 mt-4 relative z-10 flex flex-col items-center">
-                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-3 rounded-2xl w-full text-center">
-                   <p className="text-theme-primary text-[12px] font-black uppercase tracking-widest italic leading-none mb-1">{dayOfWeek}</p>
-                   <p className="text-white text-4xl font-black italic tracking-tighter leading-none">{formattedDate}</p>
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2.5 rounded-2xl w-full text-center">
+                   <p className="text-theme-primary text-[10px] font-black uppercase tracking-widest italic leading-none mb-1">{dayOfWeek}</p>
+                   <p className="text-white text-2xl font-black italic tracking-tighter leading-none">{formattedDate}</p>
                 </div>
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 px-8 py-6 flex flex-col gap-6 relative z-10">
+              <div className="flex-1 px-8 py-4 flex flex-col gap-4 relative z-10 min-h-0">
                 {/* Dates & Schedules */}
-                <div className="flex-1 flex flex-col space-y-4">
-                  <div className="space-y-4 overflow-hidden">
+                <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                  <div className="space-y-3 overflow-y-auto custom-scrollbar pr-1">
                     {trainings.map((t, idx) => (
-                      <div key={idx} className="relative group bg-black/50 backdrop-blur-sm p-4 rounded-2xl border-l-[3px] border-theme-primary">
-                        <div className="space-y-3">
-                          <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter skew-x-[-10deg] flex items-center gap-2">
-                             <Activity size={20} className="text-theme-primary" />
+                      <div key={idx} className="relative group bg-black/50 backdrop-blur-sm p-3 rounded-xl border-l-[3px] border-theme-primary">
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-black text-white uppercase italic tracking-tighter skew-x-[-10deg] flex items-center gap-2">
+                             <Activity size={18} className="text-theme-primary" />
                              {t.modality}
                           </h3>
-                          <div className="space-y-3">
-                            {t.schedules?.slice(0, 4).map((s, si) => (
-                              <div key={si} className="flex flex-col gap-1.5">
+                          <div className="space-y-2">
+                            {t.schedules?.slice(0, 5).map((s, si) => (
+                              <div key={si} className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-theme-primary font-mono text-base font-black tracking-tighter leading-none bg-black/60 px-2.5 py-1.5 rounded-lg border border-theme-primary/10">{s.start_time} — {s.end_time}</span>
-                                  <div className="flex flex-wrap gap-1.5 justify-end">
+                                  <span className="text-theme-primary font-mono text-[13px] font-black tracking-tighter leading-none bg-black/60 px-2 py-1 rounded border border-theme-primary/10">{s.start_time} — {s.end_time}</span>
+                                  <div className="flex flex-wrap gap-1 justify-end">
                                     {s.categories.map((c, ci) => (
-                                      <span key={ci} className="text-black bg-theme-primary/90 px-2 py-0.5 rounded text-[9px] font-black uppercase shadow-sm">
+                                      <span key={ci} className="text-black bg-theme-primary/90 px-1.5 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">
                                         {c}
                                       </span>
                                     ))}
                                   </div>
                                 </div>
                                 {s.notes && (
-                                   <p className="text-zinc-400 text-[10px] font-bold uppercase italic leading-tight bg-white/5 py-1 px-2.5 rounded-lg border-l border-theme-primary/30">
+                                   <p className="text-zinc-400 text-[9px] font-bold uppercase italic leading-tight bg-white/5 py-1 px-2 rounded border-l border-theme-primary/30">
                                      {s.notes}
                                    </p>
                                 )}
@@ -355,8 +375,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
 
                 {/* Featured Person (Athlete or Custom Image) */}
-                <div className="w-full flex items-center justify-center gap-6 mt-auto">
-                  <div className="w-[180px] aspect-[1/1] bg-zinc-950 rounded-[2.5rem] border-4 border-theme-primary overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.9)] relative group rotate-[3deg] transform hover:rotate-0 transition-all duration-500">
+                <div className="w-full flex items-center justify-center gap-4 mt-auto pt-4 border-t border-white/5">
+                  <div className="w-[140px] aspect-[1/1] bg-zinc-950 rounded-[2rem] border-2 border-theme-primary overflow-hidden shadow-[0_15px_60px_rgba(0,0,0,0.8)] relative group rotate-[2deg] transform hover:rotate-0 transition-all duration-500">
                     {(customImage || selectedAthlete?.photo) ? (
                       <img 
                         src={customImage || selectedAthlete?.photo} 
@@ -365,26 +385,26 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-zinc-900 bg-zinc-950">
-                        <User size={80} strokeWidth={1} />
+                        <User size={60} strokeWidth={1} />
                       </div>
                     )}
                     
                     {/* Modern Frame Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                    <div className="absolute bottom-4 left-0 right-0 text-center">
-                       <p className="text-[10px] font-black text-theme-primary uppercase tracking-[0.3em] italic">DESTAQUE</p>
+                    <div className="absolute bottom-3 left-0 right-0 text-center">
+                       <p className="text-[8px] font-black text-theme-primary uppercase tracking-[0.3em] italic">DESTAQUE</p>
                     </div>
                   </div>
                   
                   {(customImage || selectedAthlete) && (
-                    <div className="flex-1 text-left transform -rotate-[2deg]">
-                      <p className="text-theme-primary text-[10px] font-black uppercase tracking-[0.3em] italic mb-1">Destaque Oficial</p>
-                      <h4 className="text-white font-black uppercase leading-none text-3xl italic tracking-tighter drop-shadow-2xl scale-y-110">
+                    <div className="flex-1 text-left transform -rotate-[1deg]">
+                      <p className="text-theme-primary text-[8px] font-black uppercase tracking-[0.3em] italic mb-0.5">Destaque Oficial</p>
+                      <h4 className="text-white font-black uppercase leading-none text-xl italic tracking-tighter drop-shadow-2xl scale-y-110">
                         {customImage 
                           ? "CONVOCADO" 
                           : `${selectedAthlete?.name.split(' ')[0]} ${selectedAthlete?.name.split(' ').slice(-1)}`}
                       </h4>
-                      <div className="h-1.5 w-16 bg-theme-primary mt-3 rounded-full"></div>
+                      <div className="h-1 w-12 bg-theme-primary mt-2 rounded-full"></div>
                     </div>
                   )}
                 </div>
