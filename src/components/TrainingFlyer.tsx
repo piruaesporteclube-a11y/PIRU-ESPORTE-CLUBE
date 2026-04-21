@@ -74,22 +74,34 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   ).slice(0, 5);
 
   const handleDownload = async () => {
-    // helper to ensure all images in an element are loaded
+    if (!flyerRef.current) return;
+    setIsExporting(true);
+    const loadingToast = toast.loading('Gerando seu encarte... Isso pode levar alguns segundos.');
+    
+    // helper to ensure all images in an element are loaded with a timeout
     const waitForImages = async (el: HTMLElement) => {
       const imgs = Array.from(el.querySelectorAll('img'));
       const promises = imgs.map(img => {
-        if (img.complete) return Promise.resolve();
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
         return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve; // Continue even if one fails
+          const timer = setTimeout(() => {
+            console.warn(`Image load timeout: ${img.src}`);
+            resolve(null);
+          }, 5000); // 5s timeout per image
+          
+          img.onload = () => { clearTimeout(timer); resolve(null); };
+          img.onerror = () => { clearTimeout(timer); resolve(null); };
+          
+          // Re-trigger load if necessary and ensure crossOrigin
+          const currentSrc = img.src;
+          img.src = "";
+          img.setAttribute('crossOrigin', 'anonymous');
+          img.src = currentSrc;
         });
       });
       await Promise.all(promises);
     };
 
-    if (!flyerRef.current) return;
-    setIsExporting(true);
-    
     try {
       // Ensure all images are loaded and fonts are ready
       await Promise.all([
@@ -97,12 +109,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         waitForImages(flyerRef.current)
       ]);
       
-      // Small delay to ensure any potential layout shifts or animations finish
+      // Small reveal delay
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
         allowTaint: false,
-        scale: 1.5, // Reduced slightly for better stability on mobile
+        scale: 2, // High quality, using aggressive cleaning in onclone
         backgroundColor: '#000000',
         logging: true,
         width: 360,
@@ -111,14 +124,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         onclone: (clonedDoc) => {
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
+            // Absolute positioning for capture context
             flyer.style.transform = 'none';
             flyer.style.position = 'fixed';
             flyer.style.top = '0';
             flyer.style.left = '0';
             flyer.style.margin = '0';
             flyer.style.padding = '0';
+            flyer.style.width = '360px';
+            flyer.style.height = '640px';
             
-            // html2canvas doesn't support backdrop-blur or modern color spaces
+            // html2canvas doesn't support backdrop-blur or modern color spaces well
             const allElements = flyer.querySelectorAll('*');
             allElements.forEach((el) => {
               const htmlEl = el as HTMLElement;
@@ -131,45 +147,39 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               style.backdropFilter = 'none';
               style.webkitBackdropFilter = 'none';
               style.filter = 'none';
-              
-              // We only keep basic blend modes if they're known to work, but normal is safest
               style.mixBlendMode = 'normal';
-              
-              // Ensure no transitions/animations are active
               style.transition = 'none';
               style.animation = 'none';
-              
-              // Simplify gradients and background images that are problematic
-              if (style.backgroundImage && 
-                 (style.backgroundImage.includes('transparenttextures.com') || 
-                  style.backgroundImage.includes('radial-gradient') ||
-                  style.backgroundImage.includes('halftone'))) {
-                style.backgroundImage = 'none';
-                
-                // If it's the carbon texture layer, give it a subtle solid overlay instead
-                if (className.includes('bg-[url(') && className.includes('opacity-')) {
-                   style.backgroundColor = 'rgba(0,0,0,0.2)';
-                   style.opacity = '1';
+
+              const primary = settings.primaryColor || '#EAB308';
+              const isActiveCarbon = selectedBackgrounds.includes('carbon');
+
+              // Detect and fix problematic background images
+              const computedStyle = window.getComputedStyle(htmlEl);
+              const bgImg = computedStyle.backgroundImage;
+              if (bgImg && bgImg !== 'none') {
+                if (bgImg.includes('gradient') || bgImg.includes('transparenttextures.com')) {
+                  style.backgroundImage = 'none';
+                  // Fallback for carbon if it's the pattern layer
+                  if (className.includes('bg-[url(')) {
+                    style.backgroundColor = 'rgba(0,0,0,0.1)';
+                  }
                 }
               }
-              
-              const primary = settings.primaryColor || '#EAB308';
-              const secondary = settings.secondaryColor || '#000000';
-              const isActiveCarbon = selectedBackgrounds.includes('carbon');
 
               // Force carbon color if visible
               if (isActiveCarbon && (className.includes('z-[2]') || htmlEl.getAttribute('data-bg-layer') === 'carbon')) {
                  style.backgroundColor = carbonColor;
+                 style.opacity = '1';
+                 style.backgroundImage = 'none';
               }
               
               if (className.includes('bg-theme-primary/80')) {
-                style.backgroundColor = primary + 'CC'; // 80% opacity in hex
+                style.backgroundColor = primary + 'CC';
               } else if (className.includes('bg-theme-primary/20')) {
-                style.backgroundColor = primary + '33'; // 20% opacity in hex
+                style.backgroundColor = primary + '33';
               } else if (className.includes('bg-theme-primary/10')) {
-                style.backgroundColor = primary + '1A'; // 10% opacity in hex
-              } else if (className.includes('bg-theme-primary/5')) {
-                style.backgroundColor = primary + '0D'; // 5% opacity in hex
+                style.backgroundColor = primary + '1A';
               } else if (className.includes('bg-theme-primary')) {
                 style.backgroundColor = primary;
               }
@@ -180,10 +190,6 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 style.backgroundColor = 'rgba(0,0,0,0.6)';
               }
 
-              if (className.includes('ring-1')) {
-                style.outline = '1px solid rgba(255,255,255,0.05)';
-              }
-              
               if (className.includes('text-theme-primary')) {
                 style.color = primary;
               }
@@ -192,10 +198,6 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               }
             });
 
-            // Flatten background images if they cause issues
-            const stadiumLayer = flyer.querySelector('.stadium-overlay') as HTMLElement;
-            if (stadiumLayer) stadiumLayer.style.backgroundColor = 'rgba(0,0,0,0.4)';
-            
             // Remove any internal scrolling during capture
             const scrollable = flyer.querySelector('.flyer-scrollable') as HTMLElement;
             if (scrollable) {
@@ -208,13 +210,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       });
       
       const link = document.createElement('a');
-      link.download = `agenda-treino-${date}.png`;
+      link.download = `AGENDA_TREINO_${date}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
+      
+      toast.dismiss(loadingToast);
       toast.success('Encarte baixado com sucesso!');
     } catch (error) {
       console.error('Error generating flyer:', error);
-      toast.error('Houve um erro ao gerar a imagem. Verifique se todas as fotos carregaram corretamente.');
+      toast.dismiss(loadingToast);
+      toast.error('Ocorreu um erro ao gerar a imagem. Verifique suas conexões e tente novamente.');
     } finally {
       setIsExporting(false);
     }
