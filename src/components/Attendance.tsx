@@ -13,7 +13,41 @@ import jsPDF from 'jspdf';
 import Webcam from 'react-webcam';
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ 
+  apiKey: typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || '') : '' 
+});
+
+// Helper to convert URL to base64 using canvas (avoids direct fetch CORS issues)
+const getBase64FromUrl = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (url.startsWith('data:')) {
+      resolve(url.split(',')[1]);
+      return;
+    }
+    const img = new Image();
+    img.setAttribute('crossOrigin', 'anonymous');
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(dataUrl.split(',')[1]);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = (e) => reject(new Error('Failed to load image for conversion'));
+    const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+    img.src = url + cacheBuster;
+  });
+};
 
 export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string }) {
   const isAdmin = role === 'admin';
@@ -301,6 +335,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const handleFaceIdentify = async () => {
     if (!webcamRef.current) return;
+    if (!process.env.GEMINI_API_KEY) {
+      toast.error("Configuração da IA ausente. Verifique a chave de API.");
+      return;
+    }
     
     setIsIdentifying(true);
     const screenshot = webcamRef.current.getScreenshot();
@@ -325,41 +363,40 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       
       // Prepare parts for Gemini
       const parts: any[] = [
-        { text: "Você é um sistema de reconhecimento facial especializado em escolinhas de futebol. Sua tarefa é identificar o atleta na IMAGEM DA WEBCAM entre as fotos de referência fornecidas. Se encontrar um par perfeito ou muito próximo (mesma pessoa), retorne EXATAMENTE o ID do atleta. Se não tiver certeza absoluta, retorne 'NÃO_ENCONTRADO'." }
+        { text: "Você é um sistema de reconhecimento facial especializado em escolinhas de futebol. " +
+                "Sua tarefa é identificar o atleta na 'IMAGEM DA WEBCAM' entre as 'FOTOS DE REFERÊNCIA' fornecidas abaixo. " +
+                "INSTRUÇÕES ESTRITAS:\n" +
+                "1. Compare a IMAGEM DA WEBCAM com cada FOTO DE REFERÊNCIA.\n" +
+                "2. Se encontrar uma correspondência óbvia, retorne APENAS o ID do atleta.\n" +
+                "3. Se não tiver certeza absoluta (mais de 80% de confiança), retorne APENAS a palavra 'NEM_IDEIA'.\n" +
+                "4. Não escreva explicações, apenas o ID ou 'NEM_IDEIA'." }
       ];
 
       // Add reference photos
-      // To keep it efficient, we'll limit to first 20 athletes in the filter if it's too large
-      const limitedRefs = referenceAthletes.slice(0, 20);
+      // To keep it efficient, we'll limit to first 15 athletes in the filter if it's too large
+      const limitedRefs = referenceAthletes.slice(0, 15);
       
-      for (const athlete of limitedRefs) {
+      // Process reference photos in parallel
+      const refParts = await Promise.all(limitedRefs.map(async (athlete) => {
         try {
-          // Fetch the photo as base64 if it's a URL
-          // If it's already a data URL, we use it directly
-          let base64Data = "";
-          if (athlete.photo.startsWith('data:')) {
-            base64Data = athlete.photo.split(',')[1];
-          } else {
-            // Need to fetch and convert
-            const response = await fetch(athlete.photo);
-            const blob = await response.blob();
-            base64Data = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
-          }
-          
-          parts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType: "image/jpeg"
-            }
-          });
-          parts.push({ text: `ID: ${athlete.id} - Nome: ${athlete.name}` });
+          const base64Data = await getBase64FromUrl(athlete.photo);
+          return [
+            { inlineData: { data: base64Data, mimeType: "image/jpeg" } },
+            { text: `FOTO DE REFERÊNCIA - ID: ${athlete.id} - NOME: ${athlete.name}` }
+          ];
         } catch (e) {
-          console.warn(`Erro ao processar foto do atleta ${athlete.name}`, e);
+          console.warn(`Erro ao carregar foto do atleta ${athlete.name}`, e);
+          return [];
         }
+      }));
+
+      // Flatten and add to parts
+      refParts.flat().forEach(p => parts.push(p));
+
+      if (parts.length <= 1) {
+        toast.error("Erro ao carregar fotos de referência para comparação.");
+        setIsIdentifying(false);
+        return;
       }
 
       // Add the probe image (webcam)
@@ -369,7 +406,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           mimeType: "image/jpeg"
         }
       });
-      parts.push({ text: "IMAGEM DA WEBCAM (Identifique esta pessoa)" });
+      parts.push({ text: "IMAGEM DA WEBCAM (Identifique esta pessoa entre os IDs acima)" });
 
       const result = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -377,13 +414,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       });
 
       const responseText = result.text.trim();
-      console.log("Gemini identified ID:", responseText);
+      console.log("IA Resposta:", responseText);
 
-      // Extract the ID from the response (it might have some explanation though we asked for exactly the ID)
+      // Extract the ID from the response
       const identifiedId = responseText.split('\n')[0].replace(/['"]/g, '').trim();
       
-      if (identifiedId !== 'NÃO_ENCONTRADO') {
-        // If Gemini returned a valid ID that exists in our list
+      if (identifiedId !== 'NEM_IDEIA' && identifiedId !== 'NÃO_ENCONTRADO') {
         const athlete = athletes.find(a => a.id === identifiedId);
         if (athlete) {
           playBeep();
@@ -396,8 +432,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           }, ...prev].slice(0, 5));
           toast.success(`Identificado: ${athlete.name}`);
         } else {
-          // Try searching by name if ID didn't match perfectly
-          const athleteByName = athletes.find(a => responseText.includes(a.name));
+          // Fallback check by name if ID was slightly mangled but present in text
+          const athleteByName = athletes.find(a => responseText.toLowerCase().includes(a.name.toLowerCase()));
           if (athleteByName) {
             playBeep();
             await markAttendance(athleteByName.id, 'Presente');
@@ -409,15 +445,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             }, ...prev].slice(0, 5));
             toast.success(`Identificado: ${athleteByName.name}`);
           } else {
-            toast.error("Não foi possível identificar o atleta com clareza.");
+            toast.error("Atleta não reconhecido com clareza.");
           }
         }
       } else {
-        toast.error("Atleta não reconhecido.");
+        toast.error("Atleta não identificado na base de dados.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro no reconhecimento facial:", error);
-      toast.error("Erro ao processar reconhecimento facial.");
+      if (error?.message?.includes("API key not valid")) {
+        toast.error("Chave de API do Gemini inválida ou não configurada.");
+      } else {
+        toast.error("Falha na comunicação com o sistema de IA.");
+      }
     } finally {
       setIsIdentifying(false);
     }
@@ -605,6 +645,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     } else {
       lastScannedCode.current = null;
       lastScanTime.current = 0;
+      setIsFaceMode(false);
       setIsScanning(true);
     }
   };
