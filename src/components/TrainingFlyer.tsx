@@ -105,6 +105,9 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             const allElements = flyer.querySelectorAll('*');
             allElements.forEach((el) => {
               const htmlEl = el as HTMLElement;
+              const className = typeof htmlEl.className === 'string' 
+                ? htmlEl.className 
+                : (htmlEl.className as any)?.baseVal || '';
               const style = htmlEl.style as any;
               
               // Strip modern CSS filters and blend modes that break html2canvas
@@ -123,7 +126,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               if (style.backgroundImage && style.backgroundImage.includes('transparenttextures.com')) {
                 style.backgroundImage = 'none';
                 // Also clear the content of the element if it's purely for the background
-                if (htmlEl.className.includes('bg-[url(')) {
+                if (className.includes('bg-[url(')) {
                    style.opacity = '0';
                 }
               }
@@ -131,32 +134,32 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               const primary = settings.primaryColor || '#EAB308';
               const secondary = settings.secondaryColor || '#000000';
               
-              if (htmlEl.className.includes('bg-theme-primary/80')) {
+              if (className.includes('bg-theme-primary/80')) {
                 style.backgroundColor = primary + 'CC'; // 80% opacity in hex
-              } else if (htmlEl.className.includes('bg-theme-primary/20')) {
+              } else if (className.includes('bg-theme-primary/20')) {
                 style.backgroundColor = primary + '33'; // 20% opacity in hex
-              } else if (htmlEl.className.includes('bg-theme-primary/10')) {
+              } else if (className.includes('bg-theme-primary/10')) {
                 style.backgroundColor = primary + '1A'; // 10% opacity in hex
-              } else if (htmlEl.className.includes('bg-theme-primary/5')) {
+              } else if (className.includes('bg-theme-primary/5')) {
                 style.backgroundColor = primary + '0D'; // 5% opacity in hex
-              } else if (htmlEl.className.includes('bg-theme-primary')) {
+              } else if (className.includes('bg-theme-primary')) {
                 style.backgroundColor = primary;
               }
 
-              if (htmlEl.className.includes('bg-black/40')) {
+              if (className.includes('bg-black/40')) {
                 style.backgroundColor = 'rgba(0,0,0,0.4)';
-              } else if (htmlEl.className.includes('bg-black/60')) {
+              } else if (className.includes('bg-black/60')) {
                 style.backgroundColor = 'rgba(0,0,0,0.6)';
               }
 
-              if (htmlEl.className.includes('ring-1')) {
+              if (className.includes('ring-1')) {
                 style.outline = '1px solid rgba(255,255,255,0.05)';
               }
               
-              if (htmlEl.className.includes('text-theme-primary')) {
+              if (className.includes('text-theme-primary')) {
                 style.color = primary;
               }
-              if (htmlEl.className.includes('border-theme-primary')) {
+              if (className.includes('border-theme-primary')) {
                 style.borderColor = primary;
               }
             });
