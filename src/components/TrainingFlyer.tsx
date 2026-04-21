@@ -117,19 +117,23 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               style.filter = 'none';
               
               // We only keep basic blend modes if they're known to work, but normal is safest
-              // style.mixBlendMode = 'normal'; // RE-ENABLE BLEND MODES FOR EXPORT
+              style.mixBlendMode = 'normal';
               
               // Ensure no transitions/animations are active
               style.transition = 'none';
               style.animation = 'none';
               
               // Remove external background textures that might taint the canvas
-              if (style.backgroundImage && style.backgroundImage.includes('transparenttextures.com')) {
+              // and clear absolute background images that use external URLs or problematic gradients
+              if (style.backgroundImage && 
+                 (style.backgroundImage.includes('transparenttextures.com') || 
+                  style.backgroundImage.includes('radial-gradient'))) {
                 style.backgroundImage = 'none';
-                // Also clear the content of the element if it's purely for the background
-                if (className.includes('bg-[url(')) {
-                   style.opacity = '0';
-                }
+              }
+              
+              // Also check for className based background images
+              if (className.includes('bg-[url(')) {
+                 style.backgroundImage = 'none';
               }
 
               // Simplify gradients for carbon layer if no image is present
@@ -464,13 +468,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   {selectedBackgrounds.includes('carbon') && (
                     <div className={cn(
                       "absolute inset-0 z-[2]",
-                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-60" : "opacity-100"
+                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100"
                     )}
                     style={{ 
-                      backgroundColor: carbonColor,
-                      backgroundImage: !customBackgrounds['carbon'] ? `radial-gradient(circle at center, ${carbonColor} 0%, #000000 100%)` : 'none'
+                      backgroundColor: carbonColor
                     }}
                     >
+                      {!customBackgrounds['carbon'] && (
+                        <div 
+                          className="absolute inset-0 opacity-40"
+                          style={{ backgroundImage: `radial-gradient(circle at center, ${carbonColor} 0%, #000000 100%)` }}
+                        />
+                      )}
                       {customBackgrounds['carbon'] && (
                         <img 
                           src={customBackgrounds['carbon']} 
