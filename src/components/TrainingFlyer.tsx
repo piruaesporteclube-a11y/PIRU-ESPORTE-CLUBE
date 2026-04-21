@@ -84,8 +84,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     try {
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: false, // Changed to false for better security and stability with external images if handled right
-        scale: 4, 
+        allowTaint: true, // Switched back to true for local storage images
+        scale: 3, // Slightly lower but still high to prevent timeouts
         backgroundColor: '#000000',
         logging: false,
         width: 360,
@@ -101,6 +101,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             flyer.style.position = 'fixed';
             flyer.style.top = '0';
             flyer.style.left = '0';
+            flyer.style.margin = '0';
+            flyer.style.padding = '0';
             
             // html2canvas doesn't support backdrop-blur or modern color spaces
             // We strip them from the clone to prevent parsing errors
@@ -108,12 +110,23 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             allElements.forEach((el) => {
               const htmlEl = el as HTMLElement;
               const style = htmlEl.style as any;
-              if (style.backdropFilter) style.backdropFilter = 'none';
-              if (style.webkitBackdropFilter) style.webkitBackdropFilter = 'none';
               
-              // Ensure we don't have transition styles that might interfere
+              // Clear complex filters
+              style.backdropFilter = 'none';
+              style.webkitBackdropFilter = 'none';
+              style.filter = 'none';
+              
+              // Ensure no transitions interfere
               style.transition = 'none';
               style.animation = 'none';
+              
+              // Force basic background colors if they use modern syntax
+              if (htmlEl.className.includes('bg-black/60')) {
+                style.backgroundColor = 'rgba(0,0,0,0.6)';
+              }
+              if (htmlEl.className.includes('bg-zinc-900')) {
+                style.backgroundColor = '#18181b';
+              }
             });
 
             // Remove any internal scrolling during capture
@@ -309,7 +322,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               ref={flyerRef}
               data-flyer-container="true"
               style={{ width: '360px', height: '640px' }} // Instagram Story 9:16
-              className="bg-black relative overflow-hidden flex flex-col font-sans select-none border-[10px] border-theme-primary"
+              className="bg-black relative overflow-hidden flex flex-col font-sans select-none border-[8px] border-theme-primary/80 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"
             >
               {/* Layered Background System */}
               <div className="absolute inset-x-0 inset-y-0 pointer-events-none">
@@ -322,6 +335,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
+                        crossOrigin="anonymous"
                       />
                       <div className="absolute inset-0 bg-black/40" />
                     </div>
@@ -337,14 +351,27 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
+                        crossOrigin="anonymous"
                       />
                       {!selectedBackgrounds.includes('stadium') && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
-                  {/* Layer 3: Carbon Overlay */}
+                  {/* Layer 3: Carbon */}
                   {selectedBackgrounds.includes('carbon') && (
-                    <div className="absolute inset-0 z-[2] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30 mix-blend-color-dodge" />
+                    <div className={cn(
+                      "absolute inset-0 z-[2]",
+                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-60" : "opacity-100"
+                    )}>
+                      <img 
+                        src={customBackgrounds['carbon'] || "https://images.unsplash.com/photo-1541252260730-0412e3e2107e?auto=format&fit=crop&q=80&w=1200"} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                        crossOrigin="anonymous"
+                      />
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40 mix-blend-overlay" />
+                      {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/30" />}
+                    </div>
                   )}
 
                   {/* Global Gradients */}
@@ -360,7 +387,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="relative z-20 pt-6 px-6 flex flex-col items-center">
                 <div className="w-16 h-16 mb-2 filter drop-shadow-[0_0_20px_rgba(255,255,0,0.4)] transform hover:scale-110 transition-transform duration-700">
                   {settings?.schoolCrest ? (
-                    <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                    <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
                     <Trophy size={48} className="text-theme-primary" />
                   )}
