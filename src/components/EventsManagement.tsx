@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -276,11 +276,26 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
+  const handleEditEvent = (event: Event) => {
+    const now = new Date();
+    const [year, month, day] = event.end_date.split('-').map(Number);
+    const [hours, minutes] = event.end_time.split(':').map(Number);
+    const eventEnd = new Date(year, month - 1, day, hours, minutes);
+    
+    if (eventEnd < now) {
+      toast.error("Não é possível editar um evento que já finalizou.");
+      return;
+    }
+    
+    setFormData(event);
+    setIsFormOpen(true);
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.saveEvent(formData);
-      toast.success("Evento salvo com sucesso!");
+      toast.success(formData.id ? "Evento atualizado com sucesso!" : "Evento criado com sucesso!");
       setIsFormOpen(false);
       setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
       loadEvents();
@@ -507,23 +522,32 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   {isAdmin ? 'Escalação' : 'Ver Escalação'}
                 </button>
                 {isAdmin && (
-                  <button 
-                    onClick={() => {
-                      const now = new Date();
-                      const [year, month, day] = event.end_date.split('-').map(Number);
-                      const [hours, minutes] = event.end_time.split(':').map(Number);
-                      const eventEnd = new Date(year, month - 1, day, hours, minutes);
-                      if (eventEnd < now) {
-                        toast.error("Não é possível excluir um evento que já finalizou.");
-                        return;
-                      }
-                      handleDeleteEvent(event.id);
-                    }}
-                    className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-xl transition-colors"
-                    title="Excluir Evento"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleEditEvent(event)}
+                      className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-colors"
+                      title="Editar Detalhes do Evento"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const now = new Date();
+                        const [year, month, day] = event.end_date.split('-').map(Number);
+                        const [hours, minutes] = event.end_time.split(':').map(Number);
+                        const eventEnd = new Date(year, month - 1, day, hours, minutes);
+                        if (eventEnd < now) {
+                          toast.error("Não é possível excluir um evento que já finalizou.");
+                          return;
+                        }
+                        handleDeleteEvent(event.id);
+                      }}
+                      className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 rounded-xl transition-colors"
+                      title="Excluir Evento"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -634,8 +658,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-8">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-bold text-white">Novo Evento</h2>
-              <button onClick={() => setIsFormOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+              <h2 className="text-xl font-bold text-white">
+                {formData.id ? 'Editar Evento' : 'Novo Evento'}
+              </h2>
+              <button 
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
+                }} 
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group"
+              >
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
               </button>

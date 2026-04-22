@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { OfficialLetter } from '../types';
-import { Plus, Search, FileText, Printer, Trash2, Edit, Save, X, ChevronLeft, Download, Eye } from 'lucide-react';
+import { OfficialLetter, Event } from '../types';
+import { Plus, Search, FileText, Printer, Trash2, Edit, Save, X, ChevronLeft, Download, Eye, Calendar, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
@@ -9,7 +9,9 @@ import { cn } from '../utils';
 export default function OfficialLetterGenerator() {
   const { settings } = useTheme();
   const [letters, setLetters] = useState<OfficialLetter[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [editingLetter, setEditingLetter] = useState<Partial<OfficialLetter> | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +19,7 @@ export default function OfficialLetterGenerator() {
 
   useEffect(() => {
     loadLetters();
+    loadEvents();
   }, []);
 
   const loadLetters = async () => {
@@ -31,7 +34,17 @@ export default function OfficialLetterGenerator() {
     }
   };
 
+  const loadEvents = async () => {
+    try {
+      const data = await api.getEvents();
+      setEvents(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleNew = () => {
+    setSelectedEventId('');
     const nextNumber = letters.length > 0 
       ? (Math.max(...letters.map(l => parseInt(l.number) || 0)) + 1).toString().padStart(3, '0')
       : '001';
@@ -56,6 +69,7 @@ export default function OfficialLetterGenerator() {
   };
 
   const handleEdit = (letter: OfficialLetter) => {
+    setSelectedEventId('');
     setEditingLetter(letter);
     setIsFormOpen(true);
   };
@@ -80,10 +94,27 @@ export default function OfficialLetterGenerator() {
       toast.success('Ofício salvo com sucesso!');
       setIsFormOpen(false);
       setEditingLetter(null);
+      setSelectedEventId('');
       loadLetters();
     } catch (error) {
       toast.error('Erro ao salvar ofício.');
     }
+  };
+
+  const fillWithEventData = (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event || !editingLetter) return;
+
+    const eventDate = new Date(event.start_date + 'T00:00:00').toLocaleDateString('pt-BR');
+    const address = `${event.street}, ${event.number} - ${event.neighborhood}, ${event.city}/${event.uf}`;
+    
+    setEditingLetter({
+      ...editingLetter,
+      subject: `SOLICITAÇÃO DE TRANSPORTE E APOIO - EVENTO: ${event.name.toUpperCase()}`,
+      body: `Vimos por meio deste solicitar apoio para a participação de nossos atletas no evento "${event.name.toUpperCase()}", que será realizado na data de ${eventDate}, com destino a ${event.city}/${event.uf}.\n\nO local do evento será: ${address}.\n\nNestes termos, solicitamos a vossa atenção para este pedido que visa incentivar a prática esportiva de nossos jovens jogadores.\n\nAbaixo enviamos os dados referentes ao evento para vossa análise:\n\nEvento: ${event.name}\nData: ${eventDate}\nLocal: ${address}\nHorário de Início: ${event.start_time}\n\nFicamos à disposição para maiores esclarecimentos.`
+    });
+    
+    toast.success('Dados do evento importados com sucesso!');
   };
 
   const filteredLetters = letters.filter(l => 
@@ -191,6 +222,36 @@ export default function OfficialLetterGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Form */}
           <form onSubmit={handleSave} className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-[2.5rem] shadow-xl space-y-6 no-print">
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-theme-primary uppercase tracking-widest border-b border-theme-primary/20 pb-2 flex items-center gap-2">
+                <Calendar size={16} /> 
+                Vincular a um Evento (Opcional)
+              </h3>
+              <div className="flex gap-2">
+                <select 
+                  className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                  value={selectedEventId}
+                  onChange={e => setSelectedEventId(e.target.value)}
+                >
+                  <option value="">SELECIONE UM EVENTO CADASTRADO...</option>
+                  {events.map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.name} ({new Date(event.start_date + 'T00:00:00').toLocaleDateString('pt-BR')})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!selectedEventId}
+                  onClick={() => fillWithEventData(selectedEventId)}
+                  className="px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs uppercase transition-all whitespace-nowrap"
+                >
+                  Importar Dados
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 italic">Ao importar, o assunto e o corpo do texto serão preenchidos automaticamente com os dados do evento.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Número</label>
