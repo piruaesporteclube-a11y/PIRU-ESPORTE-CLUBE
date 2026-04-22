@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Settings } from '../types';
-import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt } from 'lucide-react';
+import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
@@ -189,11 +189,11 @@ export default function SettingsComponent() {
             <h3 className="text-lg font-bold uppercase tracking-widest">Redes Sociais</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2">
                 <Instagram size={14} />
-                Instagram (URL ou @)
+                Instagram
               </label>
               <input 
                 type="text" 
@@ -205,8 +205,47 @@ export default function SettingsComponent() {
             </div>
             <div>
               <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2">
+                <Facebook size={14} />
+                Facebook (Link)
+              </label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                placeholder="facebook.com/seuperfil"
+                value={settings.facebook}
+                onChange={e => setSettings({...settings, facebook: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2">
+                <Youtube size={14} />
+                YouTube Canal
+              </label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                placeholder="Canal do YouTube"
+                value={settings.youtube}
+                onChange={e => setSettings({...settings, youtube: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2">
                 <MessageCircle size={14} />
-                WhatsApp (Número)
+                TikTok
+              </label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                placeholder="@perfil"
+                value={settings.tiktok}
+                onChange={e => setSettings({...settings, tiktok: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2">
+                <MessageCircle size={14} />
+                WhatsApp Principal
               </label>
               <input 
                 type="text" 
@@ -215,6 +254,135 @@ export default function SettingsComponent() {
                 value={settings.whatsapp}
                 onChange={e => setSettings({...settings, whatsapp: e.target.value})}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Institutional Profile & Board */}
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
+          <div className="flex items-center gap-3 text-theme-primary mb-6">
+            <Building2 size={24} />
+            <h3 className="text-lg font-bold uppercase tracking-widest">Base de Registro & Diretoria</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-zinc-800">
+            {/* Roles */}
+            <div className="space-y-6">
+              <h4 className="text-sm font-black text-white uppercase italic tracking-tighter">Cargos da Escolinha</h4>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Presidente</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nome do Presidente"
+                    value={settings.president || ''}
+                    onChange={e => setSettings({...settings, president: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Diretor Técnico</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nome do Diretor Técnico"
+                    value={settings.technicalDirector || ''}
+                    onChange={e => setSettings({...settings, technicalDirector: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Auxiliar Técnico</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nome do Auxiliar"
+                    value={settings.auxiliaryDirector || ''}
+                    onChange={e => setSettings({...settings, auxiliaryDirector: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Responsável Médico</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nome do Médico/Fisio"
+                    value={settings.medicalOfficial || ''}
+                    onChange={e => setSettings({...settings, medicalOfficial: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Board & Council */}
+            <div className="space-y-6">
+              <h4 className="text-sm font-black text-white uppercase italic tracking-tighter">Corpo Administrativo</h4>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Diretoria Executiva</label>
+                  <textarea 
+                    rows={3}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nomes da diretoria..."
+                    value={settings.boardMembers || ''}
+                    onChange={e => setSettings({...settings, boardMembers: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Conselheiros</label>
+                  <textarea 
+                    rows={3}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nomes dos conselheiros..."
+                    value={settings.councilors || ''}
+                    onChange={e => setSettings({...settings, councilors: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h4 className="text-sm font-black text-white uppercase italic tracking-tighter">Informações de Contato Oficiais</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2 px-1">
+                  <MapPin size={14} />
+                  Endereço da Sede
+                </label>
+                <input 
+                  type="text" 
+                  className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  placeholder="Rua, Número, Bairro, Cidade - UF"
+                  value={settings.address || ''}
+                  onChange={e => setSettings({...settings, address: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2 px-1">
+                  <Phone size={14} />
+                  Telefone Fixo / Comercial
+                </label>
+                <input 
+                  type="text" 
+                  className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  placeholder="(00) 0000-0000"
+                  value={settings.phone || ''}
+                  onChange={e => setSettings({...settings, phone: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2 px-1">
+                  <Mail size={14} />
+                  E-mail Oficial
+                </label>
+                <input 
+                  type="email" 
+                  className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 border-theme-primary/20"
+                  placeholder="contato@clube.com"
+                  value={settings.email || ''}
+                  onChange={e => setSettings({...settings, email: e.target.value})}
+                />
+              </div>
             </div>
           </div>
         </div>

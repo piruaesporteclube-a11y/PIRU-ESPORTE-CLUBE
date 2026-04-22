@@ -128,6 +128,19 @@ export type Settings = {
   instagram: string;
   whatsapp: string;
   schoolCrest: string;
+  // Institutional/Registration Base
+  president?: string;
+  technicalDirector?: string;
+  auxiliaryDirector?: string;
+  medicalOfficial?: string;
+  boardMembers?: string;
+  councilors?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  facebook?: string;
+  youtube?: string;
+  tiktok?: string;
 };
 
 export type User = {

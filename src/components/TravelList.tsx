@@ -40,6 +40,8 @@ export default function TravelList() {
   const [newCompanion, setNewCompanion] = useState({ name: '', doc: '', whatsapp: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [responsibleWhatsApp, setResponsibleWhatsApp] = useState('');
+  const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
+  const [directorName, setDirectorName] = useState(settings?.president || '');
 
   const loadAthletes = async () => {
     try {
@@ -128,6 +130,8 @@ export default function TravelList() {
       const event = events.find(e => e.id === eventId);
       if (event) {
         setResponsibleWhatsApp(event.responsible_phone || '');
+        setDelegationResponsible(settings?.technicalDirector || '');
+        setDirectorName(settings?.president || '');
       }
 
       // Get Companions
@@ -386,6 +390,29 @@ export default function TravelList() {
               >
                 Salvar
               </button>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Resp. pela Delegação</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold"
+                placeholder="Nome do responsável"
+                value={delegationResponsible}
+                onChange={e => setDelegationResponsible(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Diretor(a) Executivo(a)</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold"
+                placeholder="Nome do diretor"
+                value={directorName}
+                onChange={e => setDirectorName(e.target.value)}
+              />
             </div>
           </div>
 
@@ -819,18 +846,26 @@ export default function TravelList() {
               {/* Signature Footer */}
               <div className="mt-24 grid grid-cols-2 gap-12 max-w-4xl mx-auto">
                 <div className="text-center pt-8 border-t-2 border-black">
-                  <p className="font-black uppercase text-xs leading-none mb-1">Responsável pela Delegação</p>
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Assinatura / Carimbo</p>
+                  <p className="font-bold uppercase text-[11px] mb-2">{delegationResponsible || '_________________________________'}</p>
+                  <p className="font-black uppercase text-[10px] leading-none mb-1">Responsável pela Delegação</p>
+                  <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">{settings?.schoolName}</p>
                 </div>
                 <div className="text-center pt-8 border-t-2 border-black">
-                  <p className="font-black uppercase text-xs leading-none mb-1">Diretoria Executiva</p>
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Assinatura / Carimbo</p>
+                  <p className="font-bold uppercase text-[11px] mb-2">{directorName || '_________________________________'}</p>
+                  <p className="font-black uppercase text-[10px] leading-none mb-1">Diretoria Executiva</p>
+                  <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">{settings?.schoolName}</p>
                 </div>
               </div>
 
               {/* Print Footer */}
-              <div className="mt-20 border-t border-zinc-100 pt-8 text-center hidden print:block">
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.3em]">Documento Oficial - Piruá Esporte Clube</p>
+              <div className="mt-20 border-t border-zinc-100 pt-8 text-center">
+                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
+                  Documento Oficial - {settings?.schoolName}
+                </p>
+                {settings?.address && (
+                  <p className="text-[8px] text-zinc-400 uppercase font-medium">{settings.address} • {settings.phone} • {settings.email}</p>
+                )}
+                <p className="text-[7px] text-zinc-300 font-bold uppercase mt-2 italic">© {new Date().getFullYear()} Desenvolvido pela Piruá Esporte Clube</p>
               </div>
             </div>
             {/* PRINTABLE AREA END */}

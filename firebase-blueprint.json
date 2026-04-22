@@ -108,11 +108,24 @@
       "description": "Settings data model",
       "type": "object",
       "properties": {
+        "schoolName": { "type": "string" },
         "primaryColor": { "type": "string" },
         "secondaryColor": { "type": "string" },
         "instagram": { "type": "string" },
         "whatsapp": { "type": "string" },
-        "schoolCrest": { "type": "string" }
+        "schoolCrest": { "type": "string" },
+        "president": { "type": "string" },
+        "technicalDirector": { "type": "string" },
+        "auxiliaryDirector": { "type": "string" },
+        "medicalOfficial": { "type": "string" },
+        "boardMembers": { "type": "string" },
+        "councilors": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "facebook": { "type": "string" },
+        "youtube": { "type": "string" },
+        "tiktok": { "type": "string" }
       }
     },
     "User": {
