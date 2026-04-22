@@ -15,9 +15,10 @@ interface EventsManagementProps {
   athletes?: Athlete[];
   events?: Event[];
   role?: 'admin' | 'student';
+  initialOpenLineupEvent?: Event;
 }
 
-export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin' }: EventsManagementProps) {
+export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin', initialOpenLineupEvent }: EventsManagementProps) {
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const isAdmin = role === 'admin';
@@ -27,6 +28,12 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  useEffect(() => {
+    if (initialOpenLineupEvent) {
+      handleOpenLineup(initialOpenLineupEvent);
+    }
+  }, [initialOpenLineupEvent]);
   const [activeLineupIndex, setActiveLineupIndex] = useState(0);
   const [activeAttendanceEvent, setActiveAttendanceEvent] = useState<Event | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);

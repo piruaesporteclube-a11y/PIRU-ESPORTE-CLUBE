@@ -76,21 +76,37 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const handleDownload = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    const loadingToast = toast.loading('Gerando seu encarte... Isso pode levar alguns segundos.');
+    const loadingToast = toast.loading('Gerando seu encarte de alto impacto... Isso pode levar alguns segundos.');
     
-    // helper to ensure all images in an element are loaded with a timeout
-    const waitForImages = async (el: HTMLElement) => {
+    // helper to ensure all images in an element are loaded and converted to avoids CORS taint
+    const processImages = async (el: HTMLElement) => {
       const imgs = Array.from(el.querySelectorAll('img'));
-      const promises = imgs.map(img => {
+      const promises = imgs.map(async (img) => {
+        try {
+          if (img.src && !img.src.startsWith('data:') && !img.src.includes('blob:')) {
+            // Attempt to proxy internal/external images to base64 to avoid canvas tainting
+            const response = await fetch(img.src, { mode: 'cors' }).catch(() => null);
+            if (response && response.ok) {
+              const blob = await response.blob();
+              await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  img.src = reader.result as string;
+                  resolve(null);
+                };
+                reader.readAsDataURL(blob);
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed specifically processing image: ${img.src}`, e);
+        }
+        
         if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
         return new Promise((resolve) => {
-          const timer = setTimeout(() => {
-            console.warn(`Image load timeout: ${img.src}`);
-            resolve(null);
-          }, 5000); // 5s timeout per image
-          
-          img.onload = () => { clearTimeout(timer); resolve(null); };
-          img.onerror = () => { clearTimeout(timer); resolve(null); };
+          const timeout = setTimeout(() => resolve(null), 8000);
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
           
           // Re-trigger load if necessary and ensure crossOrigin
           const currentSrc = img.src;
@@ -106,25 +122,24 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       // Ensure all images are loaded and fonts are ready
       await Promise.all([
         document.fonts.ready,
-        waitForImages(flyerRef.current)
+        processImages(flyerRef.current)
       ]);
       
-      // Small reveal delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Reveal delay to allow rendering to settle
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: false,
-        scale: 2, // High quality, using aggressive cleaning in onclone
+        allowTaint: true, // Allow tainted canvas since we try to avoid it anyway with base64
+        scale: 3, // High quality for social media sharing
         backgroundColor: '#000000',
-        logging: true,
+        logging: false,
         width: 360,
         height: 640,
-        removeContainer: true,
         onclone: (clonedDoc) => {
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
-            // Absolute positioning for capture context
+            // Context settings for capture
             flyer.style.transform = 'none';
             flyer.style.position = 'fixed';
             flyer.style.top = '0';
@@ -133,6 +148,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             flyer.style.padding = '0';
             flyer.style.width = '360px';
             flyer.style.height = '640px';
+            flyer.style.borderRadius = '0';
             
             // html2canvas doesn't support backdrop-blur or modern color spaces well
             const allElements = flyer.querySelectorAll('*');
@@ -174,27 +190,20 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                  style.backgroundImage = 'none';
               }
               
-              if (className.includes('bg-theme-primary/80')) {
-                style.backgroundColor = primary + 'CC';
-              } else if (className.includes('bg-theme-primary/20')) {
-                style.backgroundColor = primary + '33';
-              } else if (className.includes('bg-theme-primary/10')) {
-                style.backgroundColor = primary + '1A';
-              } else if (className.includes('bg-theme-primary')) {
+              if (className.includes('bg-theme-primary')) {
                 style.backgroundColor = primary;
+              }
+              if (className.includes('text-theme-primary')) {
+                style.color = primary;
+              }
+              if (className.includes('border-theme-primary')) {
+                style.borderColor = primary;
               }
 
               if (className.includes('bg-black/40')) {
                 style.backgroundColor = 'rgba(0,0,0,0.4)';
               } else if (className.includes('bg-black/60')) {
                 style.backgroundColor = 'rgba(0,0,0,0.6)';
-              }
-
-              if (className.includes('text-theme-primary')) {
-                style.color = primary;
-              }
-              if (className.includes('border-theme-primary')) {
-                style.borderColor = primary;
               }
             });
 
@@ -209,9 +218,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         }
       });
       
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `AGENDA_TREINO_${date}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.href = imgData;
       link.click();
       
       toast.dismiss(loadingToast);
@@ -219,7 +229,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     } catch (error) {
       console.error('Error generating flyer:', error);
       toast.dismiss(loadingToast);
-      toast.error('Ocorreu um erro ao gerar a imagem. Verifique suas conexões e tente novamente.');
+      toast.error('Ocorreu um erro ao gerar a imagem. Tente usar uma foto diferente ou recarregar a página.');
     } finally {
       setIsExporting(false);
     }
