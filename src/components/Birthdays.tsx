@@ -581,11 +581,13 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 
                 {/* TOP: Parabéns & Crest */}
                 <div className="w-full flex flex-col items-center gap-2 relative z-30">
-                  <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[4px_4px_0_rgba(0,0,0,1)] text-center w-full">
-                    PARABÉNS
-                  </h1>
+                  <div className="bg-black/90 border-4 border-theme-primary px-10 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
+                    <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
+                      PARABÉNS
+                    </h1>
+                  </div>
                   
-                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center bg-transparent">
+                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center bg-transparent mt-2">
                     {settings.schoolCrest ? (
                       <img 
                         src={settings.schoolCrest} 
