@@ -98,100 +98,40 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     try {
       setIsGenerating(true);
       
-      const processImages = async (el: HTMLElement) => {
-        const imgs = Array.from(el.querySelectorAll('img'));
-        const promises = imgs.map(async (img) => {
-          try {
-            if (img.src && !img.src.startsWith('data:') && !img.src.includes('blob:')) {
-              const response = await fetch(img.src, { mode: 'cors' }).catch(() => null);
-              if (response && response.ok) {
-                const blob = await response.blob();
-                await new Promise((resolve) => {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    img.src = reader.result as string;
-                    resolve(null);
-                  };
-                  reader.readAsDataURL(blob);
-                });
-              }
-            }
-          } catch (e) {
-            console.warn(`Failed processing image: ${img.src}`, e);
-          }
-          
-          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
-          return new Promise((resolve) => {
-            const timeout = setTimeout(() => resolve(null), 5000);
-            img.onload = () => { clearTimeout(timeout); resolve(null); };
-            img.onerror = () => { clearTimeout(timeout); resolve(null); };
-          });
-        });
-        await Promise.all(promises);
-      };
-
+      // Wait for fonts and a safe buffer
       await Promise.all([
         document.fonts.ready,
-        processImages(element),
-        new Promise(resolve => setTimeout(resolve, 500))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
 
       const canvas = await html2canvas(element, {
         useCORS: true,
         scale: 3, 
         backgroundColor: '#000000',
-        logging: false,
-        allowTaint: false,
+        logging: true,
         width: 360,
         height: 640,
         onclone: (clonedDoc) => {
-          // Fix for oklch error in html2canvas (unsupported color function)
-          // We wrap in try-catch and check for SecurityError when accessing rules
-          try {
-            Array.from(clonedDoc.styleSheets).forEach(sheet => {
-              try {
-                const rules = sheet.cssRules || sheet.rules;
-                if (!rules) return;
-                for (let j = rules.length - 1; j >= 0; j--) {
-                  if (rules[j] && rules[j].cssText && rules[j].cssText.includes('oklch')) {
-                    sheet.deleteRule(j);
-                  }
-                }
-              } catch (e) {
-                // This happens for cross-origin stylesheets (SecurityError)
-                console.warn('Could not access rules for stylesheet:', e);
-              }
-            });
-          } catch (e) {
-            console.warn('Could not sanitize stylesheets for oklch:', e);
-          }
+          const card = clonedDoc.getElementById('birthday-card');
+          if (card) {
+            const s = card.style;
+            s.position = 'fixed';
+            s.top = '0';
+            s.left = '0';
+            s.width = '360px';
+            s.height = '640px';
+            s.borderRadius = '0';
+            s.borderWidth = '0';
+            s.margin = '0';
+            s.transform = 'none';
 
-          const clonedElement = clonedDoc.getElementById('birthday-card');
-          if (clonedElement) {
-            // Force 9:16 aspect ratio for capture and reset positioning
-            (clonedElement as HTMLElement).style.position = 'fixed';
-            (clonedElement as HTMLElement).style.top = '0';
-            (clonedElement as HTMLElement).style.left = '0';
-            (clonedElement as HTMLElement).style.width = '360px';
-            (clonedElement as HTMLElement).style.height = '640px';
-            (clonedElement as HTMLElement).style.borderRadius = '0';
-            (clonedElement as HTMLElement).style.borderWidth = '0';
-            (clonedElement as HTMLElement).style.margin = '0';
-            
-            // Further protect the cloned element by using explicit hex colors for problematic areas
-            (clonedElement as HTMLElement).style.backgroundColor = '#000000';
-            
-            // Remove animations and complex effects that break html2canvas
-            const animatedElements = clonedElement.querySelectorAll('.animate-spin-slow, .animate-spin-slow-reverse, .animate-pulse');
-            animatedElements.forEach(el => {
-              (el as HTMLElement).style.animation = 'none';
-              (el as HTMLElement).style.transition = 'none';
-              (el as HTMLElement).style.transform = 'none';
+            // Strip problematic styles from all children
+            card.querySelectorAll('*').forEach((el: any) => {
+              el.style.backdropFilter = 'none';
+              el.style.webkitBackdropFilter = 'none';
+              el.style.transition = 'none';
+              el.style.animation = 'none';
             });
-            
-            // Remove the scanline effect which uses complex gradients that often fail
-            const scanline = clonedDoc.querySelector('.bg-\\[linear-gradient');
-            if (scanline) scanline.remove();
           }
         }
       });

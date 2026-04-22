@@ -76,157 +76,43 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const handleDownload = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    const loadingToast = toast.loading('Gerando seu encarte de alto impacto... Isso pode levar alguns segundos.');
+    const loadingToast = toast.loading('Gerando seu encarte... Aguarde um momento.');
     
-    // helper to ensure all images in an element are loaded and converted to avoids CORS taint
-    const processImages = async (el: HTMLElement) => {
-      const imgs = Array.from(el.querySelectorAll('img'));
-      const promises = imgs.map(async (img) => {
-        try {
-          if (img.src && !img.src.startsWith('data:') && !img.src.includes('blob:')) {
-            // Attempt to proxy internal/external images to base64 to avoid canvas tainting
-            const response = await fetch(img.src, { mode: 'cors' }).catch(() => null);
-            if (response && response.ok) {
-              const blob = await response.blob();
-              await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  img.src = reader.result as string;
-                  resolve(null);
-                };
-                reader.readAsDataURL(blob);
-              });
-            }
-          }
-        } catch (e) {
-          console.warn(`Failed specifically processing image: ${img.src}`, e);
-        }
-        
-        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
-        return new Promise((resolve) => {
-          const timeout = setTimeout(() => resolve(null), 8000);
-          img.onload = () => { clearTimeout(timeout); resolve(null); };
-          img.onerror = () => { clearTimeout(timeout); resolve(null); };
-          
-          // Re-trigger load if necessary and ensure crossOrigin
-          const currentSrc = img.src;
-          img.src = "";
-          img.setAttribute('crossOrigin', 'anonymous');
-          img.src = currentSrc;
-        });
-      });
-      await Promise.all(promises);
-    };
-
     try {
       // Ensure all images are loaded and fonts are ready
       await Promise.all([
         document.fonts.ready,
-        processImages(flyerRef.current)
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
-      
-      // Reveal delay to allow rendering to settle
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: false, 
         scale: 3, 
         backgroundColor: '#000000',
-        logging: false,
+        logging: true,
         width: 360,
         height: 640,
         onclone: (clonedDoc) => {
-          // Fix for oklch error in html2canvas
-          try {
-            Array.from(clonedDoc.styleSheets).forEach(sheet => {
-              try {
-                const rules = sheet.cssRules || sheet.rules;
-                if (!rules) return;
-                for (let j = rules.length - 1; j >= 0; j--) {
-                  if (rules[j] && rules[j].cssText && rules[j].cssText.includes('oklch')) {
-                    sheet.deleteRule(j);
-                  }
-                }
-              } catch (e) {
-                console.warn('Could not access rules for stylesheet:', e);
-              }
-            });
-          } catch (e) {
-            console.warn('Could not sanitize stylesheets for oklch:', e);
-          }
-
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
-            // Context settings for capture
-            flyer.style.transform = 'none';
-            flyer.style.position = 'fixed';
-            flyer.style.top = '0';
-            flyer.style.left = '0';
-            flyer.style.margin = '0';
-            flyer.style.padding = '0';
-            flyer.style.width = '360px';
-            flyer.style.height = '640px';
-            flyer.style.borderRadius = '0';
+            const s = flyer.style;
+            s.transform = 'none';
+            s.position = 'fixed';
+            s.top = '0';
+            s.left = '0';
+            s.margin = '0';
+            s.padding = '0';
+            s.width = '360px';
+            s.height = '640px';
+            s.borderRadius = '0';
             
-            // html2canvas doesn't support backdrop-blur or modern color spaces well
-            const allElements = flyer.querySelectorAll('*');
-            allElements.forEach((el) => {
-              const htmlEl = el as HTMLElement;
-              const className = typeof htmlEl.className === 'string' 
-                ? htmlEl.className 
-                : (htmlEl.className as any)?.baseVal || '';
-              const style = htmlEl.style as any;
-              
-              // Strip modern CSS filters and blend modes that break html2canvas
-              style.backdropFilter = 'none';
-              style.webkitBackdropFilter = 'none';
-              style.filter = 'none';
-              style.mixBlendMode = 'normal';
-              style.transition = 'none';
-              style.animation = 'none';
-
-              const primary = settings.primaryColor || '#EAB308';
-              const isActiveCarbon = selectedBackgrounds.includes('carbon');
-
-              // Detect and fix problematic background images
-              const computedStyle = window.getComputedStyle(htmlEl);
-              const bgImg = computedStyle.backgroundImage;
-              if (bgImg && bgImg !== 'none') {
-                if (bgImg.includes('gradient') || bgImg.includes('transparenttextures.com')) {
-                  style.backgroundImage = 'none';
-                  // Fallback for carbon if it's the pattern layer
-                  if (className.includes('bg-[url(')) {
-                    style.backgroundColor = 'rgba(0,0,0,0.1)';
-                  }
-                }
-              }
-
-              // Force carbon color if visible
-              if (isActiveCarbon && (className.includes('z-[2]') || htmlEl.getAttribute('data-bg-layer') === 'carbon')) {
-                 style.backgroundColor = carbonColor;
-                 style.opacity = '1';
-                 style.backgroundImage = 'none';
-              }
-              
-              if (className.includes('bg-theme-primary')) {
-                style.backgroundColor = primary;
-              }
-              if (className.includes('text-theme-primary')) {
-                style.color = primary;
-              }
-              if (className.includes('border-theme-primary')) {
-                style.borderColor = primary;
-              }
-
-              if (className.includes('bg-black/40')) {
-                style.backgroundColor = 'rgba(0,0,0,0.4)';
-              } else if (className.includes('bg-black/60')) {
-                style.backgroundColor = 'rgba(0,0,0,0.6)';
-              }
+            flyer.querySelectorAll('*').forEach((el: any) => {
+              el.style.backdropFilter = 'none';
+              el.style.webkitBackdropFilter = 'none';
+              el.style.transition = 'none';
+              el.style.animation = 'none';
             });
 
-            // Remove any internal scrolling during capture
             const scrollable = flyer.querySelector('.flyer-scrollable') as HTMLElement;
             if (scrollable) {
               scrollable.style.overflow = 'visible';
@@ -248,7 +134,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     } catch (error) {
       console.error('Error generating flyer:', error);
       toast.dismiss(loadingToast);
-      toast.error('Ocorreu um erro ao gerar a imagem. Tente usar uma foto diferente ou recarregar a página.');
+      toast.error('Ocorreu um erro ao gerar a imagem. Tente novamente.');
     } finally {
       setIsExporting(false);
     }
