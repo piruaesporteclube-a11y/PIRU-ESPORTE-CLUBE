@@ -519,11 +519,68 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 <div className="absolute inset-0 bg-gradient-to-b from-theme-primary/10 via-transparent to-theme-primary/10 z-10" />
               </div>
 
-              {/* Dynamic Content Overlay - Centered Design */}
+              {/* Grid of 4 Photos - 2 Top, 2 Bottom - Positioned behind content (z-10) */}
+              <div className="absolute inset-0 z-10 p-4 flex flex-col justify-between pointer-events-none">
+                <div className="flex justify-between w-full">
+                  <div className={cn(
+                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
+                    !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                  )}>
+                    {overlayImages[0] ? (
+                      <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Plus size={20} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className={cn(
+                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
+                    !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                  )}>
+                    {overlayImages[1] ? (
+                      <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Plus size={20} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between w-full mt-auto">
+                  <div className={cn(
+                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
+                    !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                  )}>
+                    {overlayImages[2] ? (
+                      <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Plus size={20} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className={cn(
+                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
+                    !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                  )}>
+                    {overlayImages[3] ? (
+                      <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Plus size={20} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Content Overlay - Centered Design - Higher Z-Index (z-20) */}
               <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-8 px-6">
                 
                 {/* TOP: Parabéns & Crest */}
-                <div className="w-full flex flex-col items-center gap-2">
+                <div className="w-full flex flex-col items-center gap-2 relative z-30">
                   <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[4px_4px_0_rgba(0,0,0,1)] text-center w-full">
                     PARABÉNS
                   </h1>
@@ -548,63 +605,6 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                     <h2 className="font-black text-xl md:text-2xl italic tracking-tighter uppercase skew-x-[12deg]">
                       FELIZ ANIVERSÁRIO!
                     </h2>
-                  </div>
-                </div>
-
-                {/* Grid of 4 Photos - 2 Top, 2 Bottom */}
-                <div className="absolute inset-0 z-5 p-4 flex flex-col justify-between">
-                  <div className="flex justify-between w-full">
-                    <div className={cn(
-                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                    )}>
-                      {overlayImages[0] ? (
-                        <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
-                    </div>
-                    <div className={cn(
-                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                    )}>
-                      {overlayImages[1] ? (
-                        <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between w-full mt-auto">
-                    <div className={cn(
-                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                    )}>
-                      {overlayImages[2] ? (
-                        <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
-                    </div>
-                    <div className={cn(
-                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                    )}>
-                      {overlayImages[3] ? (
-                        <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
 
@@ -640,21 +640,20 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
                 {/* BOTTOM: Message */}
                 <div className="w-full flex flex-col items-center gap-4 mt-16 pb-4">
-                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs">
+                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs relative z-30">
                     <p className="text-white font-black leading-tight text-[11px] md:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
                       "A escolinha <span className="text-theme-primary">Piruá Esporte Clube</span> te deseja um feliz aniversário! que Deus ilumine sempre sua vida, muita paz e saúde."
                     </p>
                   </div>
                   
                   {/* Soccer ball icon accent */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 relative z-30">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="w-2.5 h-2.5 rounded-full bg-theme-primary shadow-[0_0_10px_rgba(234,179,8,0.8)]"></div>
                     ))}
                   </div>
                 </div>
               </div>
-
               {/* Modern Graphic Elements */}
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 overflow-hidden opacity-20">
                 <div className="absolute top-[20%] -left-10 w-40 h-40 border-8 border-white rounded-full opacity-10 transform -rotate-12 translate-x-[-20%] translate-y-[-20%]" />
