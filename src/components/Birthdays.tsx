@@ -98,26 +98,52 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     try {
       setIsGenerating(true);
       
-      // Small delay to ensure any modal transitions are finished
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Ensure all images are loaded before capturing
-      const images = element.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+      const processImages = async (el: HTMLElement) => {
+        const imgs = Array.from(el.querySelectorAll('img'));
+        const promises = imgs.map(async (img) => {
+          try {
+            if (img.src && !img.src.startsWith('data:') && !img.src.includes('blob:')) {
+              const response = await fetch(img.src, { mode: 'cors' }).catch(() => null);
+              if (response && response.ok) {
+                const blob = await response.blob();
+                await new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    img.src = reader.result as string;
+                    resolve(null);
+                  };
+                  reader.readAsDataURL(blob);
+                });
+              }
+            }
+          } catch (e) {
+            console.warn(`Failed processing image: ${img.src}`, e);
+          }
+          
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            const timeout = setTimeout(() => resolve(null), 5000);
+            img.onload = () => { clearTimeout(timeout); resolve(null); };
+            img.onerror = () => { clearTimeout(timeout); resolve(null); };
+          });
         });
-      }));
+        await Promise.all(promises);
+      };
+
+      await Promise.all([
+        document.fonts.ready,
+        processImages(element),
+        new Promise(resolve => setTimeout(resolve, 500))
+      ]);
 
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 2,
+        scale: 3, 
         backgroundColor: '#000000',
         logging: false,
         allowTaint: false,
-        windowWidth: 1200,
+        width: 360,
+        height: 640,
         onclone: (clonedDoc) => {
           // Fix for oklch error in html2canvas (unsupported color function)
           // We wrap in try-catch and check for SecurityError when accessing rules
@@ -142,6 +168,16 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
           const clonedElement = clonedDoc.getElementById('birthday-card');
           if (clonedElement) {
+            // Force 9:16 aspect ratio for capture and reset positioning
+            (clonedElement as HTMLElement).style.position = 'fixed';
+            (clonedElement as HTMLElement).style.top = '0';
+            (clonedElement as HTMLElement).style.left = '0';
+            (clonedElement as HTMLElement).style.width = '360px';
+            (clonedElement as HTMLElement).style.height = '640px';
+            (clonedElement as HTMLElement).style.borderRadius = '0';
+            (clonedElement as HTMLElement).style.borderWidth = '0';
+            (clonedElement as HTMLElement).style.margin = '0';
+            
             // Further protect the cloned element by using explicit hex colors for problematic areas
             (clonedElement as HTMLElement).style.backgroundColor = '#000000';
             
@@ -438,7 +474,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             {/* Instagram Style Birthday Card - Modern Sports Poster */}
             <div 
               id="birthday-card" 
-              className="w-[340px] h-[600px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-xl border-4 border-theme-primary" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-xl border-4 border-theme-primary" 
             >
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">

@@ -130,8 +130,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: true, 
-        scale: 2, // Scale 2 is safer for memory
+        allowTaint: false, 
+        scale: 3, 
         backgroundColor: '#000000',
         logging: false,
         width: 360,
