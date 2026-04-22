@@ -21,7 +21,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
   
   const [formData, setFormData] = useState({
     name: '',
-    doc: ''
+    doc: '',
+    whatsapp: ''
   });
 
   useEffect(() => {
@@ -58,7 +59,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
       await api.saveCompanion({
         event_id: eventId,
         name: formData.name.toUpperCase(),
-        doc: formData.doc.replace(/\D/g, '')
+        doc: formData.doc.replace(/\D/g, ''),
+        whatsapp: formData.whatsapp.replace(/\D/g, '')
       });
       setSubmitted(true);
       toast.success("Cadastro realizado com sucesso!");
@@ -69,6 +71,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
       setIsSubmitting(false);
     }
   };
+
+  const isLocked = event ? new Date().toISOString().split('T')[0] > event.start_date : false;
 
   if (loading) {
     return (
@@ -88,6 +92,18 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
           <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Evento não encontrado</h2>
           <p className="text-zinc-500">O link acessado é inválido ou o evento não está mais disponível.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="bg-zinc-900 border border-amber-500/30 p-8 rounded-[2.5rem] text-center max-w-md w-full">
+          <AlertCircle size={48} className="text-amber-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Inscrições Encerradas</h2>
+          <p className="text-zinc-500">O prazo para cadastro de acompanhantes para o evento <span className="text-theme-primary font-bold">{event.name}</span> já expirou.</p>
         </div>
       </div>
     );
@@ -163,6 +179,18 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                   className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium"
                   value={formData.doc}
                   onChange={e => setFormData({...formData, doc: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">WhatsApp de Contato</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="(00) 00000-0000"
+                  className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium"
+                  value={formData.whatsapp}
+                  onChange={e => setFormData({...formData, whatsapp: e.target.value})}
                 />
               </div>
             </div>

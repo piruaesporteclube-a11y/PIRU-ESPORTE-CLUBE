@@ -60,7 +60,8 @@
         "start_date": { "type": "string" },
         "end_date": { "type": "string" },
         "start_time": { "type": "string" },
-        "end_time": { "type": "string" }
+        "end_time": { "type": "string" },
+        "responsible_phone": { "type": "string" }
       },
       "required": ["id", "name", "start_date", "end_date"]
     },
@@ -246,6 +247,8 @@
         "event_id": { "type": "string" },
         "name": { "type": "string" },
         "doc": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "presence": { "type": "string", "enum": ["Presente", "Ausente"] },
         "created_at": { "type": "string" }
       },
       "required": ["id", "event_id", "name", "doc"]

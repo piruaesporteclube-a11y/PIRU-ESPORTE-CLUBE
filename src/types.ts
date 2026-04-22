@@ -25,6 +25,7 @@ export type Athlete = {
   position?: string;
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
+  presence?: "Presente" | "Ausente"; // New field
   created_at?: any;
   updated_at?: any;
 };
@@ -42,6 +43,7 @@ export type Professor = {
   uf: string;
   photo: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
+  presence?: "Presente" | "Ausente"; // New field
   created_at?: any;
   updated_at?: any;
 };
@@ -58,6 +60,7 @@ export type Event = {
   end_date: string;
   start_time: string;
   end_time: string;
+  responsible_phone?: string; // New field
   created_at?: any;
   updated_at?: any;
 };
@@ -163,6 +166,7 @@ export type EventLineup = {
   person_id: string;
   type: 'athlete' | 'staff';
   confirmation: "Pendente" | "Confirmado" | "Recusado";
+  presence?: "Presente" | "Ausente"; // New field
 };
 
 export type Championship = {
@@ -256,6 +260,8 @@ export interface Companion {
   event_id: string;
   name: string;
   doc: string;
+  whatsapp?: string; // New field
+  presence?: "Presente" | "Ausente"; // New field
   created_at?: any;
 }
 

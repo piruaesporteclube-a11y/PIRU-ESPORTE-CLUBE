@@ -16,15 +16,20 @@ import {
   Search,
   UserPlus,
   ChevronRight,
-  Edit
+  Edit,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EventsManagement from './EventsManagement';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 export default function TravelList() {
   const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [lineups, setLineups] = useState<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]>([]);
+  const [selectedLineupIndexes, setSelectedLineupIndexes] = useState<number[]>([0]);
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -32,14 +37,9 @@ export default function TravelList() {
   const [loading, setLoading] = useState(false);
   const [isAddingCompanion, setIsAddingCompanion] = useState(false);
   const [isEditingLineup, setIsEditingLineup] = useState(false);
-  const [newCompanion, setNewCompanion] = useState({ name: '', doc: '' });
+  const [newCompanion, setNewCompanion] = useState({ name: '', doc: '', whatsapp: '' });
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    loadEvents();
-    loadAthletes();
-    loadProfessors();
-  }, []);
+  const [responsibleWhatsApp, setResponsibleWhatsApp] = useState('');
 
   const loadAthletes = async () => {
     try {
@@ -60,10 +60,43 @@ export default function TravelList() {
   };
 
   useEffect(() => {
+    loadEvents();
+    loadAthletes();
+    loadProfessors();
+  }, []);
+
+  useEffect(() => {
     if (selectedEventId) {
       loadEventData(selectedEventId);
     }
   }, [selectedEventId]);
+
+  useEffect(() => {
+    // Combine selected lineups into one cumulative list
+    const cumulativeAthletes: Athlete[] = [];
+    const cumulativeStaff: Professor[] = [];
+    const processedAthleteIds = new Set<string>();
+    const processedStaffIds = new Set<string>();
+
+    lineups.forEach(l => {
+      if (selectedLineupIndexes.includes(l.lineup_index)) {
+        l.athletes.forEach(a => {
+          if (!processedAthleteIds.has(a.id)) {
+            cumulativeAthletes.push(a);
+            processedAthleteIds.add(a.id);
+          }
+        });
+        l.staff.forEach(s => {
+          if (!processedStaffIds.has(s.id)) {
+            cumulativeStaff.push(s);
+            processedStaffIds.add(s.id);
+          }
+        });
+      }
+    });
+
+    setLineup({ athletes: cumulativeAthletes, staff: cumulativeStaff });
+  }, [lineups, selectedLineupIndexes]);
 
   const loadEvents = async () => {
     try {
@@ -80,9 +113,22 @@ export default function TravelList() {
   const loadEventData = async (eventId: string) => {
     setLoading(true);
     try {
-      // Get Lineup (Athletes and Staff)
-      const lineupData = await api.getLineup(eventId);
-      setLineup(lineupData);
+      // Get All Lineups for the event
+      const allLineups = await api.getAllEventLineups(eventId);
+      setLineups(allLineups);
+      
+      // Default to select all indexes if multiple exist, otherwise just index 0
+      if (allLineups.length > 0) {
+        setSelectedLineupIndexes(allLineups.map(l => l.lineup_index));
+      } else {
+        setSelectedLineupIndexes([0]);
+      }
+
+      // Get Event details for responsible WhatsApp
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        setResponsibleWhatsApp(event.responsible_phone || '');
+      }
 
       // Get Companions
       const compData = await api.getCompanions(eventId);
@@ -94,10 +140,51 @@ export default function TravelList() {
     }
   };
 
+  const handleUpdateLineupPresence = async (personId: string, type: 'athlete' | 'staff', presence: "Presente" | "Ausente", lineupIndex: number) => {
+    try {
+      await api.updateLineupPresence(selectedEventId, personId, type, presence, lineupIndex);
+      // Update local state for immediate feedback
+      setLineups(prev => prev.map(l => {
+        if (l.lineup_index === lineupIndex) {
+          if (type === 'athlete') {
+            return { ...l, athletes: l.athletes.map(a => a.id === personId ? { ...a, presence } : a) };
+          } else {
+            return { ...l, staff: l.staff.map(s => s.id === personId ? { ...s, presence } : s) };
+          }
+        }
+        return l;
+      }));
+    } catch (error) {
+      toast.error("Erro ao atualizar presença");
+    }
+  };
+
+  const handleUpdateCompanionPresence = async (companionId: string, presence: "Presente" | "Ausente") => {
+    try {
+      await api.updateCompanionPresence(companionId, presence);
+      setCompanions(prev => prev.map(c => c.id === companionId ? { ...c, presence } : c));
+    } catch (error) {
+      toast.error("Erro ao atualizar presença");
+    }
+  };
+
+  const handleSaveResponsibleWhatsApp = async () => {
+    if (!selectedEventId) return;
+    try {
+      await api.saveEvent({ ...selectedEvent!, responsible_phone: responsibleWhatsApp });
+      toast.success("Contato do responsável salvo");
+      loadEvents();
+    } catch (error) {
+      toast.error("Erro ao salvar contato");
+    }
+  };
+
   const selectedEvent = events.find(e => e.id === selectedEventId);
 
+  const isLocked = selectedEvent ? new Date().toISOString().split('T')[0] > selectedEvent.start_date : false;
+
   const handleAddCompanion = async () => {
-    if (!newCompanion.name || !newCompanion.doc) {
+    if (!newCompanion.name || !newCompanion.doc || !newCompanion.whatsapp) {
       toast.error("Preencha todos os campos");
       return;
     }
@@ -105,10 +192,11 @@ export default function TravelList() {
       await api.saveCompanion({
         event_id: selectedEventId,
         name: newCompanion.name.toUpperCase(),
-        doc: newCompanion.doc
+        doc: newCompanion.doc,
+        whatsapp: newCompanion.whatsapp.replace(/\D/g, '')
       });
       toast.success("Acompanhante adicionado");
-      setNewCompanion({ name: '', doc: '' });
+      setNewCompanion({ name: '', doc: '', whatsapp: '' });
       setIsAddingCompanion(false);
       loadEventData(selectedEventId);
     } catch (error) {
@@ -160,6 +248,25 @@ export default function TravelList() {
     window.print();
   };
 
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('printable-travel-list');
+    if (!element) return;
+
+    const opt = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: `lista-viagem-${selectedEvent?.name || 'evento'}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+    };
+
+    toast.promise(html2pdf().from(element).set(opt).save(), {
+      loading: 'Gerando PDF...',
+      success: 'PDF gerado com sucesso!',
+      error: 'Erro ao gerar PDF'
+    });
+  };
+
   if (isEditingLineup && selectedEvent) {
     return (
       <div className="space-y-6">
@@ -199,6 +306,13 @@ export default function TravelList() {
 
         <div className="flex flex-wrap items-center gap-3">
           <button 
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-blue-500 transition-all uppercase tracking-widest text-xs"
+          >
+            <FileText size={18} />
+            Gerar PDF
+          </button>
+          <button 
             onClick={handlePrint}
             className="flex items-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs"
           >
@@ -208,8 +322,8 @@ export default function TravelList() {
         </div>
       </section>
 
-      {/* Select Event */}
-      <section className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2.5rem] no-print">
+      {/* Select Event and Lineups */}
+      <section className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2.5rem] no-print space-y-6">
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="flex-1 w-full">
             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Selecionar Evento</label>
@@ -227,25 +341,82 @@ export default function TravelList() {
             </div>
           </div>
           
-          <div className="w-full md:w-auto self-end flex gap-2">
-            <button 
-              onClick={() => setIsEditingLineup(true)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs"
-            >
-              <Edit size={18} />
-              Editar Escalação
-            </button>
-            <button 
-              onClick={() => {
-                const link = getPublicLink();
-                navigator.clipboard.writeText(link);
-                toast.success("Link copiado! Envie para os acompanhantes.");
-              }}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-2xl hover:bg-theme-primary/90 transition-all uppercase tracking-widest text-xs shadow-lg shadow-theme-primary/20"
-            >
-              <Share2 size={18} />
-              Link de Cadastro
-            </button>
+          <div className="flex-1 w-full">
+            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Selecione Múltiplas Escalações (Subs)</label>
+            <div className="flex flex-wrap gap-2 py-2">
+              {lineups.map(l => (
+                <label key={l.lineup_index} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer ${selectedLineupIndexes.includes(l.lineup_index) ? 'bg-theme-primary border-theme-primary text-black' : 'bg-black border-zinc-800 text-zinc-400'}`}>
+                  <input 
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedLineupIndexes.includes(l.lineup_index)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedLineupIndexes([...selectedLineupIndexes, l.lineup_index]);
+                      } else {
+                        setSelectedLineupIndexes(selectedLineupIndexes.filter(i => i !== l.lineup_index));
+                      }
+                    }}
+                  />
+                  <span className="text-[10px] font-black uppercase tracking-widest">{l.category || `SUB ${l.lineup_index}`}</span>
+                </label>
+              ))}
+              {lineups.length === 0 && (
+                <p className="text-zinc-600 text-[10px] font-bold italic uppercase">Nenhuma escalação criada para este evento</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-end gap-4 border-t border-zinc-800 pt-6">
+          <div className="flex-1 w-full">
+            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">WhatsApp do Responsável</label>
+            <div className="flex gap-2">
+              <input 
+                type="text"
+                placeholder="(00) 00000-0000"
+                className="flex-1 px-4 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold"
+                value={responsibleWhatsApp}
+                onChange={e => setResponsibleWhatsApp(e.target.value)}
+              />
+              <button 
+                onClick={handleSaveResponsibleWhatsApp}
+                disabled={isLocked}
+                className="px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl hover:bg-zinc-700 transition-all uppercase text-[10px] tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+
+          <div className="w-full md:w-auto flex gap-2">
+            {!isLocked ? (
+              <>
+                <button 
+                  onClick={() => setIsEditingLineup(true)}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs"
+                >
+                  <Edit size={14} />
+                  Editar Escalação
+                </button>
+                <button 
+                  onClick={() => {
+                    const link = getPublicLink();
+                    navigator.clipboard.writeText(link);
+                    toast.success("Link copiado! Envie para os acompanhantes.");
+                  }}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-2xl hover:bg-theme-primary/90 transition-all uppercase tracking-widest text-xs shadow-lg shadow-theme-primary/20"
+                >
+                  <Share2 size={14} />
+                  Link Cadastro
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 px-6 py-4 bg-amber-500/10 text-amber-500 font-black rounded-2xl border border-amber-500/20 uppercase tracking-widest text-[10px]">
+                <ClipboardList size={14} />
+                Lista Bloqueada para Edição (Evento Encerrado)
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -287,7 +458,7 @@ export default function TravelList() {
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Evento / Competição</p>
                     <h3 className="text-xl font-black uppercase italic leading-none">{selectedEvent.name}</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Destino</p>
                       <p className="font-bold uppercase text-xs">{selectedEvent.city} - {selectedEvent.uf}</p>
@@ -295,6 +466,10 @@ export default function TravelList() {
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Data</p>
                       <p className="font-bold uppercase text-xs">{new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">WhatsApp Resp.</p>
+                      <p className="font-bold uppercase text-xs">{selectedEvent.responsible_phone || 'NÃO INFORMADO'}</p>
                     </div>
                   </div>
                 </div>
@@ -315,33 +490,61 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Status</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Assinatura</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
-                      {lineup.athletes.map((athlete, idx) => (
-                        <tr key={athlete.id} className="hover:bg-zinc-50 group">
-                          <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
-                          <td className="py-3 px-4 text-xs font-black uppercase">{athlete.name}</td>
-                          <td className="py-3 px-4 text-xs font-medium">{athlete.doc}</td>
-                          <td className="py-3 px-4">
-                            <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-sm ${athlete.confirmation === 'Confirmado' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                              {athlete.confirmation || 'Pendente'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
-                          <td className="py-3 px-4 no-print text-right">
-                            <button 
-                              onClick={() => handleRemoveFromLineup(athlete.id, 'athlete')}
-                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                              title="Remover atleta da lista"
-                            >
-                              <X size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {lineup.athletes.map((athlete, idx) => {
+                        const originalLineup = lineups.find(l => l.athletes.some(a => a.id === athlete.id));
+                        const lIdx = originalLineup?.lineup_index ?? 0;
+                        
+                        return (
+                          <tr key={athlete.id} className="hover:bg-zinc-50 group">
+                            <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
+                            <td className="py-3 px-4 text-xs font-black uppercase">{athlete.name}</td>
+                            <td className="py-3 px-4 text-xs font-medium">{athlete.doc}</td>
+                            <td className="py-3 px-4">
+                              <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-sm ${athlete.confirmation === 'Confirmado' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                                {athlete.confirmation || 'Pendente'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
+                            <td className="py-3 px-4">
+                              {!isLocked ? (
+                                <div className="flex gap-1 no-print">
+                                  <button 
+                                    onClick={() => handleUpdateLineupPresence(athlete.id, 'athlete', 'Presente', lIdx)}
+                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${athlete.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
+                                  >
+                                    P
+                                  </button>
+                                  <button 
+                                    onClick={() => handleUpdateLineupPresence(athlete.id, 'athlete', 'Ausente', lIdx)}
+                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${athlete.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
+                                  >
+                                    F
+                                  </button>
+                                </div>
+                              ) : null}
+                              <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
+                                {athlete.presence === 'Presente' ? 'Presente' : athlete.presence === 'Ausente' ? 'Faltou' : '---'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 no-print text-right">
+                              {!isLocked && (
+                                <button 
+                                  onClick={() => handleRemoveFromLineup(athlete.id, 'athlete')}
+                                  className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                                  title="Remover atleta da lista"
+                                >
+                                  <X size={16} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                       {lineup.athletes.length === 0 && (
                         <tr>
                           <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhum atleta escalado</td>
@@ -364,29 +567,57 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Cargo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Assinatura</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
-                      {lineup.staff.map((p, idx) => (
-                        <tr key={p.id} className="hover:bg-zinc-50 group">
-                          <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
-                          <td className="py-3 px-4 text-xs font-black uppercase">{p.name}</td>
-                          <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">Comissão</td>
-                          <td className="py-3 px-4 text-xs font-medium">{p.doc}</td>
-                          <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
-                          <td className="py-3 px-4 no-print text-right">
-                            <button 
-                              onClick={() => handleRemoveFromLineup(p.id, 'staff')}
-                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                              title="Remover comissão da lista"
-                            >
-                              <X size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {lineup.staff.map((p, idx) => {
+                        const originalLineup = lineups.find(l => l.staff.some(s => s.id === p.id));
+                        const lIdx = originalLineup?.lineup_index ?? 0;
+
+                        return (
+                          <tr key={p.id} className="hover:bg-zinc-50 group">
+                            <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
+                            <td className="py-3 px-4 text-xs font-black uppercase">{p.name}</td>
+                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">Comissão</td>
+                            <td className="py-3 px-4 text-xs font-medium">{p.doc}</td>
+                            <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
+                            <td className="py-3 px-4">
+                              {!isLocked ? (
+                                <div className="flex gap-1 no-print">
+                                  <button 
+                                    onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Presente', lIdx)}
+                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${p.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
+                                  >
+                                    P
+                                  </button>
+                                  <button 
+                                    onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Ausente', lIdx)}
+                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${p.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
+                                  >
+                                    F
+                                  </button>
+                                </div>
+                              ) : null}
+                              <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
+                                {p.presence === 'Presente' ? 'Presente' : p.presence === 'Ausente' ? 'Faltou' : '---'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 no-print text-right">
+                              {!isLocked && (
+                                <button 
+                                  onClick={() => handleRemoveFromLineup(p.id, 'staff')}
+                                  className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                                  title="Remover comissão da lista"
+                                >
+                                  <X size={16} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                       {lineup.staff.length === 0 && (
                         <tr>
                           <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhuma comissão técnica escalada</td>
@@ -403,13 +634,15 @@ export default function TravelList() {
                       <div className="h-6 w-1.5 bg-black" />
                       <h4 className="text-lg font-black uppercase tracking-tight">Acompanhantes ({companions.length})</h4>
                     </div>
-                    <button 
-                      onClick={() => setIsAddingCompanion(!isAddingCompanion)}
-                      className="no-print flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-lg text-[10px] font-black uppercase hover:bg-zinc-800 transition-all"
-                    >
-                      {isAddingCompanion ? <X size={14} /> : <Plus size={14} />}
-                      {isAddingCompanion ? 'Cancelar' : 'Adicionar Manual'}
-                    </button>
+                    {!isLocked && (
+                      <button 
+                        onClick={() => setIsAddingCompanion(!isAddingCompanion)}
+                        className="no-print flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-lg text-[10px] font-black uppercase hover:bg-zinc-800 transition-all"
+                      >
+                        {isAddingCompanion ? <X size={14} /> : <Plus size={14} />}
+                        {isAddingCompanion ? 'Cancelar' : 'Adicionar Manual'}
+                      </button>
+                    )}
                   </div>
 
                   {isAddingCompanion && (
@@ -480,8 +713,8 @@ export default function TravelList() {
                           <h5 className="text-xs font-black text-zinc-600 uppercase tracking-widest">Incluir Acompanhante (Não Cadastrado)</h5>
                         </div>
                         <div className="flex flex-wrap gap-4 items-end">
-                          <div className="flex-1 min-w-[200px]">
-                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Nome do Acompanhante</label>
+                          <div className="flex-1 min-w-[150px]">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Nome</label>
                             <input 
                               type="text" 
                               className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 uppercase"
@@ -489,13 +722,23 @@ export default function TravelList() {
                               onChange={e => setNewCompanion({...newCompanion, name: e.target.value})}
                             />
                           </div>
-                          <div className="w-48">
+                          <div className="w-32">
                             <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">RG / CPF</label>
                             <input 
                               type="text" 
                               className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
                               value={newCompanion.doc}
                               onChange={e => setNewCompanion({...newCompanion, doc: e.target.value})}
+                            />
+                          </div>
+                          <div className="w-40">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">WhatsApp</label>
+                            <input 
+                              type="text" 
+                              placeholder="(00) 00000-0000"
+                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                              value={newCompanion.whatsapp}
+                              onChange={e => setNewCompanion({...newCompanion, whatsapp: e.target.value})}
                             />
                           </div>
                           <button 
@@ -516,7 +759,8 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">#</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Assinatura</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">WhatsApp</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
@@ -526,15 +770,39 @@ export default function TravelList() {
                           <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
                           <td className="py-3 px-4 text-xs font-black uppercase text-zinc-800">{c.name}</td>
                           <td className="py-3 px-4 text-xs font-medium text-zinc-600">{c.doc}</td>
-                          <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
+                          <td className="py-3 px-4 text-xs font-medium text-zinc-600">{c.whatsapp || '---'}</td>
+                          <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
+                          <td className="py-3 px-4">
+                            {!isLocked ? (
+                              <div className="flex gap-1 no-print">
+                                <button 
+                                  onClick={() => handleUpdateCompanionPresence(c.id, 'Presente')}
+                                  className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${c.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
+                                >
+                                  P
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateCompanionPresence(c.id, 'Ausente')}
+                                  className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${c.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
+                                >
+                                  F
+                                </button>
+                              </div>
+                            ) : null}
+                            <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
+                              {c.presence === 'Presente' ? 'Presente' : c.presence === 'Ausente' ? 'Faltou' : '---'}
+                            </span>
+                          </td>
                           <td className="py-3 px-4 no-print text-right">
-                            <button 
-                              onClick={() => handleDeleteCompanion(c.id)}
-                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                              title="Excluir acompanhante da lista"
-                            >
-                              <X size={16} />
-                            </button>
+                            {!isLocked && (
+                              <button 
+                                onClick={() => handleDeleteCompanion(c.id)}
+                                className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                                title="Excluir acompanhante da lista"
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

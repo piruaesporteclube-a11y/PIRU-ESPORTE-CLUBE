@@ -653,14 +653,14 @@ export const api = {
         .filter(a => athleteIds.includes(a.id))
         .map(a => {
           const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
-          return { ...a, confirmation: el?.confirmation || "Pendente" };
+          return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
         });
 
       const staff = allProfessors
         .filter(p => staffIds.includes(p.id))
         .map(p => {
           const el = lineupData.find(d => d.person_id === p.id && d.type === 'staff');
-          return { ...p, confirmation: el?.confirmation || "Pendente" };
+          return { ...p, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
         });
       
       const result = { athletes, staff, category };
@@ -810,6 +810,58 @@ export const api = {
       delete cache[`lineup_${event_id}_${lineup_index}`];
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
+    }
+  },
+
+  updateLineupPresence: async (event_id: string, person_id: string, type: 'athlete' | 'staff', presence: "Presente" | "Ausente", lineup_index: number = 0) => {
+    try {
+      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+      const docRef = doc(db, "event_lineups", id);
+      await updateDoc(docRef, { presence, updated_at: serverTimestamp() });
+      delete cache[`lineup_${event_id}_${lineup_index}`];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
+    }
+  },
+
+  getAllEventLineups: async (event_id: string): Promise<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]> => {
+    try {
+      const q = query(
+        collection(db, "event_lineups"), 
+        where("event_id", "==", event_id)
+      );
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      const allLineupData = querySnapshot.docs.map(doc => doc.data() as any);
+      
+      const indexes = [...new Set(allLineupData.map(d => d.lineup_index))];
+      const allAthletes = await api.getAthletes();
+      const allProfessors = await api.getProfessors();
+
+      return (indexes as number[]).map(idx => {
+        const lineupData = allLineupData.filter(d => d.lineup_index === idx);
+        const category = lineupData.length > 0 ? lineupData[0].category : undefined;
+        const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
+        const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
+
+        const athletes = allAthletes
+          .filter(a => athleteIds.includes(a.id))
+          .map(a => {
+            const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
+            return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
+          });
+
+        const staff = allProfessors
+          .filter(p => staffIds.includes(p.id))
+          .map(p => {
+            const el = lineupData.find(d => d.person_id === p.id && d.type === 'staff');
+            return { ...p, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
+          });
+
+        return { athletes, staff, lineup_index: idx, category };
+      });
+    } catch (error) {
+       console.error("Error fetching event lineups:", error);
+       return [];
     }
   },
 
@@ -1175,6 +1227,13 @@ export const api = {
       await deleteDoc(doc(db, "event_companions", id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_companions/${id}`);
+    }
+  },
+  updateCompanionPresence: async (id: string, presence: "Presente" | "Ausente") => {
+    try {
+      await updateDoc(doc(db, "event_companions", id), { presence, updated_at: serverTimestamp() });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `event_companions/${id}`);
     }
   },
 };
