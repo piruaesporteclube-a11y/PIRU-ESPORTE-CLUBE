@@ -489,7 +489,8 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">#</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Status</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Tel. Responsável</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Responsável</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
@@ -504,10 +505,9 @@ export default function TravelList() {
                             <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
                             <td className="py-3 px-4 text-xs font-black uppercase">{athlete.name}</td>
                             <td className="py-3 px-4 text-xs font-medium">{athlete.doc}</td>
-                            <td className="py-3 px-4">
-                              <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-sm ${athlete.confirmation === 'Confirmado' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                                {athlete.confirmation || 'Pendente'}
-                              </span>
+                            <td className="py-3 px-4 text-xs font-medium">{athlete.guardian_phone || '---'}</td>
+                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-600 truncate max-w-[120px]">
+                              {athlete.guardian_name ? athlete.guardian_name.split(' ').slice(0, 2).join(' ') : '---'}
                             </td>
                             <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
                             <td className="py-3 px-4">
@@ -547,7 +547,7 @@ export default function TravelList() {
                       })}
                       {lineup.athletes.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhum atleta escalado</td>
+                          <td colSpan={7} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhum atleta escalado</td>
                         </tr>
                       )}
                     </tbody>
