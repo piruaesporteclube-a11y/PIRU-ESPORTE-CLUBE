@@ -244,6 +244,10 @@ export type OfficialLetter = {
   school_info?: string;
   school_cnpj?: string;
   school_cpf?: string;
+  departure_location?: string;
+  arrival_location?: string;
+  departure_time?: string;
+  arrival_time?: string;
   created_at?: any;
 };
 

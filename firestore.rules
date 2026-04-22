@@ -145,7 +145,11 @@ service cloud.firestore {
              data.body is string && data.body.size() > 0 &&
              (!('school_info' in data) || data.school_info is string) &&
              (!('school_cnpj' in data) || data.school_cnpj is string) &&
-             (!('school_cpf' in data) || data.school_cpf is string);
+             (!('school_cpf' in data) || data.school_cpf is string) &&
+             (!('departure_location' in data) || data.departure_location is string) &&
+             (!('arrival_location' in data) || data.arrival_location is string) &&
+             (!('departure_time' in data) || data.departure_time is string) &&
+             (!('arrival_time' in data) || data.arrival_time is string);
     }
 
     // ===============================================================

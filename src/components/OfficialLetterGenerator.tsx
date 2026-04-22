@@ -63,7 +63,11 @@ export default function OfficialLetterGenerator() {
       sender_role: 'PIRUÁ ESPORTE CLUBE',
       school_info: 'Rua Exemplo, 123 - Bairro - Cidade/UF | WhatsApp: (00) 00000-0000',
       school_cnpj: '00.000.000/0000-00',
-      school_cpf: '000.000.000-00'
+      school_cpf: '000.000.000-00',
+      departure_location: '',
+      arrival_location: '',
+      departure_time: '',
+      arrival_time: ''
     });
     setIsFormOpen(true);
   };
@@ -111,7 +115,11 @@ export default function OfficialLetterGenerator() {
     setEditingLetter({
       ...editingLetter,
       subject: `SOLICITAÇÃO DE TRANSPORTE E APOIO - EVENTO: ${event.name.toUpperCase()}`,
-      body: `Vimos por meio deste solicitar apoio para a participação de nossos atletas no evento "${event.name.toUpperCase()}", que será realizado na data de ${eventDate}, com destino a ${event.city}/${event.uf}.\n\nO local do evento será: ${address}.\n\nNestes termos, solicitamos a vossa atenção para este pedido que visa incentivar a prática esportiva de nossos jovens jogadores.\n\nAbaixo enviamos os dados referentes ao evento para vossa análise:\n\nEvento: ${event.name}\nData: ${eventDate}\nLocal: ${address}\nHorário de Início: ${event.start_time}\n\nFicamos à disposição para maiores esclarecimentos.`
+      departure_location: settings?.schoolName || 'SEDE DO CLUBE',
+      arrival_location: address,
+      departure_time: event.start_time,
+      arrival_time: event.end_time,
+      body: `Vimos por meio deste solicitar apoio para a participação de nossos atletas no evento "${event.name.toUpperCase()}", que será realizado na data de ${eventDate}, com destino a ${event.city}/${event.uf}.\n\nNestes termos, solicitamos a vossa atenção para este pedido que visa incentivar a prática esportiva de nossos jovens jogadores.\n\nAbaixo enviamos os dados referentes ao evento para vossa análise:\n\nEvento: ${event.name}\nData: ${eventDate}\nLocal: ${address}\n\nFicamos à disposição para maiores esclarecimentos.`
     });
     
     toast.success('Dados do evento importados com sucesso!');
@@ -151,6 +159,27 @@ export default function OfficialLetterGenerator() {
       <div className="mb-8">
         <p><span className="font-bold">Assunto:</span> {letter.subject}</p>
       </div>
+      
+      {/* Travel Info (Optional) */}
+      {(letter.departure_location || letter.arrival_location) && (
+        <div className="mb-8 p-4 border border-black/10 bg-zinc-50 rounded-lg">
+          <h4 className="font-bold mb-2 uppercase text-xs border-b border-black/20 pb-1">Informações de Logística / Viagem</h4>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm italic">
+            {letter.departure_location && (
+              <div>
+                <p><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
+                {letter.departure_time && <p><span className="font-bold not-italic">Horário de Saída:</span> {letter.departure_time}</p>}
+              </div>
+            )}
+            {letter.arrival_location && (
+              <div>
+                <p><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
+                {letter.arrival_time && <p><span className="font-bold not-italic">Horário de Retorno (estimado):</span> {letter.arrival_time}</p>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Salutation */}
       <div className="mb-6">
@@ -352,6 +381,57 @@ export default function OfficialLetterGenerator() {
                     value={editingLetter.recipient_address || ''}
                     onChange={e => setEditingLetter({...editingLetter, recipient_address: e.target.value})}
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-theme-primary uppercase tracking-widest border-b border-theme-primary/20 pb-2 flex items-center gap-2">
+                <MapPin size={16} /> 
+                Logística de Viagem (Opcional)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Local de Partida</label>
+                    <input 
+                      type="text" 
+                      placeholder="EX: SEDE DO CLUBE"
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      value={editingLetter.departure_location || ''}
+                      onChange={e => setEditingLetter({...editingLetter, departure_location: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Horário de Saída</label>
+                    <input 
+                      type="time" 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                      value={editingLetter.departure_time || ''}
+                      onChange={e => setEditingLetter({...editingLetter, departure_time: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Local de Chegada</label>
+                    <input 
+                      type="text" 
+                      placeholder="EX: ESTÁDIO MUNICIPAL"
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      value={editingLetter.arrival_location || ''}
+                      onChange={e => setEditingLetter({...editingLetter, arrival_location: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Horário de Retorno</label>
+                    <input 
+                      type="time" 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                      value={editingLetter.arrival_time || ''}
+                      onChange={e => setEditingLetter({...editingLetter, arrival_time: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
