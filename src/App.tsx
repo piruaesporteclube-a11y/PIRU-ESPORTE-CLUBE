@@ -25,7 +25,8 @@ import PublicRegistration from './components/PublicRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
 import TeamPortal from './components/TeamPortal';
 import PublicEventCheckin from './components/PublicEventCheckin';
-import { Athlete, User, Professor, Event, Settings } from './types';
+import OfficialLetterGenerator from './components/OfficialLetterGenerator';
+import { Athlete, User, Professor, Event, Settings, OfficialLetter } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
@@ -767,6 +768,8 @@ export default function App() {
           return <ContactList athletes={athletes} />;
         case 'trainings':
           return <TrainingManagement athletes={athletes} role={user?.role} />;
+        case 'official-letters':
+          return <OfficialLetterGenerator />;
         case 'settings':
           return <SettingsComponent />;
         default:

@@ -42,6 +42,7 @@ export const navItems: NavItem[] = [
   { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'], description: 'Gestão de parceiros', color: 'text-theme-primary' },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'], description: 'Esportes oferecidos', color: 'text-theme-primary' },
   { id: 'trainings', label: 'Treinos', icon: History, roles: ['admin', 'student'], description: 'Horários de treinamento', color: 'text-zinc-400' },
+  { id: 'official-letters', label: 'Ofícios', icon: FileText, roles: ['admin'], description: 'Gerador de documentos oficiais', color: 'text-purple-500' },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'], description: 'Ajustes globais do sistema', color: 'text-zinc-500' },
   
   // Student items

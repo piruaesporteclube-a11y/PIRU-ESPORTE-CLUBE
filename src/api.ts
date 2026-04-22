@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1072,6 +1072,40 @@ export const api = {
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "settings/global_settings");
+    }
+  },
+
+  // Official Letters
+  getOfficialLetters: async (): Promise<OfficialLetter[]> => {
+    try {
+      const querySnapshot = await getDocs(query(collection(db, "official_letters"), orderBy("created_at", "desc")));
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as OfficialLetter));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "official_letters");
+      return [];
+    }
+  },
+  saveOfficialLetter: async (letter: Partial<OfficialLetter>) => {
+    try {
+      const id = letter.id || doc(collection(db, "official_letters")).id;
+      const data = { 
+        ...letter, 
+        id,
+        created_at: letter.created_at || serverTimestamp(),
+        updated_at: serverTimestamp() 
+      };
+      await setDoc(doc(db, "official_letters", id), sanitizeData(data), { merge: true });
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "official_letters");
+      throw error;
+    }
+  },
+  deleteOfficialLetter: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "official_letters", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `official_letters/${id}`);
     }
   },
 };

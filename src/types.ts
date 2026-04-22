@@ -226,6 +226,22 @@ export type MatchReport = {
   observations?: string;
 };
 
+export type OfficialLetter = {
+  id: string;
+  number: string;
+  year: number;
+  date: string;
+  recipient_name: string;
+  recipient_role: string;
+  recipient_address: string;
+  subject: string;
+  body: string;
+  closing: string;
+  sender_name: string;
+  sender_role: string;
+  created_at?: any;
+};
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();
