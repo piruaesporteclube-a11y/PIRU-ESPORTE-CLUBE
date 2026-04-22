@@ -26,7 +26,9 @@ import PublicAnamnesis from './components/PublicAnamnesis';
 import TeamPortal from './components/TeamPortal';
 import PublicEventCheckin from './components/PublicEventCheckin';
 import OfficialLetterGenerator from './components/OfficialLetterGenerator';
-import { Athlete, User, Professor, Event, Settings, OfficialLetter } from './types';
+import TravelList from './components/TravelList';
+import CompanionRegistration from './components/CompanionRegistration';
+import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
@@ -373,9 +375,22 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get('checkin') === 'true' && params.has('eventId');
   });
+  const [isTravelRegistration, setIsTravelRegistration] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('travel-registration') === 'true' || window.location.pathname.startsWith('/cadastro-acompanhante/');
+  });
   const [checkinEventId, setCheckinEventId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('eventId');
+  });
+  const [companionEventId, setCompanionEventId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('eventId')) return params.get('eventId');
+    const path = window.location.pathname;
+    if (path.startsWith('/cadastro-acompanhante/')) {
+      return path.split('/cadastro-acompanhante/')[1];
+    }
+    return null;
   });
   const [teamChampionshipId, setTeamChampionshipId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -769,6 +784,8 @@ export default function App() {
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'official-letters':
           return <OfficialLetterGenerator />;
+        case 'travel-list':
+          return <TravelList />;
         case 'settings':
           return <SettingsComponent />;
         default:
@@ -815,10 +832,13 @@ export default function App() {
       
       const isTeamReg = !!queryTeamReg || window.location.pathname.startsWith('/register-team/');
       const isPortal = !!queryPortal || window.location.pathname.startsWith('/team-portal/');
+      const isTravelReg = params.get('travel-registration') === 'true' || window.location.pathname.startsWith('/cadastro-acompanhante/');
       
       const teamId = queryTeamReg || queryPortal || 
                     (window.location.pathname.startsWith('/register-team/') ? window.location.pathname.split('/register-team/')[1] : 
                     window.location.pathname.startsWith('/team-portal/') ? window.location.pathname.split('/team-portal/')[1] : null);
+
+      const tEventId = params.get('eventId') || (window.location.pathname.startsWith('/cadastro-acompanhante/') ? window.location.pathname.split('/cadastro-acompanhante/')[1] : null);
       
       console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'isTeamPortal:', isPortal, 'teamId:', teamId);
       setIsRegistering(isReg);
@@ -826,6 +846,8 @@ export default function App() {
       setIsTeamRegistration(isTeamReg);
       setIsTeamPortal(isPortal);
       setTeamChampionshipId(teamId);
+      setIsTravelRegistration(isTravelReg);
+      setCompanionEventId(tEventId);
     };
 
     checkRegisterParam();
@@ -942,6 +964,14 @@ export default function App() {
             window.history.replaceState({}, '', window.location.pathname);
           }}
         />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isTravelRegistration) {
+    return (
+      <ErrorBoundary>
+        <CompanionRegistration />
       </ErrorBoundary>
     );
   }

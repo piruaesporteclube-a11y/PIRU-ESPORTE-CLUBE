@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1109,6 +1109,40 @@ export const api = {
       await deleteDoc(doc(db, "official_letters", id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `official_letters/${id}`);
+    }
+  },
+
+  // Event Companions
+  getCompanions: async (eventId: string): Promise<Companion[]> => {
+    try {
+      const q = query(collection(db, "event_companions"), where("event_id", "==", eventId));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Companion));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, `event_companions?event_id=${eventId}`);
+      return [];
+    }
+  },
+  saveCompanion: async (companion: Partial<Companion>) => {
+    try {
+      const id = companion.id || doc(collection(db, "event_companions")).id;
+      const data = { 
+        ...companion, 
+        id,
+        created_at: serverTimestamp()
+      };
+      await setDoc(doc(db, "event_companions", id), sanitizeData(data), { merge: true });
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "event_companions");
+      throw error;
+    }
+  },
+  deleteCompanion: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "event_companions", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `event_companions/${id}`);
     }
   },
 };

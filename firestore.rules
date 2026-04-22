@@ -243,6 +243,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    match /event_companions/{companionId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['id', 'event_id', 'name', 'doc']) &&
+                      request.resource.data.name is string &&
+                      request.resource.data.doc is string &&
+                      request.resource.data.event_id is string;
+      allow delete: if isAdmin();
+    }
+
     match /test/connection {
       allow read: if true;
     }

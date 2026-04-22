@@ -236,6 +236,19 @@
         "arrival_time": { "type": "string" }
       },
       "required": ["id", "number", "year", "date", "recipient_name", "subject", "body"]
+    },
+    "Companion": {
+      "title": "Companion",
+      "description": "Event companion data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "event_id": { "type": "string" },
+        "name": { "type": "string" },
+        "doc": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "event_id", "name", "doc"]
     }
   },
   "firestore": {
@@ -294,6 +307,10 @@
     "/official_letters/{letterId}": {
       "schema": "OfficialLetter",
       "description": "Official letters collection"
+    },
+    "/event_companions/{companionId}": {
+      "schema": "Companion",
+      "description": "Event companions collection"
     }
   }
 }

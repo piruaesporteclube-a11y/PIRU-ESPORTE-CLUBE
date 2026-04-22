@@ -251,6 +251,14 @@ export type OfficialLetter = {
   created_at?: any;
 };
 
+export interface Companion {
+  id: string;
+  event_id: string;
+  name: string;
+  doc: string;
+  created_at?: any;
+}
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();

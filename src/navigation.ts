@@ -36,6 +36,7 @@ export const navItems: NavItem[] = [
   // --- GRUPO: Operação Esportiva ---
   { id: 'trainings', label: 'Treinos', icon: History, roles: ['admin', 'student'], description: 'Horários de treinamento', color: 'text-zinc-400' },
   { id: 'lineups', label: 'Escalações', icon: Users, roles: ['admin', 'student'], description: 'Convocação para jogos', color: 'text-theme-primary' },
+  { id: 'travel-list', label: 'Lista de Viagem', icon: ClipboardList, roles: ['admin'], description: 'Gestão de passageiros e logística', color: 'text-theme-primary' },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student'], description: 'Calendário de atividades', color: 'text-blue-500' },
   { id: 'championships', label: 'Campeonatos', icon: Trophy, roles: ['admin'], description: 'Gestão de torneios e ligas', color: 'text-theme-primary' },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'], description: 'Esportes oferecidos', color: 'text-theme-primary' },
