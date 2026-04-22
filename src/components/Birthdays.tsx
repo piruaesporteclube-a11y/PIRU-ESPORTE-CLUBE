@@ -512,36 +512,23 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
                 
-                {/* Custom Overlay Images */}
-                <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-                  {overlayImages.map((img, idx) => (
-                    <img 
-                      key={idx}
-                      src={img}
-                      alt=""
-                      className={cn(
-                        "absolute object-cover border-2 border-theme-primary shadow-2xl skew-x-[-5deg]",
-                        idx === 0 && "w-[120px] h-[160px] top-[15%] left-[5%] rotate-[-6deg] opacity-80",
-                        idx === 1 && "w-[110px] h-[150px] top-[45%] right-[5%] rotate-[8deg] opacity-70",
-                        idx === 2 && "w-[100px] h-[140px] bottom-[15%] left-[8%] rotate-[12deg] opacity-60",
-                        idx === 3 && "w-[130px] h-[170px] top-[60%] left-[-10%] rotate-[-15deg] opacity-50"
-                      )}
-                      crossOrigin="anonymous"
-                    />
-                  ))}
-                </div>
-
+                {/* Custom Overlay Images - REMOVED OLD LOGIC AS IT IS NOW IN THE GRID */}
+                
                 {/* Stylized Gradients for "Modern/Attractive" look */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
                 <div className="absolute inset-0 bg-gradient-to-b from-theme-primary/10 via-transparent to-theme-primary/10 z-10" />
               </div>
 
               {/* Dynamic Content Overlay - Centered Design */}
-              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-12 px-6">
+              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-8 px-6">
                 
-                {/* TOP: Crest & Title */}
-                <div className="w-full flex flex-col items-center gap-4">
-                  <div className="w-28 h-28 md:w-40 md:h-40 relative flex items-center justify-center bg-transparent mt-4">
+                {/* TOP: Parabéns & Crest */}
+                <div className="w-full flex flex-col items-center gap-2">
+                  <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[4px_4px_0_rgba(0,0,0,1)] text-center w-full">
+                    PARABÉNS
+                  </h1>
+                  
+                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center bg-transparent">
                     {settings.schoolCrest ? (
                       <img 
                         src={settings.schoolCrest} 
@@ -549,44 +536,102 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous" 
                         style={{ 
-                          filter: 'drop-shadow(0 0 20px rgba(234, 179, 8, 0.4))'
+                          filter: 'drop-shadow(0 0 15px rgba(234, 179, 8, 0.6))'
                         }}
                       />
                     ) : (
-                      <div className="font-black text-theme-primary text-4xl md:text-6xl italic">P</div>
+                      <div className="font-black text-theme-primary text-4xl md:text-5xl italic">P</div>
                     )}
                   </div>
-                  <div className="text-center mt-2">
-                    <h2 className="text-theme-primary font-black text-lg md:text-xl italic tracking-tighter uppercase drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">
+                  
+                  <div className="text-center bg-theme-primary text-black px-6 py-1 transform skew-x-[-12deg] shadow-[4px_4px_0_rgba(255,255,255,1)]">
+                    <h2 className="font-black text-xl md:text-2xl italic tracking-tighter uppercase skew-x-[12deg]">
                       FELIZ ANIVERSÁRIO!
                     </h2>
                   </div>
                 </div>
 
-                  {/* CENTER: Athlete Photo (3x4 Portrait) */}
-                <div className="relative group mt-2">
+                {/* Grid of 4 Photos - 2 Top, 2 Bottom */}
+                <div className="absolute inset-0 z-5 p-4 flex flex-col justify-between">
+                  <div className="flex justify-between w-full">
+                    <div className={cn(
+                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}>
+                      {overlayImages[0] ? (
+                        <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
+                    <div className={cn(
+                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}>
+                      {overlayImages[1] ? (
+                        <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between w-full mt-auto">
+                    <div className={cn(
+                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}>
+                      {overlayImages[2] ? (
+                        <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
+                    <div className={cn(
+                      "w-[100px] h-[130px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}>
+                      {overlayImages[3] ? (
+                        <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CENTER: Athlete Photo (3x4 Portrait) */}
+                <div className="relative group z-20 mt-4">
                   {/* Decorative Border for "Attractive" look */}
-                  <div className="absolute -inset-4 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                  <div className="absolute -inset-4 bg-theme-primary opacity-30 blur-3xl group-hover:opacity-50 transition-opacity"></div>
                   
-                  <div className="w-[150px] h-[200px] md:w-[210px] md:h-[280px] bg-zinc-900 border-[3px] border-theme-primary shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
+                  <div className="w-[160px] h-[210px] md:w-[220px] md:h-[290px] bg-zinc-900 border-[6px] border-theme-primary shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden relative z-10">
                     {selectedPerson.photo ? (
                       <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
-                        <UserCircle size={60} strokeWidth={1} />
-                        <span className="text-[8px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                        <UserCircle size={80} strokeWidth={1} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
                       </div>
                     )}
                     
                     {/* Corner accents */}
-                    <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-theme-primary z-20" />
-                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-theme-primary z-20" />
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-theme-primary z-20" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-theme-primary z-20" />
                   </div>
 
                   {/* Name Banner - HIGH IMPACT */}
-                  <div className="absolute -bottom-8 inset-x-[-30%] z-30">
-                    <div className="bg-white text-black py-3 px-6 shadow-2xl transform skew-x-[-15deg] border-[3px] border-theme-primary">
-                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none whitespace-nowrap italic">
+                  <div className="absolute -bottom-8 inset-x-[-20%] z-30">
+                    <div className="bg-white text-black py-4 px-6 shadow-[8px_8px_0_rgba(0,0,0,1)] border-[4px] border-theme-primary transform skew-x-[-15deg]">
+                      <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none whitespace-nowrap italic">
                         {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
                       </h3>
                     </div>
@@ -594,17 +639,17 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 </div>
 
                 {/* BOTTOM: Message */}
-                <div className="w-full flex flex-col items-center gap-4 mt-12 pb-4">
-                  <div className="max-w-xs text-center">
-                    <p className="text-white font-black leading-none text-[10px] md:text-xs drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
-                      "A escolinha <span className="text-theme-primary underline">Piruá Esporte Clube</span> te deseja um feliz aniversário! que Deus ilumine sempre sua vida, muita paz e saúde."
+                <div className="w-full flex flex-col items-center gap-4 mt-16 pb-4">
+                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs">
+                    <p className="text-white font-black leading-tight text-[11px] md:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
+                      "A escolinha <span className="text-theme-primary">Piruá Esporte Clube</span> te deseja um feliz aniversário! que Deus ilumine sempre sua vida, muita paz e saúde."
                     </p>
                   </div>
                   
                   {/* Soccer ball icon accent */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+                      <div key={i} className="w-2.5 h-2.5 rounded-full bg-theme-primary shadow-[0_0_10px_rgba(234,179,8,0.8)]"></div>
                     ))}
                   </div>
                 </div>
