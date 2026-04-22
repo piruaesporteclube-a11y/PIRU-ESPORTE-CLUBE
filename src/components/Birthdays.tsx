@@ -5,9 +5,9 @@ import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, Uploa
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
-import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { cn } from '../utils';
+import * as htmlToImage from 'html-to-image';
 
 interface BirthdaysProps {
   athletes?: Athlete[];
@@ -98,133 +98,67 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     try {
       setIsGenerating(true);
       
-      // Essential helper to convert images to base64 to avoid canvas tainting
-      const toBase64 = (url: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0);
-              resolve(canvas.toDataURL('image/png'));
-            } else {
-              reject(new Error('Failed to get 2D context'));
-            }
-          };
-          img.onerror = () => reject(new Error('Failed to load image for base64 conversion'));
-          img.src = url;
-        });
-      };
-
       // Wait for fonts
       await document.fonts.ready;
-      
-      // 1. Pre-convert all images to Base64 to prevent canvas tainting
-      const images = Array.from(element.querySelectorAll('img'));
-      for (const img of images) {
-        if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
-          try {
-            const b64 = await toBase64(img.src);
-            img.src = b64;
-          } catch (e) {
-            console.warn('Image pre-conversion failed:', e);
-          }
-        }
-      }
-
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        scale: 3, 
+      // Use html-to-image instead of html2canvas for better stability
+      const dataUrl = await htmlToImage.toPng(element, {
+        pixelRatio: 3, // 360 * 3 = 1080px (Instagram Story width)
         backgroundColor: '#000000',
-        logging: true,
         width: 360,
         height: 640,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        onclone: (clonedDoc) => {
-          const card = clonedDoc.getElementById('birthday-card');
-          if (card) {
-            const s = card.style;
-            s.position = 'fixed';
-            s.top = '0';
-            s.left = '0';
-            s.width = '360px';
-            s.height = '640px';
-            s.borderRadius = '0';
-            s.borderWidth = '0';
-            s.margin = '0';
-            s.transform = 'none';
-
-            // Strip problematic styles
-            card.querySelectorAll('*').forEach((el: any) => {
-              el.style.backdropFilter = 'none';
-              el.style.webkitBackdropFilter = 'none';
-              el.style.transition = 'none';
-              el.style.animation = 'none';
-              
-              if (el.classList.contains('text-theme-primary')) el.style.color = '#EAB308';
-              if (el.classList.contains('bg-theme-primary')) el.style.backgroundColor = '#EAB308';
-            });
-          }
+        cacheBust: true,
+        style: {
+          borderRadius: '0',
+          borderWidth: '0'
+        },
+        filter: (node) => {
+          // You can filter out problematic nodes here if needed
+          return true;
         }
       });
 
       const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
       
       if (share && navigator.share && navigator.canShare) {
-        // Try to share using Web Share API (Best for mobile/Instagram/WhatsApp)
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            toast.error("Erro ao processar imagem para compartilhamento.");
-            return;
-          }
-          
-          const file = new File([blob], fileName, { type: 'image/png' });
-          
-          if (navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: `Parabéns ${selectedPerson?.name}!`,
-                text: `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo`
-              });
-              toast.success("Compartilhamento aberto!");
-            } catch (err) {
-              if ((err as Error).name !== 'AbortError') {
-                console.error('Erro ao compartilhar:', err);
-                // Fallback to download if share fails
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-              }
+        // Share flow
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], fileName, { type: 'image/png' });
+        
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Parabéns ${selectedPerson?.name}!`,
+              text: `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! 🎂⚽️`
+            });
+            toast.success("Compartilhamento aberto!");
+          } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+              const link = document.createElement('a');
+              link.download = fileName;
+              link.href = dataUrl;
+              link.click();
             }
-          } else {
-            // Fallback to download if cannot share files
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            toast.success("Imagem baixada! Agora você pode postar no Instagram.");
           }
-        }, 'image/png');
+        } else {
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = dataUrl;
+          link.click();
+          toast.success("Imagem baixada! Agora você pode postar.");
+        }
       } else {
-        // Standard download
         const link = document.createElement('a');
         link.download = fileName;
-        link.href = canvas.toDataURL('image/png');
+        link.href = dataUrl;
         link.click();
         toast.success("Imagem baixada com sucesso!");
       }
     } catch (err) {
       console.error('Erro ao gerar imagem:', err);
-      toast.error('Erro ao gerar imagem. Tente novamente ou use um navegador moderno.');
+      toast.error('Erro ao gerar imagem. Tente usar uma conexão mais estável ou outra foto.');
     } finally {
       setIsGenerating(false);
     }

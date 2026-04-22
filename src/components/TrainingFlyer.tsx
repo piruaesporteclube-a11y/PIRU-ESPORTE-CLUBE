@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 
@@ -79,88 +79,24 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const loadingToast = toast.loading('Gerando seu encarte... Aguarde um momento.');
     
     try {
-      const toBase64 = (url: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0);
-              resolve(canvas.toDataURL('image/png'));
-            } else {
-              reject(new Error('Failed to get 2D context'));
-            }
-          };
-          img.onerror = () => reject(new Error('Failed to load image'));
-          img.src = url;
-        });
-      };
-
       await document.fonts.ready;
-      
-      // Pre-convert images
-      const images = Array.from(flyerRef.current.querySelectorAll('img'));
-      for (const img of images) {
-        if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
-          try {
-            const b64 = await toBase64(img.src);
-            img.src = b64;
-          } catch (e) {
-            console.warn('Base64 fail:', e);
-          }
-        }
-      }
-
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const canvas = await html2canvas(flyerRef.current, {
-        useCORS: true,
-        scale: 3, 
+      const dataUrl = await htmlToImage.toPng(flyerRef.current, {
+        pixelRatio: 3,
         backgroundColor: '#000000',
-        logging: true,
         width: 360,
         height: 640,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        onclone: (clonedDoc) => {
-          const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
-          if (flyer) {
-            const s = flyer.style;
-            s.transform = 'none';
-            s.position = 'fixed';
-            s.top = '0';
-            s.left = '0';
-            s.margin = '0';
-            s.padding = '0';
-            s.width = '360px';
-            s.height = '640px';
-            s.borderRadius = '0';
-            
-            flyer.querySelectorAll('*').forEach((el: any) => {
-              el.style.backdropFilter = 'none';
-              el.style.webkitBackdropFilter = 'none';
-              el.style.transition = 'none';
-              el.style.animation = 'none';
-            });
-
-            const scrollable = flyer.querySelector('.flyer-scrollable') as HTMLElement;
-            if (scrollable) {
-              scrollable.style.overflow = 'visible';
-              scrollable.style.height = 'auto';
-              scrollable.style.maxHeight = 'none';
-            }
-          }
+        cacheBust: true,
+        style: {
+          borderRadius: '0',
+          borderWidth: '0'
         }
       });
       
-      const imgData = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `AGENDA_TREINO_${date}.png`;
-      link.href = imgData;
+      link.href = dataUrl;
       link.click();
       
       toast.dismiss(loadingToast);
