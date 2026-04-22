@@ -30,6 +30,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     jersey_number: '',
     photo: '',
     contact: '',
+    email: '',
     guardian_name: '',
     guardian_doc: '',
     guardian_phone: '',
@@ -124,7 +125,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     // Validate all fields are filled
     const requiredAthleteFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
-      'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
+      'neighborhood', 'city', 'uf', 'photo', 'contact', 'email', 'jersey_number',
       'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender'
     ];
     
@@ -346,6 +347,10 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
                       <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">E-mail (Login/Notificações)</label>
+                      <input required type="email" placeholder="atleta@email.com" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.email} onChange={e => setAthleteData({...athleteData, email: e.target.value.toLowerCase()})} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>

@@ -142,7 +142,10 @@ service cloud.firestore {
              data.date is string &&
              data.recipient_name is string && data.recipient_name.size() > 0 &&
              data.subject is string && data.subject.size() > 0 &&
-             data.body is string && data.body.size() > 0;
+             data.body is string && data.body.size() > 0 &&
+             (!('school_info' in data) || data.school_info is string) &&
+             (!('school_cnpj' in data) || data.school_cnpj is string) &&
+             (!('school_cpf' in data) || data.school_cpf is string);
     }
 
     // ===============================================================

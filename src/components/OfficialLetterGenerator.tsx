@@ -48,7 +48,9 @@ export default function OfficialLetterGenerator() {
       closing: 'Atenciosamente,',
       sender_name: 'DIRETORIA',
       sender_role: 'PIRUÁ ESPORTE CLUBE',
-      school_info: 'Rua Exemplo, 123 - Bairro - Cidade/UF | WhatsApp: (00) 00000-0000'
+      school_info: 'Rua Exemplo, 123 - Bairro - Cidade/UF | WhatsApp: (00) 00000-0000',
+      school_cnpj: '00.000.000/0000-00',
+      school_cpf: '000.000.000-00'
     });
     setIsFormOpen(true);
   };
@@ -98,9 +100,6 @@ export default function OfficialLetterGenerator() {
           <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
         )}
         <h1 className="text-2xl font-bold uppercase text-center">{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
-        {letter.school_info && (
-          <p className="text-[10px] font-medium text-center uppercase tracking-tight text-zinc-600 mt-1">{letter.school_info}</p>
-        )}
       </div>
 
       {/* Title & Date */}
@@ -139,11 +138,21 @@ export default function OfficialLetterGenerator() {
           <div className="w-64 border-t border-black mb-1"></div>
           <p className="font-bold uppercase leading-tight">{letter.sender_name}</p>
           <p className="text-sm uppercase leading-tight">{letter.sender_role}</p>
+          {(letter.school_cnpj || letter.school_cpf) && (
+            <p className="text-[10px] uppercase mt-1">
+              {letter.school_cnpj && <span>CNPJ: {letter.school_cnpj}</span>}
+              {letter.school_cnpj && letter.school_cpf && <span className="mx-2">|</span>}
+              {letter.school_cpf && <span>CPF: {letter.school_cpf}</span>}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Footer */}
       <div className="mt-auto pt-8 border-t border-zinc-200 text-[10px] text-zinc-400 text-center uppercase tracking-tighter">
+        {letter.school_info && (
+          <p className="mb-1 text-black font-bold uppercase">{letter.school_info}</p>
+        )}
         Documento gerado oficialmente pelo sistema de gestão {settings?.schoolName || 'Piruá Esporte Clube'}
       </div>
     </div>
@@ -214,9 +223,31 @@ export default function OfficialLetterGenerator() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-black text-theme-primary uppercase tracking-widest border-b border-theme-primary/20 pb-2">Informações da Escolinha</h3>
+              <h3 className="text-sm font-black text-theme-primary uppercase tracking-widest border-b border-theme-primary/20 pb-2">Identificação da Escolinha</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">CNPJ</label>
+                  <input 
+                    type="text" 
+                    placeholder="00.000.000/0000-00"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={editingLetter.school_cnpj || ''}
+                    onChange={e => setEditingLetter({...editingLetter, school_cnpj: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">CPF</label>
+                  <input 
+                    type="text" 
+                    placeholder="000.000.000-00"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={editingLetter.school_cpf || ''}
+                    onChange={e => setEditingLetter({...editingLetter, school_cpf: e.target.value})}
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Endereço e Contato (Cabeçalho)</label>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Endereço e Contato (Rodapé)</label>
                 <input 
                   type="text" 
                   placeholder="EX: RUA TAL, 123 - BAIRRO - CIDADE/UF | CONTATO: (00) 00000-0000"
@@ -224,7 +255,7 @@ export default function OfficialLetterGenerator() {
                   value={editingLetter.school_info || ''}
                   onChange={e => setEditingLetter({...editingLetter, school_info: e.target.value.toUpperCase()})}
                 />
-                <p className="text-[10px] text-zinc-500 mt-1 italic">Este texto aparecerá centralizado no topo do documento, abaixo do nome do clube.</p>
+                <p className="text-[10px] text-zinc-500 mt-1 italic">Estes dados aparecerão identificando a escolinha no rodapé e na assinatura.</p>
               </div>
             </div>
 

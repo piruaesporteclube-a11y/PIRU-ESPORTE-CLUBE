@@ -15,6 +15,7 @@ export type Athlete = {
   jersey_number: string;
   photo: string;
   contact: string;
+  email: string;
   guardian_name: string;
   guardian_doc: string;
   guardian_phone: string;
@@ -129,6 +130,7 @@ export type Settings = {
 export type User = {
   id: string;
   name: string;
+  email?: string;
   doc: string;
   role: "admin" | "student";
   athlete_id?: string;
@@ -240,6 +242,8 @@ export type OfficialLetter = {
   sender_name: string;
   sender_role: string;
   school_info?: string;
+  school_cnpj?: string;
+  school_cpf?: string;
   created_at?: any;
 };
 

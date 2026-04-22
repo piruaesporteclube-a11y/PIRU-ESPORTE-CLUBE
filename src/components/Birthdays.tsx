@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, Professor } from '../types';
-import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer } from 'lucide-react';
+import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, Upload, X, Plus } from 'lucide-react';
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
+import { cn } from '../utils';
 
 interface BirthdaysProps {
   athletes?: Athlete[];
@@ -19,6 +20,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [overlayImages, setOverlayImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -212,7 +215,50 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     }
   };
 
-  const BIRTHDAY_TEMPLATE_IMAGE = "https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media"; // Placeholder for the provided image URL
+  const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("A imagem deve ser menor que 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBgImage(reader.result as string);
+        toast.success("Plano de fundo personalizado carregado!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleOverlayUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    if (overlayImages.length >= 4) {
+      toast.error("Limite máximo de 4 fotos atingido.");
+      return;
+    }
+
+    const file = files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("A imagem deve ser menor que 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setOverlayImages(prev => [...prev, reader.result as string].slice(0, 4));
+      toast.success("Foto adicionada!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeOverlay = (index: number) => {
+    setOverlayImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const BIRTHDAY_TEMPLATE_IMAGE = "https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media"; 
   
   return (
     <div className="space-y-8">
@@ -396,7 +442,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             >
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
-                {/* Soccer Stadium Background - Dramatic Night View (Matches Uploaded Image) */}
+                {/* Default Background */}
                 <img 
                   src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
                   alt="Soccer Stadium" 
@@ -405,7 +451,18 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   crossOrigin="anonymous"
                 />
 
-                {/* Secondary Template Layer (User's provided image if it loads) */}
+                {/* Custom Uploaded Background */}
+                {bgImage && (
+                  <img 
+                    src={bgImage} 
+                    alt="Custom Background" 
+                    className="absolute inset-0 w-full h-full object-cover z-5"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                  />
+                )}
+
+                {/* Overlay Template Layer (User's provided image if it loads) */}
                 <img 
                   src="https://firebasestorage.googleapis.com/v0/b/fire-template-6gjyxy/o/pirua%2Fencarte-aniversario.jpg?alt=media" 
                   alt="" 
@@ -416,6 +473,25 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
                 
+                {/* Custom Overlay Images */}
+                <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+                  {overlayImages.map((img, idx) => (
+                    <img 
+                      key={idx}
+                      src={img}
+                      alt=""
+                      className={cn(
+                        "absolute object-cover border-2 border-theme-primary shadow-2xl skew-x-[-5deg]",
+                        idx === 0 && "w-[120px] h-[160px] top-[15%] left-[5%] rotate-[-6deg] opacity-80",
+                        idx === 1 && "w-[110px] h-[150px] top-[45%] right-[5%] rotate-[8deg] opacity-70",
+                        idx === 2 && "w-[100px] h-[140px] bottom-[15%] left-[8%] rotate-[12deg] opacity-60",
+                        idx === 3 && "w-[130px] h-[170px] top-[60%] left-[-10%] rotate-[-15deg] opacity-50"
+                      )}
+                      crossOrigin="anonymous"
+                    />
+                  ))}
+                </div>
+
                 {/* Stylized Gradients for "Modern/Attractive" look */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
                 <div className="absolute inset-0 bg-gradient-to-b from-theme-primary/10 via-transparent to-theme-primary/10 z-10" />
@@ -502,7 +578,47 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col md:flex-row justify-center gap-4">
+            <div className="mt-6 flex flex-wrap justify-center gap-4 bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 border-dashed">
+              <div className="w-full text-center mb-2">
+                <p className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em]">Personalizar Encarte</p>
+              </div>
+
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[10px] tracking-widest cursor-pointer">
+                <Upload size={16} />
+                Fundo
+                <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+              </label>
+
+              {overlayImages.length < 4 && (
+                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[10px] tracking-widest cursor-pointer">
+                  <Plus size={16} />
+                  Adicionar Foto ({overlayImages.length}/4)
+                  <input type="file" accept="image/*" className="hidden" onChange={handleOverlayUpload} />
+                </label>
+              )}
+
+              <div className="w-full flex flex-wrap justify-center gap-2 mt-2">
+                {bgImage && (
+                  <button 
+                    onClick={() => setBgImage(null)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <X size={12} /> Remover Fundo
+                  </button>
+                )}
+                {overlayImages.map((_, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => removeOverlay(i)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-400 rounded-lg text-[9px] font-black uppercase hover:text-red-500 transition-all border border-zinc-700"
+                  >
+                    <X size={12} /> Foto {i + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
               <button 
                 onClick={() => downloadCard(false)}
                 disabled={isGenerating}

@@ -304,7 +304,8 @@ export const api = {
       throw new Error("CPF inválido. Deve conter pelo menos 11 dígitos.");
     }
     
-    const email = `${normalizedDoc}@pirua.com.br`;
+    // Prefer real email if provided, otherwise fallback to generated one
+    const email = athleteData.email || `${normalizedDoc}@pirua.com.br`;
     const password = normalizedDoc;
     
     try {
@@ -327,6 +328,7 @@ export const api = {
         ...athleteData,
         id: athleteId,
         doc: normalizedDoc,
+        email: email,
         status: "Ativo",
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
@@ -335,6 +337,7 @@ export const api = {
       const newUser: User = {
         id: firebaseUser.uid,
         name: athleteData.name || "Novo Aluno",
+        email: email,
         doc: normalizedDoc,
         role: "student",
         athlete_id: athleteId,

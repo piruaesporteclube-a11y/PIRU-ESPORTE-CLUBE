@@ -130,13 +130,32 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
-        allowTaint: true, // Allow tainted canvas since we try to avoid it anyway with base64
-        scale: 3, // High quality for social media sharing
+        allowTaint: true, 
+        scale: 2, // Scale 2 is safer for memory
         backgroundColor: '#000000',
         logging: false,
         width: 360,
         height: 640,
         onclone: (clonedDoc) => {
+          // Fix for oklch error in html2canvas
+          try {
+            Array.from(clonedDoc.styleSheets).forEach(sheet => {
+              try {
+                const rules = sheet.cssRules || sheet.rules;
+                if (!rules) return;
+                for (let j = rules.length - 1; j >= 0; j--) {
+                  if (rules[j] && rules[j].cssText && rules[j].cssText.includes('oklch')) {
+                    sheet.deleteRule(j);
+                  }
+                }
+              } catch (e) {
+                console.warn('Could not access rules for stylesheet:', e);
+              }
+            });
+          } catch (e) {
+            console.warn('Could not sanitize stylesheets for oklch:', e);
+          }
+
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {
             // Context settings for capture
@@ -538,15 +557,32 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
                   {/* Global Gradients */}
                   <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
-                  <div className="absolute inset-x-0 bottom-0 z-[4] h-64 bg-gradient-to-t from-black to-transparent" />
+                  
+                  {/* Athlete Image Layer */}
+                  {(customImage || selectedAthlete) && (
+                    <div className="absolute inset-x-0 bottom-0 z-[4] h-[60%] flex items-end justify-center pointer-events-none">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src={customImage || selectedAthlete?.photo} 
+                          alt="Athlete" 
+                          className="w-full h-full object-contain object-bottom filter drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 z-[5] h-64 bg-gradient-to-t from-black to-transparent" />
                 </div>
               </div>
 
               {/* Elements */}
-              <div className="absolute inset-0 z-[5] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
+              <div className="absolute inset-0 z-[6] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
               
               {/* Header Info */}
-              <div className="relative z-20 pt-6 px-6 flex flex-col items-center">
+              <div className="relative z-30 pt-6 px-6 flex flex-col items-center">
                 <div className="w-16 h-16 mb-2 filter drop-shadow-[0_0_20px_rgba(255,255,0,0.4)] transform hover:scale-110 transition-transform duration-700">
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
@@ -564,7 +600,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               {/* Date Section - Minimal Glass Style */}
-              <div className="relative z-20 mt-2 px-6">
+              <div className="relative z-30 mt-2 px-6">
                 <div className="flex items-center justify-center">
                   <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 flex items-center gap-3 shadow-xl ring-1 ring-white/5">
                     <div className="bg-theme-primary p-1.5 rounded-full">
@@ -594,10 +630,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               {/* Trainings List */}
-              <div className="relative z-20 flex-1 px-6 py-4 flex flex-col min-h-0">
+              <div className="relative z-30 flex-1 px-6 py-4 flex flex-col min-h-0">
                 <div className="flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1">
                   {trainings.map((t, idx) => (
-                    <div key={idx} className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    <div key={idx} className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                       <div className="bg-gradient-to-r from-white/10 to-transparent px-3 py-1.5 flex items-center justify-between border-b border-white/10">
                         <div className="flex items-center gap-2">
                           <div className="w-1 h-3 bg-theme-primary rounded-full"></div>
@@ -643,7 +679,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
               </div>
 
-              <div className="relative z-20 px-6 pb-6 text-center">
+              <div className="relative z-30 px-6 pb-6 text-center">
                 <div className="py-2 border-y border-theme-primary/10 mb-2">
                   <p className="text-theme-primary text-[9px] font-black uppercase italic tracking-[0.2em] drop-shadow-md">
                     Foco, Disciplina e Raça! O sucesso começa no treino.

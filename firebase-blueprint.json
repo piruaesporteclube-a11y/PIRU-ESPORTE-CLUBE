@@ -17,6 +17,7 @@
         "jersey_number": { "type": "string" },
         "photo": { "type": "string" },
         "contact": { "type": "string" },
+        "email": { "type": "string" },
         "guardian_name": { "type": "string" },
         "guardian_doc": { "type": "string" },
         "guardian_phone": { "type": "string" },
@@ -120,6 +121,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "email": { "type": "string" },
         "doc": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "student"] },
         "athlete_id": { "type": "string" }
@@ -224,7 +226,10 @@
         "body": { "type": "string" },
         "closing": { "type": "string" },
         "sender_name": { "type": "string" },
-        "sender_role": { "type": "string" }
+        "sender_role": { "type": "string" },
+        "school_info": { "type": "string" },
+        "school_cnpj": { "type": "string" },
+        "school_cpf": { "type": "string" }
       },
       "required": ["id", "number", "year", "date", "recipient_name", "subject", "body"]
     }

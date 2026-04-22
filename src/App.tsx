@@ -44,8 +44,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
   setIsAthleteFormOpen: (open: boolean) => void
 }) => {
   const filteredNavItems = navItems
-    .filter(item => user && item.roles.includes(user.role) && item.id !== 'dashboard')
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .filter(item => user && item.roles.includes(user.role) && item.id !== 'dashboard');
 
   const copyLinks = [
     { label: 'Link Matrícula', icon: LinkIcon, color: 'text-theme-primary', url: `${window.location.origin}/?register=true` },
