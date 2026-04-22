@@ -152,6 +152,13 @@ service cloud.firestore {
              (!('arrival_time' in data) || data.arrival_time is string);
     }
 
+    function isValidCompanion(data) {
+      return data.id is string && data.id.size() > 0 &&
+             data.event_id is string && data.event_id.size() > 0 &&
+             data.name is string && data.name.size() > 2 && data.name.size() < 200 &&
+             data.doc is string && data.doc.size() >= 3 && data.doc.size() < 50;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -244,11 +251,9 @@ service cloud.firestore {
     }
 
     match /event_companions/{companionId} {
-      allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['id', 'event_id', 'name', 'doc']) &&
-                      request.resource.data.name is string &&
-                      request.resource.data.doc is string &&
-                      request.resource.data.event_id is string;
+      allow read: if isAdmin();
+      allow create: if isValidCompanion(request.resource.data) && 
+                      exists(/databases/$(database)/documents/events/$(request.resource.data.event_id));
       allow delete: if isAdmin();
     }
 

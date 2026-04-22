@@ -14,9 +14,12 @@ import {
   Loader2, 
   ClipboardList,
   Search,
-  UserPlus
+  UserPlus,
+  ChevronRight,
+  Edit
 } from 'lucide-react';
 import { toast } from 'sonner';
+import EventsManagement from './EventsManagement';
 
 export default function TravelList() {
   const { settings } = useTheme();
@@ -24,13 +27,25 @@ export default function TravelList() {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddingCompanion, setIsAddingCompanion] = useState(false);
+  const [isEditingLineup, setIsEditingLineup] = useState(false);
   const [newCompanion, setNewCompanion] = useState({ name: '', doc: '' });
 
   useEffect(() => {
     loadEvents();
+    loadAthletes();
   }, []);
+
+  const loadAthletes = async () => {
+    try {
+      const data = await api.getAthletes();
+      setAthletes(data);
+    } catch (error) {
+      console.error("Error loading athletes:", error);
+    }
+  };
 
   useEffect(() => {
     if (selectedEventId) {
@@ -110,6 +125,29 @@ export default function TravelList() {
     window.print();
   };
 
+  if (isEditingLineup && selectedEvent) {
+    return (
+      <div className="space-y-6">
+        <button 
+          onClick={() => {
+            setIsEditingLineup(false);
+            loadEventData(selectedEventId);
+          }}
+          className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all font-bold uppercase text-xs tracking-widest flex items-center gap-2"
+        >
+          <ChevronRight className="rotate-180" size={14} />
+          Voltar para Lista de Viagem
+        </button>
+        <EventsManagement 
+          role="admin" 
+          events={[selectedEvent]} 
+          athletes={athletes} 
+          initialOpenLineupEvent={selectedEvent}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -154,14 +192,21 @@ export default function TravelList() {
             </div>
           </div>
           
-          <div className="w-full md:w-auto self-end">
+          <div className="w-full md:w-auto self-end flex gap-2">
+            <button 
+              onClick={() => setIsEditingLineup(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs"
+            >
+              <Edit size={18} />
+              Editar Escalação
+            </button>
             <button 
               onClick={() => {
                 const link = getPublicLink();
                 navigator.clipboard.writeText(link);
                 toast.success("Link copiado! Envie para os acompanhantes.");
               }}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-2xl hover:bg-theme-primary/90 transition-all uppercase tracking-widest text-xs shadow-lg shadow-theme-primary/20"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-2xl hover:bg-theme-primary/90 transition-all uppercase tracking-widest text-xs shadow-lg shadow-theme-primary/20"
             >
               <Share2 size={18} />
               Link de Cadastro
