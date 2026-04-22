@@ -21,6 +21,7 @@ export type Athlete = {
   school?: string;
   school_shift?: "Manhã" | "Tarde" | "Noite";
   status: "Ativo" | "Inativo";
+  position?: string;
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   created_at?: any;

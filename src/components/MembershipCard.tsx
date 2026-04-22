@@ -496,13 +496,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 <div className="input-box h-[15px] text-[7px]">{athlete.doc || '---.---.---/--'}</div>
               </div>
 
-              {/* 4. Matrícula */}
+              {/* 4. Posição */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
                   <div className="number-circle !w-2 !h-2 !text-[5px]">4</div>
-                  <span className="label-text !text-[6px]">Matrícula</span>
+                  <span className="label-text !text-[6px]">Posição</span>
                 </div>
-                <div className="input-box h-[15px] text-[7px]">#{athlete.id.slice(0, 8).toUpperCase()}</div>
+                <div className="input-box h-[15px] text-[7px]">{athlete.position || 'N/A'}</div>
               </div>
 
               {/* 5. Sub */}

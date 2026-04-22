@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -334,7 +334,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           await markAttendance(athleteId, 'Presente');
         }
         
-        // Check for events today
+        const scanTime = format(new Date(), 'HH:mm');
+        
+        // Check for events today and confirm automatically
         try {
           const events = await api.getEvents();
           const today = format(new Date(), 'yyyy-MM-dd');
@@ -350,11 +352,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           console.error("Erro ao registrar presença em evento:", err);
         }
 
-        setScanResult(`Leitura realizada com sucesso: ${athlete.name}`);
+        setScanResult(`Presença de ${athlete.name} registrada às ${scanTime}!`);
         setRecentScans(prev => [{ 
           id: athlete.id, 
           name: athlete.name, 
-          time: format(new Date(), 'HH:mm'),
+          time: scanTime,
           photo: athlete.photo 
         }, ...prev].slice(0, 5));
         setTimeout(() => setScanResult(null), 3000);
@@ -871,16 +873,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center gap-1">
                         {att?.status === 'Presente' ? (
-                          <span className="text-xs font-black text-theme-primary bg-theme-primary/10 px-2 py-1 rounded-lg">
-                            {att.arrival_time || '--:--'}
-                          </span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                            <div className="flex items-center gap-1.5 bg-theme-primary/10 border border-theme-primary/20 px-3 py-1.5 rounded-xl">
+                              <Clock size={12} className="text-theme-primary" />
+                              <span className="text-xs font-black text-theme-primary">
+                                {att.arrival_time || '--:--'}
+                              </span>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-xs text-zinc-600">--:--</span>
+                          <div className="flex flex-col items-center opacity-30">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                            <span className="text-xs font-black text-zinc-700">--:--</span>
+                          </div>
                         )}
                         {getAthleteSchedules(athlete) && (
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0.5 mt-2">
+                            <span className="text-[8px] text-zinc-600 font-black uppercase tracking-tighter">Horário Previsto</span>
                             {getAthleteSchedules(athlete)?.map((s, i) => (
-                              <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none">
+                              <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
                                 {s.start_time}-{s.end_time}
                               </span>
                             ))}
@@ -976,8 +988,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                         </div>
                       )}
                       {att?.status === 'Presente' && (
-                        <div className="text-[10px] font-black text-theme-primary mt-1">
-                          CHEGADA: {att.arrival_time || '--:--'}
+                        <div className="flex items-center gap-2 mt-2 bg-theme-primary/5 border border-theme-primary/10 p-2 rounded-xl w-fit">
+                          <Clock size={12} className="text-theme-primary" />
+                          <span className="text-[10px] font-black text-theme-primary uppercase"> 
+                            Registro às {att.arrival_time || '--:--'}
+                          </span>
                         </div>
                       )}
                     </div>

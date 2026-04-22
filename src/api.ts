@@ -778,6 +778,25 @@ export const api = {
     }
   },
 
+  subscribeToAthleteLineups: (athlete_id: string, callback: (events: Event[]) => void) => {
+    const q = query(
+      collection(db, "event_lineups"), 
+      where("person_id", "==", athlete_id),
+      where("type", "==", "athlete")
+    );
+    
+    return onSnapshot(q, async (snapshot) => {
+      const eventIds = [...new Set(snapshot.docs.map(doc => doc.data().event_id))];
+      if (eventIds.length === 0) {
+        callback([]);
+        return;
+      }
+      const allEvents = await api.getEvents();
+      const athleteEvents = allEvents.filter(e => eventIds.includes(e.id));
+      callback(athleteEvents);
+    });
+  },
+
   checkAthleteLineups: async (athlete_id: string): Promise<Event[]> => {
     try {
       const q = query(

@@ -40,6 +40,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     school: '',
     school_shift: undefined,
     status: 'Ativo',
+    position: '',
     modality: '',
     gender: 'Masculino'
   });
@@ -132,7 +133,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     const requiredFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
       'neighborhood', 'city', 'uf', 'photo', 'contact', 'jersey_number',
-      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender'
+      'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender', 'position'
     ];
     
     const missing = requiredFields.filter(f => !formData[f]);
@@ -454,6 +455,17 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     </div>
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Posição</label>
+                    <input 
+                      required
+                      type="text" 
+                      placeholder="EX: GOLEIRO, ATACANTE..."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      value={formData.position || ''}
+                      onChange={e => setFormData({...formData, position: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Sexo</label>
                     <select 
                       required 
@@ -738,7 +750,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                 <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.nickname || '___________________________'}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase text-zinc-500">Data de Nascimento</p>
                 <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.birth_date || '____/____/_______'}</p>
@@ -750,6 +762,10 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               <div>
                 <p className="text-[10px] font-black uppercase text-zinc-500">Uniforme</p>
                 <p className="text-sm font-bold border-b border-zinc-200 pb-1">#{formData.jersey_number || '____'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-zinc-500">Posição</p>
+                <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.position || '____________________'}</p>
               </div>
             </div>
           </div>

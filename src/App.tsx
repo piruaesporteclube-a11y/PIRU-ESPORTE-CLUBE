@@ -445,20 +445,30 @@ export default function App() {
 
   useEffect(() => {
     if (user?.role === 'student' && user.athlete_id) {
-      api.checkAthleteLineups(user.athlete_id).then(events => {
-        if (events.length > 0) {
-          toast.success(`Você foi escalado para ${events.length} evento(s)!`, {
-            description: 'Confira os detalhes na aba Escalações.',
+      let previousCount = -1;
+      const unsubscribe = api.subscribeToAthleteLineups(user.athlete_id, (events) => {
+        // Only show toast if count increased (new escalation)
+        // and it's not the initial load (previousCount !== -1)
+        if (previousCount !== -1 && events.length > previousCount) {
+          const diff = events.length - previousCount;
+          toast.success("Nova Escalação!", {
+            description: `Você foi escalado para ${diff === 1 ? 'um novo evento' : `${diff} novos eventos`}. Confira na aba Escalações.`,
             duration: 10000,
             action: {
               label: 'Ver Agora',
               onClick: () => setActiveTab('lineups')
             }
           });
+        } else if (previousCount === -1 && events.length > 0) {
+          // Optional: Inform about existing pending lineups on first load
+          // But maybe only if they are very recent? 
+          // For now let's just do it for new ones as requested: "quando forem escalados"
         }
+        previousCount = events.length;
       });
+      return () => unsubscribe();
     }
-  }, [user?.id, user?.athlete_id]);
+  }, [user?.id, user?.athlete_id, setActiveTab]);
 
   useEffect(() => {
     // Sync user state with Firebase Auth
