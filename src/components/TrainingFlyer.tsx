@@ -79,11 +79,43 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const loadingToast = toast.loading('Gerando seu encarte... Aguarde um momento.');
     
     try {
-      // Ensure all images are loaded and fonts are ready
-      await Promise.all([
-        document.fonts.ready,
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]);
+      const toBase64 = (url: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL('image/png'));
+            } else {
+              reject(new Error('Failed to get 2D context'));
+            }
+          };
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = url;
+        });
+      };
+
+      await document.fonts.ready;
+      
+      // Pre-convert images
+      const images = Array.from(flyerRef.current.querySelectorAll('img'));
+      for (const img of images) {
+        if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
+          try {
+            const b64 = await toBase64(img.src);
+            img.src = b64;
+          } catch (e) {
+            console.warn('Base64 fail:', e);
+          }
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(flyerRef.current, {
         useCORS: true,
@@ -92,6 +124,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         logging: true,
         width: 360,
         height: 640,
+        scrollX: 0,
+        scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
           const flyer = clonedDoc.querySelector('[data-flyer-container]') as HTMLElement;
           if (flyer) {

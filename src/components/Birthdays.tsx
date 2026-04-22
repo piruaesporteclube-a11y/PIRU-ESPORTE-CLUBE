@@ -98,11 +98,45 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     try {
       setIsGenerating(true);
       
-      // Wait for fonts and a safe buffer
-      await Promise.all([
-        document.fonts.ready,
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]);
+      // Essential helper to convert images to base64 to avoid canvas tainting
+      const toBase64 = (url: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL('image/png'));
+            } else {
+              reject(new Error('Failed to get 2D context'));
+            }
+          };
+          img.onerror = () => reject(new Error('Failed to load image for base64 conversion'));
+          img.src = url;
+        });
+      };
+
+      // Wait for fonts
+      await document.fonts.ready;
+      
+      // 1. Pre-convert all images to Base64 to prevent canvas tainting
+      const images = Array.from(element.querySelectorAll('img'));
+      for (const img of images) {
+        if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
+          try {
+            const b64 = await toBase64(img.src);
+            img.src = b64;
+          } catch (e) {
+            console.warn('Image pre-conversion failed:', e);
+          }
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(element, {
         useCORS: true,
@@ -111,6 +145,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         logging: true,
         width: 360,
         height: 640,
+        scrollX: 0,
+        scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
           const card = clonedDoc.getElementById('birthday-card');
           if (card) {
@@ -125,12 +161,15 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             s.margin = '0';
             s.transform = 'none';
 
-            // Strip problematic styles from all children
+            // Strip problematic styles
             card.querySelectorAll('*').forEach((el: any) => {
               el.style.backdropFilter = 'none';
               el.style.webkitBackdropFilter = 'none';
               el.style.transition = 'none';
               el.style.animation = 'none';
+              
+              if (el.classList.contains('text-theme-primary')) el.style.color = '#EAB308';
+              if (el.classList.contains('bg-theme-primary')) el.style.backgroundColor = '#EAB308';
             });
           }
         }
