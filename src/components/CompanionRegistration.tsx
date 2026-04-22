@@ -6,8 +6,13 @@ import { useTheme } from '../contexts/ThemeContext';
 import { UserPlus, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function CompanionRegistration() {
-  const { eventId } = useParams<{ eventId: string }>();
+interface CompanionRegistrationProps {
+  eventId?: string;
+}
+
+export default function CompanionRegistration({ eventId: propEventId }: CompanionRegistrationProps) {
+  const { eventId: routeEventId } = useParams<{ eventId: string }>();
+  const eventId = propEventId || routeEventId;
   const { settings } = useTheme();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);

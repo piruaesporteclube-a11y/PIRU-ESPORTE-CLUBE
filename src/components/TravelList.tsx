@@ -28,14 +28,17 @@ export default function TravelList() {
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddingCompanion, setIsAddingCompanion] = useState(false);
   const [isEditingLineup, setIsEditingLineup] = useState(false);
   const [newCompanion, setNewCompanion] = useState({ name: '', doc: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadEvents();
     loadAthletes();
+    loadProfessors();
   }, []);
 
   const loadAthletes = async () => {
@@ -44,6 +47,15 @@ export default function TravelList() {
       setAthletes(data);
     } catch (error) {
       console.error("Error loading athletes:", error);
+    }
+  };
+
+  const loadProfessors = async () => {
+    try {
+      const data = await api.getProfessors();
+      setProfessors(data);
+    } catch (error) {
+      console.error("Error loading professors:", error);
     }
   };
 
@@ -116,9 +128,32 @@ export default function TravelList() {
     }
   };
 
+  const handleRemoveFromLineup = async (personId: string, type: 'athlete' | 'staff') => {
+    if (confirm(`Deseja remover esta pessoa da lista de viagem?`)) {
+      try {
+        await api.removePersonFromLineup(selectedEventId, personId, type);
+        toast.success("Removido com sucesso");
+        loadEventData(selectedEventId);
+      } catch (error) {
+        toast.error("Erro ao remover");
+      }
+    }
+  };
+
+  const handleAddToLineup = async (personId: string, type: 'athlete' | 'staff') => {
+    try {
+      await api.addPersonToLineup(selectedEventId, personId, type);
+      toast.success("Adicionado à lista");
+      loadEventData(selectedEventId);
+      setSearchQuery('');
+    } catch (error) {
+      toast.error("Erro ao adicionar");
+    }
+  };
+
   const getPublicLink = () => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}/cadastro-acompanhante/${selectedEventId}`;
+    return `${baseUrl}/?travel-registration=true&eventId=${selectedEventId}`;
   };
 
   const handlePrint = () => {
@@ -281,11 +316,12 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Status</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Assinatura</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
                       {lineup.athletes.map((athlete, idx) => (
-                        <tr key={athlete.id} className="hover:bg-zinc-50">
+                        <tr key={athlete.id} className="hover:bg-zinc-50 group">
                           <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
                           <td className="py-3 px-4 text-xs font-black uppercase">{athlete.name}</td>
                           <td className="py-3 px-4 text-xs font-medium">{athlete.doc}</td>
@@ -295,6 +331,15 @@ export default function TravelList() {
                             </span>
                           </td>
                           <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
+                          <td className="py-3 px-4 no-print text-right">
+                            <button 
+                              onClick={() => handleRemoveFromLineup(athlete.id, 'athlete')}
+                              className="text-zinc-300 hover:text-red-500 transition-colors"
+                              title="Remover da lista"
+                            >
+                              <X size={16} />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                       {lineup.athletes.length === 0 && (
@@ -320,16 +365,26 @@ export default function TravelList() {
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Cargo</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
                         <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Assinatura</th>
+                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
                       {lineup.staff.map((p, idx) => (
-                        <tr key={p.id} className="hover:bg-zinc-50">
+                        <tr key={p.id} className="hover:bg-zinc-50 group">
                           <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
                           <td className="py-3 px-4 text-xs font-black uppercase">{p.name}</td>
                           <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">Comissão</td>
                           <td className="py-3 px-4 text-xs font-medium">{p.doc}</td>
                           <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
+                          <td className="py-3 px-4 no-print text-right">
+                            <button 
+                              onClick={() => handleRemoveFromLineup(p.id, 'staff')}
+                              className="text-zinc-300 hover:text-red-500 transition-colors"
+                              title="Remover da lista"
+                            >
+                              <X size={16} />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                       {lineup.staff.length === 0 && (
@@ -358,32 +413,100 @@ export default function TravelList() {
                   </div>
 
                   {isAddingCompanion && (
-                    <div className="no-print mb-6 p-6 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-2xl flex flex-wrap gap-4 items-end">
-                      <div className="flex-1 min-w-[200px]">
-                        <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Nome do Acompanhante</label>
-                        <input 
-                          type="text" 
-                          className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 uppercase"
-                          value={newCompanion.name}
-                          onChange={e => setNewCompanion({...newCompanion, name: e.target.value})}
-                        />
+                    <div className="no-print mb-6 space-y-6">
+                      {/* Search and Add Existing */}
+                      <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Search className="text-theme-primary" size={18} />
+                          <h5 className="text-xs font-black text-white uppercase tracking-widest">Incluir Atleta ou Comissão</h5>
+                        </div>
+                        <div className="relative">
+                          <input 
+                            type="text"
+                            placeholder="PESQUISAR POR NOME..."
+                            className="w-full pl-12 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold uppercase"
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                          />
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                        </div>
+                        
+                        {searchQuery.length >= 2 && (
+                          <div className="mt-3 bg-black border border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-900 max-h-60 overflow-y-auto">
+                            {[...athletes, ...professors]
+                              .filter(p => p.name.toUpperCase().includes(searchQuery.toUpperCase()))
+                              .slice(0, 10)
+                              .map(person => {
+                                const isAthlete = 'position' in person;
+                                const isAlreadyIn = isAthlete 
+                                  ? lineup.athletes.some(a => a.id === person.id)
+                                  : lineup.staff.some(s => s.id === person.id);
+                                
+                                return (
+                                  <div key={person.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${isAthlete ? 'bg-theme-primary text-black' : 'bg-zinc-800 text-zinc-400'}`}>
+                                        {isAthlete ? 'A' : 'C'}
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-black text-white uppercase">{person.name}</p>
+                                        <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">{isAthlete ? 'Atleta' : 'Comissão'}</p>
+                                      </div>
+                                    </div>
+                                    {isAlreadyIn ? (
+                                      <span className="text-[9px] font-black text-green-500 uppercase px-3 py-1 bg-green-500/10 rounded-full">Já na Lista</span>
+                                    ) : (
+                                      <button 
+                                        onClick={() => handleAddToLineup(person.id, isAthlete ? 'athlete' : 'staff')}
+                                        className="px-4 py-1.5 bg-theme-primary text-black text-[10px] font-black rounded-lg hover:bg-theme-primary/90 transition-all uppercase"
+                                      >
+                                        Incluir
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            {[...athletes, ...professors].filter(p => p.name.toUpperCase().includes(searchQuery.toUpperCase())).length === 0 && (
+                              <div className="p-4 text-center text-zinc-600 text-[10px] font-bold uppercase italic">Nenhum resultado encontrado</div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="w-48">
-                        <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">RG / CPF</label>
-                        <input 
-                          type="text" 
-                          className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                          value={newCompanion.doc}
-                          onChange={e => setNewCompanion({...newCompanion, doc: e.target.value})}
-                        />
+
+                      {/* Manual Add Companion */}
+                      <div className="p-6 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                          <UserPlus className="text-zinc-600" size={18} />
+                          <h5 className="text-xs font-black text-zinc-600 uppercase tracking-widest">Incluir Acompanhante (Não Cadastrado)</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-4 items-end">
+                          <div className="flex-1 min-w-[200px]">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Nome do Acompanhante</label>
+                            <input 
+                              type="text" 
+                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 uppercase"
+                              value={newCompanion.name}
+                              onChange={e => setNewCompanion({...newCompanion, name: e.target.value})}
+                            />
+                          </div>
+                          <div className="w-48">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">RG / CPF</label>
+                            <input 
+                              type="text" 
+                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                              value={newCompanion.doc}
+                              onChange={e => setNewCompanion({...newCompanion, doc: e.target.value})}
+                            />
+                          </div>
+                          <button 
+                            onClick={handleAddCompanion}
+                            className="px-6 py-2 bg-black text-white font-black rounded-lg text-[10px] uppercase hover:bg-zinc-800 transition-all flex items-center gap-2 h-[38px]"
+                          >
+                            <Plus size={14} />
+                            Adicionar
+                          </button>
+                        </div>
                       </div>
-                      <button 
-                        onClick={handleAddCompanion}
-                        className="px-6 py-2 bg-black text-white font-black rounded-lg text-[10px] uppercase hover:bg-zinc-800 transition-all flex items-center gap-2 h-[38px]"
-                      >
-                        <Plus size={14} />
-                        Confirmar
-                      </button>
                     </div>
                   )}
 

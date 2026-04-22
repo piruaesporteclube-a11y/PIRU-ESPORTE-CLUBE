@@ -971,7 +971,7 @@ export default function App() {
   if (isTravelRegistration) {
     return (
       <ErrorBoundary>
-        <CompanionRegistration />
+        <CompanionRegistration eventId={companionEventId || undefined} />
       </ErrorBoundary>
     );
   }

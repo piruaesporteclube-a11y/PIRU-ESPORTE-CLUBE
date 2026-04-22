@@ -751,6 +751,38 @@ export const api = {
       handleFirestoreError(error, OperationType.DELETE, `named_lineups/${id}`);
     }
   },
+  addPersonToLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', lineup_index: number = 0) => {
+    try {
+      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+      await setDoc(doc(db, "event_lineups", id), {
+        event_id,
+        lineup_index,
+        person_id,
+        type,
+        confirmation: "Pendente",
+        updated_at: serverTimestamp()
+      }, { merge: true });
+      delete cache[`lineup_${event_id}_${lineup_index}`];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
+    }
+  },
+  removePersonFromLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', lineup_index: number = 0) => {
+    try {
+      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+      await deleteDoc(doc(db, "event_lineups", id));
+      
+      // Also try to delete old format if it was index 0
+      if (lineup_index === 0 && type === 'athlete') {
+        const oldId = `${event_id}_${person_id}`;
+        await deleteDoc(doc(db, "event_lineups", oldId));
+      }
+      
+      delete cache[`lineup_${event_id}_${lineup_index}`];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
+    }
+  },
   confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string, lineup_index: number = 0) => {
     try {
       const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
