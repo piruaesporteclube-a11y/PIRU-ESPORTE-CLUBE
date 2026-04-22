@@ -334,8 +334,8 @@ export default function TravelList() {
                           <td className="py-3 px-4 no-print text-right">
                             <button 
                               onClick={() => handleRemoveFromLineup(athlete.id, 'athlete')}
-                              className="text-zinc-300 hover:text-red-500 transition-colors"
-                              title="Remover da lista"
+                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                              title="Remover atleta da lista"
                             >
                               <X size={16} />
                             </button>
@@ -379,8 +379,8 @@ export default function TravelList() {
                           <td className="py-3 px-4 no-print text-right">
                             <button 
                               onClick={() => handleRemoveFromLineup(p.id, 'staff')}
-                              className="text-zinc-300 hover:text-red-500 transition-colors"
-                              title="Remover da lista"
+                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                              title="Remover comissão da lista"
                             >
                               <X size={16} />
                             </button>
@@ -527,10 +527,11 @@ export default function TravelList() {
                           <td className="py-3 px-4 text-xs font-black uppercase text-zinc-800">{c.name}</td>
                           <td className="py-3 px-4 text-xs font-medium text-zinc-600">{c.doc}</td>
                           <td className="py-3 px-4 border-b border-zinc-200 w-48"></td>
-                          <td className="py-3 px-4 no-print">
+                          <td className="py-3 px-4 no-print text-right">
                             <button 
                               onClick={() => handleDeleteCompanion(c.id)}
-                              className="text-zinc-300 hover:text-red-500 transition-colors"
+                              className="text-zinc-400 hover:text-red-600 transition-colors p-1"
+                              title="Excluir acompanhante da lista"
                             >
                               <X size={16} />
                             </button>
