@@ -136,6 +136,15 @@ service cloud.firestore {
              data.image is string && data.image.size() > 0;
     }
 
+    function isValidOfficialLetter(data) {
+      return data.number is string && data.number.size() > 0 &&
+             data.year is number &&
+             data.date is string &&
+             data.recipient_name is string && data.recipient_name.size() > 0 &&
+             data.subject is string && data.subject.size() > 0 &&
+             data.body is string && data.body.size() > 0;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -221,6 +230,10 @@ service cloud.firestore {
     match /championship_matches/{matchId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /official_letters/{letterId} {
+      allow read, write: if isAdmin();
     }
 
     match /test/connection {

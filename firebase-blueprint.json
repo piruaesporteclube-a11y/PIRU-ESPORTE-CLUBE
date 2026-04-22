@@ -207,6 +207,26 @@
         "status": { "type": "string" }
       },
       "required": ["id", "championship_id", "category", "team_a_id", "team_b_id", "status"]
+    },
+    "OfficialLetter": {
+      "title": "OfficialLetter",
+      "description": "Official letter data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "year": { "type": "number" },
+        "date": { "type": "string" },
+        "recipient_name": { "type": "string" },
+        "recipient_role": { "type": "string" },
+        "recipient_address": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "closing": { "type": "string" },
+        "sender_name": { "type": "string" },
+        "sender_role": { "type": "string" }
+      },
+      "required": ["id", "number", "year", "date", "recipient_name", "subject", "body"]
     }
   },
   "firestore": {
@@ -261,6 +281,10 @@
     "/championship_matches/{matchId}": {
       "schema": "ChampionshipMatch",
       "description": "Matches in championships"
+    },
+    "/official_letters/{letterId}": {
+      "schema": "OfficialLetter",
+      "description": "Official letters collection"
     }
   }
 }
