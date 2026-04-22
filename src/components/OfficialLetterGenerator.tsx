@@ -47,7 +47,8 @@ export default function OfficialLetterGenerator() {
       body: '',
       closing: 'Atenciosamente,',
       sender_name: 'DIRETORIA',
-      sender_role: 'PIRUÁ ESPORTE CLUBE'
+      sender_role: 'PIRUÁ ESPORTE CLUBE',
+      school_info: 'Rua Exemplo, 123 - Bairro - Cidade/UF | WhatsApp: (00) 00000-0000'
     });
     setIsFormOpen(true);
   };
@@ -97,7 +98,9 @@ export default function OfficialLetterGenerator() {
           <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
         )}
         <h1 className="text-2xl font-bold uppercase text-center">{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
-        <p className="text-sm font-medium text-center uppercase tracking-widest">{settings?.instagram || '@piruaec'} | {settings?.whatsapp || '(00) 00000-0000'}</p>
+        {letter.school_info && (
+          <p className="text-[10px] font-medium text-center uppercase tracking-tight text-zinc-600 mt-1">{letter.school_info}</p>
+        )}
       </div>
 
       {/* Title & Date */}
@@ -208,6 +211,21 @@ export default function OfficialLetterGenerator() {
                 value={editingLetter.date}
                 onChange={e => setEditingLetter({...editingLetter, date: e.target.value})}
               />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-theme-primary uppercase tracking-widest border-b border-theme-primary/20 pb-2">Informações da Escolinha</h3>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Endereço e Contato (Cabeçalho)</label>
+                <input 
+                  type="text" 
+                  placeholder="EX: RUA TAL, 123 - BAIRRO - CIDADE/UF | CONTATO: (00) 00000-0000"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-xs"
+                  value={editingLetter.school_info || ''}
+                  onChange={e => setEditingLetter({...editingLetter, school_info: e.target.value.toUpperCase()})}
+                />
+                <p className="text-[10px] text-zinc-500 mt-1 italic">Este texto aparecerá centralizado no topo do documento, abaixo do nome do clube.</p>
+              </div>
             </div>
 
             <div className="space-y-4">

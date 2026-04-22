@@ -239,6 +239,7 @@ export type OfficialLetter = {
   closing: string;
   sender_name: string;
   sender_role: string;
+  school_info?: string;
   created_at?: any;
 };
 
