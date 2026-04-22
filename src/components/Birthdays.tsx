@@ -97,31 +97,121 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
     try {
       setIsGenerating(true);
-      
-      // Wait for fonts
-      await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const loadingToast = toast.loading('Processando arte final...');
 
-      // Use html-to-image instead of html2canvas for better stability
-      const dataUrl = await htmlToImage.toPng(element, {
-        pixelRatio: 3, // 360 * 3 = 1080px (Instagram Story width)
-        backgroundColor: '#000000',
-        width: 360,
-        height: 640,
-        cacheBust: true,
-        style: {
-          borderRadius: '0',
-          borderWidth: '0'
-        },
-        filter: (node) => {
-          // You can filter out problematic nodes here if needed
-          return true;
+      // 1. Ultra-robust Base64 conversion
+      const toBase64 = async (url: string): Promise<string> => {
+        if (!url || url.startsWith('data:')) return url;
+        
+        // Try fetch first (better for CORS usually)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const response = await fetch(url, { mode: 'cors', signal: controller.signal });
+          clearTimeout(timeoutId);
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(url);
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          // Fallback to Image + Canvas
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) { resolve(url); return; }
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+              } catch (err) { resolve(url); }
+            };
+            img.onerror = () => resolve(url);
+            img.src = `${url}${url.includes('?') ? '&' : '?'}nc=${Date.now()}`;
+            setTimeout(() => resolve(url), 5000);
+          });
+        }
+      };
+
+      // 2. Prepare Clone
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.id = 'birthday-card-clone';
+      Object.assign(clone.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '360px',
+        height: '640px',
+        transform: 'none',
+        transition: 'none',
+        zIndex: '-9999',
+        opacity: '1',
+        pointerEvents: 'none',
+        borderRadius: '0',
+        border: 'none',
+        margin: '0',
+        padding: '0'
+      });
+      document.body.appendChild(clone);
+
+      // 3. Clean Styles (No animations, no blurs)
+      const allCloneElements = clone.querySelectorAll('*');
+      allCloneElements.forEach((el: any) => {
+        if (el.style) {
+          el.style.animation = 'none';
+          el.style.transition = 'none';
+          el.style.backdropFilter = 'none';
+          if (el.style.filter && el.style.filter.includes('blur')) {
+            el.style.filter = 'none';
+          }
         }
       });
 
+      // 4. Convert all images to Base64
+      const cloneImages = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(cloneImages.map(async (img) => {
+        const currentSrc = img.getAttribute('src');
+        if (currentSrc) {
+          const b64 = await toBase64(currentSrc);
+          img.setAttribute('src', b64);
+        }
+      }));
+
+      // 5. Convert Background Images to Base64
+      const cloneBgElements = Array.from(clone.querySelectorAll('*')).filter(el => (el as HTMLElement).style.backgroundImage);
+      await Promise.all(cloneBgElements.map(async (el) => {
+        const bg = (el as HTMLElement).style.backgroundImage;
+        const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
+        if (match && match[1]) {
+          const b64 = await toBase64(match[1]);
+          (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
+        }
+      }));
+
+      // 6. Capture
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const dataUrl = await htmlToImage.toPng(clone, {
+        width: 360,
+        height: 640,
+        pixelRatio: 2, // Reducing to 2 for better mobile stability, still high res (720x1280)
+        backgroundColor: '#000000',
+        cacheBust: false
+      });
+
+      document.body.removeChild(clone);
+      toast.dismiss(loadingToast);
+
       const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
       
-      if (share && navigator.share && navigator.canShare) {
+      if (share && navigator.share) {
         // Share flow
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], fileName, { type: 'image/png' });
