@@ -34,6 +34,7 @@ import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as Se
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { navItems } from './navigation';
+import { cn } from './utils';
 
 const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
   stats: any, 
@@ -76,62 +77,85 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
           </div>
         </section>
 
-        <section>
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-8 w-2 bg-theme-primary rounded-full" />
-            <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Minha Jornada</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {filteredNavItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
-              >
-                <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
-                  <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
-                </div>
-                <div className="space-y-1">
-                  <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
-                  {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
-                </div>
-              </button>
-            ))}
+        <section className="space-y-12">
+          {[
+            { id: 'sport', label: 'Minha Jornada Esportiva', color: 'bg-blue-500' },
+            { id: 'student', label: 'Dados & Documentos', color: 'bg-purple-500' },
+          ].map((cat) => {
+            const items = filteredNavItems.filter(item => item.category === cat.id);
+            
+            // Additional links for specific categories in student view
+            const additionalItems = [];
+            if (cat.id === 'student') {
+              if (settings.instagram) {
+                additionalItems.push(
+                  <a 
+                    key="instagram"
+                    href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+                  >
+                    <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                      <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
+                      <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Siga @piruaec</p>
+                    </div>
+                  </a>
+                );
+              }
+              if (settings.whatsapp && settings.whatsapp.replace(/\D/g, '')) {
+                additionalItems.push(
+                  <a 
+                    key="whatsapp"
+                    href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+                  >
+                    <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
+                      <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                      <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Fale Conosco</p>
+                    </div>
+                  </a>
+                );
+              }
+            }
 
-            {settings.instagram && (
-              <a 
-                href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
-              >
-                <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
-                  <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
-                  <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Siga @piruaec</p>
-                </div>
-              </a>
-            )}
+            if (items.length === 0 && additionalItems.length === 0) return null;
 
-            {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
-              <a 
-                href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
-              >
-                <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
-                  <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+            return (
+              <div key={cat.id} className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className={cn("h-6 w-1.5 rounded-full", cat.color)} />
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter">{cat.label}</h3>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
-                  <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Fale Conosco</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  {items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
+                    >
+                      <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
+                        <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
+                        {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
+                      </div>
+                    </button>
+                  ))}
+                  {additionalItems}
                 </div>
-              </a>
-            )}
-          </div>
+              </div>
+            );
+          })}
         </section>
 
         <section>
@@ -186,97 +210,137 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
         ))}
       </section>
 
-      {/* Central Hub */}
-      <section>
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-8 w-2 bg-theme-primary rounded-full" />
-          <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Ações & Gestão</h3>
-        </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {filteredNavItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
-            >
-              <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
-                <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
-              </div>
-              <div className="space-y-1">
-                <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
-                {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
-              </div>
-            </button>
-          ))}
+      {/* Central Hub - Grouped by Category */}
+      <section className="space-y-12">
+        {[
+          { id: 'admin', label: 'Gestão Administrativa', color: 'bg-theme-primary' },
+          { id: 'sport', label: 'Operação Esportiva', color: 'bg-blue-500' },
+          { id: 'doc', label: 'Documentação e Saúde', color: 'bg-purple-500' },
+          { id: 'comm', label: 'Comunicação e Apoio', color: 'bg-green-500' },
+          { id: 'config', label: 'Configurações', color: 'bg-zinc-500' },
+        ].map((cat) => {
+          const items = filteredNavItems.filter(item => item.category === cat.id);
+          
+          // Additional items for specific categories
+          const additionalItems = [];
+          if (cat.id === 'admin') {
+            additionalItems.push(
+              <button 
+                key="new-athlete"
+                onClick={() => setIsAthleteFormOpen(true)} 
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
+              >
+                <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-zinc-400">
+                  <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Novo Atleta</span>
+                  <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">Matrícula</p>
+                </div>
+              </button>
+            );
+          }
 
-          {settings.instagram && (
-            <a 
-              href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
-            >
-              <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
-                <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">Instagram</span>
-                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Social</p>
-              </div>
-            </a>
-          )}
+          if (cat.id === 'comm') {
+            if (settings.instagram) {
+              additionalItems.push(
+                <a 
+                  key="instagram"
+                  href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
+                >
+                  <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                    <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">Instagram</span>
+                    <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Social</p>
+                  </div>
+                </a>
+              );
+            }
+            if (settings.whatsapp && settings.whatsapp.replace(/\D/g, '')) {
+              additionalItems.push(
+                <a 
+                  key="whatsapp"
+                  href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
+                >
+                  <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
+                    <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                    <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Suporte</p>
+                  </div>
+                </a>
+              );
+            }
+          }
 
-          {settings.whatsapp && settings.whatsapp.replace(/\D/g, '') && (
-            <a 
-              href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
-            >
-              <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
-                <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">WhatsApp</span>
-                <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Suporte</p>
-              </div>
-            </a>
-          )}
+          if (items.length === 0 && additionalItems.length === 0) return null;
 
-          <button 
-            onClick={() => setIsAthleteFormOpen(true)} 
-            className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
-          >
-            <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-zinc-400">
-              <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
+          return (
+            <div key={cat.id} className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className={cn("h-6 w-1.5 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]", cat.color)} />
+                <h4 className="text-xl font-black text-white uppercase tracking-tighter sm:text-2xl">{cat.label}</h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
+                  >
+                    <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
+                      <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    </div>
+                    <div className="space-y-1">
+                      <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
+                      {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
+                    </div>
+                  </button>
+                ))}
+                {additionalItems}
+              </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Novo Atleta</span>
-              <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity uppercase">Matrícula</p>
-            </div>
-          </button>
+          );
+        })}
 
-          {copyLinks.map((link, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                navigator.clipboard.writeText(link.url);
-                toast.success(`${link.label} copiado!`);
-              }}
-              className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
-            >
-              <div className={`p-4 rounded-2xl bg-zinc-800/80 ${link.color} group-hover:scale-110 transition-transform`}>
-                <link.icon className="w-6 h-6 sm:w-7 sm:h-7" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-zinc-400 block leading-tight">{link.label}</span>
-                <p className="text-[10px] sm:text-xs text-zinc-600 font-bold uppercase tracking-widest">Link</p>
-              </div>
-            </button>
-          ))}
+        {/* Quick Links Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-1.5 bg-zinc-700 rounded-full" />
+            <h4 className="text-xl font-black text-white uppercase tracking-tighter sm:text-2xl">Links de Acesso Externo</h4>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {copyLinks.map((link, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  navigator.clipboard.writeText(link.url);
+                  toast.success(`${link.label} copiado!`);
+                }}
+                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
+              >
+                <div className={`p-4 rounded-2xl bg-zinc-800/80 ${link.color} group-hover:scale-110 transition-transform`}>
+                  <link.icon className="w-6 h-6 sm:w-7 sm:h-7" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-lg sm:text-xl font-black tracking-tight text-zinc-400 block leading-tight">{link.label}</span>
+                  <p className="text-[10px] sm:text-xs text-zinc-600 font-bold uppercase tracking-widest">Atalho</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
+
 
       {/* Widgets */}
       <section>
