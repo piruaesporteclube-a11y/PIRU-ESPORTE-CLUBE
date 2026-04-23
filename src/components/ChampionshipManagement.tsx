@@ -342,6 +342,16 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   const [selectedMatch, setSelectedMatch] = useState<ChampionshipMatch | null>(null);
   const [matchToPrint, setMatchToPrint] = useState<ChampionshipMatch | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<ChampionshipTeam | null>(null);
+  const [isBlankSumula, setIsBlankSumula] = useState(false);
+  const [blankMatchData, setBlankMatchData] = useState({
+    category: championship.categories[0] || '',
+    team_a_name: '',
+    team_b_name: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '',
+    location: ''
+  });
+  const [isQuickSumulaModalOpen, setIsQuickSumulaModalOpen] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -361,10 +371,25 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   };
 
   const handlePrintSumula = (match: ChampionshipMatch) => {
+    setIsBlankSumula(false);
     setMatchToPrint(match);
     setTimeout(() => {
       window.print();
     }, 500);
+  };
+
+  const handlePrintBlankSumula = () => {
+    setIsBlankSumula(true);
+    setMatchToPrint(null);
+    setTimeout(() => {
+      window.print();
+      // We don't reset isBlankSumula immediately to avoid re-render during print
+    }, 500);
+
+    // Reset after a delay to ensure print dialog opened
+    setTimeout(() => {
+      setIsBlankSumula(false);
+    }, 2000);
   };
 
   const handleApproveTeam = async (team: ChampionshipTeam, status: "Aprovado" | "Recusado") => {
@@ -435,6 +460,13 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
           >
             <Plus size={14} />
             Nova Partida
+          </button>
+          <button 
+            onClick={() => setIsQuickSumulaModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest border border-theme-primary/30"
+          >
+            <FileText size={14} />
+            Súmula em Branco
           </button>
         </div>
       </div>
@@ -642,8 +674,98 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
         />
       )}
 
+      {/* Quick Blank Sumula Modal */}
+      {isQuickSumulaModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white uppercase italic">Súmula em Branco</h2>
+              <button onClick={() => setIsQuickSumulaModalOpen(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+            </div>
+            
+            <p className="text-sm text-zinc-400">Preencha os dados básicos para gerar a súmula. Os campos de jogadores ficarão em branco para preenchimento manual no papel.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Categoria</label>
+                <select 
+                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={blankMatchData.category}
+                  onChange={e => setBlankMatchData({...blankMatchData, category: e.target.value})}
+                >
+                  {championship.categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Data</label>
+                  <input 
+                    type="date"
+                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2 focus:outline-none"
+                    value={blankMatchData.date}
+                    onChange={e => setBlankMatchData({...blankMatchData, date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Horário</label>
+                  <input 
+                    type="time"
+                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2 focus:outline-none"
+                    value={blankMatchData.time}
+                    onChange={e => setBlankMatchData({...blankMatchData, time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Time Mandante (A)</label>
+                <input 
+                  type="text"
+                  placeholder="Deixe em branco para preencher a mão"
+                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2 focus:outline-none uppercase"
+                  value={blankMatchData.team_a_name}
+                  onChange={e => setBlankMatchData({...blankMatchData, team_a_name: e.target.value.toUpperCase()})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase mb-1">Time Visitante (B)</label>
+                <input 
+                  type="text"
+                  placeholder="Deixe em branco para preencher a mão"
+                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2 focus:outline-none uppercase"
+                  value={blankMatchData.team_b_name}
+                  onChange={e => setBlankMatchData({...blankMatchData, team_b_name: e.target.value.toUpperCase()})}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button 
+                onClick={() => setIsQuickSumulaModalOpen(false)}
+                className="flex-1 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-xs tracking-widest"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  setIsQuickSumulaModalOpen(false);
+                  handlePrintBlankSumula();
+                }}
+                className="flex-1 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-all uppercase text-xs tracking-widest"
+              >
+                Gerar e Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Printable Area */}
-      {matchToPrint && (
+      {(matchToPrint || isBlankSumula) && (
         <div className="hidden print-only bg-white text-black p-8 min-h-screen" id="printable-sumula">
           <div className="flex items-center justify-between border-b-4 border-black pb-6 mb-8">
             <div className="flex items-center gap-6">
@@ -657,23 +779,31 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
             </div>
             <div className="text-right">
               <h2 className="text-lg font-black uppercase italic text-zinc-800">{championship.name}</h2>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Categoria: {matchToPrint.category}</p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Categoria: {matchToPrint?.category || blankMatchData.category || '________________'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-4 gap-4 p-4 bg-zinc-100 border-2 border-black mb-8">
             <div>
               <p className="text-[8px] font-black text-zinc-500 uppercase">Data do Jogo</p>
-              <p className="text-xs font-bold">{new Date(matchToPrint.date).toLocaleDateString('pt-BR')}</p>
+              <p className="text-xs font-bold">
+                {matchToPrint 
+                  ? new Date(matchToPrint.date + 'T00:00:00').toLocaleDateString('pt-BR') 
+                  : (blankMatchData.date ? new Date(blankMatchData.date + 'T00:00:00').toLocaleDateString('pt-BR') : '____/____/________')}
+              </p>
             </div>
             <div>
               <p className="text-[8px] font-black text-zinc-500 uppercase">Horário</p>
-              <p className="text-xs font-bold">{matchToPrint.time}</p>
+              <p className="text-xs font-bold">{matchToPrint?.time || blankMatchData.time || '____:____'}</p>
             </div>
             <div className="col-span-2">
               <p className="text-[8px] font-black text-zinc-500 uppercase">Confronto</p>
               <p className="text-xs font-black uppercase italic">
-                {teams.find(t => t.id === matchToPrint.team_a_id)?.name} vs {teams.find(t => t.id === matchToPrint.team_b_id)?.name}
+                {matchToPrint ? (
+                  `${teams.find(t => t.id === matchToPrint.team_a_id)?.name || 'Time A'} vs ${teams.find(t => t.id === matchToPrint.team_b_id)?.name || 'Time B'}`
+                ) : (
+                  `${blankMatchData.team_a_name || '________________'} vs ${blankMatchData.team_b_name || '________________'}`
+                )}
               </p>
             </div>
           </div>
@@ -683,9 +813,9 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
             <div className="space-y-4">
               <div className="flex items-center gap-3 bg-black text-white p-2">
                 <div className="w-8 h-8 bg-white/10 rounded overflow-hidden">
-                  {teams.find(t => t.id === matchToPrint.team_a_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_a_id)?.logo} className="w-full h-full object-cover" />}
+                  {matchToPrint && teams.find(t => t.id === matchToPrint.team_a_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_a_id)?.logo} className="w-full h-full object-cover" />}
                 </div>
-                <h3 className="text-sm font-black uppercase truncate">{teams.find(t => t.id === matchToPrint.team_a_id)?.name}</h3>
+                <h3 className="text-sm font-black uppercase truncate">{matchToPrint ? (teams.find(t => t.id === matchToPrint.team_a_id)?.name || 'Time A') : (blankMatchData.team_a_name || 'TIME MANDANTE')}</h3>
               </div>
               <table className="w-full border-collapse">
                 <thead>
@@ -699,7 +829,7 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                   </tr>
                 </thead>
                 <tbody>
-                  {teams.find(t => t.id === matchToPrint.team_a_id)?.players.map((p, i) => (
+                  {matchToPrint ? teams.find(t => t.id === matchToPrint.team_a_id)?.players.map((p, i) => (
                     <tr key={i}>
                       <td className="border border-zinc-300 p-1 text-[10px] text-center font-bold">#{p.jersey_number || ''}</td>
                       <td className="border border-zinc-300 p-1 text-[10px] font-bold uppercase truncate max-w-[120px]">{p.name}</td>
@@ -708,24 +838,29 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                       <td className="border border-zinc-300 p-1"></td>
                       <td className="border border-zinc-300 p-1"></td>
                     </tr>
-                  ))}
-                  {Array.from({ length: Math.max(0, 15 - (teams.find(t => t.id === matchToPrint.team_a_id)?.players.length || 0)) }).map((_, i) => (
+                  )) : null}
+                  {Array.from({ length: Math.max(0, 25 - (matchToPrint ? (teams.find(t => t.id === matchToPrint.team_a_id)?.players.length || 0) : 0)) }).map((_, i) => (
                     <tr key={`empty-a-${i}`}>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2 h-8 text-center">{!matchToPrint ? '____' : ''}</td>
+                      <td className="border border-zinc-300 p-2 h-8 font-bold text-[10px]">{!matchToPrint && i === 0 ? 'GOLEIRO:' : ''}</td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="pt-4 space-y-2">
                 <p className="text-[8px] font-black uppercase text-zinc-500">Comissão Técnica</p>
-                {teams.find(t => t.id === matchToPrint.team_a_id)?.staff.map((s, i) => (
+                {matchToPrint ? teams.find(t => t.id === matchToPrint.team_a_id)?.staff.map((s, i) => (
                   <p key={i} className="text-[10px] font-bold uppercase">{s.role}: {s.name}</p>
-                ))}
+                )) : (
+                  <>
+                    <p className="text-[10px] font-bold uppercase border-b border-dotted border-zinc-300 w-full mb-2">TÉCNICO: _________________________________</p>
+                    <p className="text-[10px] font-bold uppercase border-b border-dotted border-zinc-300 w-full mb-2">AUXILIAR: _________________________________</p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -733,9 +868,9 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
             <div className="space-y-4">
               <div className="flex items-center gap-3 bg-zinc-800 text-white p-2">
                 <div className="w-8 h-8 bg-white/10 rounded overflow-hidden">
-                  {teams.find(t => t.id === matchToPrint.team_b_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_b_id)?.logo} className="w-full h-full object-cover" />}
+                  {matchToPrint && teams.find(t => t.id === matchToPrint.team_b_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_b_id)?.logo} className="w-full h-full object-cover" />}
                 </div>
-                <h3 className="text-sm font-black uppercase truncate">{teams.find(t => t.id === matchToPrint.team_b_id)?.name}</h3>
+                <h3 className="text-sm font-black uppercase truncate">{matchToPrint ? (teams.find(t => t.id === matchToPrint.team_b_id)?.name || 'Time B') : (blankMatchData.team_b_name || 'TIME VISITANTE')}</h3>
               </div>
               <table className="w-full border-collapse">
                 <thead>
@@ -749,7 +884,7 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                   </tr>
                 </thead>
                 <tbody>
-                  {teams.find(t => t.id === matchToPrint.team_b_id)?.players.map((p, i) => (
+                  {matchToPrint ? teams.find(t => t.id === matchToPrint.team_b_id)?.players.map((p, i) => (
                     <tr key={i}>
                       <td className="border border-zinc-300 p-1 text-[10px] text-center font-bold">#{p.jersey_number || ''}</td>
                       <td className="border border-zinc-300 p-1 text-[10px] font-bold uppercase truncate max-w-[120px]">{p.name}</td>
@@ -758,24 +893,29 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                       <td className="border border-zinc-300 p-1"></td>
                       <td className="border border-zinc-300 p-1"></td>
                     </tr>
-                  ))}
-                  {Array.from({ length: Math.max(0, 15 - (teams.find(t => t.id === matchToPrint.team_b_id)?.players.length || 0)) }).map((_, i) => (
+                  )) : null}
+                  {Array.from({ length: Math.max(0, 25 - (matchToPrint ? (teams.find(t => t.id === matchToPrint.team_b_id)?.players.length || 0) : 0)) }).map((_, i) => (
                     <tr key={`empty-b-${i}`}>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
-                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2 h-8 text-center">{!matchToPrint ? '____' : ''}</td>
+                      <td className="border border-zinc-300 p-2 h-8 font-bold text-[10px]">{!matchToPrint && i === 0 ? 'GOLEIRO:' : ''}</td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
+                      <td className="border border-zinc-300 p-2 h-8"></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="pt-4 space-y-2">
                 <p className="text-[8px] font-black uppercase text-zinc-500">Comissão Técnica</p>
-                {teams.find(t => t.id === matchToPrint.team_b_id)?.staff.map((s, i) => (
+                {matchToPrint ? teams.find(t => t.id === matchToPrint.team_b_id)?.staff.map((s, i) => (
                   <p key={i} className="text-[10px] font-bold uppercase">{s.role}: {s.name}</p>
-                ))}
+                )) : (
+                  <>
+                    <p className="text-[10px] font-bold uppercase border-b border-dotted border-zinc-300 w-full mb-2">TÉCNICO: _________________________________</p>
+                    <p className="text-[10px] font-bold uppercase border-b border-dotted border-zinc-300 w-full mb-2">AUXILIAR: _________________________________</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -791,10 +931,10 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
                 <p className="text-[10px] font-black uppercase">Assinatura Árbitro</p>
               </div>
               <div className="border-t-2 border-black text-center pt-2">
-                <p className="text-[10px] font-black uppercase">Responsável {teams.find(t => t.id === matchToPrint.team_a_id)?.name}</p>
+                <p className="text-[10px] font-black uppercase">Responsável {matchToPrint ? (teams.find(t => t.id === matchToPrint.team_a_id)?.name || 'Mandante') : (blankMatchData.team_a_name || 'Mandante')}</p>
               </div>
               <div className="border-t-2 border-black text-center pt-2">
-                <p className="text-[10px] font-black uppercase">Responsável {teams.find(t => t.id === matchToPrint.team_b_id)?.name}</p>
+                <p className="text-[10px] font-black uppercase">Responsável {matchToPrint ? (teams.find(t => t.id === matchToPrint.team_b_id)?.name || 'Visitante') : (blankMatchData.team_b_name || 'Visitante')}</p>
               </div>
             </div>
           </div>
