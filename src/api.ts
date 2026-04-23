@@ -979,9 +979,13 @@ export const api = {
 
   // Championships
   getChampionships: async (): Promise<Championship[]> => {
+    const cached = getCachedData("championships");
+    if (cached) return cached;
     try {
-      const querySnapshot = await getDocs(collection(db, "championships"));
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Championship));
+      const querySnapshot = await getDocsWithCacheFallback(collection(db, "championships"));
+      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Championship));
+      setCachedData("championships", data);
+      return data;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "championships");
       return [];
@@ -992,6 +996,7 @@ export const api = {
     try {
       const data = { ...championship, updated_at: serverTimestamp() };
       await setDoc(doc(db, "championships", championship.id), sanitizeData(data), { merge: true });
+      delete cache["championships"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `championships/${championship.id}`);
     }
@@ -999,6 +1004,7 @@ export const api = {
   deleteChampionship: async (id: string) => {
     try {
       await deleteDoc(doc(db, "championships", id));
+      delete cache["championships"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `championships/${id}`);
     }
@@ -1006,11 +1012,16 @@ export const api = {
 
   // Championship Teams
   getChampionshipTeams: async (championshipId?: string): Promise<ChampionshipTeam[]> => {
+    const cacheKey = `championship_teams_${championshipId || 'all'}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
     try {
       let q = query(collection(db, "championship_teams"));
       if (championshipId) q = query(q, where("championship_id", "==", championshipId));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
+      setCachedData(cacheKey, data);
+      return data;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "championship_teams");
       return [];
@@ -1023,7 +1034,7 @@ export const api = {
         where("championship_id", "==", championshipId),
         where("responsible_doc", "==", docNum.replace(/\D/g, ""))
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsWithCacheFallback(q);
       return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "championship_teams_by_doc");
@@ -1035,6 +1046,10 @@ export const api = {
     try {
       const data = { ...team, created_at: team.created_at || serverTimestamp() };
       await setDoc(doc(db, "championship_teams", team.id), sanitizeData(data), { merge: true });
+      // Invalidate related caches
+      Object.keys(cache).forEach(key => {
+        if (key.startsWith('championship_teams_')) delete cache[key];
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `championship_teams/${team.id}`);
     }
@@ -1042,11 +1057,16 @@ export const api = {
 
   // Championship Matches
   getChampionshipMatches: async (championshipId?: string): Promise<ChampionshipMatch[]> => {
+    const cacheKey = `championship_matches_${championshipId || 'all'}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
     try {
       let q = query(collection(db, "championship_matches"));
       if (championshipId) q = query(q, where("championship_id", "==", championshipId));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipMatch));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipMatch));
+      setCachedData(cacheKey, data);
+      return data;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "championship_matches");
       return [];
@@ -1057,6 +1077,10 @@ export const api = {
     try {
       const data = { ...match, updated_at: serverTimestamp() };
       await setDoc(doc(db, "championship_matches", match.id), sanitizeData(data), { merge: true });
+      // Invalidate related caches
+      Object.keys(cache).forEach(key => {
+        if (key.startsWith('championship_matches_')) delete cache[key];
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `championship_matches/${match.id}`);
     }
@@ -1203,9 +1227,14 @@ export const api = {
 
   // Official Letters
   getOfficialLetters: async (): Promise<OfficialLetter[]> => {
+    const cached = getCachedData("official_letters");
+    if (cached) return cached;
     try {
-      const querySnapshot = await getDocs(query(collection(db, "official_letters"), orderBy("created_at", "desc")));
-      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as OfficialLetter));
+      const q = query(collection(db, "official_letters"), orderBy("created_at", "desc"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as OfficialLetter));
+      setCachedData("official_letters", data);
+      return data;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "official_letters");
       return [];
@@ -1221,6 +1250,7 @@ export const api = {
         updated_at: serverTimestamp() 
       };
       await setDoc(doc(db, "official_letters", id), sanitizeData(data), { merge: true });
+      delete cache["official_letters"]; // Invalidate cache
       return id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "official_letters");
@@ -1230,6 +1260,7 @@ export const api = {
   deleteOfficialLetter: async (id: string) => {
     try {
       await deleteDoc(doc(db, "official_letters", id));
+      delete cache["official_letters"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `official_letters/${id}`);
     }
