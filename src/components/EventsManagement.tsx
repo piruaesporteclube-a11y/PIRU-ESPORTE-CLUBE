@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -10,6 +10,8 @@ import { cn, fixHtml2CanvasColors } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import Attendance from './Attendance';
+import EventFlyer from './EventFlyer';
+import TrainingFlyer from './TrainingFlyer';
 
 interface EventsManagementProps {
   athletes?: Athlete[];
@@ -54,6 +56,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [lineupCounts, setLineupCounts] = useState<Record<string, number>>({});
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
+  const [activeFlyerEvent, setActiveFlyerEvent] = useState<Event | null>(null);
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -595,6 +598,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   QR Check-in
                 </button>
               )}
+              {isAdmin && (
+                <button 
+                  onClick={() => setActiveFlyerEvent(event)}
+                  className="w-full mt-2 py-3 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white rounded-xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2 text-xs"
+                >
+                  <Instagram size={16} />
+                  Gerar Encarte
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -651,6 +663,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
             </div>
           </div>
         </div>
+      )}
+
+      {/* Event Flyer Modal */}
+      {activeFlyerEvent && (
+        <EventFlyer 
+          event={activeFlyerEvent}
+          athletes={athletes}
+          onClose={() => setActiveFlyerEvent(null)}
+        />
       )}
 
       {/* Event Form Modal */}

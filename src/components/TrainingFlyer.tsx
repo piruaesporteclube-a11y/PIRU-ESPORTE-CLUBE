@@ -26,6 +26,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
+  const [playerMode, setPlayerMode] = useState<'foreground' | 'background'>('foreground');
+  const [playerOpacity, setPlayerOpacity] = useState(0.4);
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
@@ -83,9 +85,15 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
         try {
+          // Add cache buster and crossOrigin if possible
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-          const response = await fetch(url, { mode: 'cors', signal: controller.signal });
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // Increased timeout
+          
+          const response = await fetch(url, { 
+            mode: 'cors', 
+            signal: controller.signal,
+            credentials: 'omit'
+          });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -95,6 +103,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             reader.readAsDataURL(blob);
           });
         } catch (e) {
+          console.warn('Fetch failed, falling back to canvas/proxy method', e);
           return new Promise((resolve) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
@@ -107,11 +116,19 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 if (!ctx) { resolve(url); return; }
                 ctx.drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/png'));
-              } catch (err) { resolve(url); }
+              } catch (err) { 
+                console.error('Canvas conversion failed', err);
+                resolve(url); 
+              }
             };
-            img.onerror = () => resolve(url);
-            img.src = `${url}${url.includes('?') ? '&' : '?'}nc=${Date.now()}`;
-            setTimeout(() => resolve(url), 5000);
+            img.onerror = () => {
+              console.error('Image load failed for toBase64', url);
+              resolve(url);
+            };
+            // Try with a different proxy or cache buster
+            const proxyUrl = url.includes('?') ? `${url}&nc=${Date.now()}` : `${url}?nc=${Date.now()}`;
+            img.src = proxyUrl;
+            setTimeout(() => resolve(url), 8000);
           });
         }
       };
@@ -338,22 +355,65 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             </div>
 
             {customImage && (
-              <div className="relative group">
-                <img src={customImage} className="w-full h-32 object-cover rounded-2xl border-2 border-theme-primary" />
-                <button 
-                  onClick={() => setCustomImage(null)}
-                  className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X size={14} />
-                </button>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                   <p className="text-[10px] font-black text-theme-primary bg-black/80 px-2 py-1 rounded uppercase tracking-widest">Foto Customizada</p>
+              <div className="space-y-4">
+                <div className="relative group">
+                  <img src={customImage} className="w-full h-32 object-cover rounded-2xl border-2 border-theme-primary" />
+                  <button 
+                    onClick={() => setCustomImage(null)}
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                     <p className="text-[10px] font-black text-theme-primary bg-black/80 px-2 py-1 rounded uppercase tracking-widest">Foto Customizada</p>
+                  </div>
+                </div>
+
+                <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
+                  <button 
+                    onClick={() => setPlayerMode('foreground')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                      playerMode === 'foreground' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Destaque
+                  </button>
+                  <button 
+                    onClick={() => setPlayerMode('background')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                      playerMode === 'background' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Fundo
+                  </button>
                 </div>
               </div>
             )}
 
             {!customImage && (
               <>
+                <div className="flex bg-black p-1 rounded-xl border border-zinc-800 mb-4">
+                  <button 
+                    onClick={() => setPlayerMode('foreground')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                      playerMode === 'foreground' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Destaque
+                  </button>
+                  <button 
+                    onClick={() => setPlayerMode('background')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                      playerMode === 'background' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Fundo
+                  </button>
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                   <input 
@@ -506,7 +566,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   
                   {/* Athlete Image Layer */}
                   {(customImage || selectedAthlete) && (
-                    <div className="absolute inset-x-0 bottom-0 z-[4] h-[60%] flex items-end justify-center pointer-events-none">
+                    <div className={cn(
+                      "absolute inset-x-0 bottom-0 z-[4] flex items-end justify-center pointer-events-none transition-all duration-700",
+                      playerMode === 'background' ? "h-full scale-110 opacity-40 grayscale-[0.8] blur-[1px]" : "h-[60%] opacity-100"
+                    )}>
                       <div className="relative w-full h-full">
                         <img 
                           src={customImage || selectedAthlete?.photo} 
@@ -515,7 +578,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           referrerPolicy="no-referrer"
                           crossOrigin="anonymous"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent",
+                          playerMode === 'background' ? "opacity-40" : "opacity-80"
+                        )} />
                       </div>
                     </div>
                   )}
@@ -542,7 +608,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   </h1>
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-theme-primary rounded-full shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
                 </div>
-                <p className="mt-2 text-theme-primary text-[10px] font-black uppercase tracking-[0.4em] italic opacity-80" />
+                {settings.instagram && (
+                  <div className="mt-4 flex items-center gap-2 py-1.5 px-4 bg-black/40 backdrop-blur-md rounded-full border border-white/5 shadow-xl">
+                    <Instagram size={10} className="text-theme-primary" />
+                    <span className="text-white text-[9px] font-black uppercase tracking-widest leading-none">
+                      {settings.instagram.startsWith('@') ? settings.instagram : `@${settings.instagram}`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Date Section - Minimal Glass Style */}

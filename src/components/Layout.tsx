@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   LogOut,
   ArrowLeft,
-  LayoutDashboard
+  LayoutDashboard,
+  Instagram
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -58,6 +59,18 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
+          {settings.instagram && (
+            <a 
+              href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center gap-2 p-3 bg-pink-500/10 text-pink-500 hover:bg-pink-500 hover:text-white rounded-xl transition-all border border-pink-500/20 group"
+              title="Seguir no Instagram"
+            >
+              <Instagram size={22} className="group-hover:scale-110 transition-transform" />
+            </a>
+          )}
+
           <div className="hidden lg:flex flex-col items-end mr-2">
             <p className="text-xs font-black text-zinc-500 uppercase tracking-widest leading-none">Conectado como</p>
             <p className="text-base font-black text-theme-primary uppercase tracking-tight">{user?.name}</p>
