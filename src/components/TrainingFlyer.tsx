@@ -608,14 +608,6 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   </h1>
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-theme-primary rounded-full shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
                 </div>
-                {settings.instagram && (
-                  <div className="mt-4 flex items-center gap-2 py-1.5 px-4 bg-black/40 backdrop-blur-md rounded-full border border-white/5 shadow-xl">
-                    <Instagram size={10} className="text-theme-primary" />
-                    <span className="text-white text-[9px] font-black uppercase tracking-widest leading-none">
-                      {settings.instagram.startsWith('@') ? settings.instagram : `@${settings.instagram}`}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Date Section - Minimal Glass Style */}
@@ -650,9 +642,15 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
               {/* Trainings List */}
               <div className="relative z-30 flex-1 px-6 py-4 flex flex-col min-h-0">
-                <div className="flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1">
+                <div className={cn(
+                  "flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1 transition-all duration-700",
+                  playerMode === 'background' ? "scale-95 translate-y-4" : "scale-100"
+                )}>
                   {trainings.map((t, idx) => (
-                    <div key={idx} className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    <div key={idx} className={cn(
+                      "backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl transition-all duration-700",
+                      playerMode === 'background' ? "bg-black/40" : "bg-black/70"
+                    )}>
                       <div className="bg-gradient-to-r from-white/10 to-transparent px-3 py-1.5 flex items-center justify-between border-b border-white/10">
                         <div className="flex items-center gap-2">
                           <div className="w-1 h-3 bg-theme-primary rounded-full"></div>
@@ -667,8 +665,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       </div>
                       <div className="p-2 space-y-2">
                         {t.schedules?.map((s, si) => (
-                          <div key={si} className="bg-zinc-900/80 rounded-lg p-2 border border-white/5 space-y-1.5 relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-theme-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <div key={si} className={cn(
+                            "rounded-lg p-2 border border-white/5 space-y-1.5 relative overflow-hidden transition-all duration-700",
+                            playerMode === 'background' ? "bg-zinc-900/40" : "bg-zinc-900/80"
+                          )}>
                             <div className="relative flex items-center justify-between">
                               <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-black/60 rounded border border-theme-primary/20">
                                 <Clock size={9} className="text-theme-primary" />
@@ -700,8 +700,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
               <div className="relative z-30 px-6 pb-6 text-center">
                 <div className="py-2 border-y border-theme-primary/10 mb-2">
-                  <p className="text-theme-primary text-[9px] font-black uppercase italic tracking-[0.2em] drop-shadow-md">
-                    Foco, Disciplina e Raça! O sucesso começa no treino.
+                  <p className="text-theme-primary text-[9px] font-black uppercase italic tracking-[0.1em] drop-shadow-md">
+                    FOCO DISCIPLINA E RAÇA! O SUCESSO COMEÇA, NO TREINO.
                   </p>
                 </div>
                 <p className="text-zinc-500 text-[7px] font-bold uppercase tracking-widest opacity-40">

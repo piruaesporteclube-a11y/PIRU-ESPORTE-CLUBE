@@ -79,8 +79,9 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
 
         <section className="space-y-12">
           {[
-            { id: 'sport', label: 'Minha Jornada Esportiva', color: 'bg-blue-500' },
-            { id: 'student', label: 'Dados & Documentos', color: 'bg-purple-500' },
+            { id: 'student', label: 'Dados & Identidade', color: 'bg-purple-500' },
+            { id: 'arena', label: 'Minhas Competições', color: 'bg-blue-500' },
+            { id: 'training', label: 'Treinos & Agenda', color: 'bg-orange-500' },
           ].map((cat) => {
             const items = filteredNavItems.filter(item => item.category === cat.id);
             
@@ -213,17 +214,17 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
       {/* Central Hub - Grouped by Category */}
       <section className="space-y-12">
         {[
-          { id: 'admin', label: 'Gestão Administrativa', color: 'bg-theme-primary' },
-          { id: 'sport', label: 'Operação Esportiva', color: 'bg-blue-500' },
-          { id: 'doc', label: 'Documentação e Saúde', color: 'bg-purple-500' },
-          { id: 'comm', label: 'Comunicação e Apoio', color: 'bg-green-500' },
-          { id: 'config', label: 'Configurações', color: 'bg-zinc-500' },
+          { id: 'command', label: 'Painel de Comando', color: 'bg-theme-primary' },
+          { id: 'arena', label: 'Arena & Competição', color: 'bg-blue-500' },
+          { id: 'training', label: 'Centro de Treinamento', color: 'bg-orange-500' },
+          { id: 'office', label: 'Gabinete & Saúde', color: 'bg-purple-500' },
+          { id: 'community', label: 'Social & Relacionamento', color: 'bg-green-500' },
         ].map((cat) => {
           const items = filteredNavItems.filter(item => item.category === cat.id);
           
           // Additional items for specific categories
           const additionalItems = [];
-          if (cat.id === 'admin') {
+          if (cat.id === 'command') {
             additionalItems.push(
               <button 
                 key="new-athlete"
@@ -241,7 +242,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             );
           }
 
-          if (cat.id === 'comm') {
+          if (cat.id === 'community') {
             if (settings.instagram) {
               additionalItems.push(
                 <a 

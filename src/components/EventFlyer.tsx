@@ -508,25 +508,17 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 </div>
               </div>
 
-              {/* Location */}
-              <div className="w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-start gap-4">
-                <div className="bg-theme-primary p-2 rounded-xl text-black shrink-0"><MapPin size={20} /></div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-1">Localização</span>
-                  <p className="text-sm font-bold text-white uppercase tracking-tight">{event.street}, {event.number}</p>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{event.neighborhood} — {event.city}/{event.uf}</p>
-                </div>
-              </div>
-
               <div className="flex-1" />
 
-              {/* Instagram Handle - Requested Feature */}
-              {settings.instagram && (
-                <div className="flex items-center gap-2 py-2 px-4 bg-black/40 backdrop-blur-md rounded-full border border-white/5 mb-4 group">
-                  <Instagram size={12} className="text-theme-primary" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">{settings.instagram?.startsWith('@') ? settings.instagram : `@${settings.instagram}`}</span>
+              {/* Minimal Location in Footer */}
+              <div className="flex flex-col items-center text-center opacity-90 mb-4">
+                <div className="flex items-center gap-1.5 text-theme-primary mb-1">
+                  <MapPin size={10} />
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em]">Local do Evento</span>
                 </div>
-              )}
+                <p className="text-[10px] font-bold text-white uppercase tracking-tight">{event.street}, {event.number}</p>
+                <p className="text-[8px] text-zinc-400 font-bold uppercase tracking-widest">{event.neighborhood} • {event.city}/{event.uf}</p>
+              </div>
 
               <div className="w-full border-t border-theme-primary/20 pt-4 text-center">
                 <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-[0.3em] mb-1">Contamos com a sua torcida!</p>
