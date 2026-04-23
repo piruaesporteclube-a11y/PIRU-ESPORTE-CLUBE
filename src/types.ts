@@ -136,11 +136,16 @@ export type Settings = {
   boardMembers?: string;
   councilors?: string;
   address?: string;
+  neighborhood?: string;
+  city?: string;
+  uf?: string;
   phone?: string;
   email?: string;
   facebook?: string;
   youtube?: string;
   tiktok?: string;
+  coaches?: string;
+  assistants?: string;
 };
 
 export type User = {

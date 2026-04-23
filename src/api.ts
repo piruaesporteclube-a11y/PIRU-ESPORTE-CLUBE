@@ -311,7 +311,14 @@ export const api = {
     try {
       console.log("Starting registration for:", email);
       
-      // 1. Ensure we are signed out first to avoid conflicts
+      // 1. Check if CPF already exists in athletes collection
+      const q = query(collection(db, "athletes"), where("doc", "==", normalizedDoc));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        throw new Error("Este CPF já está cadastrado no sistema.");
+      }
+
+      // 2. Ensure we are signed out first to avoid conflicts
       await signOut(auth);
 
       // 2. Create Auth User
@@ -456,8 +463,6 @@ export const api = {
     }
   },
   saveAthlete: async (athlete: Partial<Athlete>) => {
-    if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
-    
     // Normalize CPF if present
     const sanitizedAthlete = { ...athlete };
     if (sanitizedAthlete.doc) {
@@ -467,21 +472,33 @@ export const api = {
       sanitizedAthlete.guardian_doc = sanitizedAthlete.guardian_doc.replace(/\D/g, "");
     }
 
+    if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
+
     try {
-      const sanitizedAthlete = { 
-        ...athlete,
-        updated_at: serverTimestamp()
-      };
+      // Check for duplicate CPF
       if (sanitizedAthlete.doc) {
-        sanitizedAthlete.doc = sanitizedAthlete.doc.replace(/\D/g, "");
-      }
-      if (sanitizedAthlete.guardian_doc) {
-        sanitizedAthlete.guardian_doc = sanitizedAthlete.guardian_doc.replace(/\D/g, "");
+        const q = query(
+          collection(db, "athletes"), 
+          where("doc", "==", sanitizedAthlete.doc)
+        );
+        const querySnapshot = await getDocs(q);
+        const duplicate = querySnapshot.docs.find(doc => doc.id !== athlete.id);
+        if (duplicate) {
+          throw new Error("Este CPF já está cadastrado para outro atleta.");
+        }
       }
 
-      await setDoc(doc(db, "athletes", athlete.id), sanitizeData(sanitizedAthlete), { merge: true });
+      const finalData = { 
+        ...sanitizedAthlete,
+        updated_at: serverTimestamp()
+      };
+
+      await setDoc(doc(db, "athletes", athlete.id), sanitizeData(finalData), { merge: true });
       delete cache["athletes"]; // Invalidate cache
     } catch (error) {
+      if (error instanceof Error && error.message.includes("cadastrado")) {
+        throw error;
+      }
       handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
     }
   },
@@ -509,12 +526,34 @@ export const api = {
     }
   },
   saveProfessor: async (professor: Partial<Professor>) => {
-    if (!professor.id) professor.id = doc(collection(db, "professors")).id;
+    const sanitizedProfessor = { ...professor };
+    if (sanitizedProfessor.doc) {
+      sanitizedProfessor.doc = sanitizedProfessor.doc.replace(/\D/g, "");
+    }
+
+    if (!sanitizedProfessor.id) sanitizedProfessor.id = doc(collection(db, "professors")).id;
+
     try {
-      const data = { ...professor, updated_at: serverTimestamp() };
-      await setDoc(doc(db, "professors", professor.id), sanitizeData(data), { merge: true });
+      // Check for duplicate CPF
+      if (sanitizedProfessor.doc) {
+        const q = query(
+          collection(db, "professors"), 
+          where("doc", "==", sanitizedProfessor.doc)
+        );
+        const querySnapshot = await getDocs(q);
+        const duplicate = querySnapshot.docs.find(doc => doc.id !== sanitizedProfessor.id);
+        if (duplicate) {
+          throw new Error("Este CPF já está cadastrado para outro professor.");
+        }
+      }
+
+      const data = { ...sanitizedProfessor, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "professors", sanitizedProfessor.id!), sanitizeData(data), { merge: true });
       delete cache["professors"]; // Invalidate cache
     } catch (error) {
+      if (error instanceof Error && error.message.includes("cadastrado")) {
+        throw error;
+      }
       handleFirestoreError(error, OperationType.WRITE, `professors/${professor.id}`);
     }
   },

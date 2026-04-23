@@ -121,11 +121,16 @@
         "boardMembers": { "type": "string" },
         "councilors": { "type": "string" },
         "address": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "city": { "type": "string" },
+        "uf": { "type": "string" },
         "phone": { "type": "string" },
         "email": { "type": "string" },
         "facebook": { "type": "string" },
         "youtube": { "type": "string" },
-        "tiktok": { "type": "string" }
+        "tiktok": { "type": "string" },
+        "coaches": { "type": "string" },
+        "assistants": { "type": "string" }
       }
     },
     "User": {

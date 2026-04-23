@@ -281,6 +281,17 @@ export default function SettingsComponent() {
                   />
                 </div>
                 <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Treinadores</label>
+                  <textarea 
+                    rows={2}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nomes dos treinadores (um por linha ou vírgula)"
+                    value={settings.coaches || ''}
+                    onChange={e => setSettings({...settings, coaches: e.target.value})}
+                  />
+                  <p className="text-[9px] text-zinc-500 mt-1 italic uppercase tracking-tighter">Ex: João Silva, Pedro Santos</p>
+                </div>
+                <div>
                   <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Diretor Técnico</label>
                   <input 
                     type="text" 
@@ -291,11 +302,21 @@ export default function SettingsComponent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Auxiliar Técnico</label>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Auxiliares</label>
+                  <textarea 
+                    rows={2}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Nomes dos auxiliares (um por linha ou vírgula)"
+                    value={settings.assistants || ''}
+                    onChange={e => setSettings({...settings, assistants: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Auxiliar Técnico Principal</label>
                   <input 
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    placeholder="Nome do Auxiliar"
+                    placeholder="Nome do Auxiliar Principal"
                     value={settings.auxiliaryDirector || ''}
                     onChange={e => setSettings({...settings, auxiliaryDirector: e.target.value})}
                   />
@@ -352,13 +373,46 @@ export default function SettingsComponent() {
                 <input 
                   type="text" 
                   className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  placeholder="Rua, Número, Bairro, Cidade - UF"
+                  placeholder="Rua, Número"
                   value={settings.address || ''}
                   onChange={e => setSettings({...settings, address: e.target.value})}
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2 px-1">
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Bairro</label>
+                <input 
+                  type="text" 
+                  className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  placeholder="Seu Bairro"
+                  value={settings.neighborhood || ''}
+                  onChange={e => setSettings({...settings, neighborhood: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Cidade</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    placeholder="Cidade"
+                    value={settings.city || ''}
+                    onChange={e => setSettings({...settings, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">UF</label>
+                  <input 
+                    type="text" 
+                    maxLength={2}
+                    className="w-full px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-center uppercase"
+                    placeholder="UF"
+                    value={settings.uf || ''}
+                    onChange={e => setSettings({...settings, uf: e.target.value.toUpperCase()})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-2 px-1 text-zinc-500">
                   <Phone size={14} />
                   Telefone Fixo / Comercial
                 </label>

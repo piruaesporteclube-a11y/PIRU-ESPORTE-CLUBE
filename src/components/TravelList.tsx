@@ -862,8 +862,15 @@ export default function TravelList() {
                 <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
                   Documento Oficial - {settings?.schoolName}
                 </p>
-                {settings?.address && (
-                  <p className="text-[8px] text-zinc-400 uppercase font-medium">{settings.address} • {settings.phone} • {settings.email}</p>
+                {(settings?.address || settings?.city) && (
+                  <p className="text-[8px] text-zinc-400 uppercase font-medium">
+                    {settings.address && settings.address}
+                    {settings.neighborhood ? `, ${settings.neighborhood}` : ""}
+                    {settings.city ? ` • ${settings.city}` : ""}
+                    {settings.uf ? ` - ${settings.uf}` : ""}
+                    {settings.phone ? ` • ${settings.phone}` : ""}
+                    {settings.email ? ` • ${settings.email}` : ""}
+                  </p>
                 )}
                 <p className="text-[7px] text-zinc-300 font-bold uppercase mt-2 italic">© {new Date().getFullYear()} Desenvolvido pela Piruá Esporte Clube</p>
               </div>

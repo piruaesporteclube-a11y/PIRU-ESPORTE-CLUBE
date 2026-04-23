@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Championship, ChampionshipTeam, ChampionshipMatch, categories } from '../types';
-import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield, FileText, Upload } from 'lucide-react';
+import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield, FileText, Upload, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -336,22 +336,35 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   const [activeTab, setActiveTab] = useState<'teams' | 'matches'>('teams');
   const [teams, setTeams] = useState<ChampionshipTeam[]>([]);
   const [matches, setMatches] = useState<ChampionshipMatch[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<ChampionshipMatch | null>(null);
+  const [matchToPrint, setMatchToPrint] = useState<ChampionshipMatch | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<ChampionshipTeam | null>(null);
+
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
   }, [championship.id]);
 
   const loadData = async () => {
-    const [teamsData, matchesData] = await Promise.all([
+    const [teamsData, matchesData, settingsData] = await Promise.all([
       api.getChampionshipTeams(championship.id),
-      api.getChampionshipMatches(championship.id)
+      api.getChampionshipMatches(championship.id),
+      api.getSettings()
     ]);
     setTeams(teamsData);
     setMatches(matchesData);
+    setSettings(settingsData);
+  };
+
+  const handlePrintSumula = (match: ChampionshipMatch) => {
+    setMatchToPrint(match);
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   const handleApproveTeam = async (team: ChampionshipTeam, status: "Aprovado" | "Recusado") => {
@@ -555,6 +568,13 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
 
                 <div className="mt-6 pt-6 border-t border-zinc-800 flex justify-center gap-3">
                   <button 
+                    onClick={() => handlePrintSumula(match)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-zinc-100 text-xs font-black rounded-xl transition-all uppercase tracking-widest shadow-lg"
+                  >
+                    <Printer size={14} />
+                    Imprimir Súmula
+                  </button>
+                  <button 
                     onClick={() => {
                       setSelectedMatch(match);
                       setIsMatchFormOpen(true);
@@ -621,6 +641,183 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
           onClose={() => setSelectedTeam(null)} 
         />
       )}
+
+      {/* Printable Area */}
+      {matchToPrint && (
+        <div className="hidden print-only bg-white text-black p-8 min-h-screen" id="printable-sumula">
+          <div className="flex items-center justify-between border-b-4 border-black pb-6 mb-8">
+            <div className="flex items-center gap-6">
+              {settings?.schoolCrest && (
+                <img src={settings.schoolCrest} className="w-16 h-16 object-contain" />
+              )}
+              <div>
+                <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
+                <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mt-1">Súmula Oficial de Partida</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-lg font-black uppercase italic text-zinc-800">{championship.name}</h2>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Categoria: {matchToPrint.category}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4 p-4 bg-zinc-100 border-2 border-black mb-8">
+            <div>
+              <p className="text-[8px] font-black text-zinc-500 uppercase">Data do Jogo</p>
+              <p className="text-xs font-bold">{new Date(matchToPrint.date).toLocaleDateString('pt-BR')}</p>
+            </div>
+            <div>
+              <p className="text-[8px] font-black text-zinc-500 uppercase">Horário</p>
+              <p className="text-xs font-bold">{matchToPrint.time}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-[8px] font-black text-zinc-500 uppercase">Confronto</p>
+              <p className="text-xs font-black uppercase italic">
+                {teams.find(t => t.id === matchToPrint.team_a_id)?.name} vs {teams.find(t => t.id === matchToPrint.team_b_id)?.name}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            {/* Team A */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 bg-black text-white p-2">
+                <div className="w-8 h-8 bg-white/10 rounded overflow-hidden">
+                  {teams.find(t => t.id === matchToPrint.team_a_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_a_id)?.logo} className="w-full h-full object-cover" />}
+                </div>
+                <h3 className="text-sm font-black uppercase truncate">{teams.find(t => t.id === matchToPrint.team_a_id)?.name}</h3>
+              </div>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-zinc-200">
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">#</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black text-left">Nome do Atleta</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-20">Doc</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">G</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">CA</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">CV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.find(t => t.id === matchToPrint.team_a_id)?.players.map((p, i) => (
+                    <tr key={i}>
+                      <td className="border border-zinc-300 p-1 text-[10px] text-center font-bold">#{p.jersey_number || ''}</td>
+                      <td className="border border-zinc-300 p-1 text-[10px] font-bold uppercase truncate max-w-[120px]">{p.name}</td>
+                      <td className="border border-zinc-300 p-1 text-[8px] text-center">{p.doc}</td>
+                      <td className="border border-zinc-300 p-1"></td>
+                      <td className="border border-zinc-300 p-1"></td>
+                      <td className="border border-zinc-300 p-1"></td>
+                    </tr>
+                  ))}
+                  {Array.from({ length: Math.max(0, 15 - (teams.find(t => t.id === matchToPrint.team_a_id)?.players.length || 0)) }).map((_, i) => (
+                    <tr key={`empty-a-${i}`}>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="pt-4 space-y-2">
+                <p className="text-[8px] font-black uppercase text-zinc-500">Comissão Técnica</p>
+                {teams.find(t => t.id === matchToPrint.team_a_id)?.staff.map((s, i) => (
+                  <p key={i} className="text-[10px] font-bold uppercase">{s.role}: {s.name}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Team B */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 bg-zinc-800 text-white p-2">
+                <div className="w-8 h-8 bg-white/10 rounded overflow-hidden">
+                  {teams.find(t => t.id === matchToPrint.team_b_id)?.logo && <img src={teams.find(t => t.id === matchToPrint.team_b_id)?.logo} className="w-full h-full object-cover" />}
+                </div>
+                <h3 className="text-sm font-black uppercase truncate">{teams.find(t => t.id === matchToPrint.team_b_id)?.name}</h3>
+              </div>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-zinc-200">
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">#</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black text-left">Nome do Atleta</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-20">Doc</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">G</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">CA</th>
+                    <th className="border border-zinc-300 p-1 text-[8px] uppercase font-black w-8">CV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.find(t => t.id === matchToPrint.team_b_id)?.players.map((p, i) => (
+                    <tr key={i}>
+                      <td className="border border-zinc-300 p-1 text-[10px] text-center font-bold">#{p.jersey_number || ''}</td>
+                      <td className="border border-zinc-300 p-1 text-[10px] font-bold uppercase truncate max-w-[120px]">{p.name}</td>
+                      <td className="border border-zinc-300 p-1 text-[8px] text-center">{p.doc}</td>
+                      <td className="border border-zinc-300 p-1"></td>
+                      <td className="border border-zinc-300 p-1"></td>
+                      <td className="border border-zinc-300 p-1"></td>
+                    </tr>
+                  ))}
+                  {Array.from({ length: Math.max(0, 15 - (teams.find(t => t.id === matchToPrint.team_b_id)?.players.length || 0)) }).map((_, i) => (
+                    <tr key={`empty-b-${i}`}>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                      <td className="border border-zinc-300 p-2"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="pt-4 space-y-2">
+                <p className="text-[8px] font-black uppercase text-zinc-500">Comissão Técnica</p>
+                {teams.find(t => t.id === matchToPrint.team_b_id)?.staff.map((s, i) => (
+                  <p key={i} className="text-[10px] font-bold uppercase">{s.role}: {s.name}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Observations & Signatures */}
+          <div className="mt-12 space-y-8">
+            <div className="border-2 border-black p-4 min-h-[100px]">
+              <p className="text-[10px] font-black uppercase text-zinc-400 mb-2">Relatório do Árbitro / Observações</p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-12 pt-12">
+              <div className="border-t-2 border-black text-center pt-2">
+                <p className="text-[10px] font-black uppercase">Assinatura Árbitro</p>
+              </div>
+              <div className="border-t-2 border-black text-center pt-2">
+                <p className="text-[10px] font-black uppercase">Responsável {teams.find(t => t.id === matchToPrint.team_a_id)?.name}</p>
+              </div>
+              <div className="border-t-2 border-black text-center pt-2">
+                <p className="text-[10px] font-black uppercase">Responsável {teams.find(t => t.id === matchToPrint.team_b_id)?.name}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * { visibility: hidden; }
+          #printable-sumula, #printable-sumula * { visibility: visible; }
+          #printable-sumula { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            height: auto;
+            margin: 0;
+            padding: 20px;
+            background: white !important;
+            color: black !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
