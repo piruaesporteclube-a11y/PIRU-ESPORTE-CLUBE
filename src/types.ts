@@ -82,10 +82,14 @@ export type TrainingActivity = {
   id: string;
   name: string;
   description: string;
+  modality: "Futebol" | "Futsal" | "Vôlei" | "Basquete" | "Futebol de Areia" | "Outros";
   category: "Fundamento" | "Ataque" | "Defesa" | "Agilidade" | "Físico" | "Tático" | "Goleiro" | "Conscientização" | "Coordenação Motora" | "Aquecimento" | "Alongamento" | "Outro";
   intensity: "Baixa" | "Média" | "Alta";
+  difficulty: "Iniciante" | "Intermediário" | "Avançado";
   duration?: number; // in minutes
   equipment?: string;
+  youtubeUrl?: string;
+  visualData?: string; // JSON string for canvas objects
   created_at?: any;
 };
 

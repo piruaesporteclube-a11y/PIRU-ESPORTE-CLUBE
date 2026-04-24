@@ -279,13 +279,17 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" },
+        "modality": { "type": "string", "enum": ["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"] },
         "category": { "type": "string", "enum": ["Fundamento", "Ataque", "Defesa", "Agilidade", "Físico", "Tático", "Goleiro", "Conscientização", "Coordenação Motora", "Aquecimento", "Alongamento", "Outro"] },
         "intensity": { "type": "string", "enum": ["Baixa", "Média", "Alta"] },
+        "difficulty": { "type": "string", "enum": ["Iniciante", "Intermediário", "Avançado"] },
         "duration": { "type": "number" },
         "equipment": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "visualData": { "type": "string" },
         "updated_at": { "type": "string" }
       },
-      "required": ["id", "name", "category", "intensity"]
+      "required": ["id", "name", "category", "intensity", "modality", "difficulty"]
     }
   },
   "firestore": {

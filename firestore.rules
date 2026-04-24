@@ -162,10 +162,14 @@ service cloud.firestore {
     function isValidTrainingActivity(data) {
       return data.id is string && data.id.size() > 0 &&
              data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.modality in ["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"] &&
              data.category in ["Fundamento", "Ataque", "Defesa", "Agilidade", "Físico", "Tático", "Goleiro", "Conscientização", "Coordenação Motora", "Aquecimento", "Alongamento", "Outro"] &&
              data.intensity in ["Baixa", "Média", "Alta"] &&
+             data.difficulty in ["Iniciante", "Intermediário", "Avançado"] &&
              (!('duration' in data) || data.duration is number) &&
              (!('description' in data) || data.description is string) &&
+             (!('youtubeUrl' in data) || data.youtubeUrl is string) &&
+             (!('visualData' in data) || data.visualData is string) &&
              (!('equipment' in data) || data.equipment is string);
     }
 
