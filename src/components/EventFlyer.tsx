@@ -24,6 +24,12 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [activeSlot, setActiveSlot] = useState<1 | 2>(1);
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Positioning State
+  const [pos1, setPos1] = useState({ scale: 1, x: 0, y: 0 });
+  const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
+  const [infoPos, setInfoPos] = useState({ y: 0 });
+  const [photoPos, setPhotoPos] = useState({ y: 0 });
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
@@ -336,6 +342,89 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             </div>
 
+            {/* Adjustment Controls */}
+            {( (activeSlot === 1 && (selectedAthlete || customImage)) || (activeSlot === 2 && (selectedAthlete2 || customImage2)) ) && (
+              <div className="bg-black/60 p-4 rounded-2xl border border-zinc-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Jogador {activeSlot}</span>
+                  <button 
+                    onClick={() => activeSlot === 1 ? setPos1({ scale: 1, x: 0, y: 0 }) : setPos2({ scale: 1, x: 0, y: 0 })}
+                    className="text-[10px] font-bold text-theme-primary uppercase"
+                  >
+                    Resetar
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Tamanho</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{(activeSlot === 1 ? pos1.scale : pos2.scale).toFixed(1)}x</span>
+                    </div>
+                    <input 
+                      type="range" min="0.5" max="2" step="0.1"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={activeSlot === 1 ? pos1.scale : pos2.scale}
+                      onChange={e => activeSlot === 1 ? setPos1({...pos1, scale: parseFloat(e.target.value)}) : setPos2({...pos2, scale: parseFloat(e.target.value)})}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Horizontal (X)</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{activeSlot === 1 ? pos1.x : pos2.x}px</span>
+                    </div>
+                    <input 
+                      type="range" min="-100" max="100" step="1"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={activeSlot === 1 ? pos1.x : pos2.x}
+                      onChange={e => activeSlot === 1 ? setPos1({...pos1, x: parseInt(e.target.value)}) : setPos2({...pos2, x: parseInt(e.target.value)})}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Vertical (Y)</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{activeSlot === 1 ? pos1.y : pos2.y}px</span>
+                    </div>
+                    <input 
+                      type="range" min="-150" max="150" step="1"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={activeSlot === 1 ? pos1.y : pos2.y}
+                      onChange={e => activeSlot === 1 ? setPos1({...pos1, y: parseInt(e.target.value)}) : setPos2({...pos2, y: parseInt(e.target.value)})}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Global Layout Controls */}
+            <div className="bg-black/60 p-4 rounded-2xl border border-zinc-800 space-y-4">
+              <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Layout Global</span>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição das Fotos (Vertical)</label>
+                  </div>
+                  <input 
+                    type="range" min="-150" max="150" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={photoPos.y}
+                    onChange={e => setPhotoPos({y: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição Data/Hora (Vertical)</label>
+                  </div>
+                  <input 
+                    type="range" min="-250" max="250" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={infoPos.y}
+                    onChange={e => setInfoPos({y: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+            </div>
+
             {!customImage && !((activeSlot === 1 && customImage) || (activeSlot === 2 && customImage2)) && (
               <>
                 <div className="relative">
@@ -417,93 +506,104 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 </div>
               )}
               <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
+              
+              {/* Photo Layer - Positionable */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
-                <div className="absolute inset-x-0 bottom-0 z-[4] h-[75%] flex flex-col pointer-events-none">
-                  {/* Confrontation View */}
-                  {(selectedAthlete2 || customImage2) ? (
-                    <div className="relative w-full h-full flex items-end justify-center overflow-hidden">
-                      {/* Player 1 (Left) */}
-                      <div className="absolute inset-y-0 left-0 w-[60%] flex items-end justify-center transform -translate-x-4">
-                        <img 
-                          src={customImage || selectedAthlete?.photo} 
-                          className="h-[85%] w-full object-contain object-bottom filter drop-shadow-[10px_0_20px_rgba(0,0,0,0.8)]" 
-                          crossOrigin="anonymous" 
-                        />
+                <div 
+                  className="absolute inset-0 z-[4] flex items-center justify-center pointer-events-none p-6 transition-transform"
+                  style={{ transform: `translateY(${photoPos.y}px)` }}
+                >
+                  <div className="relative w-full h-[300px] flex items-center justify-center">
+                    <div className="absolute left-0 w-1/2 h-full flex items-center justify-center">
+                      <div 
+                        className={cn(
+                          "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete || customImage) ? "opacity-100" : "opacity-30 border-zinc-800"
+                        )}
+                        style={{ transform: 'skew(-6deg)' }}
+                      >
+                        {(customImage || selectedAthlete?.photo) && (
+                          <img 
+                            src={customImage || selectedAthlete?.photo} 
+                            className="w-full h-full object-cover transform skew(6deg)" 
+                            style={{ 
+                              transform: `skew(6deg) scale(${pos1.scale}) translate(${pos1.x}px, ${pos1.y}px)` 
+                            }}
+                            crossOrigin="anonymous" 
+                          />
+                        )}
                       </div>
-                      {/* Player 2 (Right) */}
-                      <div className="absolute inset-y-0 right-0 w-[60%] flex items-end justify-center transform translate-x-4 z-[1]">
-                        <img 
-                          src={customImage2 || selectedAthlete2?.photo} 
-                          className="h-[85%] w-full object-contain object-bottom filter drop-shadow-[-10px_0_20px_rgba(0,0,0,0.8)]" 
-                          crossOrigin="anonymous" 
-                        />
+                    </div>
+
+                    <div className="absolute right-0 w-1/2 h-full flex items-center justify-center">
+                      <div 
+                        className={cn(
+                          "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30 border-zinc-800"
+                        )}
+                        style={{ transform: 'skew(-6deg)' }}
+                      >
+                        {(customImage2 || selectedAthlete2?.photo) && (
+                          <img 
+                            src={customImage2 || selectedAthlete2?.photo} 
+                            className="w-full h-full object-cover transform skew(6deg)" 
+                            style={{ 
+                              transform: `skew(6deg) scale(${pos2.scale}) translate(${pos2.x}px, ${pos2.y}px)` 
+                            }}
+                            crossOrigin="anonymous" 
+                          />
+                        )}
                       </div>
-                      
-                      {/* VS Badge */}
-                      {showVS && (
-                        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 z-[10] flex flex-col items-center">
-                          <div className="bg-theme-primary text-black font-black text-4xl italic p-4 rounded-2xl transform -skew-x-12 shadow-2xl ring-4 ring-black/20">
-                            VS
-                          </div>
-                          <div className="mt-4 flex gap-4 w-full">
-                             <div className="flex-1 bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10 text-center min-w-[100px]">
-                                <p className="text-[10px] font-black text-theme-primary uppercase truncate">{(selectedAthlete?.name || 'DOM').split(' ')[0]}</p>
-                             </div>
-                             <div className="flex-1 bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10 text-center min-w-[100px]">
-                                <p className="text-[10px] font-black text-theme-primary uppercase truncate">{(selectedAthlete2?.name || 'VIS').split(' ')[0]}</p>
-                             </div>
-                          </div>
+                    </div>
+
+                    {showVS && (
+                      <div className="absolute z-10 flex flex-col items-center">
+                        <div className="bg-black text-theme-primary font-black text-2xl italic p-2 px-4 rounded-xl border-2 border-theme-primary shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12">
+                          VS
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Solo Player View */
-                    <div className="w-full h-full flex items-end justify-center">
-                      <img 
-                        src={customImage || selectedAthlete?.photo} 
-                        className="w-full h-full object-contain object-bottom filter drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]" 
-                        crossOrigin="anonymous" 
-                      />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="absolute inset-x-0 bottom-0 z-[5] h-64 bg-gradient-to-t from-black to-transparent" />
             </div>
 
-            {/* Content */}
+            {/* Content Layer - Positionable Info */}
             <div className="relative z-[30] pt-8 px-6 flex flex-col items-center flex-1">
-              <div className="w-16 h-16 mb-4">
-                {settings?.schoolCrest ? <img src={settings.schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" /> : <Trophy size={48} className="text-theme-primary" />}
+              <div className="w-12 h-12 mb-3">
+                {settings?.schoolCrest ? <img src={settings.schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" /> : <Trophy size={40} className="text-theme-primary" />}
               </div>
-              <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg">
+              <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg mb-1">
                 {settings.schoolName || 'Piruá Esporte Clube'}
               </h1>
-              <div className="w-12 h-0.5 bg-theme-primary rounded-full mt-1 mb-6 shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
+              <div className="w-10 h-0.5 bg-theme-primary rounded-full mb-6 opacity-80"></div>
 
               {/* Event Title Card */}
-              <div className="w-full bg-theme-primary p-3 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
+              <div className="w-full bg-theme-primary p-2 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
                 <div className="transform skew-x-6 text-center">
-                  <p className="text-[10px] font-black text-black uppercase tracking-widest leading-none mb-1 opacity-60">{flyerTitle}</p>
-                  <h2 className="text-lg font-black text-black uppercase tracking-tighter leading-tight px-4">{event.name}</h2>
+                  <p className="text-[9px] font-black text-black uppercase tracking-widest leading-none mb-1 opacity-60">{flyerTitle}</p>
+                  <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{event.name}</h2>
                 </div>
               </div>
 
-              {/* Date & Time */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center gap-3">
-                  <div className="bg-theme-primary p-2 rounded-xl text-black"><Calendar size={18} /></div>
+              {/* Date & Time - Positionable via translateY */}
+              <div 
+                className="flex items-center gap-3 transition-transform z-[31]"
+                style={{ transform: `translateY(${infoPos.y}px)` }}
+              >
+                <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 min-w-[100px]">
+                  <div className="bg-theme-primary p-1.5 rounded-lg text-black"><Calendar size={14} /></div>
                   <div className="flex flex-col leading-none">
-                    <span className="text-[8px] font-black text-theme-primary uppercase tracking-widest mb-1">{dayOfWeek}</span>
-                    <span className="text-[16px] font-black text-white tracking-tight">{formattedStartDate}</span>
+                    <span className="text-[7px] font-black text-theme-primary uppercase tracking-widest mb-0.5">{dayOfWeek}</span>
+                    <span className="text-[11px] font-black text-white tracking-tight">{formattedStartDate}</span>
                   </div>
                 </div>
-                <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center gap-3">
-                  <div className="bg-theme-primary p-2 rounded-xl text-black"><Clock size={18} /></div>
+                <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 min-w-[100px]">
+                  <div className="bg-theme-primary p-1.5 rounded-lg text-black"><Clock size={14} /></div>
                   <div className="flex flex-col leading-none">
-                    <span className="text-[8px] font-black text-theme-primary uppercase tracking-widest mb-1">Início</span>
-                    <span className="text-[16px] font-black text-white tracking-tight">{event.start_time}</span>
+                    <span className="text-[7px] font-black text-theme-primary uppercase tracking-widest mb-0.5">Início</span>
+                    <span className="text-[11px] font-black text-white tracking-tight">{event.start_time}</span>
                   </div>
                 </div>
               </div>
