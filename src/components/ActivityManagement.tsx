@@ -12,7 +12,7 @@ interface ActivityManagementProps {
   isPicker?: boolean;
 }
 
-const MODALITIES = ["Futebol", "Futsal", "Vôlei", "Basquete", "Outros"];
+const MODALITIES = ["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"];
 const DIFFICULTIES = ["Iniciante", "Intermediário", "Avançado"];
 
 const CATEGORIES = [
@@ -127,14 +127,14 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
         description: "Circuito em 'S' focando em controle de bola com ambos os pés. Finaliza com um passe longo entre as estacas.",
         youtubeUrl: "https://www.youtube.com/watch?v=5-0V2o7DpxE",
         visualData: JSON.stringify([
-          { id: '1', type: 'cone', x: 20, y: 30 },
-          { id: '2', type: 'cone', x: 30, y: 70 },
-          { id: '3', type: 'cone', x: 40, y: 30 },
-          { id: '4', type: 'cone', x: 50, y: 70 },
-          { id: '5', type: 'stake', x: 80, y: 40 },
-          { id: '6', type: 'stake', x: 80, y: 60 },
-          { id: 'p1', type: 'player', x: 10, y: 50, team: 'A', label: '1' },
-          { id: 'b1', type: 'ball', x: 12, y: 50, animate: true, toX: 75, toY: 50 }
+          { id: 'c1', type: 'cone', x: 20, y: 30 },
+          { id: 'c2', type: 'cone', x: 30, y: 70 },
+          { id: 'c3', type: 'cone', x: 40, y: 30 },
+          { id: 'c4', type: 'cone', x: 50, y: 70 },
+          { id: 's1', type: 'stake', x: 80, y: 40 },
+          { id: 's2', type: 'stake', x: 80, y: 60 },
+          { id: 'p1', type: 'player', x: 10, y: 50, team: 'A', label: '1', animate: true, toX: 75, toY: 50 },
+          { id: 'b1', type: 'ball', x: 12, y: 50, animate: true, toX: 77, toY: 50 }
         ])
       },
       {
@@ -152,12 +152,12 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
           { id: 'c2', type: 'cone', x: 70, y: 30 },
           { id: 'c3', type: 'cone', x: 70, y: 70 },
           { id: 'c4', type: 'cone', x: 30, y: 70 },
-          { id: 'a1', type: 'player', x: 30, y: 50, team: 'A' },
-          { id: 'a2', type: 'player', x: 70, y: 50, team: 'A' },
-          { id: 'a3', type: 'player', x: 50, y: 30, team: 'A' },
-          { id: 'a4', type: 'player', x: 50, y: 70, team: 'A' },
-          { id: 'd1', type: 'player', x: 45, y: 50, team: 'B' },
-          { id: 'd2', type: 'player', x: 55, y: 50, team: 'B' },
+          { id: 'a1', type: 'player', x: 30, y: 50, team: 'A', label: '1', animate: true, toX: 35, toY: 50 },
+          { id: 'a2', type: 'player', x: 70, y: 50, team: 'A', label: '2', animate: true, toX: 65, toY: 50 },
+          { id: 'a3', type: 'player', x: 50, y: 30, team: 'A', label: '3', animate: true, toX: 50, toY: 35 },
+          { id: 'a4', type: 'player', x: 50, y: 70, team: 'A', label: '4', animate: true, toX: 50, toY: 65 },
+          { id: 'd1', type: 'player', x: 45, y: 50, team: 'B', label: 'D1', animate: true, toX: 48, toY: 50 },
+          { id: 'd2', type: 'player', x: 55, y: 50, team: 'B', label: 'D2', animate: true, toX: 52, toY: 50 },
           { id: 'b1', type: 'ball', x: 35, y: 50, animate: true, toX: 65, toY: 50 }
         ])
       },
@@ -173,12 +173,12 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
         description: "Posicionamento defensivo em relação ao ataque adversário pelas pontas. Cobertura do bloqueio.",
         youtubeUrl: "https://www.youtube.com/watch?v=0hLzJ59TzM4",
         visualData: JSON.stringify([
-          { id: 'p1', type: 'player', x: 20, y: 20, team: 'A', label: '1' },
-          { id: 'p2', type: 'player', x: 20, y: 50, team: 'A', label: '6' },
-          { id: 'p3', type: 'player', x: 20, y: 80, team: 'A', label: '5' },
-          { id: 'p4', type: 'player', x: 40, y: 30, team: 'A', label: '2' },
-          { id: 'p5', type: 'player', x: 40, y: 70, team: 'A', label: '4' },
-          { id: 'p6', type: 'player', x: 45, y: 50, team: 'A', label: '3' },
+          { id: 'p1', type: 'player', x: 20, y: 20, team: 'A', label: '1', animate: true, toX: 25, toY: 25 },
+          { id: 'p2', type: 'player', x: 20, y: 50, team: 'A', label: '6', animate: true, toX: 25, toY: 50 },
+          { id: 'p3', type: 'player', x: 20, y: 80, team: 'A', label: '5', animate: true, toX: 25, toY: 75 },
+          { id: 'p4', type: 'player', x: 40, y: 30, team: 'A', label: '2', animate: true, toX: 45, toY: 35 },
+          { id: 'p5', type: 'player', x: 40, y: 70, team: 'A', label: '4', animate: true, toX: 45, toY: 65 },
+          { id: 'p6', type: 'player', x: 45, y: 50, team: 'A', label: '3', animate: true, toX: 48, toY: 50 },
           { id: 'arr1', type: 'arrow', x: 45, y: 50, toX: 55, toY: 50, color: '#f87171' }
         ])
       },
@@ -197,7 +197,7 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
           { id: 'c1', type: 'cone', x: 20, y: 20 },
           { id: 'c2', type: 'cone', x: 30, y: 30 },
           { id: 'c3', type: 'cone', x: 20, y: 40 },
-          { id: 'p1', type: 'player', x: 10, y: 10, team: 'A' },
+          { id: 'p1', type: 'player', x: 10, y: 10, team: 'A', animate: true, toX: 80, toY: 50 },
           { id: 'b1', type: 'ball', x: 12, y: 10, animate: true, toX: 85, toY: 50 }
         ])
       },
@@ -213,29 +213,25 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
         description: "Passe do ala para o pivô, infiltração em velocidade e devolução para finalização de primeira.",
         youtubeUrl: "https://www.youtube.com/watch?v=UayS0uH1zY4",
         visualData: JSON.stringify([
-          { id: 'p1', type: 'player', x: 20, y: 80, team: 'A', label: 'ALA' },
-          { id: 'p2', type: 'player', x: 60, y: 50, team: 'A', label: 'PIVÔ' },
+          { id: 'p1', type: 'player', x: 20, y: 80, team: 'A', label: 'ALA', animate: true, toX: 50, toY: 50 },
+          { id: 'p2', type: 'player', x: 60, y: 50, team: 'A', label: 'PIVÔ', animate: true, toX: 70, toY: 50 },
           { id: 'b1', type: 'ball', x: 25, y: 80, animate: true, toX: 55, toY: 53 }
         ])
       },
-      // OUTROS / GERAL
+      // FUTEBOL DE AREIA
       {
-        name: "AGILIDADE MULTIDIRECIONAL",
-        modality: "Outros",
-        category: "Agilidade",
+        name: "BICICLETA E FINALIZAÇÃO AÉREA",
+        modality: "Futebol de Areia",
+        category: "Fundamento",
         intensity: "Alta",
         difficulty: "Avançado",
-        duration: 10,
-        equipment: "ESCADA DE AGILIDADE, 5 CONES",
-        description: "Coordenação em escada seguida de deslocamento lateral explosivo entre cones em estrela.",
-        youtubeUrl: "https://www.youtube.com/watch?v=R9K1dF5796E",
+        duration: 20,
+        equipment: "BOLAS, REDE DE FUTEBOL DE AREIA",
+        description: "Levantamento de bola com o pé e execução de movimentos acrobáticos (bicicleta/voleio) na areia.",
         visualData: JSON.stringify([
-          { id: 'c1', type: 'cone', x: 50, y: 50 },
-          { id: 'c2', type: 'cone', x: 30, y: 30 },
-          { id: 'c3', type: 'cone', x: 70, y: 30 },
-          { id: 'c4', type: 'cone', x: 30, y: 70 },
-          { id: 'c5', type: 'cone', x: 70, y: 70 },
-          { id: 'p1', type: 'player', x: 10, y: 50, team: 'A' }
+          { id: 'p1', type: 'player', x: 50, y: 80, team: 'A', label: '1', animate: true, toX: 50, toY: 40 },
+          { id: 'p2', type: 'player', x: 20, y: 40, team: 'A', label: '2', animate: true, toX: 45, toY: 40 },
+          { id: 'b1', type: 'ball', x: 22, y: 40, animate: true, toX: 48, toY: 40 }
         ])
       }
     ];
@@ -243,13 +239,17 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
     if (!confirm("Isso adicionará modelos profissionais com esquemas táticos e vídeos. Continuar?")) return;
 
     try {
+      console.log("Seeding templates...");
       for (const t of templates) {
-        await api.saveActivity(t);
+        // Explicitly inject a temporary ID to satisfy firestore rules if needed
+        const templateWithId = { ...t, id: `tmp_${Math.random().toString(36).substr(2, 9)}` };
+        await api.saveActivity(templateWithId);
       }
       toast.success("Modelos profissionais adicionados!");
       loadActivities();
     } catch (err) {
-      toast.error("Erro ao adicionar modelos");
+      console.error("Seed error:", err);
+      toast.error(`Erro ao adicionar modelos: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
   };
 
