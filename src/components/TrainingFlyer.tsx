@@ -19,10 +19,20 @@ interface TrainingFlyerProps {
 export default function TrainingFlyer({ date, trainings, athletes, onClose }: TrainingFlyerProps) {
   const flyerRef = useRef<HTMLDivElement>(null);
   const { settings } = useTheme();
+  const [activeSlot, setActiveSlot] = useState<1 | 2>(1);
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
+  const [selectedAthlete2, setSelectedAthlete2] = useState<Athlete | null>(null);
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [customImage2, setCustomImage2] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Positioning State
+  const [pos1, setPos1] = useState({ scale: 1, x: 0, y: 0 });
+  const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
+  const [infoPos, setInfoPos] = useState({ y: 0 });
+  const [photoPos, setPhotoPos] = useState({ y: 0 });
+  const [showVS, setShowVS] = useState(false);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
@@ -48,8 +58,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCustomImage(event.target?.result as string);
-        setSelectedAthlete(null);
+        if (activeSlot === 1) {
+          setCustomImage(event.target?.result as string);
+          setSelectedAthlete(null);
+        } else {
+          setCustomImage2(event.target?.result as string);
+          setSelectedAthlete2(null);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -334,10 +349,128 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             </div>
           )}
 
+          {/* Slot Selection */}
+          <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
+            <button 
+              onClick={() => setActiveSlot(1)}
+              className={cn(
+                "flex-1 py-3 rounded-lg text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2",
+                activeSlot === 1 ? "bg-theme-primary text-black" : "text-zinc-500"
+              )}
+            >
+              <User size={14} /> Atleta 1
+            </button>
+            <button 
+              onClick={() => setActiveSlot(2)}
+              className={cn(
+                "flex-1 py-3 rounded-lg text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2",
+                activeSlot === 2 ? "bg-theme-primary text-black" : "text-zinc-500"
+              )}
+            >
+              <User size={14} /> Atleta 2
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-2 bg-black/40 rounded-xl border border-zinc-800">
+            <span className="text-[10px] font-black text-zinc-400 uppercase">Habilitar Modo VS (Confronto)</span>
+            <button 
+              onClick={() => setShowVS(!showVS)}
+              className={cn(
+                "w-10 h-6 rounded-full relative transition-colors",
+                showVS ? "bg-theme-primary" : "bg-zinc-800"
+              )}
+            >
+              <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-all", showVS ? "right-1" : "left-1")} />
+            </button>
+          </div>
+
+          {/* Adjustment Controls */}
+          {( (activeSlot === 1 && (selectedAthlete || customImage)) || (activeSlot === 2 && (selectedAthlete2 || customImage2)) ) && (
+            <div className="bg-black/60 p-4 rounded-2xl border border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Atleta {activeSlot}</span>
+                <button 
+                  onClick={() => activeSlot === 1 ? setPos1({ scale: 1, x: 0, y: 0 }) : setPos2({ scale: 1, x: 0, y: 0 })}
+                  className="text-[10px] font-bold text-theme-primary uppercase"
+                >
+                  Resetar
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Tamanho</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{(activeSlot === 1 ? pos1.scale : pos2.scale).toFixed(1)}x</span>
+                  </div>
+                  <input 
+                    type="range" min="0.5" max="2" step="0.1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={activeSlot === 1 ? pos1.scale : pos2.scale}
+                    onChange={e => activeSlot === 1 ? setPos1({...pos1, scale: parseFloat(e.target.value)}) : setPos2({...pos2, scale: parseFloat(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Horizontal (X)</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{activeSlot === 1 ? pos1.x : pos2.x}px</span>
+                  </div>
+                  <input 
+                    type="range" min="-100" max="100" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={activeSlot === 1 ? pos1.x : pos2.x}
+                    onChange={e => activeSlot === 1 ? setPos1({...pos1, x: parseInt(e.target.value)}) : setPos2({...pos2, x: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Vertical (Y)</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{activeSlot === 1 ? pos1.y : pos2.y}px</span>
+                  </div>
+                  <input 
+                    type="range" min="-150" max="150" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={activeSlot === 1 ? pos1.y : pos2.y}
+                    onChange={e => activeSlot === 1 ? setPos1({...pos1, y: parseInt(e.target.value)}) : setPos2({...pos2, y: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Global Layout Controls */}
+          <div className="bg-black/60 p-4 rounded-2xl border border-zinc-800 space-y-4">
+            <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Layout Global</span>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição das Fotos (Vertical)</label>
+                </div>
+                <input 
+                  type="range" min="-250" max="250" step="1"
+                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                  value={photoPos.y}
+                  onChange={e => setPhotoPos({y: parseInt(e.target.value)})}
+                />
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição Treinos (Vertical)</label>
+                </div>
+                <input 
+                  type="range" min="-300" max="300" step="1"
+                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                  value={infoPos.y}
+                  onChange={e => setInfoPos({y: parseInt(e.target.value)})}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Image Upload / Athlete Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Imagem de Destaque</label>
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Imagem de Destaque (Slot {activeSlot})</label>
               <button 
                 onClick={() => fileInputRef.current?.click()}
                 className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1 rounded-lg hover:bg-theme-primary/10 transition-all flex items-center gap-1.5"
@@ -345,27 +478,20 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 <Camera size={12} />
                 Subir Foto
               </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageUpload} 
-                accept="image/*" 
-                className="hidden" 
-              />
             </div>
 
-            {customImage && (
+            {((activeSlot === 1 && customImage) || (activeSlot === 2 && customImage2)) && (
               <div className="space-y-4">
                 <div className="relative group">
-                  <img src={customImage} className="w-full h-32 object-cover rounded-2xl border-2 border-theme-primary" />
+                  <img src={activeSlot === 1 ? customImage! : customImage2!} className="w-full h-32 object-cover rounded-2xl border-2 border-theme-primary" />
                   <button 
-                    onClick={() => setCustomImage(null)}
+                    onClick={() => activeSlot === 1 ? setCustomImage(null) : setCustomImage2(null)}
                     className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X size={14} />
                   </button>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                     <p className="text-[10px] font-black text-theme-primary bg-black/80 px-2 py-1 rounded uppercase tracking-widest">Foto Customizada</p>
+                     <p className="text-[10px] font-black text-theme-primary bg-black/80 px-2 py-1 rounded uppercase tracking-widest">Foto Customizada {activeSlot}</p>
                   </div>
                 </div>
 
@@ -392,7 +518,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
             )}
 
-            {!customImage && (
+            {!((activeSlot === 1 && customImage) || (activeSlot === 2 && customImage2)) && (
               <>
                 <div className="flex bg-black p-1 rounded-xl border border-zinc-800 mb-4">
                   <button 
@@ -418,7 +544,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                   <input 
                     type="text"
-                    placeholder="Pesquisar atleta por nome..."
+                    placeholder={`Pesquisar atleta ${activeSlot}...`}
                     className="w-full pl-10 pr-4 py-3 bg-black border border-zinc-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm font-sans"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -426,36 +552,44 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {filteredAthletes.map(athlete => (
-                    <button
-                      key={athlete.id}
-                      onClick={() => {
-                        setSelectedAthlete(athlete);
-                        setCustomImage(null);
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
-                        selectedAthlete?.id === athlete.id 
-                          ? "bg-theme-primary border-theme-primary text-black" 
-                          : "bg-black border-zinc-800 text-white hover:border-zinc-600"
-                      )}
-                    >
-                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
-                        {athlete.photo ? (
-                          <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><User size={20} /></div>
+                  {filteredAthletes.map(athlete => {
+                    const isSelected = activeSlot === 1 ? selectedAthlete?.id === athlete.id : selectedAthlete2?.id === athlete.id;
+                    return (
+                      <button
+                        key={athlete.id}
+                        onClick={() => {
+                          if (activeSlot === 1) {
+                            setSelectedAthlete(athlete);
+                            setCustomImage(null);
+                          } else {
+                            setSelectedAthlete2(athlete);
+                            setCustomImage2(null);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+                          isSelected 
+                            ? "bg-theme-primary border-theme-primary text-black" 
+                            : "bg-black border-zinc-800 text-white hover:border-zinc-600"
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black uppercase text-xs truncate">{athlete.name}</p>
-                        <p className={cn("text-[10px] font-bold uppercase opacity-60", selectedAthlete?.id === athlete.id ? "text-black" : "text-zinc-500")}>
-                          {athlete.birth_date ? format(new Date(athlete.birth_date), 'yyyy') : '---'}
-                        </p>
-                      </div>
-                      {selectedAthlete?.id === athlete.id && <UserCheck size={18} />}
-                    </button>
-                  ))}
+                      >
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
+                          {athlete.photo ? (
+                            <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><User size={20} /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black uppercase text-xs truncate">{athlete.name}</p>
+                          <p className={cn("text-[10px] font-bold uppercase opacity-60", isSelected ? "text-black" : "text-zinc-500")}>
+                            {athlete.birth_date ? format(new Date(athlete.birth_date), 'yyyy') : '---'}
+                          </p>
+                        </div>
+                        {isSelected && <UserCheck size={18} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -565,23 +699,64 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
                   
                   {/* Athlete Image Layer */}
-                  {(customImage || selectedAthlete) && (
-                    <div className={cn(
-                      "absolute inset-x-0 bottom-0 z-[4] flex items-end justify-center pointer-events-none transition-all duration-700",
-                      playerMode === 'background' ? "h-full scale-110 opacity-40 grayscale-[0.8] blur-[1px]" : "h-[60%] opacity-100"
-                    )}>
-                      <div className="relative w-full h-full">
-                        <img 
-                          src={customImage || selectedAthlete?.photo} 
-                          alt="Athlete" 
-                          className="w-full h-full object-contain object-bottom filter drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
-                          referrerPolicy="no-referrer"
-                          crossOrigin="anonymous"
-                        />
-                        <div className={cn(
-                          "absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent",
-                          playerMode === 'background' ? "opacity-40" : "opacity-80"
-                        )} />
+                  {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
+                    <div 
+                      className="absolute inset-0 z-[4] flex items-center justify-center pointer-events-none p-6 transition-transform"
+                      style={{ transform: `translateY(${photoPos.y}px)` }}
+                    >
+                      <div className="relative w-full h-[300px] flex items-center justify-center">
+                        {/* Player 1 Slot (Left) */}
+                        <div className="absolute left-0 w-1/2 h-full flex items-center justify-center">
+                          <div 
+                            className={cn(
+                              "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                              (selectedAthlete || customImage) ? "opacity-100" : "opacity-30 border-zinc-800"
+                            )}
+                            style={{ transform: 'skew(-6deg)' }}
+                          >
+                            {(customImage || selectedAthlete?.photo) && (
+                              <img 
+                                src={customImage || selectedAthlete?.photo} 
+                                className="w-full h-full object-cover transform skew(6deg)" 
+                                style={{ 
+                                  transform: `skew(6deg) scale(${pos1.scale}) translate(${pos1.x}px, ${pos1.y}px)` 
+                                }}
+                                crossOrigin="anonymous" 
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Player 2 Slot (Right) */}
+                        <div className="absolute right-0 w-1/2 h-full flex items-center justify-center">
+                          <div 
+                            className={cn(
+                              "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                              (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30 border-zinc-800"
+                            )}
+                            style={{ transform: 'skew(-6deg)' }}
+                          >
+                            {(customImage2 || selectedAthlete2?.photo) && (
+                              <img 
+                                src={customImage2 || selectedAthlete2?.photo} 
+                                className="w-full h-full object-cover transform skew(6deg)" 
+                                style={{ 
+                                  transform: `skew(6deg) scale(${pos2.scale}) translate(${pos2.x}px, ${pos2.y}px)` 
+                                }}
+                                crossOrigin="anonymous" 
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* VS Centered */}
+                        {showVS && (
+                          <div className="absolute z-10 flex flex-col items-center">
+                            <div className="bg-black text-theme-primary font-black text-2xl italic p-2 px-4 rounded-xl border-2 border-theme-primary shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12">
+                              VS
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -641,7 +816,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               {/* Trainings List */}
-              <div className="relative z-30 flex-1 px-6 py-4 flex flex-col min-h-0">
+              <div 
+                className="relative z-30 flex-1 px-6 py-4 flex flex-col min-h-0 transition-transform"
+                style={{ transform: `translateY(${infoPos.y}px)` }}
+              >
                 <div className={cn(
                   "flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1 transition-all duration-700",
                   playerMode === 'background' ? "scale-95 translate-y-4" : "scale-100"
