@@ -332,12 +332,11 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                   className="transition-transform"
                   style={{ transform: `scale(${sponsorPos.scale}) translate(${sponsorPos.x}px, ${sponsorPos.y}px)` }}
                 >
-                  <div className="w-full aspect-video max-w-md mx-auto bg-white rounded-[4rem] p-16 shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden group border-[12px] border-theme-primary">
-                     <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-zinc-100" />
+                  <div className="w-full aspect-video max-w-md mx-auto flex items-center justify-center relative overflow-hidden group">
                      {sponsorLogo ? (
                        <img src={sponsorLogo} className="w-full h-full object-contain relative z-10 scale-110" crossOrigin="anonymous" />
                      ) : (
-                       <div className="text-zinc-200 font-black text-7xl uppercase italic relative z-10 select-none">{sponsor.name}</div>
+                       <div className="text-zinc-700 font-black text-7xl uppercase italic relative z-10 select-none opacity-20">{sponsor.name}</div>
                      )}
                   </div>
                 </div>
