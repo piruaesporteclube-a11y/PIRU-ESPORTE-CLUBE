@@ -30,6 +30,12 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
   const [activeSlot, setActiveSlot] = useState<'sponsor' | 'school'>('sponsor');
   const [selectedBackground, setSelectedBackground] = useState('stadium');
   
+  // Customization States
+  const [borderWidth, setBorderWidth] = useState(15);
+  const [borderColor, setBorderColor] = useState('#eab308');
+  const [mainHeadlineSize, setMainHeadlineSize] = useState(72);
+  const [customTextSize, setCustomTextSize] = useState(30);
+
   // Positioning States
   const [sponsorPos, setSponsorPos] = useState({ scale: 1, x: 0, y: 0 });
   const [schoolPos, setSchoolPos] = useState({ scale: 1, x: 0, y: 0 });
@@ -199,12 +205,45 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Desenho Hierárquico (Vertical)</label>
+                <div className="space-y-4">
+                  <div className="bg-black/60 p-4 rounded-3xl border border-zinc-800 space-y-4">
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Espessura da Borda</label>
+                      <input type="range" min="0" max="60" step="1" value={borderWidth} onChange={e => setBorderWidth(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Cor da Borda</label>
+                      <div className="flex gap-2">
+                        {['#eab308', '#ffffff', '#ff0000', '#000000', '#1a1a1a', '#22c55e', '#3b82f6'].map(c => (
+                          <button
+                            key={c}
+                            onClick={() => setBorderColor(c)}
+                            className={cn(
+                              "w-6 h-6 rounded-full border border-white/20",
+                              borderColor === c ? "ring-2 ring-white" : ""
+                            )}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/60 p-4 rounded-3xl border border-zinc-800 space-y-4">
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Tamanho Título Principal</label>
+                      <input type="range" min="30" max="120" step="1" value={mainHeadlineSize} onChange={e => setMainHeadlineSize(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Tamanho Mensagem</label>
+                      <input type="range" min="10" max="80" step="1" value={customTextSize} onChange={e => setCustomTextSize(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                    </div>
+                  </div>
+
                   <div className="bg-black/60 p-4 rounded-3xl border border-zinc-800 space-y-4">
                      <div>
                         <div className="flex justify-between mb-1">
-                          <label className="text-[9px] font-bold text-zinc-500 uppercase">Posição de Conteúdo</label>
+                          <label className="text-[9px] font-bold text-zinc-500 uppercase">Posição de Conteúdo (Vertical)</label>
                         </div>
                         <input 
                           type="range" min="-300" max="300" step="1"
@@ -233,7 +272,14 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
           <div 
             ref={flyerRef}
             className="relative overflow-hidden bg-black flex flex-col select-none ring-1 ring-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)]"
-            style={{ width: '1080px', height: '1920px', transform: 'scale(0.333)', transformOrigin: 'top center', marginBottom: '-1280px' }}
+            style={{ 
+              width: '1080px', 
+              height: '1920px', 
+              transform: 'scale(0.333)', 
+              transformOrigin: 'top center', 
+              marginBottom: '-1280px',
+              border: `${borderWidth}px solid ${borderColor}`
+            }}
           >
             {/* 1. Backgrounds & Textures */}
             <div className="absolute inset-0 z-0">
@@ -254,8 +300,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                 className="mb-12 transition-transform"
                 style={{ transform: `scale(${schoolPos.scale}) translate(${schoolPos.x}px, ${schoolPos.y}px)` }}
               >
-                <div className="w-64 h-64 mx-auto bg-black/40 backdrop-blur-2xl p-8 rounded-[4rem] border-4 border-theme-primary/30 shadow-2xl flex items-center justify-center relative group">
-                  <div className="absolute inset-0 bg-theme-primary/5 rounded-[4rem] animate-pulse" />
+                <div className="w-64 h-64 mx-auto p-4 flex items-center justify-center relative">
                   {schoolCrest ? (
                     <img src={schoolCrest} className="w-full h-full object-contain relative z-10" crossOrigin="anonymous" />
                   ) : (
@@ -273,7 +318,10 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                    </div>
                    
                    <div className="relative">
-                     <h2 className="text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                     <h2 
+                       className="font-black text-white uppercase tracking-tighter leading-[0.9] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                       style={{ fontSize: `${mainHeadlineSize}px` }}
+                     >
                         A EQUIPE <span className="text-theme-primary">{settings.schoolName?.toUpperCase() || 'PIRUÁ ESPORTE CLUBE'}</span> TEM O PATROCÍNIO DE
                      </h2>
                    </div>
@@ -284,14 +332,13 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                   className="transition-transform"
                   style={{ transform: `scale(${sponsorPos.scale}) translate(${sponsorPos.x}px, ${sponsorPos.y}px)` }}
                 >
-                  <div className="w-full aspect-video max-w-md mx-auto bg-white rounded-[4rem] p-16 shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden group">
+                  <div className="w-full aspect-video max-w-md mx-auto bg-white rounded-[4rem] p-16 shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden group border-[12px] border-theme-primary">
                      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-zinc-100" />
                      {sponsorLogo ? (
                        <img src={sponsorLogo} className="w-full h-full object-contain relative z-10 scale-110" crossOrigin="anonymous" />
                      ) : (
                        <div className="text-zinc-200 font-black text-7xl uppercase italic relative z-10 select-none">{sponsor.name}</div>
                      )}
-                     <div className="absolute inset-0 border-8 border-theme-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               </div>
@@ -300,7 +347,10 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
               {customText && (
                 <div className="mt-24 w-full max-w-2xl mx-auto">
                    <div className="bg-black/60 backdrop-blur-3xl p-10 rounded-[3rem] border-2 border-white/10 shadow-2xl transform -skew-x-6">
-                      <p className="text-white text-3xl font-black uppercase tracking-tight italic opacity-95 leading-relaxed transform skew-x-6">
+                      <p 
+                        className="text-white font-black uppercase tracking-tight italic opacity-95 leading-relaxed transform skew-x-6"
+                        style={{ fontSize: `${customTextSize}px` }}
+                      >
                          "{customText}"
                       </p>
                    </div>
