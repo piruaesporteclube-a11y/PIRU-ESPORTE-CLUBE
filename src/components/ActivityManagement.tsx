@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { TrainingActivity } from '../types';
-import { Plus, Search, Filter, Trash2, Edit2, Shield, Sword, Zap, Brain, Activity, Clock, Package, ChevronRight, X, Info, Play, Trophy, Users, Star, ChevronDown, Move } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, Shield, Sword, Zap, Brain, Activity, Clock, Package, ChevronRight, X, Info, Play, Trophy, Users, Star, ChevronDown, Move, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import DrillVisualizer from './DrillVisualizer';
+import { geminiService } from '../services/geminiService';
+import { Sparkles } from 'lucide-react';
 
 interface ActivityManagementProps {
   onSelect?: (activity: TrainingActivity) => void;
@@ -113,28 +115,99 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
     setIsModalOpen(true);
   };
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateWithAI = async () => {
+    if (selectedModality === 'Todos') {
+      toast.error("Selecione uma modalidade para gerar sugestões personalizadas!");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const suggestions = await geminiService.generateSuggestions(selectedModality);
+      for (const s of suggestions) {
+        await api.saveActivity(s as any);
+      }
+      toast.success(`${suggestions.length} novas atividades geradas pela IA!`);
+      loadActivities();
+    } catch (err) {
+      toast.error("Erro ao conectar com a IA");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleMagicFill = async () => {
+    if (!formData.name && !formData.modality) {
+      toast.error("Dê um nome ou selecione a modalidade primeiro!");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const drill = await geminiService.generateDrill(formData.modality || 'Futebol', formData.name);
+      setFormData(prev => ({
+        ...prev,
+        ...drill,
+        id: prev.id, // Preserve ID if editing
+        category: (drill.category as any)
+      }));
+      toast.success("Exercício gerado com sucesso!");
+    } catch (err) {
+      toast.error("Erro na geração por IA");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const seedTemplates = async () => {
     const templates: Partial<TrainingActivity>[] = [
-      // FUTEBOL
+      // AQUECIMENTO
       {
-        name: "CIRCUITO TÉCNICO DE CONDUÇÃO",
+        name: "PEGA-PEGA COM CONDUÇÃO",
         modality: "Futebol",
-        category: "Fundamento",
-        intensity: "Média",
+        category: "Aquecimento",
+        intensity: "Alta",
+        difficulty: "Iniciante",
+        duration: 10,
+        equipment: "BOLAS PARA TODOS, COLETES",
+        description: "Todos os atletas conduzem bola em área restrita. O pegador deve tocar nos outros sem perder sua própria bola.",
+        visualData: JSON.stringify([
+          { id: 'p1', type: 'player', x: 20, y: 20, team: 'A', label: '1', animate: true, toX: 40, toY: 40 },
+          { id: 'b1', type: 'ball', x: 22, y: 20, animate: true, toX: 42, toY: 40 },
+          { id: 'p2', type: 'player', x: 80, y: 80, team: 'B', label: 'P', animate: true, toX: 70, toY: 70 },
+          { id: 'b2', type: 'ball', x: 82, y: 80, animate: true, toX: 72, toY: 70 }
+        ])
+      },
+      // ALONGAMENTO
+      {
+        name: "ALONGAMENTO DINÂMICO EM LINHA",
+        modality: "Futsal",
+        category: "Alongamento",
+        intensity: "Baixa",
+        difficulty: "Iniciante",
+        duration: 8,
+        equipment: "ÁREA LIVRE",
+        description: "Série de movimentos balísticos, abraçando o joelho, tocando o calcanhar e avanço controlado.",
+        visualData: JSON.stringify([
+          { id: 'p1', type: 'player', x: 10, y: 30, team: 'A', label: '1', animate: true, toX: 90, toY: 30 },
+          { id: 'p2', type: 'player', x: 10, y: 50, team: 'A', label: '2', animate: true, toX: 90, toY: 50 },
+          { id: 'p3', type: 'player', x: 10, y: 70, team: 'A', label: '3', animate: true, toX: 90, toY: 70 }
+        ])
+      },
+      // COORDENAÇÃO
+      {
+        name: "ESCADA DE AGILIDADE: ICKY SHUFFLE",
+        modality: "Basquete",
+        category: "Coordenação Motora",
+        intensity: "Alta",
         difficulty: "Intermediário",
         duration: 15,
-        equipment: "6 CONES, 2 ESTACAS, 1 BOLA",
-        description: "Circuito em 'S' focando em controle de bola com ambos os pés. Finaliza com um passe longo entre as estacas.",
-        youtubeUrl: "https://www.youtube.com/watch?v=5-0V2o7DpxE",
+        equipment: "ESCADA DE AGILIDADE, MINI-CONES",
+        description: "Movimentação lateral rápida na escada. Foco na ponta dos pés e coordenação braço-perna.",
         visualData: JSON.stringify([
-          { id: 'c1', type: 'cone', x: 20, y: 30 },
-          { id: 'c2', type: 'cone', x: 30, y: 70 },
-          { id: 'c3', type: 'cone', x: 40, y: 30 },
-          { id: 'c4', type: 'cone', x: 50, y: 70 },
-          { id: 's1', type: 'stake', x: 80, y: 40 },
-          { id: 's2', type: 'stake', x: 80, y: 60 },
-          { id: 'p1', type: 'player', x: 10, y: 50, team: 'A', label: '1', animate: true, toX: 75, toY: 50 },
-          { id: 'b1', type: 'ball', x: 12, y: 50, animate: true, toX: 77, toY: 50 }
+          { id: 'p1', type: 'player', x: 20, y: 50, team: 'A', label: '1', animate: true, toX: 80, toY: 50 },
+          { id: 'c1', type: 'cone', x: 30, y: 45 }, { id: 'c2', type: 'cone', x: 40, y: 55 },
+          { id: 'c3', type: 'cone', x: 50, y: 45 }, { id: 'c4', type: 'cone', x: 60, y: 55 }
         ])
       },
       {
@@ -278,13 +351,26 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
         
         <div className="flex flex-wrap items-center gap-3">
           {!isPicker && (
-            <button 
-              onClick={seedTemplates}
-              className="flex items-center gap-2 px-5 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-black rounded-2xl uppercase tracking-tighter hover:text-theme-primary hover:border-theme-primary/30 transition-all text-xs"
-            >
-              <Star size={18} fill="currentColor" className="text-theme-primary" />
-              Sugestões da IA
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={seedTemplates}
+                className="flex items-center gap-2 px-5 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-black rounded-2xl uppercase tracking-tighter hover:text-theme-primary hover:border-theme-primary/30 transition-all text-xs"
+              >
+                <Star size={18} fill="currentColor" className="text-white/20" />
+                Modelos Pro
+              </button>
+              <button 
+                onClick={generateWithAI}
+                disabled={isGenerating}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-4 bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 font-black rounded-2xl uppercase tracking-tighter hover:bg-indigo-600 hover:text-white transition-all text-xs",
+                  isGenerating && "opacity-50 cursor-not-wait"
+                )}
+              >
+                <Sparkles size={18} className={cn(isGenerating && "animate-spin")} />
+                {isGenerating ? "Gerando..." : "Gerar com IA"}
+              </button>
+            </div>
           )}
           <button 
             onClick={() => {
@@ -459,218 +545,270 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
       {/* Form Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex items-center justify-center p-2 lg:p-6 overflow-y-auto">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-zinc-950 border border-zinc-800 w-full max-w-[95vw] lg:max-w-7xl h-full lg:h-[90vh] rounded-[2rem] lg:rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
             >
-              <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-black/30">
-                <div>
-                   <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">
-                    {formData.id ? 'Refinar Atividade' : 'Nova Metodologia'}
-                  </h3>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-1">Defina os parâmetros técnicos</p>
+              {/* Header */}
+              <div className="p-6 lg:p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-inner">
+                    {formData.id ? <Edit2 size={28} /> : <Plus size={28} />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl lg:text-3xl font-black text-white uppercase tracking-tighter italic leading-none">
+                      {formData.id ? 'Refinar Estratégia' : 'Nova Metodologia Pro'}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                      <p className="text-zinc-500 text-[10px] uppercase font-black tracking-[0.2em]">Editor Tático de Alto Rendimento</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                
+                <div className="flex items-center gap-3">
                   <button 
                     type="button"
-                    onClick={() => {
-                      if (!confirm("Deseja usar a IA para gerar uma descrição técnica para este título?")) return;
-                      // Em um app real chamaríamos a API aqui. 
-                      // Por enquanto vamos simular um texto técnico.
-                      setFormData(prev => ({
-                        ...prev,
-                        description: `OBJETIVO: Aprimorar ${prev.name || 'a técnica'}.\nEXECUÇÃO: Dividir em grupos de 4. Focar na intensidade e postura corporal.\nCOBRANÇA: Atenção máxima aos detalhes do movimento.`
-                      }));
-                      toast.success("Sugestão técnica gerada!");
-                    }}
-                    className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl hover:bg-theme-primary hover:text-black transition-all flex items-center gap-2 text-[10px] font-black uppercase"
+                    onClick={handleMagicFill}
+                    disabled={isGenerating}
+                    className="hidden sm:flex items-center gap-2 px-6 py-4 bg-indigo-600/10 text-indigo-400 border border-indigo-500/30 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-50"
                   >
-                    <Brain size={18} />
-                    Auto-Desc
+                    <Sparkles size={20} className={cn("group-hover:scale-110 transition-transform", isGenerating && "animate-spin")} />
+                    {isGenerating ? "Consultando IA..." : "Sincronizar com IA"}
                   </button>
-                  <button onClick={() => setIsModalOpen(false)} className="p-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl transition-colors">
+                  <button 
+                    onClick={() => setIsModalOpen(false)} 
+                    className="p-4 bg-zinc-800 hover:bg-red-500 text-zinc-400 hover:text-white rounded-2xl transition-all shadow-lg"
+                  >
                     <X size={24} />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
-                <div className="p-6 bg-black/50 border border-zinc-800 rounded-[2rem] space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Move size={16} className="text-theme-primary" />
-                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Editor de Esquema Tático</h4>
+              <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                {/* Left Side: Editor */}
+                <div className="flex-1 bg-black relative flex flex-col min-h-[400px] lg:min-h-0 overflow-hidden">
+                  <div className="absolute top-6 left-6 z-10 pointer-events-none">
+                    <div className="bg-black/60 backdrop-blur-md border border-zinc-800 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="p-2 bg-zinc-800 rounded-xl text-theme-primary">
+                        <Move size={16} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Editor Visual</p>
+                        <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tight">Posicionamento Realista</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-[300px] w-full">
+
+                  <div className="flex-1 w-full bg-zinc-900/10">
                     <DrillVisualizer 
                       activity={formData as any} 
                       isEditable={true} 
                       onChange={(data) => setFormData(prev => ({ ...prev, visualData: data }))}
                     />
                   </div>
-                  <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest text-center mt-2 italic">
-                    ARRASTE OS ELEMENTOS PARA POSICIONAR. USE O MENU ACIMA PARA ADICIONAR NOVOS.
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4 col-span-1 md:col-span-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Nomenclatura Técnica</label>
-                    <input 
-                      required
-                      type="text" 
-                      placeholder="EX: TRANSIÇÃO DEFENSIVA RÁPIDA"
-                      className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-bold text-sm tracking-tight"
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value.toUpperCase()})}
-                    />
-                  </div>
+                {/* Right Side: Configuration */}
+                <div className="w-full lg:w-[450px] bg-zinc-900 border-l border-zinc-800 overflow-y-auto custom-scrollbar flex flex-col">
+                  <div className="p-8 space-y-8 flex-1">
+                    {/* Basic Info */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Info size={16} className="text-zinc-500" />
+                        <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Informações Essenciais</h4>
+                      </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Modalidade</label>
-                    <div className="relative">
-                      <select 
-                        required
-                        className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-xs font-bold appearance-none cursor-pointer"
-                        value={formData.modality}
-                        onChange={e => setFormData({...formData, modality: e.target.value as any})}
+                      <div className="space-y-4">
+                        <input 
+                          required
+                          type="text" 
+                          placeholder="TÍTULO DA ATIVIDADE"
+                          className="w-full px-6 py-5 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 uppercase font-black text-lg tracking-tight placeholder:text-zinc-700"
+                          value={formData.name}
+                          onChange={e => setFormData({...formData, name: e.target.value})}
+                        />
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="relative">
+                            <select 
+                              required
+                              className="w-full px-6 py-5 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 uppercase text-[10px] font-black appearance-none cursor-pointer tracking-widest"
+                              value={formData.modality}
+                              onChange={e => setFormData({...formData, modality: e.target.value as any})}
+                            >
+                              <option value="">MODALIDADE</option>
+                              {MODALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" size={16} />
+                          </div>
+                          <div className="relative">
+                            <select 
+                              required
+                              className="w-full px-6 py-5 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 uppercase text-[10px] font-black appearance-none cursor-pointer tracking-widest"
+                              value={formData.category}
+                              onChange={e => setFormData({...formData, category: e.target.value as any})}
+                            >
+                              <option value="">CATEGORIA</option>
+                              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Parameters */}
+                    <div className="space-y-6 pt-6 border-t border-zinc-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap size={16} className="text-zinc-500" />
+                        <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Parâmetros de Carga</h4>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Nível Técnico</label>
+                          <select 
+                            className="w-full px-4 py-4 bg-black/40 border border-zinc-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 font-bold text-xs uppercase"
+                            value={formData.difficulty}
+                            onChange={e => setFormData({...formData, difficulty: e.target.value as any})}
+                          >
+                            {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Volume/Tempo</label>
+                          <div className="relative">
+                            <input 
+                              type="number"
+                              className="w-full px-4 py-4 bg-black/40 border border-zinc-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 font-bold text-sm text-center"
+                              value={formData.duration}
+                              onChange={e => setFormData({...formData, duration: parseInt(e.target.value) || 0})}
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-zinc-600 uppercase">min</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Intensidade Desejada</label>
+                        <div className="flex gap-2">
+                          {["Baixa", "Média", "Alta"].map(int => (
+                            <button
+                              key={int}
+                              type="button"
+                              onClick={() => setFormData({...formData, intensity: int as any})}
+                              className={cn(
+                                "flex-1 py-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
+                                formData.intensity === int 
+                                  ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20" 
+                                  : "bg-black/20 border-zinc-800 text-zinc-600 hover:border-zinc-700"
+                              )}
+                            >
+                              {int}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-6 pt-6 border-t border-zinc-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText size={16} className="text-zinc-500" />
+                        <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Metodologia e Recursos</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1 mb-2 block">Lista de Materiais</label>
+                          <input 
+                            type="text" 
+                            placeholder="CONES, BOLAS, BARREIRAS..."
+                            className="w-full px-5 py-4 bg-black/20 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 uppercase text-[11px] font-bold"
+                            value={formData.equipment}
+                            onChange={e => setFormData({...formData, equipment: e.target.value})}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1 mb-2 block">Instruções de Execução</label>
+                          <textarea 
+                            required
+                            placeholder="Descreva o passo a passo técnico da atividade..."
+                            className="w-full px-6 py-5 bg-black/20 border border-zinc-800 rounded-3xl text-zinc-300 outline-none focus:ring-2 focus:ring-indigo-500/50 h-48 resize-none text-[13px] leading-relaxed italic"
+                            value={formData.description}
+                            onChange={e => setFormData({...formData, description: e.target.value})}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1 block">Referência em Vídeo (YouTube)</label>
+                          <div className="relative">
+                            <Play className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                            <input 
+                              type="url" 
+                              placeholder="https://youtu.be/..."
+                              className="w-full pl-12 pr-6 py-4 bg-black/20 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 text-[11px] font-medium"
+                              value={formData.youtubeUrl || ''}
+                              onChange={e => setFormData({...formData, youtubeUrl: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Technical Data (Collapsible) */}
+                    <div className="pt-6 border-t border-zinc-800">
+                      <button 
+                         type="button"
+                         onClick={() => setFormData((prev: any) => ({ ...prev, showJson: !prev.showJson }))}
+                         className="flex items-center justify-between w-full text-[9px] font-black text-zinc-600 uppercase tracking-[0.3em] hover:text-zinc-400 transition-colors"
                       >
-                        {MODALITIES.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={18} />
+                         Dados do Simulador
+                         <ChevronDown className={cn("transition-transform", (formData as any).showJson && "rotate-180")} size={14} />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {(formData as any).showJson && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden mt-4"
+                          >
+                            <textarea 
+                              className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-[10px] font-mono text-indigo-400 outline-none h-32"
+                              value={formData.visualData}
+                              onChange={e => setFormData({...formData, visualData: e.target.value})}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Categoria Técnica</label>
-                    <div className="relative">
-                      <select 
-                        required
-                        className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-xs font-bold appearance-none cursor-pointer"
-                        value={formData.category}
-                        onChange={e => setFormData({...formData, category: e.target.value as any})}
-                      >
-                        {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={18} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Nivel de Dificuldade</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {DIFFICULTIES.map(diff => (
-                        <button
-                          key={diff}
-                          type="button"
-                          onClick={() => setFormData({...formData, difficulty: diff as any})}
-                          className={cn(
-                            "py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
-                            formData.difficulty === diff 
-                              ? "bg-theme-primary border-theme-primary text-black" 
-                              : "bg-black/40 border-zinc-800 text-zinc-500 hover:border-zinc-600"
-                          )}
-                        >
-                          {diff}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Intensidade Física</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {["Baixa", "Média", "Alta"].map(int => (
-                        <button
-                          key={int}
-                          type="button"
-                          onClick={() => setFormData({...formData, intensity: int as any})}
-                          className={cn(
-                            "py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
-                            formData.intensity === int 
-                              ? "bg-theme-primary border-theme-primary text-black" 
-                              : "bg-black/40 border-zinc-800 text-zinc-500 hover:border-zinc-600"
-                          )}
-                        >
-                          {int}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Tempo Previsto (min)</label>
-                    <input 
-                      type="number" 
-                      className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm font-mono"
-                      value={formData.duration}
-                      onChange={e => setFormData({...formData, duration: parseInt(e.target.value) || 0})}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Video Demonstrativo (YouTube URL)</label>
-                    <input 
-                      type="url" 
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs"
-                      value={formData.youtubeUrl || ''}
-                      onChange={e => setFormData({...formData, youtubeUrl: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Materiais Necessários</label>
-                    <input 
-                      type="text" 
-                      placeholder="CONES, BOLAS, COLETES..."
-                      className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-xs font-bold"
-                      value={formData.equipment}
-                      onChange={e => setFormData({...formData, equipment: e.target.value.toUpperCase()})}
-                    />
+                  <div className="p-8 border-t border-zinc-800 bg-black/20 backdrop-blur-md sticky bottom-0">
+                    <button 
+                      type="submit"
+                      disabled={isGenerating}
+                      className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-[0_10px_40px_rgba(79,70,229,0.3)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                      onClick={handleSubmit}
+                    >
+                      {formData.id ? 'Sincronizar Atualização' : 'Publicar na Metodologia'}
+                      <ChevronRight size={20} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Plano Metodológico / Descrição</label>
-                  <textarea 
-                    required
-                    placeholder="Descreva o passo a passo, o objetivo tático e o que cobrar dos atletas..."
-                    className="w-full px-6 py-4 bg-black/40 border border-zinc-800 rounded-3xl text-white outline-none focus:ring-2 focus:ring-theme-primary/50 h-40 resize-none text-sm italic leading-relaxed"
-                    value={formData.description}
-                    onChange={e => setFormData({...formData, description: e.target.value})}
-                  />
-                </div>
-
-                <div className="p-6 bg-zinc-950/50 rounded-3xl border border-zinc-800/80 space-y-4">
-                   <div className="flex items-center gap-2 mb-2">
-                     <Brain size={16} className="text-theme-primary" />
-                     <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Configuração do Simulador (Experimental)</h4>
-                   </div>
-                   <textarea 
-                    placeholder='Ex: [{"type": "cone", "x": 50, "y": 50}]'
-                    className="w-full px-6 py-4 bg-zinc-900/50 border border-zinc-700 rounded-2xl text-theme-primary outline-none focus:ring-1 focus:ring-theme-primary/30 h-24 font-mono text-[10px]"
-                    value={formData.visualData}
-                    onChange={e => setFormData({...formData, visualData: e.target.value})}
-                  />
-                  <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest text-center">Os modelos Pro já vêm com esta configuração automática.</p>
-                </div>
-
-                <button 
-                  type="submit"
-                  className="w-full py-6 bg-white text-black rounded-2xl font-black uppercase tracking-tighter shadow-2xl shadow-theme-primary/10 hover:bg-theme-primary transition-all text-sm mb-6"
-                >
-                  {formData.id ? 'Publicar Atualização' : 'Publicar na Biblioteca'}
-                </button>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Detailed View / Visualizer Modal */}
       <AnimatePresence>
         {visualizingActivity && (
           <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex items-center justify-center p-4">
