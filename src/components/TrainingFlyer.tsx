@@ -478,6 +478,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 <Camera size={12} />
                 Subir Foto
               </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
             </div>
 
             {((activeSlot === 1 && customImage) || (activeSlot === 2 && customImage2)) && (
