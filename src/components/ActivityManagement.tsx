@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { TrainingActivity } from '../types';
-import { Plus, Search, Filter, Trash2, Edit2, Shield, Sword, Zap, Brain, Activity, Clock, Package, ChevronRight, X, Info } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, Shield, Sword, Zap, Brain, Activity, Clock, Package, ChevronRight, X, Info, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
+import FootballVisualizer from './FootballVisualizer';
 
 interface ActivityManagementProps {
   onSelect?: (activity: TrainingActivity) => void;
@@ -33,6 +34,7 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<TrainingActivity | null>(null);
+  const [visualizingActivity, setVisualizingActivity] = useState<TrainingActivity | null>(null);
 
   const [formData, setFormData] = useState<Partial<TrainingActivity>>({
     name: '',
@@ -313,8 +315,19 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
                 </div>
 
                 <div className="flex justify-between items-start mb-4 relative z-10">
-                  <div className={cn("p-3 rounded-2xl", category.bg, category.color)}>
-                    {category.icon}
+                  <div className="flex items-center gap-2">
+                    <div className={cn("p-3 rounded-2xl", category.bg, category.color)}>
+                      {category.icon}
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVisualizingActivity(activity);
+                      }}
+                      className="p-3 rounded-2xl bg-white/5 text-theme-primary hover:bg-theme-primary hover:text-black transition-all group/play"
+                    >
+                      <Play size={16} fill="currentColor" className="group-hover/play:scale-110 transition-transform" />
+                    </button>
                   </div>
                   {!isPicker && (
                     <div className="flex gap-1">
@@ -464,6 +477,101 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
                   {formData.id ? 'Salvar Alterações' : 'Adicionar à Biblioteca'}
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Visualizer Modal */}
+      <AnimatePresence>
+        {visualizingActivity && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-black/30">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 bg-theme-primary/10 text-theme-primary rounded text-[9px] font-black uppercase tracking-widest">
+                      Visualização Animada
+                    </span>
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{visualizingActivity.category}</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">
+                    {visualizingActivity.name}
+                  </h3>
+                </div>
+                <button onClick={() => setVisualizingActivity(null)} className="p-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl transition-all">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start overflow-y-auto">
+                <div className="space-y-6">
+                  <FootballVisualizer activity={visualizingActivity} />
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-black/40 border border-zinc-800 p-4 rounded-2xl">
+                      <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Intensidade</p>
+                      <p className="text-sm font-black text-white uppercase italic">{visualizingActivity.intensity}</p>
+                    </div>
+                    <div className="bg-black/40 border border-zinc-800 p-4 rounded-2xl">
+                      <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Tempo</p>
+                      <p className="text-sm font-black text-white uppercase italic">{visualizingActivity.duration} min</p>
+                    </div>
+                    <div className="bg-black/40 border border-zinc-800 p-4 rounded-2xl">
+                      <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Impacto</p>
+                      <p className="text-sm font-black text-theme-primary uppercase italic">Pro</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6">
+                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                       <Info size={14} className="text-theme-primary" />
+                       Instruções Metodológicas
+                    </h4>
+                    <p className="text-zinc-400 text-sm leading-relaxed italic">
+                      "{visualizingActivity.description}"
+                    </p>
+                  </div>
+
+                  {visualizingActivity.equipment && (
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6">
+                      <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                         <Package size={14} className="text-theme-primary" />
+                         Equipamento Necessário
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {visualizingActivity.equipment.split(',').map((eq, i) => (
+                          <span key={i} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-700">
+                            {eq.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => {
+                      if (onSelect) {
+                        onSelect(visualizingActivity);
+                        setVisualizingActivity(null);
+                      } else {
+                        setVisualizingActivity(null);
+                      }
+                    }}
+                    className="w-full py-5 bg-theme-primary text-black rounded-2xl font-black uppercase tracking-tighter shadow-lg shadow-theme-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isPicker ? 'Selecionar Este Treino' : 'Fechar Visualização'}
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
