@@ -95,8 +95,8 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
     loadData();
   }, [athletesProp]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const promises: [Promise<Training[]>, Promise<Athlete[]> | null] = [
         api.getTrainings(),
@@ -115,7 +115,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
     } catch (err) {
       toast.error("Erro ao carregar treinos");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -132,7 +132,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
         schedules: [],
         notes: ''
       });
-      loadData();
+      loadData(true);
     } catch (err) {
       toast.error("Erro ao salvar treino");
     }
@@ -143,7 +143,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
     try {
       await api.deleteTraining(id);
       toast.success("Treino excluído!");
-      loadData();
+      loadData(true);
     } catch (err) {
       toast.error("Erro ao excluir treino");
     }

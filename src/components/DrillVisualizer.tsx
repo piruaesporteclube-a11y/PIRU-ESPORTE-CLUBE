@@ -92,37 +92,47 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     }));
 
     const nextObjects = [...objects.filter(o => o.type !== 'player'), ...newPlayers];
-    setObjects(nextObjects);
-    onChange?.(JSON.stringify(nextObjects));
+    handleUpdate(nextObjects);
     toast.success(`Esquema ${formation} aplicado!`);
   };
 
   useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const { clientWidth } = containerRef.current;
-        const h = (clientWidth * 2) / 3;
-        setDimensions({ width: clientWidth, height: h });
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect;
+        const h = (width * 2) / 3;
+        setDimensions({ width, height: h });
       }
-    };
+    });
 
-    updateSize();
-    window.addEventListener('resize', updateSize);
-
-    try {
-      if (activity.visualData) {
-        setObjects(JSON.parse(activity.visualData));
-      } else {
-        setObjects([]);
-      }
-    } catch (e) {
-      setObjects([]);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
-    return () => {
-      window.removeEventListener('resize', updateSize);
-    };
+    return () => observer.disconnect();
+  }, []);
+
+  // Track the last value sent to onChange to prevent loops
+  const lastUpdateRef = useRef<string>('');
+
+  useEffect(() => {
+    if (activity.visualData && activity.visualData !== lastUpdateRef.current) {
+      try {
+        const data = JSON.parse(activity.visualData);
+        setObjects(data);
+        lastUpdateRef.current = activity.visualData;
+      } catch (e) {
+        console.error("Failed to parse visualData", e);
+      }
+    }
   }, [activity.visualData]);
+
+  const handleUpdate = (newObjects: VisualObject[]) => {
+    setObjects(newObjects);
+    const json = JSON.stringify(newObjects);
+    lastUpdateRef.current = json;
+    onChange?.(json);
+  };
 
   const { width: w, height: h } = dimensions;
   const fieldBorder = 20;
@@ -146,8 +156,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
       }
       return obj;
     });
-    setObjects(newObjects);
-    onChange?.(JSON.stringify(newObjects));
+    handleUpdate(newObjects);
   };
 
   const addObject = (type: VisualObject['type']) => {
@@ -168,23 +177,20 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     }
 
     const newObjects = [...objects, newObj];
-    setObjects(newObjects);
-    onChange?.(JSON.stringify(newObjects));
+    handleUpdate(newObjects);
     setSelectedId(newObj.id);
   };
 
   const updateObject = (id: string, updates: Partial<VisualObject>) => {
     const newObjects = objects.map(obj => obj.id === id ? { ...obj, ...updates } : obj);
-    setObjects(newObjects);
-    onChange?.(JSON.stringify(newObjects));
+    handleUpdate(newObjects);
   };
 
   const removeSelected = () => {
     if (!selectedId) return;
     const newObjects = objects.filter(o => o.id !== selectedId);
-    setObjects(newObjects);
+    handleUpdate(newObjects);
     setSelectedId(null);
-    onChange?.(JSON.stringify(newObjects));
   };
 
   const renderField = () => {
@@ -384,7 +390,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
             <div className="w-px h-6 bg-zinc-800 mx-1" />
             <button 
               type="button" 
-              onClick={() => { if(confirm("Limpar esquema tático?")) { setObjects([]); setSelectedId(null); onChange?.('[]'); } }} 
+              onClick={() => { if(confirm("Limpar esquema tático?")) { handleUpdate([]); setSelectedId(null); } }} 
               className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
               title="Limpar Tudo"
             >

@@ -58,26 +58,27 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
     loadActivities();
   }, []);
 
-  const loadActivities = async () => {
-    setLoading(true);
+  const loadActivities = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await api.getActivities();
       setActivities(data);
     } catch (err) {
       toast.error("Erro ao carregar biblioteca");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isGenerating) return;
     try {
       await api.saveActivity(formData);
       toast.success(formData.id ? "Atividade atualizada!" : "Atividade adicionada à biblioteca!");
       setIsModalOpen(false);
       resetForm();
-      loadActivities();
+      loadActivities(true);
     } catch (err) {
       toast.error("Erro ao salvar atividade");
     }
@@ -142,6 +143,11 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
       toast.error("Dê um nome ou selecione a modalidade primeiro!");
       return;
     }
+    
+    if (formData.visualData && formData.visualData !== '[]' && formData.visualData !== '') {
+      if (!confirm("A IA irá gerar um novo esquema tático, substituindo o atual. Continuar?")) return;
+    }
+
     setIsGenerating(true);
     try {
       const drill = await geminiService.generateDrill(formData.modality || 'Futebol', formData.name);
