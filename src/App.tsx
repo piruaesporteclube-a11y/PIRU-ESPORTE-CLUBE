@@ -399,7 +399,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
           >
             Recarregar Página
           </button>
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <pre className="mt-8 p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-red-400 text-left text-xs overflow-auto max-w-full">
               {this.state.error?.toString()}
             </pre>
@@ -414,15 +414,24 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('pirua_user');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('pirua_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Error parsing user from localStorage", e);
+      localStorage.removeItem('pirua_user');
+    }
     return null;
   });
   const [activeTab, setActiveTab] = useState(() => {
-    const saved = localStorage.getItem('pirua_user');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.role === 'student' ? 'my-card' : 'dashboard';
+    try {
+      const saved = localStorage.getItem('pirua_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.role === 'student' ? 'my-card' : 'dashboard';
+      }
+    } catch (e) {
+      console.error("Error parsing user for activeTab from localStorage", e);
     }
     return 'dashboard';
   });
@@ -582,19 +591,25 @@ export default function App() {
   }, []);
 
   const initAuth = async () => {
-    const storedUser = localStorage.getItem('pirua_user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      // Verify if the token is still valid or if it's the emergency one
-      if (parsedUser.token === 'emergency-token') {
-        setUser(parsedUser);
-      } else {
-        // For regular users, we rely on onAuthStateChanged to set the user
-        // but we can set it initially from storage for better UX
-        setUser(parsedUser);
+    try {
+      const storedUser = localStorage.getItem('pirua_user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        // Verify if the token is still valid or if it's the emergency one
+        if (parsedUser.token === 'emergency-token') {
+          setUser(parsedUser);
+        } else {
+          // For regular users, we rely on onAuthStateChanged to set the user
+          // but we can set it initially from storage for better UX
+          setUser(parsedUser);
+        }
       }
+    } catch (e) {
+      console.error("Error during initAuth", e);
+      localStorage.removeItem('pirua_user');
+    } finally {
+      setIsAuthLoading(false);
     }
-    setIsAuthLoading(false);
   };
 
   useEffect(() => {

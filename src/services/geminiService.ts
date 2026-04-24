@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY as string 
+  apiKey: (import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '')) as string 
 });
 
 export interface GeneratedDrill {
