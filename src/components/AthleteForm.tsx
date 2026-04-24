@@ -12,7 +12,7 @@ import { useTheme } from '../contexts/ThemeContext';
 interface AthleteFormProps {
   athlete?: Athlete | null;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (updatedAthlete?: Athlete) => void;
   isRegistration?: boolean;
   onRegisterSuccess?: (athlete: Athlete) => void;
   standalone?: boolean;
@@ -133,7 +133,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     // Validate all fields are filled
     const requiredFields: (keyof Athlete)[] = [
       'name', 'nickname', 'birth_date', 'doc', 'street', 'number', 
-      'neighborhood', 'city', 'uf', 'photo', 'contact', 'email', 'jersey_number',
+      'neighborhood', 'city', 'uf', 'photo', 'contact', 'email',
       'guardian_name', 'guardian_doc', 'guardian_phone', 'modality', 'gender', 'position'
     ];
     
@@ -157,7 +157,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       } else {
         await api.saveAthlete(formData);
         toast.success("Atleta salvo com sucesso!");
-        onSave();
+        onSave(formData as Athlete);
       }
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);

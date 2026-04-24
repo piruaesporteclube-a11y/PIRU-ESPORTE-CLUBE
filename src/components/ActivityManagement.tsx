@@ -312,6 +312,23 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
           { id: 'p2', type: 'player', x: 20, y: 40, team: 'A', label: '2', animate: true, toX: 45, toY: 40 },
           { id: 'b1', type: 'ball', x: 22, y: 40, animate: true, toX: 48, toY: 40 }
         ])
+      },
+      // TÁTICO GERAL
+      {
+        name: "SAÍDA DE BOLA EM 3",
+        modality: "Futebol",
+        category: "Tático",
+        intensity: "Média",
+        difficulty: "Avançado",
+        duration: 15,
+        equipment: "CAMPO COMPLETO",
+        description: "Construção de jogo com o volante recuando entre os zagueiros para gerar superioridade numérica na saída.",
+        visualData: JSON.stringify([
+          { id: 'z1', type: 'player', x: 35, y: 70, team: 'A', label: 'Z1', animate: true, toX: 30, toY: 75 },
+          { id: 'z2', type: 'player', x: 65, y: 70, team: 'A', label: 'Z2', animate: true, toX: 70, toY: 75 },
+          { id: 'v1', type: 'player', x: 50, y: 60, team: 'A', label: 'V', animate: true, toX: 50, toY: 75 },
+          { id: 'b1', type: 'ball', x: 50, y: 77, animate: true, toX: 32, toY: 77 }
+        ])
       }
     ];
 

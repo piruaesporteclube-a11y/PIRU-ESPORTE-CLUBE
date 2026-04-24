@@ -180,7 +180,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
               </div>
               Aniversariantes do Mês
             </h3>
-            <Birthdays />
+            <Birthdays athletes={athletes} />
           </div>
         </section>
       </div>
@@ -1030,21 +1030,6 @@ export default function App() {
     );
   }
 
-  if (isEventCheckin && checkinEventId) {
-    return (
-      <ErrorBoundary>
-        <PublicEventCheckin 
-          eventId={checkinEventId} 
-          onBack={() => {
-            setIsEventCheckin(false);
-            setCheckinEventId(null);
-            window.history.replaceState({}, '', window.location.pathname);
-          }}
-        />
-      </ErrorBoundary>
-    );
-  }
-
   if (isTravelRegistration) {
     return (
       <ErrorBoundary>
@@ -1080,7 +1065,16 @@ export default function App() {
           <AthleteForm 
             athlete={editingAthlete} 
             onClose={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
-            onSave={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
+            onSave={(updatedAthlete) => { 
+              setIsAthleteFormOpen(false); 
+              setEditingAthlete(null); 
+              if (updatedAthlete) {
+                setAthletes(prev => prev.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
+                if (user?.role === 'student' && user.athlete_id === updatedAthlete.id) {
+                  setMyAthleteData(updatedAthlete);
+                }
+              }
+            }} 
           />
         )}
         <Toaster position="top-right" richColors />
