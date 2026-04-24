@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Sponsor } from '../types';
-import { Plus, Trash2, Link as LinkIcon, Upload, Save, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Upload, Save, X, Image as ImageIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import SponsorFlyer from './SponsorFlyer';
 
 export default function SponsorManager() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSponsor, setEditingSponsor] = useState<Partial<Sponsor> | null>(null);
+  const [flyerSponsor, setFlyerSponsor] = useState<Sponsor | null>(null);
 
   useEffect(() => {
     loadSponsors();
@@ -146,14 +148,23 @@ export default function SponsorManager() {
             </div>
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
+                onClick={() => setFlyerSponsor(sponsor)}
+                className="p-1.5 bg-theme-primary text-black hover:bg-white rounded-lg transition-colors shadow-lg"
+                title="Gerar Encarte Story"
+              >
+                <Download size={12} />
+              </button>
+              <button 
                 onClick={() => setEditingSponsor(sponsor)}
                 className="p-1.5 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors"
+                title="Editar"
               >
                 <Plus size={12} />
               </button>
               <button 
                 onClick={() => handleDelete(sponsor.id)}
                 className="p-1.5 bg-zinc-800 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"
+                title="Excluir"
               >
                 <Trash2 size={12} />
               </button>
@@ -166,6 +177,12 @@ export default function SponsorManager() {
           </div>
         )}
       </div>
+      {flyerSponsor && (
+        <SponsorFlyer 
+          sponsor={flyerSponsor} 
+          onClose={() => setFlyerSponsor(null)} 
+        />
+      )}
     </div>
   );
 }
