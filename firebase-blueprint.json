@@ -270,6 +270,22 @@
         "created_at": { "type": "string" }
       },
       "required": ["id", "event_id", "name", "doc"]
+    },
+    "TrainingActivity": {
+      "title": "TrainingActivity",
+      "description": "Methodology or training exercise template",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Fundamento", "Ataque", "Defesa", "Agilidade", "Físico", "Tático", "Goleiro", "Conscientização", "Coordenação Motora", "Aquecimento", "Alongamento", "Outro"] },
+        "intensity": { "type": "string", "enum": ["Baixa", "Média", "Alta"] },
+        "duration": { "type": "number" },
+        "equipment": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "intensity"]
     }
   },
   "firestore": {
@@ -332,6 +348,10 @@
     "/event_companions/{companionId}": {
       "schema": "Companion",
       "description": "Event companions collection"
+    },
+    "/training_activities/{activityId}": {
+      "schema": "TrainingActivity",
+      "description": "Library of training activities and exercises"
     }
   }
 }

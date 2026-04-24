@@ -42,6 +42,7 @@ export const navItems: NavItem[] = [
 
   // --- GRUPO: Centro de Treinamento (Preparação e Logística) ---
   { id: 'trainings', label: 'Treinos', icon: History, roles: ['admin', 'student'], description: 'Rotina e Horários', color: 'text-zinc-400', category: 'training' },
+  { id: 'activities', label: 'Metodologia', icon: Activity, roles: ['admin'], description: 'Biblioteca de Exercícios', color: 'text-indigo-500', category: 'training' },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student'], description: 'Agenda da Escola', color: 'text-blue-500', category: 'training' },
   { id: 'travel-list', label: 'Viagens', icon: ClipboardList, roles: ['admin'], description: 'Logística de Saída', color: 'text-theme-primary', category: 'training' },
 

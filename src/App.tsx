@@ -28,6 +28,7 @@ import PublicEventCheckin from './components/PublicEventCheckin';
 import OfficialLetterGenerator from './components/OfficialLetterGenerator';
 import TravelList from './components/TravelList';
 import CompanionRegistration from './components/CompanionRegistration';
+import ActivityManagement from './components/ActivityManagement';
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
@@ -845,6 +846,8 @@ export default function App() {
           return <ModalityList />;
         case 'contacts':
           return <ContactList athletes={athletes} />;
+        case 'activities':
+          return <ActivityManagement />;
         case 'trainings':
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'official-letters':

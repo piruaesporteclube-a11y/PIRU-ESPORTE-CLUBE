@@ -159,6 +159,16 @@ service cloud.firestore {
              data.doc is string && data.doc.size() >= 3 && data.doc.size() < 50;
     }
 
+    function isValidTrainingActivity(data) {
+      return data.id is string && data.id.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.category in ["Fundamento", "Ataque", "Defesa", "Agilidade", "Físico", "Tático", "Goleiro", "Conscientização", "Coordenação Motora", "Aquecimento", "Alongamento", "Outro"] &&
+             data.intensity in ["Baixa", "Média", "Alta"] &&
+             (!('duration' in data) || data.duration is number) &&
+             (!('description' in data) || data.description is string) &&
+             (!('equipment' in data) || data.equipment is string);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -255,6 +265,11 @@ service cloud.firestore {
       allow create: if isValidCompanion(request.resource.data) && 
                       exists(/databases/$(database)/documents/events/$(request.resource.data.event_id));
       allow delete: if isAdmin();
+    }
+
+    match /training_activities/{activityId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidTrainingActivity(request.resource.data);
     }
 
     match /test/connection {

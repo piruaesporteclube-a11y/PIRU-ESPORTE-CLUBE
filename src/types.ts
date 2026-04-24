@@ -78,6 +78,17 @@ export type Attendance = {
   updated_at?: any;
 };
 
+export type TrainingActivity = {
+  id: string;
+  name: string;
+  description: string;
+  category: "Fundamento" | "Ataque" | "Defesa" | "Agilidade" | "Físico" | "Tático" | "Goleiro" | "Conscientização" | "Coordenação Motora" | "Aquecimento" | "Alongamento" | "Outro";
+  intensity: "Baixa" | "Média" | "Alta";
+  duration?: number; // in minutes
+  equipment?: string;
+  created_at?: any;
+};
+
 export type TrainingSchedule = {
   categories: string[];
   start_time: string;

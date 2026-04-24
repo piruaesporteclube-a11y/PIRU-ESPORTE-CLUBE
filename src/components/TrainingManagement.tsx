@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Training, Athlete, categories } from '../types';
-import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram, GripVertical } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram, GripVertical, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { cn } from '../utils';
 import Attendance from './Attendance';
 import TrainingFlyer from './TrainingFlyer';
+import ActivityManagement from './ActivityManagement';
+import { TrainingActivity } from '../types';
 
 interface TrainingManagementProps {
   athletes?: Athlete[];
@@ -25,6 +27,8 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   const [activeAttendanceTraining, setActiveAttendanceTraining] = useState<Training | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('Todos');
   const [flyerData, setFlyerData] = useState<{ date: string, trainings: Training[] } | null>(null);
+  const [isActivityPickerOpen, setIsActivityPickerOpen] = useState(false);
+  const [pickingForScheduleIndex, setPickingForScheduleIndex] = useState<number | null>(null);
   
   const [formData, setFormData] = useState<Partial<Training>>({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -664,7 +668,20 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Atividade / Observações</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Atividade / Observações</label>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setPickingForScheduleIndex(idx);
+                                setIsActivityPickerOpen(true);
+                              }}
+                              className="text-[8px] font-black text-theme-primary uppercase flex items-center gap-1 hover:underline"
+                            >
+                              <Activity size={10} />
+                              Escolher da Biblioteca
+                            </button>
+                          </div>
                           <textarea 
                             rows={2}
                             placeholder="Descreva o foco deste horário..."
@@ -756,6 +773,52 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                   {formData.id ? 'Salvar Alterações' : 'Cadastrar Treino'}
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isActivityPickerOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: 20 }}
+               className="bg-zinc-900 border border-zinc-800 w-full max-w-6xl h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden"
+            >
+              <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-black/30">
+                <div>
+                   <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Escolher Atividade</h3>
+                   <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Selecione uma atividade da sua biblioteca para este horário</p>
+                </div>
+                <button 
+                  onClick={() => setIsActivityPickerOpen(false)}
+                  className="p-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-2xl transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-8">
+                <ActivityManagement 
+                  isPicker 
+                  onSelect={(activity) => {
+                    if (pickingForScheduleIndex !== null) {
+                      const text = `[${activity.category.toUpperCase()}] ${activity.name}: ${activity.description}`;
+                      updateSchedule(pickingForScheduleIndex, 'notes', text);
+                    }
+                    setIsActivityPickerOpen(false);
+                    setPickingForScheduleIndex(null);
+                  }} 
+                />
+              </div>
+              
+              <div className="p-6 bg-black/20 border-t border-zinc-800 text-center">
+                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+                  Você pode editar as atividades na seção "Metodologia" do menu principal
+                </p>
+              </div>
             </motion.div>
           </div>
         )}

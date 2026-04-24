@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1164,6 +1164,39 @@ export const api = {
       delete cache["trainings"];
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "trainings/reorder");
+    }
+  },
+
+  // Training Activities
+  getActivities: async (): Promise<TrainingActivity[]> => {
+    const cached = getCachedData("training_activities");
+    if (cached) return cached;
+    try {
+      const querySnapshot = await getDocsWithCacheFallback(collection(db, "training_activities"));
+      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as TrainingActivity));
+      setCachedData("training_activities", data);
+      return data;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "training_activities");
+      return [];
+    }
+  },
+  saveActivity: async (activity: Partial<TrainingActivity>) => {
+    if (!activity.id) activity.id = doc(collection(db, "training_activities")).id;
+    try {
+      const data = { ...activity, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "training_activities", activity.id), sanitizeData(data), { merge: true });
+      delete cache["training_activities"]; // Invalidate cache
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `training_activities/${activity.id}`);
+    }
+  },
+  deleteActivity: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "training_activities", id));
+      delete cache["training_activities"]; // Invalidate cache
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `training_activities/${id}`);
     }
   },
 
