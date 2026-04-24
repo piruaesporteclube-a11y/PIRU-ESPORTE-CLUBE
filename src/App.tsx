@@ -67,7 +67,15 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             </h2>
             <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial de atleta.</p>
           </div>
-          <div className="flex items-center gap-4 bg-zinc-900/50 p-4 rounded-3xl border border-zinc-800">
+          <div className="flex flex-wrap items-center gap-4">
+            <button 
+              onClick={() => setActiveTab('my-data')}
+              className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black rounded-2xl font-black uppercase text-xs tracking-tighter hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
+            >
+              <UserPlus size={18} />
+              Atualizar Meus Dados
+            </button>
+            <div className="flex items-center gap-4 bg-zinc-900/50 p-4 rounded-3xl border border-zinc-800">
              <div className="text-right">
                <p className="text-sm font-black text-theme-primary uppercase">{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
                <p className="text-xs sm:text-sm text-zinc-500 font-bold uppercase tracking-widest">{new Date().toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
@@ -75,6 +83,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
              <div className="w-12 h-12 bg-theme-primary rounded-2xl flex items-center justify-center text-black font-black">
                {new Date().getDate()}
              </div>
+            </div>
           </div>
         </section>
 

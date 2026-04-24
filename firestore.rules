@@ -187,7 +187,8 @@ service cloud.firestore {
     match /athletes/{athleteId} {
       allow read: if true;
       allow create: if isAuthenticated() && isValidAthlete(request.resource.data);
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (isAthleteOwner(athleteId) && isValidAthlete(request.resource.data));
+      allow delete: if isAdmin();
     }
 
     match /professors/{professorId} {
