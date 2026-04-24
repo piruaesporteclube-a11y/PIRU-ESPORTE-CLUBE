@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Sponsor } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-import { Trophy, Download, X, Camera, Image as ImageIcon } from 'lucide-react';
+import { Trophy, Download, X, Camera, Image as ImageIcon, Layout, Settings2 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { cn } from '../utils';
 
@@ -11,12 +11,30 @@ interface SponsorFlyerProps {
   onClose: () => void;
 }
 
+const BACKGROUNDS = [
+  { id: 'stadium', name: 'Estádio Pro', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1000' },
+  { id: 'stadium2', name: 'Arena Noite', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=1000' },
+  { id: 'gym', name: 'Centro de Treino', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1000' },
+  { id: 'court', name: 'Quadra Elite', url: 'https://images.unsplash.com/photo-1505666287802-931dc83948e9?q=80&w=1000' },
+  { id: 'abstract', name: 'Abstrato Dark', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1000' },
+];
+
 export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
   const flyerRef = useRef<HTMLDivElement>(null);
   const { settings } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
   const [customText, setCustomText] = useState('');
-  const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
+  
+  // States
+  const [activeTab, setActiveTab] = useState<'config' | 'layout'>('config');
+  const [activeSlot, setActiveSlot] = useState<'sponsor' | 'school'>('sponsor');
+  const [selectedBackground, setSelectedBackground] = useState('stadium');
+  
+  // Positioning States
+  const [sponsorPos, setSponsorPos] = useState({ scale: 1, x: 0, y: 0 });
+  const [schoolPos, setSchoolPos] = useState({ scale: 1, x: 0, y: 0 });
+  const [layoutPos, setLayoutPos] = useState({ y: 0 });
+  
   const [sponsorLogo, setSponsorLogo] = useState<string | null>(sponsor.logo || null);
   const [schoolCrest, setSchoolCrest] = useState<string | null>(settings.schoolCrest || null);
 
@@ -38,238 +56,272 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
   const handleDownload = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    const loadingToast = toast.loading('Gerando seu encarte de patrocínio...');
+    const loadingToast = toast.loading('Gerando Flyer Profissional...');
     
     try {
-      const toBase64 = async (url: string): Promise<string> => {
-        if (!url || url.startsWith('data:')) return url;
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
-          clearTimeout(timeoutId);
-          const blob = await response.blob();
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (e) {
-          return url;
-        }
-      };
-
       const element = flyerRef.current;
-      const clone = element.cloneNode(true) as HTMLElement;
-      Object.assign(clone.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '360px',
-        height: '640px',
-        zIndex: '-9999',
-        opacity: '1',
-      });
-      document.body.appendChild(clone);
-
-      const cloneImages = Array.from(clone.querySelectorAll('img'));
-      await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.getAttribute('src');
-        if (currentSrc) {
-          const b64 = await toBase64(currentSrc);
-          img.setAttribute('src', b64);
-        }
-      }));
-
-      await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const dataUrl = await htmlToImage.toPng(clone, {
-        width: 360,
-        height: 640,
-        pixelRatio: 2,
+      const dataUrl = await htmlToImage.toPng(element, {
+        width: 1080,
+        height: 1920,
+        pixelRatio: 1,
         backgroundColor: '#000000',
       });
 
-      document.body.removeChild(clone);
       toast.dismiss(loadingToast);
-      
       const link = document.createElement('a');
       link.download = `PATROCINIO_${sponsor.name.replace(/\s+/g, '_')}.png`;
       link.href = dataUrl;
       link.click();
-      
-      toast.success('Encarte baixado com sucesso!');
+      toast.success('Pronto para o Instagram!');
     } catch (error) {
-      console.error('Error generating flyer:', error);
       toast.error('Erro ao gerar imagem.');
     } finally {
       setIsExporting(false);
     }
   };
 
+  const bgUrl = BACKGROUNDS.find(bg => bg.id === selectedBackground)?.url || BACKGROUNDS[0].url;
+
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start my-auto">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr,380px] gap-8 items-start my-auto">
         
-        {/* Left: Configuration */}
-        <div className="space-y-6 bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800">
+        {/* Left: Configuration Panel */}
+        <div className="space-y-6 bg-zinc-900 border border-zinc-800 p-6 rounded-[2.5rem] shadow-2xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Encarte de Patrocínio</h2>
-            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors">
-              <X size={24} />
+            <div>
+              <h2 className="text-xl font-black text-white italic tracking-tighter uppercase">Estúdio de Patrocínio</h2>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Story do Instagram (9:16)</p>
+            </div>
+            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors bg-zinc-800 rounded-xl">
+              <X size={20} />
             </button>
           </div>
 
-          {/* Text Customization */}
-          <div className="space-y-4">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Mensagem Personalizada</label>
-            <textarea 
-              value={customText}
-              onChange={e => setCustomText(e.target.value)}
-              className="w-full bg-black border border-zinc-700 p-4 rounded-2xl text-white text-sm focus:ring-2 focus:ring-theme-primary/50 outline-none resize-none h-24"
-              placeholder="Digite um texto para o rodapé do encarte..."
-            />
-          </div>
-
-          {/* Image Uploads */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Logo Patrocinador</label>
-              <button 
-                onClick={() => sponsorLogoRef.current?.click()}
-                className="w-full aspect-video bg-black rounded-2xl border border-zinc-800 flex flex-col items-center justify-center gap-2 hover:border-theme-primary/50 transition-all group overflow-hidden"
-              >
-                {sponsorLogo ? (
-                  <img src={sponsorLogo} className="w-full h-full object-contain p-2" />
-                ) : (
-                  <>
-                    <ImageIcon size={20} className="text-zinc-600 group-hover:text-theme-primary" />
-                    <span className="text-[8px] font-bold text-zinc-500 uppercase">Alterar Logo</span>
-                  </>
-                )}
-              </button>
-              <input type="file" ref={sponsorLogoRef} onChange={e => handleImageUpload(e, 'sponsor')} accept="image/*" className="hidden" />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Brasão da Escola</label>
-              <button 
-                onClick={() => schoolCrestRef.current?.click()}
-                className="w-full aspect-video bg-black rounded-2xl border border-zinc-800 flex flex-col items-center justify-center gap-2 hover:border-theme-primary/50 transition-all group overflow-hidden"
-              >
-                {schoolCrest ? (
-                  <img src={schoolCrest} className="w-full h-full object-contain p-2" />
-                ) : (
-                  <>
-                    <Trophy size={20} className="text-zinc-600 group-hover:text-theme-primary" />
-                    <span className="text-[8px] font-bold text-zinc-500 uppercase">Alterar Brasão</span>
-                  </>
-                )}
-              </button>
-              <input type="file" ref={schoolCrestRef} onChange={e => handleImageUpload(e, 'school')} accept="image/*" className="hidden" />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Cor do Fundo (Estilo Carbono)</label>
-            <div className="flex flex-wrap gap-2">
-              {['#1a1a1a', '#0a0a0a', '#1e3a8a', '#312e81', '#164e63', '#064e3b', '#4c1d95', '#701a75', '#831843'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setCarbonColor(c)}
-                  className={cn(
-                    "relative w-10 h-10 rounded-xl border-2 overflow-hidden",
-                    carbonColor === c ? "border-theme-primary scale-110" : "border-zinc-800 hover:border-zinc-700"
-                  )}
-                >
-                  <div className="absolute inset-0" style={{ backgroundColor: c }} />
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-6 border-t border-zinc-800">
-            <button onClick={handleDownload} disabled={isExporting} className="w-full py-4 bg-theme-primary text-black font-black uppercase tracking-tighter rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-theme-primary/20 disabled:opacity-50">
-              {isExporting ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black"></div> : <Download size={20} />}
-              {isExporting ? 'Gerando Imagem...' : 'Baixar Encarte Story'}
+          <div className="flex bg-black p-1 rounded-2xl border border-zinc-800">
+            <button 
+              onClick={() => setActiveTab('config')}
+              className={cn(
+                "flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2",
+                activeTab === 'config' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <Settings2 size={14} /> Elementos
+            </button>
+            <button 
+              onClick={() => setActiveTab('layout')}
+              className={cn(
+                "flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2",
+                activeTab === 'layout' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <Layout size={14} /> Ajustes & Fundo
             </button>
           </div>
+
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            {activeTab === 'config' ? (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Mensagem do Rodapé</label>
+                  <textarea 
+                    value={customText}
+                    onChange={e => setCustomText(e.target.value)}
+                    className="w-full bg-black border border-zinc-800 p-4 rounded-3xl text-sm text-white resize-none h-24 focus:ring-2 focus:ring-theme-primary/50 outline-none transition-all placeholder:text-zinc-700"
+                    placeholder="Ex: Novo parceiro da temporada 2026!"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Ativar Slot</label>
+                    <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
+                      <button onClick={() => setActiveSlot('sponsor')} className={cn("flex-1 py-2 rounded-lg text-[8px] font-black uppercase", activeSlot === 'sponsor' ? "bg-theme-primary text-black" : "text-zinc-500")}>Sponsor</button>
+                      <button onClick={() => setActiveSlot('school')} className={cn("flex-1 py-2 rounded-lg text-[8px] font-black uppercase", activeSlot === 'school' ? "bg-theme-primary text-black" : "text-zinc-500")}>Escola</button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Imagem</label>
+                    <button 
+                      onClick={() => activeSlot === 'sponsor' ? sponsorLogoRef.current?.click() : schoolCrestRef.current?.click()}
+                      className="w-full py-3 bg-zinc-800 border-2 border-dashed border-zinc-700 rounded-xl text-[10px] font-black text-theme-primary hover:bg-zinc-700 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Camera size={14} /> Subir Foto
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-black/40 p-4 rounded-3xl border border-zinc-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar: {activeSlot === 'sponsor' ? 'Sponsor' : 'Brasão'}</span>
+                    <button 
+                      onClick={() => activeSlot === 'sponsor' ? setSponsorPos({scale: 1, x: 0, y: 0}) : setSchoolPos({scale: 1, x: 0, y: 0})}
+                      className="text-[10px] font-bold text-theme-primary uppercase"
+                    >
+                      Resetar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Escala</label>
+                      <input type="range" min="0.2" max="3" step="0.1" value={activeSlot === 'sponsor' ? sponsorPos.scale : schoolPos.scale} onChange={e => activeSlot === 'sponsor' ? setSponsorPos({...sponsorPos, scale: parseFloat(e.target.value)}) : setSchoolPos({...schoolPos, scale: parseFloat(e.target.value)})} className="w-full accent-theme-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Pos X</label>
+                      <input type="range" min="-200" max="200" step="1" value={activeSlot === 'sponsor' ? sponsorPos.x : schoolPos.x} onChange={e => activeSlot === 'sponsor' ? setSponsorPos({...sponsorPos, x: parseInt(e.target.value)}) : setSchoolPos({...schoolPos, x: parseInt(e.target.value)})} className="w-full accent-theme-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Pos Y</label>
+                      <input type="range" min="-200" max="200" step="1" value={activeSlot === 'sponsor' ? sponsorPos.y : schoolPos.y} onChange={e => activeSlot === 'sponsor' ? setSponsorPos({...sponsorPos, y: parseInt(e.target.value)}) : setSchoolPos({...schoolPos, y: parseInt(e.target.value)})} className="w-full accent-theme-primary" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Fundo do Estágio</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {BACKGROUNDS.map(bg => (
+                      <button 
+                        key={bg.id}
+                        onClick={() => setSelectedBackground(bg.id)}
+                        className={cn(
+                          "aspect-square rounded-xl overflow-hidden border-2 transition-all relative group",
+                          selectedBackground === bg.id ? "border-theme-primary scale-110 shadow-lg" : "border-zinc-800 opacity-60 hover:opacity-100"
+                        )}
+                      >
+                        <img src={bg.url} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block px-1">Desenho Hierárquico (Vertical)</label>
+                  <div className="bg-black/60 p-4 rounded-3xl border border-zinc-800 space-y-4">
+                     <div>
+                        <div className="flex justify-between mb-1">
+                          <label className="text-[9px] font-bold text-zinc-500 uppercase">Posição de Conteúdo</label>
+                        </div>
+                        <input 
+                          type="range" min="-300" max="300" step="1"
+                          className="w-full accent-theme-primary"
+                          value={layoutPos.y}
+                          onChange={e => setLayoutPos({y: parseInt(e.target.value)})}
+                        />
+                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button onClick={handleDownload} disabled={isExporting} className="w-full py-4 bg-theme-primary text-black font-black uppercase tracking-tighter rounded-[1.5rem] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-theme-primary/20 disabled:opacity-50">
+            {isExporting ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black"></div> : <Download size={20} />}
+            {isExporting ? 'Processando Imagem...' : 'BAIXAR PARA INSTAGRAM'}
+          </button>
+
+          <input type="file" ref={sponsorLogoRef} onChange={e => handleImageUpload(e, 'sponsor')} accept="image/*" className="hidden" />
+          <input type="file" ref={schoolCrestRef} onChange={e => handleImageUpload(e, 'school')} accept="image/*" className="hidden" />
         </div>
 
-        {/* Right: Preview */}
-        <div className="flex flex-col items-center gap-4">
+        {/* Right: Instagram Story Preview (1080x1920 logical scale) */}
+        <div className="flex flex-col items-center">
           <div 
             ref={flyerRef}
-            style={{ width: '360px', height: '640px' }}
-            className="bg-black relative overflow-hidden flex flex-col select-none border-[8px] border-theme-primary/80"
+            className="relative overflow-hidden bg-black flex flex-col select-none ring-1 ring-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)]"
+            style={{ width: '1080px', height: '1920px', transform: 'scale(0.333)', transformOrigin: 'top center', marginBottom: '-1280px' }}
           >
-            {/* Background Layer */}
-            <div className="absolute inset-0 z-0" style={{ backgroundColor: carbonColor }}>
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-              <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-theme-primary/20 to-transparent" />
+            {/* 1. Backgrounds & Textures */}
+            <div className="absolute inset-0 z-0">
+               <img src={bgUrl} className="w-full h-full object-cover scale-110 blur-[2px]" crossOrigin="anonymous" />
+               <div className="absolute inset-0 bg-black/60" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/80" />
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
             </div>
 
-            {/* Content */}
-            <div className="relative z-10 flex-1 flex flex-col items-center justify-between py-16 px-8 text-center">
+            {/* 2. Content Layer (Positionable) */}
+            <div 
+              className="relative z-10 flex-1 flex flex-col items-center justify-center p-20 text-center transition-transform"
+              style={{ transform: `translateY(${layoutPos.y}px)` }}
+            >
               
-              {/* Top: School Crest */}
-              <div className="space-y-4">
-                <div className="w-24 h-24 mx-auto p-3 bg-black/40 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl">
+              {/* Top: School Identity */}
+              <div 
+                className="mb-12 transition-transform"
+                style={{ transform: `scale(${schoolPos.scale}) translate(${schoolPos.x}px, ${schoolPos.y}px)` }}
+              >
+                <div className="w-64 h-64 mx-auto bg-black/40 backdrop-blur-2xl p-8 rounded-[4rem] border-4 border-theme-primary/30 shadow-2xl flex items-center justify-center relative group">
+                  <div className="absolute inset-0 bg-theme-primary/5 rounded-[4rem] animate-pulse" />
                   {schoolCrest ? (
-                    <img src={schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" />
+                    <img src={schoolCrest} className="w-full h-full object-contain relative z-10" crossOrigin="anonymous" />
                   ) : (
-                    <Trophy size={48} className="text-theme-primary w-full h-full" />
-                  )}
-                </div>
-                <h1 className="text-xl font-black text-white italic tracking-tighter uppercase drop-shadow-lg">
-                  {settings.schoolName || 'Piruá Esporte Clube'}
-                </h1>
-              </div>
-
-              {/* Middle: Main Text */}
-              <div className="space-y-12">
-                <div className="space-y-4">
-                  <p className="text-theme-primary text-[10px] font-black uppercase tracking-[0.3em] mb-2">Parceria Oficial</p>
-                  <p className="text-2xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-xl">
-                    A EQUIPE {settings.schoolName?.toUpperCase() || 'PIRUÁ ESPORTE CLUBE'} TEM O PATROCÍNIO DE
-                  </p>
-                </div>
-
-                {/* Sponsor Logo Slot */}
-                <div className="w-full aspect-square max-w-[200px] mx-auto bg-white rounded-[2.5rem] p-8 shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
-                  {sponsorLogo ? (
-                    <img src={sponsorLogo} className="w-full h-full object-contain" crossOrigin="anonymous" />
-                  ) : (
-                    <div className="text-zinc-300 font-black text-2xl uppercase italic opacity-20">{sponsor.name}</div>
+                    <Trophy size={112} className="text-theme-primary relative z-10" />
                   )}
                 </div>
               </div>
 
-              {/* Bottom: Custom Text */}
-              <div className="space-y-6 w-full">
-                {customText && (
-                  <div className="bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/5 mx-4">
-                    <p className="text-white text-xs font-bold uppercase tracking-tight italic opacity-90 leading-relaxed">
-                      "{customText}"
-                    </p>
+              {/* Central Text Block */}
+              <div className="space-y-16 w-full max-w-4xl mx-auto">
+                <div className="space-y-8">
+                   <div className="inline-flex items-center gap-4 px-6 py-2 bg-theme-primary/10 border border-theme-primary/30 rounded-full">
+                      <div className="w-2 h-2 rounded-full bg-theme-primary animate-ping" />
+                      <span className="text-theme-primary text-xl font-black uppercase tracking-[0.5em]">Parceria de Elite</span>
+                   </div>
+                   
+                   <div className="relative">
+                     <h2 className="text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                        A EQUIPE <span className="text-theme-primary">{settings.schoolName?.toUpperCase() || 'PIRUÁ ESPORTE CLUBE'}</span> TEM O PATROCÍNIO DE
+                     </h2>
+                   </div>
+                </div>
+
+                {/* Big Sponsor Badge */}
+                <div 
+                  className="transition-transform"
+                  style={{ transform: `scale(${sponsorPos.scale}) translate(${sponsorPos.x}px, ${sponsorPos.y}px)` }}
+                >
+                  <div className="w-full aspect-video max-w-md mx-auto bg-white rounded-[4rem] p-16 shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden group">
+                     <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-zinc-100" />
+                     {sponsorLogo ? (
+                       <img src={sponsorLogo} className="w-full h-full object-contain relative z-10 scale-110" crossOrigin="anonymous" />
+                     ) : (
+                       <div className="text-zinc-200 font-black text-7xl uppercase italic relative z-10 select-none">{sponsor.name}</div>
+                     )}
+                     <div className="absolute inset-0 border-8 border-theme-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                )}
-                
-                <div className="pt-4 border-t border-theme-primary/20 w-3/4 mx-auto">
-                  <p className="text-theme-primary text-[8px] font-black uppercase tracking-[0.4em] mb-1">Juntos somos mais fortes</p>
-                  <p className="text-zinc-500 text-[6px] font-bold uppercase tracking-widest">{settings.schoolName} • 2026</p>
                 </div>
               </div>
 
+              {/* Custom Message Card */}
+              {customText && (
+                <div className="mt-24 w-full max-w-2xl mx-auto">
+                   <div className="bg-black/60 backdrop-blur-3xl p-10 rounded-[3rem] border-2 border-white/10 shadow-2xl transform -skew-x-6">
+                      <p className="text-white text-3xl font-black uppercase tracking-tight italic opacity-95 leading-relaxed transform skew-x-6">
+                         "{customText}"
+                      </p>
+                   </div>
+                </div>
+              )}
             </div>
 
-            {/* Texture */}
-            <div className="absolute inset-0 z-[5] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05] pointer-events-none" />
+            {/* Footer Branding */}
+            <div className="absolute bottom-20 inset-x-0 flex flex-col items-center">
+               <div className="w-24 h-1 bg-theme-primary/50 rounded-full mb-6" />
+               <p className="text-theme-primary text-xl font-black uppercase tracking-[0.5em] mb-4">JUNTOS SOMOS MAIS FORTES</p>
+               <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest opacity-40 italic">{settings.schoolName} — TEMPORADA 2026</p>
+            </div>
+
+            {/* Aesthetic Polish */}
+            <div className="absolute inset-x-0 top-0 h-4 bg-theme-primary" />
+            <div className="absolute inset-x-0 bottom-0 h-4 bg-theme-primary" />
+            <div className="absolute inset-0 z-[5] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.03] pointer-events-none" />
           </div>
+          
+          <p className="mt-4 text-[10px] font-black text-zinc-600 uppercase tracking-widest">Ajuste os sliders para enquadrar as marcas perfeitamente</p>
         </div>
       </div>
     </div>
