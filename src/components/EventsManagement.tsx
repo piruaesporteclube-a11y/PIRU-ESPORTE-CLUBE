@@ -290,7 +290,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     const [hours, minutes] = event.end_time.split(':').map(Number);
     const eventEnd = new Date(year, month - 1, day, hours, minutes);
     
-    if (eventEnd < now) {
+    if (eventEnd < now && !isAdmin) {
       toast.error("Não é possível editar um evento que já finalizou.");
       return;
     }
@@ -346,7 +346,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       const [hours, minutes] = event.end_time.split(':').map(Number);
       const eventEnd = new Date(year, month - 1, day, hours, minutes);
       
-      setIsEventFinished(eventEnd < now);
+      setIsEventFinished(eventEnd < now && !isAdmin);
 
       const { athletes: lineup, staff, category } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
@@ -581,7 +581,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                         const [year, month, day] = event.end_date.split('-').map(Number);
                         const [hours, minutes] = event.end_time.split(':').map(Number);
                         const eventEnd = new Date(year, month - 1, day, hours, minutes);
-                        if (eventEnd < now) {
+                        if (eventEnd < now && !isAdmin) {
                           toast.error("Não é possível excluir um evento que já finalizou.");
                           return;
                         }

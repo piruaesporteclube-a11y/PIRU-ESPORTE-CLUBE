@@ -48,9 +48,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             setTraining(found);
             
             // Calculate global lock
-            if (found.date < todayString) {
+            if (found.date < todayString && !isAdmin) {
               setIsLocked(true);
-            } else if (found.date === todayString) {
+            } else if (found.date === todayString && !isAdmin) {
               // If there are schedules, find the latest end time
               if (found.schedules && found.schedules.length > 0) {
                 const latestEnd = found.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
@@ -71,9 +71,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           const found = events.find(e => e.id === eventId);
           if (found) {
             setEvent(found);
-            if (found.end_date < todayString) {
+            if ((found.end_date < todayString && !isAdmin)) {
               setIsLocked(true);
-            } else if (found.end_date === todayString && found.end_time < currentTimeStr) {
+            } else if (found.end_date === todayString && found.end_time < currentTimeStr && !isAdmin) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -84,7 +84,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         }
       } else {
         // General attendance: lock if date is in the past
-        if (date < todayString) {
+        if (date < todayString && !isAdmin) {
           setIsLocked(true);
         } else {
           setIsLocked(false);
@@ -369,6 +369,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const isAthleteLocked = (athlete: Athlete) => {
+    if (isAdmin) return false;
     const now = new Date();
     const todayString = format(now, 'yyyy-MM-dd');
     const currentTimeStr = format(now, 'HH:mm');

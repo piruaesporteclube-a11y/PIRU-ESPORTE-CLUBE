@@ -979,7 +979,7 @@ export default function App() {
         case 'official-letters':
           return <OfficialLetterGenerator />;
         case 'travel-list':
-          return <TravelList />;
+          return <TravelList role={user?.role} />;
         case 'settings':
           return <SettingsComponent />;
         default:

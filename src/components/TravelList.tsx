@@ -24,7 +24,8 @@ import EventsManagement from './EventsManagement';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
-export default function TravelList() {
+export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'student' | 'professor' }) {
+  const isAdmin = role === 'admin';
   const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -185,7 +186,7 @@ export default function TravelList() {
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
 
-  const isLocked = selectedEvent ? new Date().toISOString().split('T')[0] > selectedEvent.start_date : false;
+  const isLocked = selectedEvent ? (new Date().toISOString().split('T')[0] > selectedEvent.start_date && !isAdmin) : false;
 
   const handleAddCompanion = async () => {
     if (!newCompanion.name || !newCompanion.doc || !newCompanion.whatsapp) {

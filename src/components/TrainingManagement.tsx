@@ -528,7 +528,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                               {ended ? (
                                 <>
                                   <FileText size={18} />
-                                  Ver Chamada
+                                  {isAdmin ? 'Editar Chamada' : 'Ver Chamada'}
                                 </>
                               ) : (
                                 <>
