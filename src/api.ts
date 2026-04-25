@@ -243,7 +243,19 @@ export const api = {
     const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com.br`;
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
+      // First try with the raw password (most likely if it's an email/custom password)
+      // Then fallback to normalized password (CPF only) if that fails
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } catch (authErr: any) {
+        if (password !== normalizedPassword) {
+          userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
+        } else {
+          throw authErr;
+        }
+      }
+      
       const firebaseUser = userCredential.user;
 
       const userDocRef = doc(db, "users", firebaseUser.uid);
