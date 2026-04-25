@@ -173,6 +173,16 @@ service cloud.firestore {
              (!('equipment' in data) || data.equipment is string);
     }
 
+    function isValidEventMatch(data) {
+      return data.id is string && data.id.size() > 0 &&
+             data.event_id is string && data.event_id.size() > 0 &&
+             data.team_a_name is string && data.team_a_name.size() > 0 &&
+             data.team_b_name is string && data.team_b_name.size() > 0 &&
+             data.score_a is number &&
+             data.score_b is number &&
+             (!('category' in data) || data.category is string);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -275,6 +285,11 @@ service cloud.firestore {
     match /training_activities/{activityId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() && isValidTrainingActivity(request.resource.data);
+    }
+
+    match /event_matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidEventMatch(request.resource.data);
     }
 
     match /test/connection {

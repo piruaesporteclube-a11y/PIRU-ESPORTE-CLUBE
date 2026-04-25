@@ -290,6 +290,26 @@
         "updated_at": { "type": "string" }
       },
       "required": ["id", "name", "category", "intensity", "modality", "difficulty"]
+    },
+    "EventMatchScore": {
+      "title": "EventMatchScore",
+      "description": "Match score within an event",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "event_id": { "type": "string" },
+        "team_a_name": { "type": "string" },
+        "team_b_name": { "type": "string" },
+        "score_a": { "type": "number" },
+        "score_b": { "type": "number" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "observations": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "event_id", "team_a_name", "team_b_name", "score_a", "score_b"]
     }
   },
   "firestore": {
@@ -356,6 +376,10 @@
     "/training_activities/{activityId}": {
       "schema": "TrainingActivity",
       "description": "Library of training activities and exercises"
+    },
+    "/event_matches/{matchId}": {
+      "schema": "EventMatchScore",
+      "description": "Scores for matches within events"
     }
   }
 }

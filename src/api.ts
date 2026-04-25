@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1337,6 +1337,41 @@ export const api = {
       await updateDoc(doc(db, "event_companions", id), { presence, updated_at: serverTimestamp() });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_companions/${id}`);
+    }
+  },
+
+  // Event Match Scores
+  getEventMatchScores: async (eventId: string): Promise<EventMatchScore[]> => {
+    try {
+      const q = query(collection(db, "event_matches"), where("event_id", "==", eventId), orderBy("created_at", "asc"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as EventMatchScore));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, `event_matches?event_id=${eventId}`);
+      return [];
+    }
+  },
+  saveEventMatchScore: async (match: Partial<EventMatchScore>) => {
+    try {
+      const id = match.id || doc(collection(db, "event_matches")).id;
+      const data = { 
+        ...match, 
+        id,
+        updated_at: serverTimestamp(),
+        created_at: match.created_at || serverTimestamp()
+      };
+      await setDoc(doc(db, "event_matches", id), sanitizeData(data), { merge: true });
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "event_matches");
+      throw error;
+    }
+  },
+  deleteEventMatchScore: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "event_matches", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `event_matches/${id}`);
     }
   },
 };

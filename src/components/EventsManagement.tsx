@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Event, Athlete, Professor, getSubCategory, categories } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram } from 'lucide-react';
+import { Event, Athlete, Professor, getSubCategory, categories, EventMatchScore } from '../types';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -57,6 +57,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
   const [activeFlyerEvent, setActiveFlyerEvent] = useState<Event | null>(null);
+  const [modalTab, setModalTab] = useState<'lineup' | 'scores'>('lineup');
+  const [eventMatchScores, setEventMatchScores] = useState<EventMatchScore[]>([]);
+  const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<Partial<EventMatchScore> | null>(null);
+  const [isDeletingMatch, setIsDeletingMatch] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -329,6 +334,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     try {
       setSelectedEvent(event);
       setActiveLineupIndex(index);
+      setModalTab('lineup');
+      
+      // Fetch scores for this event
+      const scores = await api.getEventMatchScores(event.id);
+      setEventMatchScores(scores);
       
       // Check if event is finished based on date and time
       const now = new Date();
@@ -427,6 +437,38 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       } catch (err: any) {
         toast.error(`Erro ao salvar escalação: ${err.message}`);
       }
+    }
+  };
+
+  const handleSaveMatchScore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEvent) return;
+    try {
+      await api.saveEventMatchScore({
+        ...editingMatch,
+        event_id: selectedEvent.id
+      });
+      toast.success("Placar salvo com sucesso!");
+      setIsMatchFormOpen(false);
+      setEditingMatch(null);
+      const scores = await api.getEventMatchScores(selectedEvent.id);
+      setEventMatchScores(scores);
+    } catch (err: any) {
+      toast.error(`Erro ao salvar placar: ${err.message}`);
+    }
+  };
+
+  const handleDeleteMatchScore = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este placar?")) return;
+    try {
+      await api.deleteEventMatchScore(id);
+      toast.success("Placar excluído!");
+      if (selectedEvent) {
+        const scores = await api.getEventMatchScores(selectedEvent.id);
+        setEventMatchScores(scores);
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao excluir: ${err.message}`);
     }
   };
 
@@ -755,31 +797,59 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           <div className="bg-black border border-theme-primary/20 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800 no-print">
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-white uppercase">Escalação: {selectedEvent.name}</h2>
-                <div className="flex flex-wrap gap-1">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleOpenLineup(selectedEvent, i)}
-                      className={cn(
-                        "px-3 py-1 rounded-lg text-[10px] font-black transition-all border flex flex-col items-center min-w-[60px]",
-                        activeLineupIndex === i 
-                          ? "bg-theme-primary border-theme-primary text-black" 
-                          : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
-                      )}
-                    >
-                      <span>LISTA {i + 1}</span>
-                      {lineupIndicesWithData[i] && (
-                        <span className={cn(
-                          "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[50px]",
-                          activeLineupIndex === i ? "text-black/60" : "text-theme-primary"
-                        )}>
-                          {lineupIndicesWithData[i]}
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                <h2 className="text-xl font-bold text-white uppercase">Evento: {selectedEvent.name}</h2>
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => setModalTab('lineup')}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
+                      modalTab === 'lineup'
+                        ? "bg-theme-primary border-theme-primary text-black"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                    )}
+                  >
+                    <Users size={14} />
+                    Escalação
+                  </button>
+                  <button
+                    onClick={() => setModalTab('scores')}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
+                      modalTab === 'scores'
+                        ? "bg-theme-primary border-theme-primary text-black"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                    )}
+                  >
+                    <Trophy size={14} />
+                    Placar dos Jogos
+                  </button>
                 </div>
+                {modalTab === 'lineup' && (
+                  <div className="flex flex-wrap gap-1">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleOpenLineup(selectedEvent, i)}
+                        className={cn(
+                          "px-3 py-1 rounded-lg text-[10px] font-black transition-all border flex flex-col items-center min-w-[60px]",
+                          activeLineupIndex === i 
+                            ? "bg-theme-primary border-theme-primary text-black" 
+                            : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                        )}
+                      >
+                        <span>LISTA {i + 1}</span>
+                        {lineupIndicesWithData[i] && (
+                          <span className={cn(
+                            "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[50px]",
+                            activeLineupIndex === i ? "text-black/60" : "text-theme-primary"
+                          )}>
+                            {lineupIndicesWithData[i]}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-4">
                   {isAdmin && !isEventFinished && (
                     <div className="flex items-center gap-2">
@@ -830,8 +900,180 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 </div>
               )}
 
-              {/* Summary Section */}
-              {(lineupAthletes.length > 0 || lineupStaff.length > 0) && (
+              {modalTab === 'scores' ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Placar dos Jogos</h3>
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setEditingMatch({ team_a_name: 'Minha Escola', team_b_name: '', score_a: 0, score_b: 0, category: lineupCategory });
+                          setIsMatchFormOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black font-bold rounded-xl text-xs"
+                      >
+                        <Plus size={14} />
+                        Adicionar Jogo
+                      </button>
+                    )}
+                  </div>
+
+                  {eventMatchScores.length === 0 ? (
+                    <div className="text-center py-12 bg-zinc-900/30 border border-zinc-800 rounded-[2rem]">
+                      <Trophy size={48} className="mx-auto text-zinc-700 mb-4" />
+                      <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Nenhum placar registrado para este evento.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {eventMatchScores.map(match => (
+                        <div key={match.id} className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem] space-y-4 group relative">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest">{match.category || 'Geral'}</span>
+                            <div className="flex items-center gap-2">
+                              {match.date && <span className="text-[10px] text-zinc-500 font-bold">{match.date}</span>}
+                              {isAdmin && (
+                                <>
+                                  <button onClick={() => { setEditingMatch(match); setIsMatchFormOpen(true); }} className="text-zinc-500 hover:text-white"><Edit size={14} /></button>
+                                  <button onClick={() => handleDeleteMatchScore(match.id)} className="text-zinc-500 hover:text-red-500"><Trash2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-center gap-6">
+                            <div className="text-center flex-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time A</p>
+                              <p className="font-black text-white uppercase text-sm truncate">{match.team_a_name}</p>
+                            </div>
+                            <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-zinc-800">
+                              <span className="text-3xl font-black text-white">{match.score_a}</span>
+                              <span className="text-zinc-700 font-black">X</span>
+                              <span className="text-3xl font-black text-white">{match.score_b}</span>
+                            </div>
+                            <div className="text-center flex-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time B</p>
+                              <p className="font-black text-white uppercase text-sm truncate">{match.team_b_name}</p>
+                            </div>
+                          </div>
+
+                          {match.observations && (
+                            <p className="text-xs text-zinc-500 italic text-center border-t border-zinc-800 pt-3">{match.observations}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Match Form Modal */}
+                  {isMatchFormOpen && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl p-8 shadow-2xl">
+                        <div className="flex items-center justify-between mb-8">
+                          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Registrar Placar</h3>
+                          <button onClick={() => setIsMatchFormOpen(false)} className="text-zinc-500 hover:text-white"><X size={24} /></button>
+                        </div>
+                        
+                        <form onSubmit={handleSaveMatchScore} className="space-y-6">
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <div className="text-center">
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Time Local</label>
+                                <input 
+                                  required
+                                  type="text" 
+                                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-center font-black uppercase text-sm focus:ring-2 focus:ring-theme-primary"
+                                  value={editingMatch?.team_a_name || ''}
+                                  onChange={e => setEditingMatch({...editingMatch!, team_a_name: e.target.value})}
+                                  placeholder="TIME A"
+                                />
+                              </div>
+                              <div className="text-center">
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Gols</label>
+                                <input 
+                                  required
+                                  type="number" 
+                                  min="0"
+                                  className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-4xl focus:ring-2 focus:ring-theme-primary"
+                                  value={editingMatch?.score_a ?? 0}
+                                  onChange={e => setEditingMatch({...editingMatch!, score_a: parseInt(e.target.value) || 0})}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="text-center">
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Adversário</label>
+                                <input 
+                                  required
+                                  type="text" 
+                                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-center font-black uppercase text-sm focus:ring-2 focus:ring-theme-primary"
+                                  value={editingMatch?.team_b_name || ''}
+                                  onChange={e => setEditingMatch({...editingMatch!, team_b_name: e.target.value})}
+                                  placeholder="TIME B"
+                                />
+                              </div>
+                              <div className="text-center">
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Gols</label>
+                                <input 
+                                  required
+                                  type="number" 
+                                  min="0"
+                                  className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-4xl focus:ring-2 focus:ring-theme-primary"
+                                  value={editingMatch?.score_b ?? 0}
+                                  onChange={e => setEditingMatch({...editingMatch!, score_b: parseInt(e.target.value) || 0})}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Categoria</label>
+                              <select 
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-bold text-xs"
+                                value={editingMatch?.category || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, category: e.target.value})}
+                              >
+                                <option value="">Geral</option>
+                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Data</label>
+                              <input 
+                                type="date" 
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-bold text-xs"
+                                value={editingMatch?.date || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, date: e.target.value})}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Observações</label>
+                            <textarea 
+                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-medium text-xs h-24 resize-none"
+                              value={editingMatch?.observations || ''}
+                              onChange={e => setEditingMatch({...editingMatch!, observations: e.target.value})}
+                              placeholder="Detalhes da partida, artilheiros, etc..."
+                            />
+                          </div>
+
+                          <button 
+                            type="submit"
+                            className="w-full py-4 bg-theme-primary text-black font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-lg shadow-theme-primary/20"
+                          >
+                            Salvar Placar
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Summary Section moved inside if it's lineup tab */}
+                  {(lineupAthletes.length > 0 || lineupStaff.length > 0) && (
                 <div className="mb-8 p-6 bg-zinc-900/50 border border-zinc-800 rounded-[2rem] space-y-4">
                   <div className="flex items-center gap-2 text-theme-primary">
                     <Users size={18} />
@@ -1103,6 +1345,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     ))}
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
 

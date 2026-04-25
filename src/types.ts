@@ -298,6 +298,21 @@ export interface Companion {
   created_at?: any;
 }
 
+export type EventMatchScore = {
+  id: string;
+  event_id: string;
+  team_a_name: string;
+  team_b_name: string;
+  score_a: number;
+  score_b: number;
+  category?: string;
+  date?: string;
+  time?: string;
+  observations?: string;
+  created_at?: any;
+  updated_at?: any;
+};
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();
