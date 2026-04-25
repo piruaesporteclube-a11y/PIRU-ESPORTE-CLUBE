@@ -305,6 +305,8 @@ export type EventMatchScore = {
   team_b_name: string;
   score_a: number;
   score_b: number;
+  scorers_a?: string;
+  scorers_b?: string;
   category?: string;
   date?: string;
   time?: string;

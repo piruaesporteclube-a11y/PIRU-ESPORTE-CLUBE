@@ -302,6 +302,8 @@
         "team_b_name": { "type": "string" },
         "score_a": { "type": "number" },
         "score_b": { "type": "number" },
+        "scorers_a": { "type": "string" },
+        "scorers_b": { "type": "string" },
         "category": { "type": "string" },
         "date": { "type": "string" },
         "time": { "type": "string" },

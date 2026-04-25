@@ -944,15 +944,39 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             <div className="text-center flex-1">
                               <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time A</p>
                               <p className="font-black text-white uppercase text-sm truncate">{match.team_a_name}</p>
+                              {match.scorers_a && (
+                                <div className="mt-2 text-[10px] text-zinc-400 font-medium">
+                                  <div className="flex flex-wrap justify-center gap-1">
+                                    {match.scorers_a.split(',').map((s, i) => (
+                                      <span key={i} className="bg-zinc-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Activity size={8} /> {s.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-zinc-800">
-                              <span className="text-3xl font-black text-white">{match.score_a}</span>
-                              <span className="text-zinc-700 font-black">X</span>
-                              <span className="text-3xl font-black text-white">{match.score_b}</span>
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-zinc-800">
+                                <span className="text-3xl font-black text-white">{match.score_a}</span>
+                                <span className="text-zinc-700 font-black">X</span>
+                                <span className="text-3xl font-black text-white">{match.score_b}</span>
+                              </div>
                             </div>
                             <div className="text-center flex-1">
                               <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time B</p>
                               <p className="font-black text-white uppercase text-sm truncate">{match.team_b_name}</p>
+                              {match.scorers_b && (
+                                <div className="mt-2 text-[10px] text-zinc-400 font-medium">
+                                  <div className="flex flex-wrap justify-center gap-1">
+                                    {match.scorers_b.split(',').map((s, i) => (
+                                      <span key={i} className="bg-zinc-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Activity size={8} /> {s.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -967,7 +991,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   {/* Match Form Modal */}
                   {isMatchFormOpen && (
                     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-                      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl p-8 shadow-2xl">
+                      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex items-center justify-between mb-8">
                           <h3 className="text-xl font-black text-white uppercase tracking-tighter">Registrar Placar</h3>
                           <button onClick={() => setIsMatchFormOpen(false)} className="text-zinc-500 hover:text-white"><X size={24} /></button>
@@ -998,6 +1022,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                   onChange={e => setEditingMatch({...editingMatch!, score_a: parseInt(e.target.value) || 0})}
                                 />
                               </div>
+                              <div>
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Artilheiros</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
+                                  value={editingMatch?.scorers_a || ''}
+                                  onChange={e => setEditingMatch({...editingMatch!, scorers_a: e.target.value})}
+                                  placeholder="Ex: João, Maria (2)"
+                                />
+                              </div>
                             </div>
 
                             <div className="space-y-4">
@@ -1021,6 +1055,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                   className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-4xl focus:ring-2 focus:ring-theme-primary"
                                   value={editingMatch?.score_b ?? 0}
                                   onChange={e => setEditingMatch({...editingMatch!, score_b: parseInt(e.target.value) || 0})}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Artilheiros</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
+                                  value={editingMatch?.scorers_b || ''}
+                                  onChange={e => setEditingMatch({...editingMatch!, scorers_b: e.target.value})}
+                                  placeholder="Ex: Pedro, Lucas"
                                 />
                               </div>
                             </div>

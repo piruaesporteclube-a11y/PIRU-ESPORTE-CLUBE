@@ -180,6 +180,8 @@ service cloud.firestore {
              data.team_b_name is string && data.team_b_name.size() > 0 &&
              data.score_a is number &&
              data.score_b is number &&
+             (!('scorers_a' in data) || data.scorers_a is string) &&
+             (!('scorers_b' in data) || data.scorers_b is string) &&
              (!('category' in data) || data.category is string);
     }
 
