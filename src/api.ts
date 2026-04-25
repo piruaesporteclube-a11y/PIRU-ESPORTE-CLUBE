@@ -65,6 +65,11 @@ function sanitizeData(data: any): any {
   if (typeof data !== 'object') return data;
   if (Array.isArray(data)) return data.map(sanitizeData);
   
+  // If it's a special Firestore FieldValue or similar, don't sanitize its internal keys
+  if (data.constructor?.name === 'FieldValueImpl' || data._methodName === 'serverTimestamp') {
+    return data;
+  }
+  
   const sanitized: any = {};
   for (const key in data) {
     if (Object.prototype.hasOwnProperty.call(data, key)) {

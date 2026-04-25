@@ -93,6 +93,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     api.getNamedLineups().then(setNamedLineups);
   }, [athletesProp, eventsProp]);
 
+  const [eventScoresSummary, setEventScoresSummary] = useState<Record<string, EventMatchScore[]>>({});
+
   useEffect(() => {
     if (events.length > 0) {
       events.forEach(async (event) => {
@@ -100,8 +102,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           const { athletes } = await api.getLineup(event.id, 0);
           setLineupCounts(prev => ({ ...prev, [event.id]: athletes.length }));
           setLineupSummaries(prev => ({ ...prev, [event.id]: athletes.map(a => a.name) }));
+          
+          const scores = await api.getEventMatchScores(event.id);
+          setEventScoresSummary(prev => ({ ...prev, [event.id]: scores }));
         } catch (err) {
-          console.error(`Error fetching lineup count for event ${event.id}:`, err);
+          console.error(`Error fetching data for event ${event.id}:`, err);
         }
       });
     }
@@ -377,6 +382,39 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
+  const handleOpenScores = async (event: Event) => {
+    try {
+      setSelectedEvent(event);
+      setModalTab('scores');
+      
+      const scores = await api.getEventMatchScores(event.id);
+      setEventMatchScores(scores);
+      
+      const now = new Date();
+      const [year, month, day] = event.end_date.split('-').map(Number);
+      const [hours, minutes] = event.end_time.split(':').map(Number);
+      const eventEnd = new Date(year, month - 1, day, hours, minutes);
+      
+      setIsEventFinished(eventEnd < now && !isAdmin);
+
+      // Also set which indices have data for the lineup tab if the user switches
+      const indices: Record<number, string> = {};
+      await Promise.all(Array.from({ length: 10 }).map(async (_, i) => {
+        try {
+          const { athletes, category: cat } = await api.getLineup(event.id, i);
+          if (athletes.length > 0) {
+            indices[i] = cat || 'Com Dados';
+          }
+        } catch (e) {}
+      }));
+      setLineupIndicesWithData(indices);
+      
+      setIsLineupOpen(true);
+    } catch (err: any) {
+      toast.error(`Erro ao carregar placares: ${err.message}`);
+    }
+  };
+
   const handleConfirmAthlete = async (athleteId: string, type: 'athlete' | 'staff', status: string) => {
     if (isEventFinished) {
       toast.error("Este evento já finalizou. A escalação não pode ser alterada.");
@@ -453,6 +491,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setEditingMatch(null);
       const scores = await api.getEventMatchScores(selectedEvent.id);
       setEventMatchScores(scores);
+      setEventScoresSummary(prev => ({ ...prev, [selectedEvent.id]: scores }));
     } catch (err: any) {
       toast.error(`Erro ao salvar placar: ${err.message}`);
     }
@@ -566,6 +605,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   <Users size={16} />
                   {isAdmin ? 'Escalação' : 'Ver Escalação'}
                 </button>
+                <button 
+                  onClick={() => handleOpenScores(event)}
+                  className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary text-sm font-bold rounded-xl transition-colors"
+                >
+                  <Trophy size={16} />
+                  Resultados
+                </button>
                 {isAdmin && (
                   <div className="flex items-center gap-2">
                     <button 
@@ -597,6 +643,22 @@ export default function EventsManagement({ athletes: athletesProp, events: event
               </div>
             </div>
             <h3 className="text-xl font-bold text-white mb-2 uppercase">{event.name}</h3>
+            
+            {eventScoresSummary[event.id] && eventScoresSummary[event.id].length > 0 && (
+              <div className="mb-4 space-y-1">
+                {eventScoresSummary[event.id].slice(0, 2).map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px] bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                    <span className="text-zinc-500 font-bold truncate max-w-[60px]">{m.team_a_name}</span>
+                    <span className="text-theme-primary font-black">{m.score_a} x {m.score_b}</span>
+                    <span className="text-zinc-500 font-bold truncate max-w-[60px]">{m.team_b_name}</span>
+                  </div>
+                ))}
+                {eventScoresSummary[event.id].length > 2 && (
+                  <p className="text-[8px] text-zinc-600 font-black uppercase text-center">+ {eventScoresSummary[event.id].length - 2} outros jogos</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2 text-sm text-zinc-400">
               <div className="flex items-center gap-2">
                 <MapPin size={14} className="text-zinc-600" />
@@ -907,7 +969,14 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     {isAdmin && (
                       <button
                         onClick={() => {
-                          setEditingMatch({ team_a_name: 'Minha Escola', team_b_name: '', score_a: 0, score_b: 0, category: lineupCategory });
+                          setEditingMatch({ 
+                            team_a_name: settings?.schoolName || 'Minha Equipe', 
+                            team_b_name: '', 
+                            score_a: 0, 
+                            score_b: 0, 
+                            category: lineupCategory,
+                            date: selectedEvent.start_date
+                          });
                           setIsMatchFormOpen(true);
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black font-bold rounded-xl text-xs"
@@ -1023,7 +1092,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Artilheiros</label>
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Quem marcou os gols?</label>
                                 <input 
                                   type="text" 
                                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
@@ -1058,7 +1127,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Artilheiros</label>
+                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Quem marcou os gols?</label>
                                 <input 
                                   type="text" 
                                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
