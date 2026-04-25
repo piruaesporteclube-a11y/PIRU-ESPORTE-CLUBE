@@ -18,6 +18,7 @@ import ContactList from './components/ContactList';
 import CategoryList from './components/CategoryList';
 import LineupManagement from './components/LineupManagement';
 import StudentLineups from './components/StudentLineups';
+import StudentPresenceHistory from './components/StudentPresenceHistory';
 import ChampionshipManagement from './components/ChampionshipManagement';
 import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
@@ -31,9 +32,10 @@ import CompanionRegistration from './components/CompanionRegistration';
 import ActivityManagement from './components/ActivityManagement';
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion } from './types';
 import { api, clearCache } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
+import { format } from 'date-fns';
 import { navItems } from './navigation';
 import { cn } from './utils';
 
@@ -47,6 +49,50 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
   setActiveTab: (tab: string) => void,
   setIsAthleteFormOpen: (open: boolean) => void
 }) => {
+  const [upcomingActivities, setUpcomingActivities] = useState<any[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    if (user.role === 'student') {
+      loadUpcoming();
+    }
+  }, [user.id]);
+
+  const loadUpcoming = async () => {
+    setIsLoadingActivities(true);
+    try {
+      const [trainings, lineupEvents] = await Promise.all([
+        api.getTrainings(),
+        api.checkAthleteLineups(user.athlete_id || '')
+      ]);
+
+      const now = new Date();
+      const todayStr = format(now, 'yyyy-MM-dd');
+
+      const futureTrainings = trainings
+        .filter(t => t.date >= todayStr)
+        .map(t => ({ ...t, type: 'training' }));
+
+      const futureEvents = lineupEvents
+        .filter(e => e.start_date >= todayStr)
+        .map(e => ({ ...e, type: 'event' }));
+
+      const combined = [...futureTrainings, ...futureEvents]
+        .sort((a, b) => {
+          const dateA = (a as any).date || (a as any).start_date;
+          const dateB = (b as any).date || (b as any).start_date;
+          return dateA.localeCompare(dateB);
+        })
+        .slice(0, 3);
+
+      setUpcomingActivities(combined);
+    } catch (error) {
+      console.error("Error loading upcoming activities:", error);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
   const filteredNavItems = navItems
     .filter(item => user && item.roles.includes(user.role) && item.id !== 'dashboard');
 
@@ -86,6 +132,60 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             </div>
           </div>
         </section>
+
+        {upcomingActivities.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-1.5 bg-theme-primary rounded-full" />
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Próximos Compromissos</h3>
+              </div>
+              <button 
+                onClick={() => setActiveTab('lineups')}
+                className="text-xs font-black text-theme-primary uppercase tracking-widest hover:underline"
+              >
+                Ver Agenda Completa
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {upcomingActivities.map((act, idx) => (
+                <div key={idx} className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem] hover:border-theme-primary/30 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={cn(
+                        "p-3 rounded-2xl",
+                        act.type === 'training' ? "bg-orange-500/10 text-orange-500" : "bg-blue-500/10 text-blue-500"
+                      )}>
+                        {act.type === 'training' ? <ClipboardList size={24} /> : <Trophy size={24} />}
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-zinc-800 rounded-lg text-zinc-500">
+                        {act.type === 'training' ? 'Treino' : 'Evento/Jogo'}
+                      </div>
+                    </div>
+                    <h4 className="text-lg font-black text-white uppercase mb-2 line-clamp-1">{act.name || 'Sessão de Treino'}</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase">
+                        <Calendar size={14} className="text-zinc-600" />
+                        {act.date || act.start_date}
+                      </div>
+                      <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase">
+                        <Clock size={14} className="text-zinc-600" />
+                        {act.start_time}
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab(act.type === 'training' ? 'trainings' : 'lineups')}
+                    className="mt-6 w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-black rounded-xl uppercase text-[10px] tracking-widest transition-colors"
+                  >
+                    Ver Detalhes
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="space-y-12">
           {[
@@ -792,6 +892,8 @@ export default function App() {
               )}
             </div>
           );
+        case 'attendance-history':
+          return <StudentPresenceHistory athleteId={user.athlete_id || ''} />;
         case 'anamnesis':
           return (
             <div className="max-w-4xl mx-auto space-y-8">

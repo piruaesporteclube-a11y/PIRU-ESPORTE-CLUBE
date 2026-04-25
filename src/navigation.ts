@@ -59,6 +59,7 @@ export const navItems: NavItem[] = [
   
   // --- GRUPO: Espaço do Aluno ---
   { id: 'my-data', label: 'Meus Dados', icon: UserPlus, roles: ['student'], description: 'Seu Perfil', category: 'student' },
+  { id: 'attendance-history', label: 'Histórico', icon: History, roles: ['student'], description: 'Sua Presença', category: 'student' },
   { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student'], description: 'Sua ID Digital', category: 'student' },
   { id: 'my-anamnesis', label: 'Minha Saúde', icon: Activity, roles: ['student'], description: 'Ficha Médica', category: 'student' },
 ];
