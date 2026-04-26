@@ -159,24 +159,24 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         position: 'fixed',
         top: '0',
         left: '0',
-        width: '1080px',
-        height: '1920px',
+        width: '360px',
+        height: '640px',
         transform: 'none',
         transition: 'none',
         zIndex: '-9999',
         opacity: '1',
         pointerEvents: 'none',
         borderRadius: '0',
-        border: '24px solid #eab308', // Explicitly keep the theme primary border for the export
+        border: '8px solid #eab308',
         margin: '0',
         padding: '0'
       });
       document.body.appendChild(clone);
 
-      // Adjust clone internal sizes for the larger container
+      // Adjust clone internal sizes to the base dimensions
       const cardInner = clone.querySelector('#birthday-card') || clone;
-      (cardInner as HTMLElement).style.width = '1080px';
-      (cardInner as HTMLElement).style.height = '1920px';
+      (cardInner as HTMLElement).style.width = '360px';
+      (cardInner as HTMLElement).style.height = '640px';
       (cardInner as HTMLElement).style.borderRadius = '0';
 
       // 3. Clean Styles (No animations, no blurs)
@@ -215,13 +215,13 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
       // 6. Capture
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 1500)); // More time for large images
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const dataUrl = await htmlToImage.toPng(clone, {
-        width: 1080,
-        height: 1920,
-        pixelRatio: 1, // 1 is enough since we are already at 1080x1920
-        backgroundColor: '#eab308',
+        width: 360,
+        height: 640,
+        pixelRatio: 3, // 360 * 3 = 1080px, 640 * 3 = 1920px (Exact IG Story Size)
+        backgroundColor: '#09090b',
         cacheBust: false
       });
 
