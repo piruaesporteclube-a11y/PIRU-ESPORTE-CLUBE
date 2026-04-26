@@ -9,7 +9,7 @@ service cloud.firestore {
     // Fields: id, name, nickname, birth_date, doc, street, number, neighborhood, city, uf, jersey_number, photo, contact, guardian_name, guardian_doc, guardian_phone, status, modality, confirmation
     //
     // Collection: professors
-    // Fields: id, name, birth_date, doc, street, number, neighborhood, city, uf, photo
+    // Fields: id, name, birth_date, doc, street, number, neighborhood, city, uf, photo, role
     //
     // Collection: events
     // Fields: id, name, street, number, neighborhood, city, uf, start_date, end_date, start_time, end_time

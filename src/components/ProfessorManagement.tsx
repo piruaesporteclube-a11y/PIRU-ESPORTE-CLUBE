@@ -30,7 +30,8 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
     neighborhood: '',
     city: '',
     uf: '',
-    photo: ''
+    photo: '',
+    role: 'treinador'
   });
 
   useEffect(() => {
@@ -300,6 +301,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
               )}
             </div>
             <h3 className="text-lg font-bold text-white uppercase">{p.name}</h3>
+            {p.role && <p className="text-xs text-theme-primary font-black uppercase mb-1">{p.role}</p>}
             <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
             <div className="flex items-center gap-2 mb-4">
               <p className="text-xs text-theme-primary font-bold">{p.phone}</p>
@@ -365,6 +367,23 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Cargo / Função</label>
+                  <select 
+                    required
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+                    value={formData.role}
+                    onChange={e => setFormData({...formData, role: e.target.value})}
+                  >
+                    <option value="treinador">Treinador</option>
+                    <option value="auxiliar">Auxiliar</option>
+                    <option value="medico">Médico</option>
+                    <option value="presidente">Presidente</option>
+                    <option value="diretor">Diretor</option>
+                    <option value="massagista">Massagista</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome Completo</label>
                   <input 
@@ -530,6 +549,10 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">Nome Completo</p>
                     <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.name || '___________________________'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">Cargo / Função</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1 uppercase">{formData.role || '___________________________'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">CPF/RG</p>

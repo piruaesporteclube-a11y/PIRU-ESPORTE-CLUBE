@@ -321,7 +321,7 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
           idx + 1,
           s.name.toUpperCase(),
           s.doc,
-          'COMISSÃO'
+          (s.role || 'COMISSÃO').toUpperCase()
         ]),
         headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 2 },
@@ -704,7 +704,7 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
                           <tr key={p.id} className="hover:bg-zinc-50 group">
                             <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
                             <td className="py-3 px-4 text-xs font-black uppercase">{p.name}</td>
-                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">Comissão</td>
+                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">{p.role || 'Comissão'}</td>
                             <td className="py-3 px-4 text-xs font-medium">{p.doc}</td>
                             <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
                             <td className="py-3 px-4">

@@ -41,7 +41,8 @@
         "neighborhood": { "type": "string" },
         "city": { "type": "string" },
         "uf": { "type": "string" },
-        "photo": { "type": "string" }
+        "photo": { "type": "string" },
+        "role": { "type": "string" }
       },
       "required": ["id", "name", "doc"]
     },

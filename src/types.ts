@@ -42,6 +42,7 @@ export type Professor = {
   city: string;
   uf: string;
   photo: string;
+  role?: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field
   created_at?: any;

@@ -618,62 +618,68 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   </div>
                 </div>
 
-                {/* CENTER: Athlete Photo (3x4 Portrait) */}
-                <div className="relative group z-20 mt-4">
-                  {/* Decorative Border for "Attractive" look */}
-                  <div className="absolute -inset-4 bg-theme-primary opacity-30 blur-3xl group-hover:opacity-50 transition-opacity"></div>
-                  
-                  <div className="w-[180px] aspect-[3/4] bg-zinc-900 border-[6px] border-theme-primary shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden relative z-10">
-                    {selectedPerson.photo ? (
-                      <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
-                        <UserCircle size={80} strokeWidth={1} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
-                      </div>
-                    )}
+                  {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
+                  <div className="relative group z-20 mt-4">
+                    {/* Glowing background effect */}
+                    <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
                     
-                    {/* Corner accents */}
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-theme-primary z-20" />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-theme-primary z-20" />
-                  </div>
+                    <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
+                      {selectedPerson.photo ? (
+                        <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
+                          <UserCircle size={80} strokeWidth={1} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                        </div>
+                      )}
+                      
+                      {/* Internal theme border */}
+                      <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
+                      
+                      {/* Technical corner accents */}
+                      <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
+                      <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
+                    </div>
 
-                  {/* Name Banner - Exact Match to 'Feliz Aniversário' Layout */}
-                  <div 
-                    className="absolute z-40 transform"
-                    style={{ 
-                      bottom: `${-24 + nameYOffset}px`, 
-                      left: `${-5 + nameXOffset}%`, 
-                      right: `${-5 - nameXOffset}%`,
-                      rotate: '2deg',
-                      scale: `${bannerScale}`
-                    }}
-                  >
-                    <div className={cn(
-                      "py-4 px-10 border-[4px] shadow-[8px_8px_0_rgba(255,255,255,1)]",
-                      bannerStyle === 'yellow' && "bg-theme-primary border-black",
-                      bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,1)]",
-                      bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,1)]",
-                      bannerStyle === 'red' && "bg-red-600 border-black",
-                      bannerStyle === 'outline' && "bg-transparent border-theme-primary shadow-none"
-                    )}
-                    style={{ transform: `skewX(${bannerSkew}deg)` }}
+                    {/* Name Banner - Creative, high-visibility design */}
+                    <div 
+                      className="absolute z-40 transform"
+                      style={{ 
+                        bottom: `${-30 + nameYOffset}px`, 
+                        left: `${-15 + nameXOffset}%`, 
+                        right: `${-15 - nameXOffset}%`,
+                        rotate: '1.5deg',
+                        scale: `${bannerScale}`
+                      }}
                     >
-                      <h3 
-                        className={cn(
-                          "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-sm whitespace-nowrap",
-                          (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
-                        )}
-                        style={{ 
-                          fontSize: `${nameFontSize}px`,
-                          transform: `skewX(${-bannerSkew}deg)`
-                        }}
+                      <div className={cn(
+                        "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
+                        bannerStyle === 'yellow' && "bg-theme-primary border-black",
+                        bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
+                        bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
+                        bannerStyle === 'red' && "bg-red-600 border-black",
+                        bannerStyle === 'outline' && "bg-black/80 backdrop-blur-md border-theme-primary shadow-none"
+                      )}
+                      style={{ transform: `skewX(${bannerSkew}deg)` }}
                       >
-                        {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
-                      </h3>
+                        <h3 
+                          className={cn(
+                            "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
+                            (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
+                          )}
+                          style={{ 
+                            fontSize: `${nameFontSize}px`,
+                            transform: `skewX(${-bannerSkew}deg)`,
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                        </h3>
+                      </div>
                     </div>
                   </div>
-                </div>
 
                 {/* BOTTOM: Message */}
                 <div className="w-full flex flex-col items-center gap-4 mt-16 pb-4">
@@ -760,83 +766,67 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajuste do Banner (Fundo)</p>
-                  <div className="space-y-3">
+                <div className="space-y-4 md:col-span-2 lg:col-span-1">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajustes de Posição & Escala</p>
+                  <div className="space-y-3 bg-zinc-950/50 p-4 rounded-2xl border border-zinc-800">
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">ALTURA</span>
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
                       <input 
                         type="range" 
-                        min="-300" 
-                        max="400" 
-                        value={bannerYOffset} 
-                        onChange={(e) => setBannerYOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
+                        min="-400" 
+                        max="500" 
+                        value={nameYOffset} 
+                        onChange={(e) => setNameYOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
                       />
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">LATERA</span>
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">LATERA</span>
                       <input 
                         type="range" 
-                        min="-150" 
-                        max="150" 
-                        value={bannerXOffset} 
-                        onChange={(e) => setBannerXOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
+                        min="-200" 
+                        max="200" 
+                        value={nameXOffset} 
+                        onChange={(e) => setNameXOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
                       />
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">ESCALA</span>
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">ESCALA</span>
                       <input 
                         type="range" 
                         min="5" 
-                        max="20" 
+                        max="30" 
                         step="1"
                         value={bannerScale * 10} 
                         onChange={(e) => setBannerScale(parseInt(e.target.value) / 10)}
-                        className="flex-1 accent-theme-primary"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajuste do Nome</p>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">ALTURA</span>
-                      <input 
-                        type="range" 
-                        min="-300" 
-                        max="400" 
-                        value={nameYOffset} 
-                        onChange={(e) => setNameYOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
+                        className="flex-1 accent-theme-primary h-1.5"
                       />
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">LATERA</span>
-                      <input 
-                        type="range" 
-                        min="-150" 
-                        max="150" 
-                        value={nameXOffset} 
-                        onChange={(e) => setNameXOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">FONTE</span>
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">FONTE</span>
                       <input 
                         type="range" 
                         min="12" 
                         max="100" 
                         value={nameFontSize} 
                         onChange={(e) => setNameFontSize(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
+                        className="flex-1 accent-theme-primary h-1.5"
                       />
-                      <span className="text-[10px] font-bold text-white w-8">{nameFontSize}px</span>
+                      <span className="text-[10px] font-bold text-white w-8">{nameFontSize}</span>
                     </div>
+                    <button 
+                      onClick={() => {
+                        setNameXOffset(0);
+                        setNameYOffset(0);
+                        setBannerScale(1);
+                        setNameFontSize(32);
+                        setBannerSkew(-15);
+                      }}
+                      className="w-full py-2 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors mt-2"
+                    >
+                      Resetar Posição
+                    </button>
                   </div>
                 </div>
               </div>
