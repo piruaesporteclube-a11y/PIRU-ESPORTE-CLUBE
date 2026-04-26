@@ -33,6 +33,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
   const [footerMessage, setFooterMessage] = useState("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
   const [footerYOffset, setFooterYOffset] = useState(0);
   const [footerXOffset, setFooterXOffset] = useState(0);
+  const [photoScale, setPhotoScale] = useState(1);
+  const [congratsScale, setCongratsScale] = useState(1);
 
   useEffect(() => {
     if (athletesProp) {
@@ -591,7 +593,10 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-8 px-6">
                 
                 {/* TOP: Parabéns & Crest */}
-                <div className="w-full flex flex-col items-center gap-2 relative z-30">
+                <div 
+                  className="w-full flex flex-col items-center gap-2 relative z-30 transform"
+                  style={{ scale: `${congratsScale}` }}
+                >
                   <div className="bg-black/90 border-4 border-theme-primary px-10 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
                     <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
                       PARABÉNS
@@ -622,7 +627,10 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                 </div>
 
                   {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
-                  <div className="relative group z-20 mt-4">
+                  <div 
+                    className="relative group z-20 mt-4 transition-transform"
+                    style={{ scale: `${photoScale}` }}
+                  >
                     {/* Glowing background effect */}
                     <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
                     
@@ -800,6 +808,32 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                       />
                     </div>
                     <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO</span>
+                      <input 
+                        type="range" 
+                        min="0.5" 
+                        max="1.5" 
+                        step="0.05"
+                        value={photoScale} 
+                        onChange={(e) => setPhotoScale(parseFloat(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                      <span className="text-[10px] font-bold text-white w-8">{Math.round(photoScale * 100)}%</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">PARABÉNS</span>
+                      <input 
+                        type="range" 
+                        min="0.5" 
+                        max="1.5" 
+                        step="0.05"
+                        value={congratsScale} 
+                        onChange={(e) => setCongratsScale(parseFloat(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                      <span className="text-[10px] font-bold text-white w-8">{Math.round(congratsScale * 100)}%</span>
+                    </div>
+                    <div className="flex items-center gap-3">
                       <span className="text-[10px] text-zinc-400 w-12 text-right">ESCALA</span>
                       <input 
                         type="range" 
@@ -872,6 +906,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                         setBannerSkew(-15);
                         setFooterYOffset(0);
                         setFooterXOffset(0);
+                        setPhotoScale(1);
+                        setCongratsScale(1);
                         setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                       }}
                       className="w-full py-2 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors mt-2"
