@@ -700,13 +700,14 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
                 {/* BOTTOM: Message */}
                 <div 
-                  className="w-full flex flex-col items-center gap-4 mt-auto pb-8 relative z-30 transform"
+                  className="w-full flex flex-col items-center gap-4 mt-auto pb-10 relative z-30 transform"
                   style={{
                     transform: `translate(${footerXOffset}px, ${footerYOffset}px)`
                   }}
                 >
-                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs">
-                    <p className="text-white font-black leading-tight text-[11px] md:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
+                  <div className="max-w-[300px] text-center bg-black/75 backdrop-blur-md p-4 border-l-4 border-theme-primary shadow-2xl relative">
+                    <div className="absolute top-0 right-0 w-2 h-2 bg-theme-primary"></div>
+                    <p className="text-white font-black leading-tight text-[11px] md:text-[13px] drop-shadow-md uppercase tracking-[0.05em] italic">
                       {footerMessage}
                     </p>
                   </div>
