@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Professor } from '../types';
-import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle, FileDown } from 'lucide-react';
+import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle, FileDown, Link as LinkIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
@@ -271,6 +271,20 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
           <p className="text-zinc-400 text-sm">Gerencie a equipe técnica da escolinha</p>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              const url = `${window.location.origin}/?professor_registration=true`;
+              navigator.clipboard.writeText(url);
+              toast.success("Link de cadastro copiado!", {
+                description: "Envie para o novo membro da comissão."
+              });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors border border-theme-primary/20"
+            title="Copiar link para enviar"
+          >
+            <LinkIcon size={18} className="text-theme-primary" />
+            Link de Cadastro
+          </button>
           <button 
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"

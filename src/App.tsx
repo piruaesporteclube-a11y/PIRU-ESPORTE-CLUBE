@@ -23,6 +23,7 @@ import ChampionshipManagement from './components/ChampionshipManagement';
 import PublicTeamRegistration from './components/PublicTeamRegistration';
 import Login from './components/Login';
 import PublicRegistration from './components/PublicRegistration';
+import PublicProfessorRegistration from './components/PublicProfessorRegistration';
 import PublicAnamnesis from './components/PublicAnamnesis';
 import TeamPortal from './components/TeamPortal';
 import PublicEventCheckin from './components/PublicEventCheckin';
@@ -98,7 +99,8 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
 
   const copyLinks = [
     { label: 'Link Matrícula', icon: LinkIcon, color: 'text-theme-primary', url: `${window.location.origin}/?register=true` },
-    { label: 'Link Portal', icon: UserCheck, color: 'text-blue-500', url: `${window.location.origin}/` },
+    { label: 'Auto-Cadastro Comissão', icon: UserCheck, color: 'text-indigo-500', url: `${window.location.origin}/?professor_registration=true` },
+    { label: 'Link Portal', icon: LinkIcon, color: 'text-blue-500', url: `${window.location.origin}/` },
     { label: 'Link Anamnese', icon: ClipboardCheck, color: 'text-green-500', url: `${window.location.origin}/?anamnesis=true` },
     { label: 'Link Equipes', icon: Trophy, color: 'text-purple-500', url: `${window.location.origin}/?team_registration=true` },
   ];
@@ -546,6 +548,10 @@ export default function App() {
   const [isAnamnesisOnly, setIsAnamnesisOnly] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('anamnesis') === 'true';
+  });
+  const [isProfessorRegistration, setIsProfessorRegistration] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('professor_registration') === 'true';
   });
   const [isTeamRegistration, setIsTeamRegistration] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1057,6 +1063,7 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const isReg = params.get('register') === 'true';
       const isAna = params.get('anamnesis') === 'true';
+      const isProfReg = params.get('professor_registration') === 'true';
       const queryTeamReg = params.get('register-team');
       const queryPortal = params.get('team-portal');
       
@@ -1073,6 +1080,7 @@ export default function App() {
       console.log('URL Change detected. isRegistering:', isReg, 'isAnamnesisOnly:', isAna, 'isTeamRegistration:', isTeamReg, 'isTeamPortal:', isPortal, 'teamId:', teamId);
       setIsRegistering(isReg);
       setIsAnamnesisOnly(isAna);
+      setIsProfessorRegistration(isProfReg);
       setIsTeamRegistration(isTeamReg);
       setIsTeamPortal(isPortal);
       setTeamChampionshipId(teamId);
@@ -1118,6 +1126,14 @@ export default function App() {
             toast.success("Matrícula realizada com sucesso! Agora você pode entrar no portal usando seu CPF.");
           }} 
         />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isProfessorRegistration) {
+    return (
+      <ErrorBoundary>
+        <PublicProfessorRegistration />
       </ErrorBoundary>
     );
   }
