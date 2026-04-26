@@ -30,6 +30,9 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
   const [bannerScale, setBannerScale] = useState(1);
   const [bannerStyle, setBannerStyle] = useState<'yellow' | 'white' | 'black' | 'red' | 'outline'>('yellow');
   const [bannerSkew, setBannerSkew] = useState(-15);
+  const [footerMessage, setFooterMessage] = useState("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
+  const [footerYOffset, setFooterYOffset] = useState(0);
+  const [footerXOffset, setFooterXOffset] = useState(0);
 
   useEffect(() => {
     if (athletesProp) {
@@ -485,7 +488,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             {/* Instagram Style Birthday Card - Modern Sports Poster */}
             <div 
               id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[16px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[8px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
             >
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
@@ -682,10 +685,15 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   </div>
 
                 {/* BOTTOM: Message */}
-                <div className="w-full flex flex-col items-center gap-4 mt-16 pb-4">
-                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs relative z-30">
+                <div 
+                  className="w-full flex flex-col items-center gap-4 mt-auto pb-8 relative z-30 transform"
+                  style={{
+                    transform: `translate(${footerXOffset}px, ${footerYOffset}px)`
+                  }}
+                >
+                  <div className="max-w-[280px] text-center bg-black/60 backdrop-blur-sm p-3 border border-theme-primary/30 rounded-xl lg:max-w-xs">
                     <p className="text-white font-black leading-tight text-[11px] md:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-tighter italic">
-                      "A escolinha <span className="text-theme-primary">Piruá Esporte Clube</span> te deseja um feliz aniversário! que Deus ilumine sempre sua vida, muita paz e saúde."
+                      {footerMessage}
                     </p>
                   </div>
                   
@@ -815,6 +823,46 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                       />
                       <span className="text-[10px] font-bold text-white w-8">{nameFontSize}</span>
                     </div>
+
+                    <div className="pt-2 border-t border-zinc-800">
+                      <p className="text-[9px] font-black text-theme-primary uppercase tracking-widest mb-2">Posição do Rodapé</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
+                          <input 
+                            type="range" 
+                            min="-100" 
+                            max="100" 
+                            value={footerYOffset} 
+                            onChange={(e) => setFooterYOffset(parseInt(e.target.value))}
+                            className="flex-1 accent-theme-primary h-1.5"
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-zinc-400 w-12 text-right">LATERA</span>
+                          <input 
+                            type="range" 
+                            min="-100" 
+                            max="100" 
+                            value={footerXOffset} 
+                            onChange={(e) => setFooterXOffset(parseInt(e.target.value))}
+                            className="flex-1 accent-theme-primary h-1.5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-zinc-400 w-full text-left inline-block mt-2">MENSAGEM RODAPÉ</span>
+                      <textarea 
+                        rows={2}
+                        value={footerMessage} 
+                        onChange={(e) => setFooterMessage(e.target.value)}
+                        placeholder="Mensagem do rodapé..."
+                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-[10px] focus:ring-1 focus:ring-theme-primary resize-none"
+                      />
+                    </div>
+
                     <button 
                       onClick={() => {
                         setNameXOffset(0);
@@ -822,10 +870,13 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                         setBannerScale(1);
                         setNameFontSize(32);
                         setBannerSkew(-15);
+                        setFooterYOffset(0);
+                        setFooterXOffset(0);
+                        setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                       }}
                       className="w-full py-2 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors mt-2"
                     >
-                      Resetar Posição
+                      Resetar Tudo
                     </button>
                   </div>
                 </div>
