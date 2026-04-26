@@ -187,8 +187,9 @@ export default function PublicProfessorRegistration() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">URL da Foto (Perfil)</label>
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">URL da Foto (Perfil) *</label>
                 <input 
+                  required
                   type="url"
                   placeholder="Link da sua foto"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
