@@ -17,6 +17,7 @@ interface MembershipCardProps {
     doc: string;
     photo?: string;
     phone?: string;
+    email?: string;
     role?: string;
     street?: string;
     number?: string;
@@ -582,12 +583,24 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
                       <div className="number-circle !w-2 !h-2 !text-[4px]">10</div>
-                      <span className="label-text !text-[5px]">Contato de Emergência</span>
+                      <span className="label-text !text-[5px]">{isProfessor ? 'WhatsApp / Contato' : 'Contato de Emergência'}</span>
                     </div>
                     <div className="input-box !h-3.5 !text-[6px]">
                       {isProfessor ? (athlete as any).phone : (athlete as Athlete).guardian_phone}
                     </div>
                   </div>
+
+                  {isProfessor && (athlete as any).email && (
+                    <div>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <div className="number-circle !w-2 !h-2 !text-[4px]">11</div>
+                        <span className="label-text !text-[5px]">E-mail Oficial</span>
+                      </div>
+                      <div className="input-box !h-3.5 !text-[5px] truncate px-1">
+                        {(athlete as any).email}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-1">
                     <div className="flex-1">

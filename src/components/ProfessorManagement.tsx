@@ -32,6 +32,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
     neighborhood: '',
     city: '',
     uf: '',
+    email: '',
     photo: '',
     role: 'treinador',
     modality: 'Comissão Técnica'
@@ -226,7 +227,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
       toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
       setEditingProfessor(null);
-      setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
+      setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
       loadProfessors();
     } catch (err: any) {
       toast.error(`Erro ao salvar professor: ${err.message}`);
@@ -323,6 +324,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
             </div>
             <h3 className="text-lg font-bold text-white uppercase">{p.name}</h3>
             {p.role && <p className="text-xs text-theme-primary font-black uppercase mb-1">{p.role}</p>}
+            <p className="text-xs text-zinc-300 font-bold mb-1">{p.email}</p>
             <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
             <div className="flex items-center gap-2 mb-4">
               <p className="text-xs text-theme-primary font-bold">{p.phone}</p>
@@ -372,7 +374,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-auto">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white">{editingProfessor ? 'Editar Membro' : 'Novo Membro'}</h2>
-              <button onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+              <button onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
               </button>
@@ -447,6 +449,16 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">E-mail</label>
+                  <input 
+                    required
+                    type="email" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
                 <div>
@@ -536,7 +548,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
               <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <button 
                   type="button"
-                  onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }}
+                  onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }}
                   className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
                 >
                   Cancelar
@@ -604,6 +616,10 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">Nome Completo</p>
                     <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.name || '___________________________'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500">E-mail</p>
+                    <p className="text-sm font-bold border-b border-zinc-200 pb-1">{formData.email || '___________________________'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">Cargo / Função</p>

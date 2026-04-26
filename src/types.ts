@@ -36,6 +36,7 @@ export type Professor = {
   birth_date: string;
   doc: string;
   phone: string;
+  email?: string;
   street: string;
   number: string;
   neighborhood: string;

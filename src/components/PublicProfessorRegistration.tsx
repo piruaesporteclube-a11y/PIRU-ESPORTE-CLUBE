@@ -21,6 +21,7 @@ export default function PublicProfessorRegistration() {
     neighborhood: '',
     city: '',
     uf: '',
+    email: '',
     photo: ''
   });
 
@@ -30,8 +31,8 @@ export default function PublicProfessorRegistration() {
     setError(null);
 
     try {
-      if (!formData.name || !formData.doc || !formData.phone) {
-        throw new Error("Por favor, preencha nome, CPF e telefone.");
+      if (!formData.name || !formData.doc || !formData.phone || !formData.email || !formData.photo) {
+        throw new Error("Por favor, preencha todos os campos obrigatórios (Foto, Nome, Email, CPF e Telefone).");
       }
 
       const professorData: Professor = {
@@ -192,7 +193,19 @@ export default function PublicProfessorRegistration() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Telefone / WhatsApp</label>
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">E-mail *</label>
+                <input 
+                  required
+                  type="email"
+                  placeholder="EX: JOAO@EMAIL.COM"
+                  className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Telefone / WhatsApp *</label>
                 <input 
                   required
                   type="tel"
@@ -203,16 +216,45 @@ export default function PublicProfessorRegistration() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">URL da Foto (Perfil) *</label>
-                <input 
-                  required
-                  type="url"
-                  placeholder="Link da sua foto"
-                  className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
-                  value={formData.photo}
-                  onChange={e => setFormData({...formData, photo: e.target.value})}
-                />
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Sua Foto de Perfil *</label>
+                <div className="flex flex-col md:flex-row gap-4 items-center">
+                  <div className="w-32 h-32 bg-zinc-800 rounded-2xl border-2 border-dashed border-zinc-700 overflow-hidden flex items-center justify-center group relative">
+                    {formData.photo ? (
+                      <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <UserPlus className="w-8 h-8 text-zinc-600" />
+                    )}
+                    <label className="absolute inset-0 cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity">
+                      <QrCode className="text-white w-6 h-6" />
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setFormData(prev => ({ ...prev, photo: reader.result as string }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <div className="flex-1 space-y-2 w-full">
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase">Clique no quadrado para enviar foto ou cole o link abaixo:</p>
+                    <input 
+                      type="url"
+                      placeholder="Link da sua foto (Opcional se enviou acima)"
+                      className="w-full h-12 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary transition-all font-bold text-sm"
+                      value={formData.photo?.startsWith('data:') ? '' : formData.photo}
+                      onChange={e => setFormData({...formData, photo: e.target.value})}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
