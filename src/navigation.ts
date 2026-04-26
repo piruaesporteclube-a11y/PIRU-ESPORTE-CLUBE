@@ -36,7 +36,7 @@ export const navItems: NavItem[] = [
   
   // --- GRUPO: Arena & Competição (Ação nos Campos) ---
   { id: 'attendance', label: 'Presença', icon: ClipboardCheck, roles: ['admin'], description: 'Presença no Jogo', color: 'text-green-500', category: 'arena' },
-  { id: 'lineups', label: 'Escalações', icon: Users, roles: ['admin', 'student'], description: 'Time em Campo', color: 'text-theme-primary', category: 'arena' },
+  { id: 'lineups', label: 'Agenda & Jogos', icon: Trophy, roles: ['admin', 'student'], description: 'Escalações e Resultados', color: 'text-theme-primary', category: 'arena' },
   { id: 'championships', label: 'Campeonatos', icon: Trophy, roles: ['admin'], description: 'Glória e Troféus', color: 'text-theme-primary', category: 'arena' },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin'], description: 'Esportes Ativos', color: 'text-theme-primary', category: 'arena' },
 

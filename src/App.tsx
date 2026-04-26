@@ -61,9 +61,9 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
   const loadUpcoming = async () => {
     setIsLoadingActivities(true);
     try {
-      const [trainings, lineupEvents] = await Promise.all([
+      const [trainings, allEvents] = await Promise.all([
         api.getTrainings(),
-        api.checkAthleteLineups(user.athlete_id || '')
+        api.getEvents()
       ]);
 
       const now = new Date();
@@ -73,7 +73,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
         .filter(t => t.date >= todayStr)
         .map(t => ({ ...t, type: 'training' }));
 
-      const futureEvents = lineupEvents
+      const futureEvents = allEvents
         .filter(e => e.start_date >= todayStr)
         .map(e => ({ ...e, type: 'event' }));
 
