@@ -48,14 +48,23 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const t = useMemo(() => {
+    // 300 frames loop (approx 5s at 60fps)
+    // Using a ping-pong effect for smoother visualization (0 -> 1 -> 0)
     const progress = (frame % 300) / 300;
-    return (1 - Math.cos(progress * Math.PI)) / 2;
+    const pingPong = progress <= 0.5 ? progress * 2 : 2 - (progress * 2);
+    // Smooth easing
+    return (1 - Math.cos(pingPong * Math.PI)) / 2;
   }, [frame]);
 
   useEffect(() => {
-    const handle = requestAnimationFrame(() => setFrame(f => f + 1));
-    return () => cancelAnimationFrame(handle);
-  }, [frame]);
+    let animId: number;
+    const animate = () => {
+      setFrame(f => f + 1);
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
   const applyFormation = (formation: string) => {
     const formations: Record<string, {x: number, y: number, label: string}[]> = {

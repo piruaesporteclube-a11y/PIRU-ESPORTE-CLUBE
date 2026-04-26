@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ 
-  apiKey: (import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '')) as string 
+  apiKey: process.env.GEMINI_API_KEY as string 
 });
 
 export interface GeneratedDrill {
@@ -19,10 +19,9 @@ export const geminiService = {
   async generateDrill(modality: string, goal?: string): Promise<GeneratedDrill> {
     const prompt = `Crie um exercício de treinamento profissional altamente criativo para a modalidade: ${modality}. ${goal ? `Objetivo específico: ${goal}` : ''}
     O exercício deve incluir posicionamento estratégico de materiais (cones, barreiras, estacas) e jogadores.
-    O esquema tático (visualData) deve ser rico em elementos.
-    Tipos de materiais: cone, barrier, arrow.
+    IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
+    Tipos de materiais: cone, barrier, arrow, player, ball.
     Para players, use equipes (A, B, C, D) e labels (números).
-    Para animações de movimento, preencha toX e toY (em uma escala de 0 a 100).
     A descrição deve ser profissional e em Português-BR.`;
 
     const response = await ai.models.generateContent({
@@ -77,7 +76,7 @@ export const geminiService = {
   async generateSuggestions(modality: string): Promise<GeneratedDrill[]> {
     const prompt = `Gere 3 sugestões de exercícios profissionais de nível elite para a modalidade: ${modality}. 
     Inclua um exercício de Aquecimento, um de Fundamento e um Tático.
-    Para cada um, forneça descrição completa e o JSON do esquema tático rico em detalhes e movimentos (toX/toY).
+    IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tudo em Português-BR.`;
 
     const response = await ai.models.generateContent({
