@@ -22,6 +22,14 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [overlayImages, setOverlayImages] = useState<string[]>([]);
+  const [nameYOffset, setNameYOffset] = useState(0);
+  const [nameFontSize, setNameFontSize] = useState(32);
+  const [nameXOffset, setNameXOffset] = useState(0);
+  const [bannerYOffset, setBannerYOffset] = useState(0);
+  const [bannerXOffset, setBannerXOffset] = useState(0);
+  const [bannerScale, setBannerScale] = useState(1);
+  const [bannerStyle, setBannerStyle] = useState<'yellow' | 'white' | 'black' | 'red' | 'outline'>('yellow');
+  const [bannerSkew, setBannerSkew] = useState(-15);
 
   useEffect(() => {
     if (athletesProp) {
@@ -615,7 +623,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   {/* Decorative Border for "Attractive" look */}
                   <div className="absolute -inset-4 bg-theme-primary opacity-30 blur-3xl group-hover:opacity-50 transition-opacity"></div>
                   
-                  <div className="w-[160px] h-[210px] md:w-[220px] md:h-[290px] bg-zinc-900 border-[6px] border-theme-primary shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden relative z-10">
+                  <div className="w-[180px] aspect-[3/4] bg-zinc-900 border-[6px] border-theme-primary shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden relative z-10">
                     {selectedPerson.photo ? (
                       <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
@@ -630,13 +638,49 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-theme-primary z-20" />
                   </div>
 
-                  {/* Name Banner - Brutalist Match */}
-                  <div className="absolute -bottom-16 inset-x-[-5%] z-30 transform rotate-[1.5deg]">
-                    <div className="bg-theme-primary text-black py-3 px-8 shadow-[6px_6px_0_rgba(255,255,255,1)] border-4 border-black transform skew-x-[-15deg]">
-                      <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none italic drop-shadow-sm whitespace-nowrap">
-                        {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
-                      </h3>
-                    </div>
+                  {/* Banner & Name - Separated for individual control */}
+                  <div 
+                    className="absolute z-20"
+                    style={{ 
+                      bottom: `${-64 + bannerYOffset}px`, 
+                      left: `calc(-3% + ${bannerXOffset}px)`, 
+                      right: `calc(-3% - ${bannerXOffset}px)`,
+                      transform: `rotate(1.5deg) scale(${bannerScale})`
+                    }}
+                  >
+                    <div className={cn(
+                      "h-16 w-full border-[4px] transform transition-all shadow-[8px_8px_0_rgba(255,255,255,1)]",
+                      bannerStyle === 'yellow' && "bg-theme-primary border-black",
+                      bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,1)]",
+                      bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,1)]",
+                      bannerStyle === 'red' && "bg-red-600 border-black shadow-[8px_8px_0_rgba(255,255,255,1)]",
+                      bannerStyle === 'outline' && "bg-transparent border-theme-primary shadow-none"
+                    )}
+                    style={{ transform: `skewX(${bannerSkew}deg)` }}
+                    />
+                  </div>
+
+                  <div 
+                    className="absolute z-30"
+                    style={{ 
+                      bottom: `${-54 + nameYOffset}px`, 
+                      left: `calc(-3% + ${nameXOffset}px)`, 
+                      right: `calc(-3% - ${nameXOffset}px)`,
+                      transform: 'rotate(1.5deg)'
+                    }}
+                  >
+                    <h3 
+                      className={cn(
+                        "font-black uppercase tracking-tighter text-center italic drop-shadow-md whitespace-nowrap",
+                        (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
+                      )}
+                      style={{ 
+                        fontSize: `${nameFontSize}px`,
+                        transform: `skewX(${-bannerSkew}deg)`
+                      }}
+                    >
+                      {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                    </h3>
                   </div>
                 </div>
 
@@ -663,26 +707,150 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-4 bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 border-dashed">
+            <div className="mt-6 flex flex-col gap-6 bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 border-dashed">
               <div className="w-full text-center mb-2">
                 <p className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em]">Personalizar Encarte</p>
               </div>
 
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[10px] tracking-widest cursor-pointer">
-                <Upload size={16} />
-                Fundo
-                <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
-              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Imagens</p>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
+                      <Upload size={14} />
+                      Fundo
+                      <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+                    </label>
 
-              {overlayImages.length < 4 && (
-                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[10px] tracking-widest cursor-pointer">
-                  <Plus size={16} />
-                  Adicionar Foto ({overlayImages.length}/4)
-                  <input type="file" accept="image/*" className="hidden" onChange={handleOverlayUpload} />
-                </label>
-              )}
+                    {overlayImages.length < 4 && (
+                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
+                        <Plus size={14} />
+                        Adicionar Foto ({overlayImages.length}/4)
+                        <input type="file" accept="image/*" className="hidden" onChange={handleOverlayUpload} />
+                      </label>
+                    )}
+                  </div>
+                </div>
 
-              <div className="w-full flex flex-wrap justify-center gap-2 mt-2">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Estilo do Banner</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { id: 'yellow', color: 'bg-theme-primary' },
+                      { id: 'white', color: 'bg-white' },
+                      { id: 'black', color: 'bg-black' },
+                      { id: 'red', color: 'bg-red-600' },
+                      { id: 'outline', color: 'bg-transparent border border-zinc-700' }
+                    ].map(style => (
+                      <button
+                        key={style.id}
+                        onClick={() => setBannerStyle(style.id as any)}
+                        className={cn(
+                          "h-8 rounded-lg border-2 transition-all",
+                          style.color,
+                          bannerStyle === style.id ? "border-white scale-110" : "border-transparent opacity-60 hover:opacity-100"
+                        )}
+                        title={style.id}
+                      />
+                    ))}
+                  </div>
+                  <div className="space-y-3 mt-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">INCLINA</span>
+                      <input 
+                        type="range" 
+                        min="-45" 
+                        max="45" 
+                        value={bannerSkew} 
+                        onChange={(e) => setBannerSkew(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajuste do Banner (Fundo)</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">ALTURA</span>
+                      <input 
+                        type="range" 
+                        min="-300" 
+                        max="400" 
+                        value={bannerYOffset} 
+                        onChange={(e) => setBannerYOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">LATERA</span>
+                      <input 
+                        type="range" 
+                        min="-150" 
+                        max="150" 
+                        value={bannerXOffset} 
+                        onChange={(e) => setBannerXOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">ESCALA</span>
+                      <input 
+                        type="range" 
+                        min="5" 
+                        max="20" 
+                        step="1"
+                        value={bannerScale * 10} 
+                        onChange={(e) => setBannerScale(parseInt(e.target.value) / 10)}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajuste do Nome</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">ALTURA</span>
+                      <input 
+                        type="range" 
+                        min="-300" 
+                        max="400" 
+                        value={nameYOffset} 
+                        onChange={(e) => setNameYOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">LATERA</span>
+                      <input 
+                        type="range" 
+                        min="-150" 
+                        max="150" 
+                        value={nameXOffset} 
+                        onChange={(e) => setNameXOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12">FONTE</span>
+                      <input 
+                        type="range" 
+                        min="12" 
+                        max="100" 
+                        value={nameFontSize} 
+                        onChange={(e) => setNameFontSize(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary"
+                      />
+                      <span className="text-[10px] font-bold text-white w-8">{nameFontSize}px</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full flex flex-wrap justify-center gap-2 mt-2 pt-4 border-t border-zinc-800/50">
                 {bgImage && (
                   <button 
                     onClick={() => setBgImage(null)}
