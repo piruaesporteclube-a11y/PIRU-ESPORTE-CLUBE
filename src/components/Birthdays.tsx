@@ -202,7 +202,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         width: 360,
         height: 640,
         pixelRatio: 2, // Reducing to 2 for better mobile stability, still high res (720x1280)
-        backgroundColor: '#000000',
+        backgroundColor: '#eab308',
         cacheBust: false
       });
 
@@ -477,7 +477,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
             {/* Instagram Style Birthday Card - Modern Sports Poster */}
             <div 
               id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-xl border-4 border-theme-primary" 
+              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[16px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
             >
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
@@ -630,10 +630,10 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-theme-primary z-20" />
                   </div>
 
-                  {/* Name Banner - HIGH IMPACT */}
-                  <div className="absolute -bottom-6 inset-x-0 flex justify-center z-30 px-4">
-                    <div className="bg-white text-black py-3 px-6 shadow-[6px_6px_0_rgba(0,0,0,1)] border-[4px] border-theme-primary transform skew-x-[-12deg] max-w-full overflow-hidden">
-                      <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-center skew-x-[12deg] leading-none italic drop-shadow-sm break-words">
+                  {/* Name Banner - Brutalist Match */}
+                  <div className="absolute -bottom-16 inset-x-[-5%] z-30 transform rotate-[1.5deg]">
+                    <div className="bg-theme-primary text-black py-4 px-10 shadow-[6px_6px_0_rgba(255,255,255,1)] border-4 border-black transform skew-x-[-15deg]">
+                      <h3 className="text-2xl md:text-5xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none italic drop-shadow-sm whitespace-nowrap">
                         {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
                       </h3>
                     </div>
