@@ -15,6 +15,7 @@ export default function PublicProfessorRegistration() {
     birth_date: '',
     phone: '',
     role: 'treinador',
+    modality: 'Comissão Técnica',
     street: '',
     number: '',
     neighborhood: '',
@@ -123,6 +124,22 @@ export default function PublicProfessorRegistration() {
                   <option value="fisioterapeuta">Fisioterapeuta</option>
                   <option value="preparador_fisico">Preparador Físico</option>
                   <option value="outros">Outros</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Setor de Atuação</label>
+                <select 
+                  required
+                  className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold appearance-none"
+                  value={formData.modality}
+                  onChange={e => setFormData({...formData, modality: e.target.value})}
+                >
+                  <option value="Comissão Técnica">Comissão Técnica</option>
+                  <option value="Futebol de Campo">Futebol de Campo</option>
+                  <option value="Futsal">Futsal</option>
+                  <option value="Diretoria">Diretoria</option>
+                  <option value="Saúde">Saúde</option>
+                  <option value="Administrativo">Administrativo</option>
                 </select>
               </div>
             </div>

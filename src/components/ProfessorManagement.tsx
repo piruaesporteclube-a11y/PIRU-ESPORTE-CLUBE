@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Professor } from '../types';
-import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle, FileDown, Link as LinkIcon } from 'lucide-react';
+import { X, Upload, Save, UserCircle, Printer, Plus, Search, Trash2, Edit2, MessageCircle, FileDown, Link as LinkIcon, Contact } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import MembershipCard from './MembershipCard';
 
 interface ProfessorManagementProps {
   professors?: Professor[];
@@ -20,6 +21,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [professorToDelete, setProfessorToDelete] = useState<string | null>(null);
   const [editingProfessor, setEditingProfessor] = useState<Professor | null>(null);
+  const [selectedProfessorForCard, setSelectedProfessorForCard] = useState<Professor | null>(null);
   const [formData, setFormData] = useState<Partial<Professor>>({
     name: '',
     birth_date: '',
@@ -31,7 +33,8 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
     city: '',
     uf: '',
     photo: '',
-    role: 'treinador'
+    role: 'treinador',
+    modality: 'Comissão Técnica'
   });
 
   useEffect(() => {
@@ -215,6 +218,10 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!formData.photo) {
+        toast.error("A foto é obrigatória para membros da comissão.");
+        return;
+      }
       await api.saveProfessor(formData);
       toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
@@ -337,6 +344,13 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
             </div>
             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-print">
               <button 
+                onClick={() => setSelectedProfessorForCard(p)}
+                className="p-2 bg-theme-primary/20 hover:bg-theme-primary/40 text-theme-primary rounded-lg transition-colors"
+                title="Ver Carteirinha"
+              >
+                <Contact size={16} />
+              </button>
+              <button 
                 onClick={() => handleEdit(p)}
                 className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
               >
@@ -380,8 +394,35 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                 </div>
               </div>
 
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Ou cole a URL da Foto</label>
+                <input 
+                  type="url" 
+                  placeholder="https://exemplo.com/foto.jpg"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={formData.photo}
+                  onChange={e => setFormData({...formData, photo: e.target.value})}
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Setor / Modalidade</label>
+                  <select 
+                    required
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+                    value={formData.modality}
+                    onChange={e => setFormData({...formData, modality: e.target.value})}
+                  >
+                    <option value="Comissão Técnica">Comissão Técnica</option>
+                    <option value="Futebol de Campo">Futebol de Campo</option>
+                    <option value="Futsal">Futsal</option>
+                    <option value="Diretoria">Diretoria</option>
+                    <option value="Saúde">Saúde</option>
+                    <option value="Administrativo">Administrativo</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Cargo / Função</label>
                   <select 
                     required
@@ -617,6 +658,22 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                 <p className="text-[10px] text-zinc-400 uppercase">Piruá Esporte Clube - Formando Atletas, Cidadãos e Campeões</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Membership Card Modal */}
+      {selectedProfessorForCard && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm">
+            <div className="flex justify-end mb-4">
+              <button 
+                onClick={() => setSelectedProfessorForCard(null)}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <MembershipCard athlete={selectedProfessorForCard as any} />
           </div>
         </div>
       )}
