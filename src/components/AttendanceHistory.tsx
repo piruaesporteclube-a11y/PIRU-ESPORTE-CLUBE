@@ -23,6 +23,7 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSub, setSelectedSub] = useState('Todos');
+  const [filterMode, setFilterMode] = useState<'all' | 'present' | 'absent' | 'observation'>('all');
 
   const categories = Array.from(new Set(athletes.map(a => getSubCategory(a.birth_date))));
 
@@ -33,20 +34,41 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
   const loadHistory = async () => {
     setLoading(true);
     try {
-      // If trainingId or eventId is present, we filter by that in the API call
       const data = await api.getAttendance(undefined, undefined, trainingId, eventId);
-      
-      // Additional client-side filtering by date range for general view
       const filtered = data.filter(a => {
-        if (trainingId || eventId) return true; // Date range ignored for specific training/event
+        if (trainingId || eventId) return true;
         return a.date >= dateRange.start && a.date <= dateRange.end;
       });
-
       setHistory(filtered.sort((a, b) => b.date.localeCompare(a.date)));
     } catch (err) {
       console.error("Error loading attendance history:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkAttendance = async (athleteId: string, date: string, status: 'Presente' | 'Faltou') => {
+    try {
+      const existing = history.find(h => h.athlete_id === athleteId && h.date === date);
+      
+      const attendanceData: Partial<Attendance> = {
+        athlete_id: athleteId,
+        date,
+        status,
+        arrival_time: status === 'Presente' ? format(new Date(), 'HH:mm') : undefined,
+        training_id: trainingId,
+        event_id: eventId,
+      };
+
+      if (existing?.id) {
+        attendanceData.id = existing.id;
+      }
+
+      await api.saveAttendance(attendanceData);
+      
+      loadHistory();
+    } catch (err) {
+      console.error("Error marking attendance:", err);
     }
   };
 
@@ -66,10 +88,49 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar size={20} className="text-theme-primary" />
-            Histórico de Presenças
+            Presenças
           </h3>
           
           <div className="flex flex-wrap items-center gap-3">
+            <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
+              <button 
+                onClick={() => setFilterMode('all')}
+                className={cn(
+                  "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  filterMode === 'all' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                Todos
+              </button>
+              <button 
+                onClick={() => setFilterMode('present')}
+                className={cn(
+                  "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  filterMode === 'present' ? "bg-green-500 text-white" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                Presentes
+              </button>
+              <button 
+                onClick={() => setFilterMode('absent')}
+                className={cn(
+                  "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  filterMode === 'absent' ? "bg-red-500 text-white" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                Ausentes
+              </button>
+              <button 
+                onClick={() => setFilterMode('observation')}
+                className={cn(
+                  "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  filterMode === 'observation' ? "bg-amber-500 text-white" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                Observação
+              </button>
+            </div>
+
             {!trainingId && !eventId && (
               <div className="flex items-center gap-2">
                 <input 
@@ -153,19 +214,21 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {filteredAthletes.map(athlete => {
                       const record = dateHistory.find(h => h.athlete_id === athlete.id);
-                      if (!record && searchTerm) return null; // Only show all athletes if not searching, or show matches
+                      
+                      // Apply filter mode
+                      if (filterMode === 'present' && record?.status !== 'Presente') return null;
+                      if (filterMode === 'absent' && record?.status !== 'Faltou') return null;
+                      if (filterMode === 'observation' && record) return null; // Observation only shows UNMARKED
+                      if (filterMode === 'all' && !record && searchTerm === '') return null; // Default view only shows MARKED unless searching
 
-                      // If we are searching or filtering category, only show matching athletes
-                      if (selectedSub !== 'Todos' && getSubCategory(athlete.birth_date) !== selectedSub) return null;
-                      if (searchTerm && !athlete.name.toLowerCase().includes(searchTerm.toLowerCase())) return null;
+                      const isUnmarked = !record;
 
-                      // If no record for this date for this athlete, they are "Not Marked"
                       return (
                         <div key={athlete.id} className={cn(
-                          "p-3 rounded-2xl border transition-all flex items-center gap-3",
+                          "p-3 rounded-2xl border transition-all flex items-center gap-3 group",
                           record?.status === 'Presente' ? "bg-green-500/5 border-green-500/20" : 
                           record?.status === 'Faltou' ? "bg-red-500/5 border-red-500/20" :
-                          "bg-zinc-900/40 border-zinc-800 opacity-40"
+                          "bg-zinc-900/40 border-zinc-800"
                         )}>
                           <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
                             {athlete.photo ? (
@@ -187,8 +250,28 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
                               )}>
                                 {record?.status || 'Não Marcado'}
                               </span>
-                              {record?.arrival_time && (
-                                <span className="text-[8px] text-zinc-500 font-bold">{record.arrival_time}</span>
+                              
+                              {isUnmarked || filterMode === 'observation' ? (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button 
+                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Presente')}
+                                    className="p-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                    title="Marcar Presente"
+                                  >
+                                    <CheckCircle2 size={10} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Faltou')}
+                                    className="p-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                    title="Marcar Falta"
+                                  >
+                                    <XCircle size={10} />
+                                  </button>
+                                </div>
+                              ) : (
+                                record?.arrival_time && (
+                                  <span className="text-[8px] text-zinc-500 font-bold">{record.arrival_time}</span>
+                                )
                               )}
                             </div>
                             {record?.justification && (

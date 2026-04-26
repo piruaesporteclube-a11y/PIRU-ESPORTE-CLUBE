@@ -29,6 +29,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [tabFilter, setTabFilter] = useState<'all' | 'present' | 'absent' | 'observation'>('all');
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -493,6 +494,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
                          (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
                          a.doc.includes(search);
+    
+    // Apply tab filter
+    const att = attendance[a.id];
+    if (tabFilter === 'present' && att?.status !== 'Presente') return false;
+    if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
+    if (tabFilter === 'observation' && att) return false;
+
     return matchesSub && matchesSearch;
   });
 
@@ -827,25 +835,65 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative md:col-span-2 lg:col-span-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
             type="text" 
-            placeholder="Buscar atleta por nome ou documento..." 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+            placeholder="Buscar atleta..." 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        
+        <div className="flex bg-black p-1 rounded-xl border border-zinc-800 lg:col-span-2 h-[50px]">
+          <button 
+            onClick={() => setTabFilter('all')}
+            className={cn(
+              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
+              tabFilter === 'all' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            Todos ({stats.total})
+          </button>
+          <button 
+            onClick={() => setTabFilter('present')}
+            className={cn(
+              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
+              tabFilter === 'present' ? "bg-green-500 text-white" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            Presentes ({stats.present})
+          </button>
+          <button 
+            onClick={() => setTabFilter('absent')}
+            className={cn(
+              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
+              tabFilter === 'absent' ? "bg-red-500 text-white" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            Ausentes ({stats.absent})
+          </button>
+          <button 
+            onClick={() => setTabFilter('observation')}
+            className={cn(
+              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
+              tabFilter === 'observation' ? "bg-amber-500 text-white" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            Observação ({stats.notMarked})
+          </button>
+        </div>
+
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none"
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
-            <option value="Todos">Todas as Categorias</option>
+            <option value="Todos">Categorias</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
