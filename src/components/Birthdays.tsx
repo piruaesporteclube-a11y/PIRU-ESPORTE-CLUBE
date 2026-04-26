@@ -159,19 +159,25 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         position: 'fixed',
         top: '0',
         left: '0',
-        width: '360px',
-        height: '640px',
+        width: '1080px',
+        height: '1920px',
         transform: 'none',
         transition: 'none',
         zIndex: '-9999',
         opacity: '1',
         pointerEvents: 'none',
         borderRadius: '0',
-        border: '4px solid #eab308', // Explicitly keep the theme primary border for the export
+        border: '24px solid #eab308', // Explicitly keep the theme primary border for the export
         margin: '0',
         padding: '0'
       });
       document.body.appendChild(clone);
+
+      // Adjust clone internal sizes for the larger container
+      const cardInner = clone.querySelector('#birthday-card') || clone;
+      (cardInner as HTMLElement).style.width = '1080px';
+      (cardInner as HTMLElement).style.height = '1920px';
+      (cardInner as HTMLElement).style.borderRadius = '0';
 
       // 3. Clean Styles (No animations, no blurs)
       const allCloneElements = clone.querySelectorAll('*');
@@ -209,12 +215,12 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
       // 6. Capture
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500)); // More time for large images
 
       const dataUrl = await htmlToImage.toPng(clone, {
-        width: 360,
-        height: 640,
-        pixelRatio: 2, // Reducing to 2 for better mobile stability, still high res (720x1280)
+        width: 1080,
+        height: 1920,
+        pixelRatio: 1, // 1 is enough since we are already at 1080x1920
         backgroundColor: '#eab308',
         cacheBust: false
       });
