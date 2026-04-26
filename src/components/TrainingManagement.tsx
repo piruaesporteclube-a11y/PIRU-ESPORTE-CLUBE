@@ -13,11 +13,11 @@ import { TrainingActivity } from '../types';
 
 interface TrainingManagementProps {
   athletes?: Athlete[];
-  role?: 'admin' | 'student';
+  role?: 'admin' | 'student' | 'professor';
 }
 
 export default function TrainingManagement({ athletes: athletesProp, role = 'admin' }: TrainingManagementProps) {
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'professor';
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [isReordering, setIsReordering] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);

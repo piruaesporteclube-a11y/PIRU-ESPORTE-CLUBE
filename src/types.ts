@@ -169,8 +169,9 @@ export type User = {
   name: string;
   email?: string;
   doc: string;
-  role: "admin" | "student";
+  role: "admin" | "student" | "professor";
   athlete_id?: string;
+  professor_id?: string;
   created_at?: any;
   updated_at?: any;
 };

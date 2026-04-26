@@ -276,29 +276,50 @@ export const api = {
           await setDoc(userDocRef, sanitizeData(adminUser));
           userDocSnap = await getDoc(userDocRef);
         } else {
-          // Orphaned Auth user: Find the athlete by CPF and link them
-          const q = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            const athleteData = querySnapshot.docs[0].data() as Athlete;
-            const athleteId = querySnapshot.docs[0].id;
+            // Orphaned Auth user: Find the athlete or professor by CPF and link them
+            const qAthlete = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
+            const qProfessor = query(collection(db, "professors"), where("doc", "==", normalizedUsername));
             
-            const newUser: User = {
-              id: firebaseUser.uid,
-              name: athleteData.name || "Novo Aluno",
-              email: email,
-              doc: normalizedUsername,
-              role: "student",
-              athlete_id: athleteId,
-              updated_at: serverTimestamp() as any
-            };
+            const [athleteSnapshot, professorSnapshot] = await Promise.all([
+              getDocs(qAthlete),
+              getDocs(qProfessor)
+            ]);
             
-            await setDoc(userDocRef, sanitizeData(newUser));
-            userDocSnap = await getDoc(userDocRef);
-          } else {
-            throw new Error("Usuário não encontrado no banco de dados.");
-          }
+            if (!athleteSnapshot.empty) {
+              const athleteData = athleteSnapshot.docs[0].data() as Athlete;
+              const athleteId = athleteSnapshot.docs[0].id;
+              
+              const newUser: User = {
+                id: firebaseUser.uid,
+                name: athleteData.name || "Novo Aluno",
+                email: email,
+                doc: normalizedUsername,
+                role: "student",
+                athlete_id: athleteId,
+                updated_at: serverTimestamp() as any
+              };
+              
+              await setDoc(userDocRef, sanitizeData(newUser));
+              userDocSnap = await getDoc(userDocRef);
+            } else if (!professorSnapshot.empty) {
+              const professorData = professorSnapshot.docs[0].data() as Professor;
+              const professorId = professorSnapshot.docs[0].id;
+              
+              const newUser: User = {
+                id: firebaseUser.uid,
+                name: professorData.name || "Professor",
+                email: email,
+                doc: normalizedUsername,
+                role: "professor",
+                professor_id: professorId,
+                updated_at: serverTimestamp() as any
+              };
+              
+              await setDoc(userDocRef, sanitizeData(newUser));
+              userDocSnap = await getDoc(userDocRef);
+            } else {
+              throw new Error("Usuário não encontrado no banco de dados.");
+            }
         }
       }
 
@@ -308,16 +329,22 @@ export const api = {
       };
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        // Check if this is an athlete that was added by admin but doesn't have an auth account yet
+        // Check if this is an athlete or professor that was added by admin but doesn't have an auth account yet
         // Only if the password used matches the CPF (default behavior)
         if (normalizedPassword === normalizedUsername && normalizedUsername.length >= 11) {
           try {
-            const q = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
-            const querySnapshot = await getDocs(q);
+            const qAthlete = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
+            const qProfessor = query(collection(db, "professors"), where("doc", "==", normalizedUsername));
             
-            if (!querySnapshot.empty) {
-              const athleteData = querySnapshot.docs[0].data() as Athlete;
-              const athleteId = querySnapshot.docs[0].id;
+            const [athleteSnapshot, professorSnapshot] = await Promise.all([
+              getDocs(qAthlete),
+              getDocs(qProfessor)
+            ]);
+            
+            if (!athleteSnapshot.empty || !professorSnapshot.empty) {
+              const isAthlete = !athleteSnapshot.empty;
+              const personData = isAthlete ? athleteSnapshot.docs[0].data() : professorSnapshot.docs[0].data();
+              const personId = isAthlete ? athleteSnapshot.docs[0].id : professorSnapshot.docs[0].id;
               
               // Lazy register: Create the Auth account now
               const userCredential = await createUserWithEmailAndPassword(auth, email, normalizedUsername);
@@ -325,11 +352,12 @@ export const api = {
               
               const newUser: User = {
                 id: firebaseUser.uid,
-                name: athleteData.name || "Novo Aluno",
+                name: (personData as any).name || (isAthlete ? "Novo Aluno" : "Professor"),
                 email: email,
                 doc: normalizedUsername,
-                role: "student",
-                athlete_id: athleteId,
+                role: isAthlete ? "student" : "professor",
+                athlete_id: isAthlete ? personId : undefined,
+                professor_id: isAthlete ? undefined : personId,
                 updated_at: serverTimestamp() as any
               };
               

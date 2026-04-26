@@ -27,7 +27,7 @@ import autoTable from 'jspdf-autotable';
 import html2pdf from 'html2pdf.js';
 
 export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'student' | 'professor' }) {
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');

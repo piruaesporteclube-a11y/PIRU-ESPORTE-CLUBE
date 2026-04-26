@@ -16,14 +16,14 @@ import TrainingFlyer from './TrainingFlyer';
 interface EventsManagementProps {
   athletes?: Athlete[];
   events?: Event[];
-  role?: 'admin' | 'student';
+  role?: 'admin' | 'student' | 'professor';
   initialOpenLineupEvent?: Event;
 }
 
 export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin', initialOpenLineupEvent }: EventsManagementProps) {
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'professor';
   const [events, setEvents] = useState<Event[]>(eventsProp || []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLineupOpen, setIsLineupOpen] = useState(false);

@@ -43,7 +43,9 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
             )}
             <div className="hidden sm:block">
               <h1 className="font-black text-xl tracking-tighter uppercase leading-none">Piruá E.C.</h1>
-              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">{user?.role === 'admin' ? 'Gestão Administrativa' : 'Portal do Atleta'}</p>
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">
+              {user?.role === 'admin' ? 'Gestão Administrativa' : user?.role === 'professor' ? 'Portal da Comissão' : 'Portal do Atleta'}
+            </p>
             </div>
           </div>
 

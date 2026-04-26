@@ -53,7 +53,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
   useEffect(() => {
-    if (user.role === 'student') {
+    if (user.role === 'student' || user.role === 'professor') {
       loadUpcoming();
     }
   }, [user.id]);
@@ -103,7 +103,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
     { label: 'Link Equipes', icon: Trophy, color: 'text-purple-500', url: `${window.location.origin}/?team_registration=true` },
   ];
 
-  if (user.role === 'student') {
+  if (user.role === 'student' || user.role === 'professor') {
     return (
       <div className="space-y-12">
         <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -111,7 +111,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">
               Olá, {user.name.split(' ')[0]}
             </h2>
-            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial de atleta.</p>
+            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial {user.role === 'professor' ? 'da comissão' : 'de atleta'}.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <button 
@@ -528,7 +528,7 @@ export default function App() {
       const saved = localStorage.getItem('pirua_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.role === 'student' ? 'my-card' : 'dashboard';
+        return (parsed.role === 'student' || parsed.role === 'professor') ? 'my-card' : 'dashboard';
       }
     } catch (e) {
       console.error("Error parsing user for activeTab from localStorage", e);
@@ -632,8 +632,44 @@ export default function App() {
         }
       });
       return () => unsubscribe();
+    } else if (user.role === 'professor' && user.professor_id) {
+      // Fetch professor data and map it to an athlete-like structure for generic components
+      const loadProfessorData = async () => {
+        try {
+          const allProfs = await api.getProfessors();
+          const me = allProfs.find(p => p.id === user.professor_id);
+          if (me) {
+            const mappedAsAthlete: Athlete = {
+              id: me.id,
+              name: me.name,
+              birth_date: me.birth_date,
+              doc: me.doc,
+              gender: "Masculino", // Default
+              street: me.street,
+              number: me.number,
+              neighborhood: me.neighborhood,
+              city: me.city,
+              uf: me.uf,
+              jersey_number: "00",
+              photo: me.photo,
+              contact: me.phone,
+              email: user.email || "",
+              guardian_name: "COMISSÃO",
+              guardian_doc: "",
+              guardian_phone: me.phone,
+              status: "Ativo",
+              modality: "Comissão Técnica"
+            };
+            setMyAthleteData(mappedAsAthlete);
+            setAthletes([mappedAsAthlete]);
+          }
+        } catch (error) {
+          console.error("Error loading professor data:", error);
+        }
+      };
+      loadProfessorData();
     }
-  }, [user?.id, user?.role, user?.athlete_id]); // Re-subscribe if user changes
+  }, [user?.id, user?.role, user?.athlete_id, user?.professor_id]); // Re-subscribe if user changes
 
   useEffect(() => {
     if (user?.role === 'student' && user.athlete_id && athletes.length > 0) {
@@ -719,7 +755,7 @@ export default function App() {
   const handleLogin = (auth: any) => {
     setUser(auth.user);
     localStorage.setItem('pirua_user', JSON.stringify(auth.user));
-    setActiveTab(auth.user.role === 'student' ? 'my-card' : 'dashboard');
+    setActiveTab((auth.user.role === 'student' || auth.user.role === 'professor') ? 'my-card' : 'dashboard');
   };
 
   const handleLogout = async () => {
@@ -959,7 +995,7 @@ export default function App() {
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
-          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || ''} />;
+          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':
