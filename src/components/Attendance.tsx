@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import AttendanceHistory from './AttendanceHistory';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -27,6 +28,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -643,6 +645,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   return (
     <div className="space-y-6">
+      {showHistory ? (
+        <AttendanceHistory 
+          athletes={athletes} 
+          trainingId={trainingId} 
+          eventId={eventId} 
+        />
+      ) : (
+        <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button 
@@ -700,6 +710,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             className="p-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl transition-colors"
           >
             <FileText size={20} />
+          </button>
+
+          <button 
+            onClick={() => setShowHistory(!showHistory)}
+            title={showHistory ? "Voltar para Chamada" : "Ver Histórico"}
+            className={cn(
+              "p-3 rounded-2xl transition-colors",
+              showHistory ? "bg-theme-primary text-black" : "bg-zinc-800 hover:bg-zinc-700 text-white"
+            )}
+          >
+            {showHistory ? <ChevronLeft size={20} /> : <History size={20} />}
           </button>
 
           {!isLocked && (
@@ -1053,6 +1074,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Report Modal */}
       {isReportOpen && (
