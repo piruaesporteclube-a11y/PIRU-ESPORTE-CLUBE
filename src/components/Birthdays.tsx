@@ -632,8 +632,8 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
 
                   {/* Name Banner - Brutalist Match */}
                   <div className="absolute -bottom-16 inset-x-[-5%] z-30 transform rotate-[1.5deg]">
-                    <div className="bg-theme-primary text-black py-4 px-10 shadow-[6px_6px_0_rgba(255,255,255,1)] border-4 border-black transform skew-x-[-15deg]">
-                      <h3 className="text-2xl md:text-5xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none italic drop-shadow-sm whitespace-nowrap">
+                    <div className="bg-theme-primary text-black py-3 px-8 shadow-[6px_6px_0_rgba(255,255,255,1)] border-4 border-black transform skew-x-[-15deg]">
+                      <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none italic drop-shadow-sm whitespace-nowrap">
                         {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
                       </h3>
                     </div>
