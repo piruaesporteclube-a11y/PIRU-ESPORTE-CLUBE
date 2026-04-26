@@ -154,7 +154,7 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
         opacity: '1',
         pointerEvents: 'none',
         borderRadius: '0',
-        border: 'none',
+        border: '4px solid #eab308', // Explicitly keep the theme primary border for the export
         margin: '0',
         padding: '0'
       });
@@ -631,9 +631,9 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                   </div>
 
                   {/* Name Banner - HIGH IMPACT */}
-                  <div className="absolute -bottom-8 inset-x-[-20%] z-30">
-                    <div className="bg-white text-black py-4 px-6 shadow-[8px_8px_0_rgba(0,0,0,1)] border-[4px] border-theme-primary transform skew-x-[-15deg]">
-                      <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-center skew-x-[15deg] leading-none whitespace-nowrap italic">
+                  <div className="absolute -bottom-6 inset-x-[-15%] z-30">
+                    <div className="bg-white text-black py-3 px-8 shadow-[6px_6px_0_rgba(0,0,0,1)] border-[4px] border-theme-primary transform skew-x-[-12deg]">
+                      <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-center skew-x-[12deg] leading-none whitespace-nowrap italic drop-shadow-sm">
                         {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
                       </h3>
                     </div>
