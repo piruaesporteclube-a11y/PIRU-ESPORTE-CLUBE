@@ -638,49 +638,40 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-theme-primary z-20" />
                   </div>
 
-                  {/* Banner & Name - Separated for individual control */}
+                  {/* Name Banner - Exact Match to 'Feliz Aniversário' Layout */}
                   <div 
-                    className="absolute z-20"
+                    className="absolute z-40 transform"
                     style={{ 
-                      bottom: `${-64 + bannerYOffset}px`, 
-                      left: `calc(-3% + ${bannerXOffset}px)`, 
-                      right: `calc(-3% - ${bannerXOffset}px)`,
-                      transform: `rotate(1.5deg) scale(${bannerScale})`
+                      bottom: `${-24 + nameYOffset}px`, 
+                      left: `${-5 + nameXOffset}%`, 
+                      right: `${-5 - nameXOffset}%`,
+                      rotate: '2deg',
+                      scale: `${bannerScale}`
                     }}
                   >
                     <div className={cn(
-                      "h-16 w-full border-[4px] transform transition-all shadow-[8px_8px_0_rgba(255,255,255,1)]",
+                      "py-4 px-10 border-[4px] shadow-[8px_8px_0_rgba(255,255,255,1)]",
                       bannerStyle === 'yellow' && "bg-theme-primary border-black",
                       bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,1)]",
                       bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,1)]",
-                      bannerStyle === 'red' && "bg-red-600 border-black shadow-[8px_8px_0_rgba(255,255,255,1)]",
+                      bannerStyle === 'red' && "bg-red-600 border-black",
                       bannerStyle === 'outline' && "bg-transparent border-theme-primary shadow-none"
                     )}
                     style={{ transform: `skewX(${bannerSkew}deg)` }}
-                    />
-                  </div>
-
-                  <div 
-                    className="absolute z-30"
-                    style={{ 
-                      bottom: `${-54 + nameYOffset}px`, 
-                      left: `calc(-3% + ${nameXOffset}px)`, 
-                      right: `calc(-3% - ${nameXOffset}px)`,
-                      transform: 'rotate(1.5deg)'
-                    }}
-                  >
-                    <h3 
-                      className={cn(
-                        "font-black uppercase tracking-tighter text-center italic drop-shadow-md whitespace-nowrap",
-                        (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
-                      )}
-                      style={{ 
-                        fontSize: `${nameFontSize}px`,
-                        transform: `skewX(${-bannerSkew}deg)`
-                      }}
                     >
-                      {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
-                    </h3>
+                      <h3 
+                        className={cn(
+                          "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-sm whitespace-nowrap",
+                          (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
+                        )}
+                        style={{ 
+                          fontSize: `${nameFontSize}px`,
+                          transform: `skewX(${-bannerSkew}deg)`
+                        }}
+                      >
+                        {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                      </h3>
+                    </div>
                   </div>
                 </div>
 

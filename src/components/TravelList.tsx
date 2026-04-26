@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EventsManagement from './EventsManagement';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -254,22 +256,116 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
   };
 
   const handleDownloadPDF = () => {
-    const element = document.getElementById('printable-travel-list');
-    if (!element) return;
+    if (!selectedEvent) return;
 
-    const opt = {
-      margin: [10, 10, 10, 10] as [number, number, number, number],
-      filename: `lista-viagem-${selectedEvent?.name || 'evento'}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-    };
-
-    toast.promise(html2pdf().from(element).set(opt).save(), {
-      loading: 'Gerando PDF...',
-      success: 'PDF gerado com sucesso!',
-      error: 'Erro ao gerar PDF'
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Associação Desportiva e Cultural', pageWidth / 2, 26, { align: 'center' });
+    
+    doc.setDrawColor(0);
+    doc.setLineWidth(1);
+    doc.line(15, 30, pageWidth - 15, 30);
+    
+    // Event Banner Style
+    doc.setFillColor(30, 30, 30);
+    doc.rect(15, 35, pageWidth - 30, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LISTA DE VIAGEM', pageWidth / 2, 42, { align: 'center' });
+    
+    // Event Details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 55);
+    doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 60);
+    doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 65);
+    doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 55, { align: 'right' });
+    doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - 15, 60, { align: 'right' });
+    
+    // Table - Athletes
+    doc.setFontSize(12);
+    doc.text(`ATLETAS (${lineup.athletes.length})`, 15, 75);
+    
+    autoTable(doc, {
+      startY: 78,
+      head: [['#', 'NOME COMPLETO', 'RG / CPF', 'RESPONSÁVEL', 'TELEFONE']],
+      body: lineup.athletes.map((a, idx) => [
+        idx + 1,
+        a.name.toUpperCase(),
+        a.doc,
+        (a.guardian_name || '---').toUpperCase(),
+        a.guardian_phone || '---'
+      ]),
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 2 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
     });
+    
+    // Table - Staff
+    const staffStartY = (doc as any).lastAutoTable.finalY + 15;
+    if (lineup.staff.length > 0) {
+      doc.text(`COMISSÃO TÉCNICA (${lineup.staff.length})`, 15, staffStartY);
+      autoTable(doc, {
+        startY: staffStartY + 3,
+        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CARGO']],
+        body: lineup.staff.map((s, idx) => [
+          idx + 1,
+          s.name.toUpperCase(),
+          s.doc,
+          'COMISSÃO'
+        ]),
+        headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+      });
+    }
+    
+    // Table - Companions
+    const companionsStartY = (doc as any).lastAutoTable.finalY + 15;
+    if (companions.length > 0) {
+      doc.text(`ACOMPANHANTES (${companions.length})`, 15, companionsStartY);
+      autoTable(doc, {
+        startY: companionsStartY + 3,
+        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP']],
+        body: companions.map((c, idx) => [
+          idx + 1,
+          c.name.toUpperCase(),
+          c.doc,
+          c.whatsapp
+        ]),
+        headStyles: { fillColor: [150, 150, 150], textColor: [0, 0, 0], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+      });
+    }
+
+    // Signatures
+    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    if (finalY + 40 > doc.internal.pageSize.getHeight()) {
+      doc.addPage();
+    }
+    
+    const signatureY = (doc as any).lastAutoTable.finalY + 40 > doc.internal.pageSize.getHeight() ? 40 : (doc as any).lastAutoTable.finalY + 40;
+    
+    doc.setLineWidth(0.5);
+    doc.line(20, signatureY, 90, signatureY);
+    doc.setFontSize(8);
+    doc.text(delegationResponsible.toUpperCase() || 'RESPONSÁVEL PELA DELEGAÇÃO', 55, signatureY + 5, { align: 'center' });
+    
+    doc.line(pageWidth - 90, signatureY, pageWidth - 20, signatureY);
+    doc.text(directorName.toUpperCase() || 'DIRETOR(A) EXECUTIVO(A)', pageWidth - 55, signatureY + 5, { align: 'center' });
+
+    doc.save(`lista-viagem-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    toast.success('PDF gerado com sucesso!');
   };
 
   if (isEditingLineup && selectedEvent) {
