@@ -250,7 +250,15 @@ export const api = {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } catch (authErr: any) {
         if (password !== normalizedPassword) {
-          userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
+          try {
+            userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
+          } catch (secondAuthErr: any) {
+            // If both fail, and we have a user-not-found/invalid-credential, try auto-registration
+            if (secondAuthErr.code === 'auth/user-not-found' || secondAuthErr.code === 'auth/invalid-credential') {
+              throw secondAuthErr; // Re-throw to be caught by outer catch for lazy registration check
+            }
+            throw secondAuthErr;
+          }
         } else {
           throw authErr;
         }
@@ -259,16 +267,39 @@ export const api = {
       const firebaseUser = userCredential.user;
 
       const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      let userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
-        // Fallback for ADM
-        if (username === "05504043689") {
+        // Fallback for ADM (specific hardcoded UID/Doc)
+        if (username === "05504043689" || (firebaseUser.email === "piruaesporteclube@gmail.com")) {
           const adminUser: User = { id: firebaseUser.uid, name: "Administrador", doc: "05504043689", role: "admin" };
           await setDoc(userDocRef, sanitizeData(adminUser));
-          return { user: adminUser, token: await firebaseUser.getIdToken() };
+          userDocSnap = await getDoc(userDocRef);
+        } else {
+          // Orphaned Auth user: Find the athlete by CPF and link them
+          const q = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const athleteData = querySnapshot.docs[0].data() as Athlete;
+            const athleteId = querySnapshot.docs[0].id;
+            
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: athleteData.name || "Novo Aluno",
+              email: email,
+              doc: normalizedUsername,
+              role: "student",
+              athlete_id: athleteId,
+              updated_at: serverTimestamp() as any
+            };
+            
+            await setDoc(userDocRef, sanitizeData(newUser));
+            userDocSnap = await getDoc(userDocRef);
+          } else {
+            throw new Error("Usuário não encontrado no banco de dados.");
+          }
         }
-        throw new Error("Usuário não encontrado no banco de dados.");
       }
 
       return { 
@@ -277,6 +308,39 @@ export const api = {
       };
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        // Check if this is an athlete that was added by admin but doesn't have an auth account yet
+        // Only if the password used matches the CPF (default behavior)
+        if (normalizedPassword === normalizedUsername && normalizedUsername.length >= 11) {
+          try {
+            const q = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const athleteData = querySnapshot.docs[0].data() as Athlete;
+              const athleteId = querySnapshot.docs[0].id;
+              
+              // Lazy register: Create the Auth account now
+              const userCredential = await createUserWithEmailAndPassword(auth, email, normalizedUsername);
+              const firebaseUser = userCredential.user;
+              
+              const newUser: User = {
+                id: firebaseUser.uid,
+                name: athleteData.name || "Novo Aluno",
+                email: email,
+                doc: normalizedUsername,
+                role: "student",
+                athlete_id: athleteId,
+                updated_at: serverTimestamp() as any
+              };
+              
+              await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
+              return { user: newUser, token: await firebaseUser.getIdToken() };
+            }
+          } catch (regErr) {
+            console.error("Lazy registration failed:", regErr);
+          }
+        }
+        
         throw new Error("CPF ou senha incorretos.");
       }
       handleFirestoreError(error, OperationType.GET, "auth/login");
