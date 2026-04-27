@@ -189,6 +189,9 @@ export type Sponsor = {
   name: string;
   logo: string;
   link?: string;
+  responsible_name?: string;
+  segment?: string;
+  phone?: string;
 };
 
 export type UniformModel = {

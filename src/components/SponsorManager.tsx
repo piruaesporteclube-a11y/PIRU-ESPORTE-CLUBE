@@ -86,34 +86,70 @@ export default function SponsorManager() {
                 <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome do Patrocinador</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-black text-xs"
                   value={editingSponsor.name}
                   onChange={e => setEditingSponsor({ ...editingSponsor, name: e.target.value.toUpperCase() })}
                 />
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Link (Opcional)</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  placeholder="https://..."
-                  value={editingSponsor.link}
-                  onChange={e => setEditingSponsor({ ...editingSponsor, link: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Responsável</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-black text-xs"
+                    value={editingSponsor.responsible_name || ''}
+                    onChange={e => setEditingSponsor({ ...editingSponsor, responsible_name: e.target.value.toUpperCase() })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Segmento</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-black text-xs"
+                    placeholder="EX: ALIMENTAÇÃO"
+                    value={editingSponsor.segment || ''}
+                    onChange={e => setEditingSponsor({ ...editingSponsor, segment: e.target.value.toUpperCase() })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Telefone</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black text-xs"
+                    placeholder="(00) 00000-0000"
+                    value={editingSponsor.phone || ''}
+                    onChange={e => setEditingSponsor({ ...editingSponsor, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Link (Opcional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs"
+                    placeholder="https://..."
+                    value={editingSponsor.link}
+                    onChange={e => setEditingSponsor({ ...editingSponsor, link: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-4 p-4 bg-zinc-800/50 rounded-2xl border-2 border-dashed border-zinc-700 hover:border-theme-primary transition-colors relative group">
+            <div className="flex flex-col items-center justify-center gap-4 p-4 bg-zinc-800/50 rounded-2xl border-2 border-dashed border-zinc-700 hover:border-theme-primary transition-colors relative group min-h-[200px]">
               {editingSponsor.logo ? (
-                <img src={editingSponsor.logo} className="h-24 object-contain" referrerPolicy="no-referrer" />
+                <img src={editingSponsor.logo} className="max-h-32 object-contain" referrerPolicy="no-referrer" />
               ) : (
-                <div className="h-24 flex flex-col items-center justify-center text-zinc-600">
-                  <ImageIcon size={32} />
-                  <span className="text-[10px] mt-2 font-bold">Logo</span>
+                <div className="flex flex-col items-center justify-center text-zinc-600">
+                  <ImageIcon size={48} />
+                  <span className="text-[10px] mt-2 font-bold uppercase tracking-widest">Logo do Patrocinador</span>
                 </div>
               )}
               <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
-                <Upload size={20} className="text-white" />
+                <div className="flex flex-col items-center gap-2">
+                  <Upload size={24} className="text-white" />
+                  <span className="text-[10px] text-white font-black uppercase">Alterar Logo</span>
+                </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               </label>
             </div>
@@ -138,9 +174,14 @@ export default function SponsorManager() {
               <img src={sponsor.logo} className="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
             </div>
             <div className="text-center">
-              <p className="text-[10px] font-bold text-white uppercase truncate">{sponsor.name}</p>
+              <p className="text-[10px] font-black text-white uppercase truncate">{sponsor.name}</p>
+              <p className="text-[8px] font-bold text-zinc-500 uppercase truncate mt-0.5">{sponsor.segment || 'S/ Segmento'}</p>
+              <div className="flex flex-col items-center gap-0.5 mt-2">
+                <span className="text-[8px] font-bold text-zinc-400 uppercase leading-none">{sponsor.responsible_name || 'Resp. não inf.'}</span>
+                <span className="text-[9px] font-black text-theme-primary leading-none">{sponsor.phone || 'S/ Tel'}</span>
+              </div>
               {sponsor.link && (
-                <a href={sponsor.link} target="_blank" rel="noopener noreferrer" className="text-theme-primary hover:underline text-[8px] flex items-center justify-center gap-1 mt-1">
+                <a href={sponsor.link} target="_blank" rel="noopener noreferrer" className="text-theme-primary hover:underline text-[8px] flex items-center justify-center gap-1 mt-2 font-black">
                   <LinkIcon size={8} />
                   VISITAR
                 </a>

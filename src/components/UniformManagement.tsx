@@ -183,7 +183,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
           }
       }
       
-      loadRequests();
+      loadData();
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Erro ao atualizar status.");
@@ -195,7 +195,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     try {
       await api.deleteUniformRequest(id);
       toast.success("Solicitação excluída.");
-      loadRequests();
+      loadData();
     } catch (error) {
       console.error("Error deleting request:", error);
       toast.error("Erro ao excluir solicitação.");
@@ -503,11 +503,22 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                   </div>
                               </div>
 
-                              <div className="flex flex-wrap gap-2">
+                              <div className="grid grid-cols-1 gap-2">
                                   {block.sponsors.map((s, i) => (
-                                      <div key={i} className="px-3 py-1 bg-zinc-800 rounded-lg flex items-center gap-2 border border-zinc-700">
-                                          <img src={s.logo} alt={s.name} className="w-4 h-4 rounded-full object-contain bg-white" />
-                                          <span className="text-[9px] font-bold text-zinc-300 uppercase">{s.name}</span>
+                                      <div key={i} className="p-3 bg-zinc-800 rounded-2xl border border-zinc-700 flex items-center justify-between group/sponsor hover:border-theme-primary/30 transition-all">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-lg p-1">
+                                              <img src={s.logo} alt={s.name} className="w-full h-full object-contain" />
+                                            </div>
+                                            <div>
+                                              <span className="text-[10px] font-black text-white uppercase block leading-none">{s.name}</span>
+                                              <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">{s.segment || 'Segmento não informado'}</span>
+                                            </div>
+                                          </div>
+                                          <div className="text-right">
+                                            <span className="text-[8px] font-bold text-zinc-400 block uppercase">{s.responsible_name || 'Resp. não inf.'}</span>
+                                            <span className="text-[9px] font-black text-theme-primary">{s.phone || 'S/ Telefone'}</span>
+                                          </div>
                                       </div>
                                   ))}
                               </div>
@@ -735,14 +746,19 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                             }
                                         }}
                                         className={cn(
-                                            "flex items-center gap-2 p-2 rounded-xl border transition-all text-left",
+                                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
                                             isSelected 
-                                                ? "bg-theme-primary/10 border-theme-primary border-2" 
-                                                : "bg-zinc-800 border-zinc-700 hover:border-zinc-600 focus:border-zinc-500"
+                                                ? "bg-theme-primary/10 border-theme-primary border-2 shadow-[0_0_15px_rgba(var(--color-theme-primary),0.2)]" 
+                                                : "bg-zinc-800 border-zinc-700 hover:border-zinc-500"
                                         )}
                                       >
-                                          <img src={sponsor.logo} alt={sponsor.name} className="w-6 h-6 rounded-full object-contain bg-white" />
-                                          <span className="text-[9px] font-bold text-zinc-300 uppercase truncate">{sponsor.name}</span>
+                                          <div className="w-10 h-10 bg-white rounded-lg p-1 shrink-0">
+                                            <img src={sponsor.logo} alt={sponsor.name} className="w-full h-full object-contain" />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <span className="text-[10px] font-black text-white uppercase block truncate">{sponsor.name}</span>
+                                            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest block truncate">{sponsor.segment || 'S/ Segmento'}</span>
+                                          </div>
                                       </button>
                                   );
                               })}
