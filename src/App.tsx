@@ -1003,6 +1003,7 @@ export default function App() {
                 <AthleteSearchSelect 
                   onSelect={(a) => setSelectedAthleteForCard(a)}
                   selectedAthleteId={selectedAthleteForCard?.id}
+                  includeProfessors
                 />
               </div>
               {selectedAthleteForCard && (

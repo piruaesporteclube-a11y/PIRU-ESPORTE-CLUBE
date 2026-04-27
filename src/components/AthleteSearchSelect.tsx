@@ -10,10 +10,17 @@ interface AthleteSearchSelectProps {
   placeholder?: string;
   className?: string;
   selectedAthleteId?: string;
+  includeProfessors?: boolean;
 }
 
-export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR ATLETA...", className, selectedAthleteId }: AthleteSearchSelectProps) {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+export default function AthleteSearchSelect({ 
+  onSelect, 
+  placeholder = "PESQUISAR ATLETA...", 
+  className, 
+  selectedAthleteId,
+  includeProfessors = false
+}: AthleteSearchSelectProps) {
+  const [data, setData] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSub, setFilterSub] = useState('Todos');
   const [isOpen, setIsOpen] = useState(false);
@@ -21,19 +28,49 @@ export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const loadAthletes = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        const data = await api.getAthletes();
-        setAthletes(data);
+        const athletes = await api.getAthletes();
+        let results = [...athletes];
+        
+        if (includeProfessors) {
+          const professors = await api.getProfessors();
+          const mappedProfs: Athlete[] = professors.map(p => ({
+            id: p.id,
+            name: p.name,
+            birth_date: p.birth_date || '1990-01-01',
+            doc: p.doc,
+            nickname: 'COMISSÃO',
+            street: p.street || '',
+            number: p.number || '',
+            neighborhood: p.neighborhood || '',
+            city: p.city || '',
+            uf: p.uf || '',
+            gender: 'Masculino',
+            jersey_number: '00',
+            photo: p.photo || '',
+            status: 'Ativo',
+            modality: 'Comissão Técnica',
+            position: p.role || 'Membro', // Use role as position for commission
+            contact: p.phone || '',
+            email: p.email || '',
+            guardian_name: 'DIRETORIA',
+            guardian_phone: p.phone || '',
+            guardian_doc: ''
+          }));
+          results = [...results, ...mappedProfs];
+        }
+        
+        setData(results);
       } catch (err) {
-        console.error("Erro ao carregar atletas:", err);
+        console.error("Erro ao carregar dados:", err);
       } finally {
         setLoading(false);
       }
     };
-    loadAthletes();
-  }, []);
+    loadData();
+  }, [includeProfessors]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,17 +82,17 @@ export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredAthletes = athletes
+  const filteredResults = data
     .filter(a => {
       const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (a.nickname && a.nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            a.doc.includes(searchTerm);
-      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub || a.modality === 'Comissão Técnica';
       return matchesSearch && matchesSub;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
+  const selectedItem = data.find(a => a.id === selectedAthleteId);
 
   return (
     <div className={cn("relative", className)} ref={dropdownRef}>
@@ -65,8 +102,8 @@ export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR
       >
         <div className="flex items-center gap-3 truncate">
           <User size={20} className="text-zinc-500 group-hover:text-theme-primary transition-colors" />
-          <span className={cn("font-bold uppercase truncate", !selectedAthlete && "text-zinc-500")}>
-            {selectedAthlete ? selectedAthlete.name : placeholder}
+          <span className={cn("font-bold uppercase truncate", !selectedItem && "text-zinc-500")}>
+            {selectedItem ? selectedItem.name : placeholder}
           </span>
         </div>
         <ChevronDown size={20} className={cn("text-zinc-500 transition-transform", isOpen && "rotate-180")} />
@@ -113,25 +150,25 @@ export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR
           <div className="max-h-64 overflow-y-auto custom-scrollbar">
             {loading ? (
               <div className="p-8 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest animate-pulse">
-                Carregando atletas...
+                Carregando dados...
               </div>
-            ) : filteredAthletes.length > 0 ? (
-              filteredAthletes.map((athlete) => (
+            ) : filteredResults.length > 0 ? (
+              filteredResults.map((item) => (
                 <div 
-                  key={athlete.id}
+                  key={item.id}
                   onClick={() => {
-                    onSelect(athlete);
+                    onSelect(item);
                     setIsOpen(false);
                     setSearchTerm('');
                   }}
                   className={cn(
                     "px-6 py-4 hover:bg-theme-primary hover:text-black cursor-pointer transition-colors flex items-center gap-4 border-b border-zinc-800/50 last:border-0",
-                    selectedAthleteId === athlete.id && "bg-theme-primary/10 text-theme-primary"
+                    selectedAthleteId === item.id && "bg-theme-primary/10 text-theme-primary"
                   )}
                 >
                   <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
-                    {athlete.photo ? (
-                      <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    {item.photo ? (
+                      <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-zinc-600">
                         <User size={20} />
@@ -139,16 +176,16 @@ export default function AthleteSearchSelect({ onSelect, placeholder = "PESQUISAR
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black uppercase text-sm truncate">{athlete.name}</p>
+                    <p className="font-black uppercase text-sm truncate">{item.name}</p>
                     <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest">
-                      {athlete.nickname ? `${athlete.nickname} • ` : ''} CPF: {athlete.doc}
+                      {item.nickname ? `${item.nickname} • ` : ''} CPF: {item.doc}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
               <div className="p-8 text-center text-zinc-600">
-                <p className="text-xs font-bold uppercase tracking-widest">Nenhum atleta encontrado</p>
+                <p className="text-xs font-bold uppercase tracking-widest">Nenhum registro encontrado</p>
               </div>
             )}
           </div>
