@@ -22,7 +22,7 @@ export type Athlete = {
   school?: string;
   school_shift?: "Manhã" | "Tarde" | "Noite";
   status: "Ativo" | "Inativo";
-  position?: string;
+  position?: string; // Can be comma-separated for multi-role
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field
@@ -43,7 +43,7 @@ export type Professor = {
   city: string;
   uf: string;
   photo: string;
-  role?: string;
+  role?: string; // Can be comma-separated for multi-role
   modality?: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field

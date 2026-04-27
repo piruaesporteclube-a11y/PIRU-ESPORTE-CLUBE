@@ -603,7 +603,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="number-circle !w-2 !h-2 !text-[5px]">4</div>
                   <span className="label-text !text-[6px]">{isProfessor ? 'Cargo' : 'Posição'}</span>
                 </div>
-                <div className="input-box h-[15px] text-[7px]">
+                <div className="input-box !h-auto min-h-[15px] py-0.5 px-2 text-[6px] leading-tight flex flex-wrap gap-1 whitespace-normal">
                   {isProfessor ? (athlete as any).role : (athlete as Athlete).position || 'N/A'}
                 </div>
               </div>

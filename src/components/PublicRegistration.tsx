@@ -384,6 +384,38 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                       </select>
                     </div>
                     <div className="md:col-span-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Posições / Funções (Selecione uma ou mais)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"].map(p => {
+                          const isSelected = athleteData.position?.split(', ').includes(p);
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => {
+                                const current = athleteData.position ? athleteData.position.split(', ') : [];
+                                let next;
+                                if (current.includes(p)) {
+                                  next = current.filter(item => item !== p);
+                                } else {
+                                  next = [...current, p];
+                                }
+                                setAthleteData({...athleteData, position: next.join(', ')});
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-xl border text-[10px] font-black uppercase transition-all text-center",
+                                isSelected 
+                                  ? "bg-theme-primary border-theme-primary text-black" 
+                                  : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                              )}
+                            >
+                              {p}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Modalidades Esportivas (Selecione uma ou mais)</label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {["Futebol de Campo", "Futsal", "Volêi", "Corrida de Rua", "Outros"].map(m => {

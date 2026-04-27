@@ -461,16 +461,37 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       )}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Posição</label>
-                    <input 
-                      required
-                      type="text" 
-                      placeholder="EX: GOLEIRO, ATACANTE..."
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
-                      value={formData.position || ''}
-                      onChange={e => setFormData({...formData, position: e.target.value.toUpperCase()})}
-                    />
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Posições / Funções (Selecione uma ou mais)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"].map(p => {
+                        const isSelected = formData.position?.split(', ').includes(p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.position ? formData.position.split(', ') : [];
+                              let next;
+                              if (current.includes(p)) {
+                                next = current.filter(item => item !== p);
+                              } else {
+                                next = [...current, p];
+                              }
+                              setFormData({...formData, position: next.join(', ')});
+                            }}
+                            className={cn(
+                              "px-4 py-2 rounded-xl border text-[10px] font-black uppercase transition-all text-center",
+                              isSelected 
+                                ? "bg-theme-primary border-theme-primary text-black" 
+                                : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                            )}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">E-mail (Login/Notificações)</label>

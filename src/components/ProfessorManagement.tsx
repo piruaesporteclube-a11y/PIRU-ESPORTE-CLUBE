@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import { cn } from '../utils';
 import MembershipCard from './MembershipCard';
 
 interface ProfessorManagementProps {
@@ -424,22 +425,37 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     <option value="Administrativo">Administrativo</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Cargo / Função</label>
-                  <select 
-                    required
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
-                    value={formData.role}
-                    onChange={e => setFormData({...formData, role: e.target.value})}
-                  >
-                    <option value="treinador">Treinador</option>
-                    <option value="auxiliar">Auxiliar</option>
-                    <option value="medico">Médico</option>
-                    <option value="presidente">Presidente</option>
-                    <option value="diretor">Diretor</option>
-                    <option value="massagista">Massagista</option>
-                    <option value="outros">Outros</option>
-                  </select>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Cargos / Funções (Selecione um ou mais)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {["Treinador", "Auxiliar", "Médico", "Presidente", "Diretor", "Massagista", "Fisioterapeuta", "Preparador Físico", "Treinador de Goleiros"].map(r => {
+                      const isSelected = formData.role?.split(', ').includes(r);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.role ? formData.role.split(', ') : [];
+                            let next;
+                            if (current.includes(r)) {
+                              next = current.filter(item => item !== r);
+                            } else {
+                              next = [...current, r];
+                            }
+                            setFormData({...formData, role: next.join(', ')});
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-xl border text-[10px] font-black uppercase transition-all text-center",
+                            isSelected 
+                              ? "bg-theme-primary border-theme-primary text-black" 
+                              : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                          )}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome Completo</label>

@@ -108,24 +108,36 @@ export default function PublicProfessorRegistration() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Função que desempenha</label>
-                <select 
-                  required
-                  className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold appearance-none"
-                  value={formData.role}
-                  onChange={e => setFormData({...formData, role: e.target.value})}
-                >
-                  <option value="treinador">Treinador</option>
-                  <option value="auxiliar">Auxiliar</option>
-                  <option value="medico">Médico</option>
-                  <option value="presidente">Presidente</option>
-                  <option value="diretor">Diretor</option>
-                  <option value="massagista">Massagista</option>
-                  <option value="fisioterapeuta">Fisioterapeuta</option>
-                  <option value="preparador_fisico">Preparador Físico</option>
-                  <option value="outros">Outros</option>
-                </select>
+              <div className="md:col-span-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 mb-2 block">Cargos / Funções desempenhadas (Selecione um ou mais)</label>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {["Treinador", "Auxiliar", "Médico", "Presidente", "Diretor", "Massagista", "Fisioterapeuta", "Preparador Físico", "Treinador de Goleiros"].map(r => {
+                    const isSelected = formData.role?.split(', ').includes(r);
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.role ? formData.role.split(', ') : [];
+                          let next;
+                          if (current.includes(r)) {
+                            next = current.filter(item => item !== r);
+                          } else {
+                            next = [...current, r];
+                          }
+                          setFormData({...formData, role: next.join(', ')});
+                        }}
+                        className={`px-4 py-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all text-center leading-tight h-14 flex items-center justify-center ${
+                          isSelected 
+                            ? "bg-theme-primary border-theme-primary text-black" 
+                            : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Setor de Atuação</label>
