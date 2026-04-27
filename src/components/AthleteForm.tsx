@@ -16,9 +16,10 @@ interface AthleteFormProps {
   isRegistration?: boolean;
   onRegisterSuccess?: (athlete: Athlete) => void;
   standalone?: boolean;
+  userRole?: 'admin' | 'student' | 'professor';
 }
 
-export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone }: AthleteFormProps) {
+export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone, userRole }: AthleteFormProps) {
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Athlete>>({
@@ -155,8 +156,13 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         toast.success("Cadastro realizado com sucesso!");
         onRegisterSuccess?.(athlete);
       } else {
-        await api.saveAthlete(formData);
-        toast.success("Atleta salvo com sucesso!");
+        if (userRole === 'professor') {
+          await api.saveProfessor(formData as any);
+          toast.success("Dados da comissão salvos com sucesso!");
+        } else {
+          await api.saveAthlete(formData);
+          toast.success("Atleta salvo com sucesso!");
+        }
         onSave(formData as Athlete);
       }
     } catch (err: any) {
@@ -325,7 +331,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
           </div>
           <div>
             <h2 className="text-xl font-bold text-white leading-tight">
-              {isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta')}
+              {userRole === 'professor' ? 'Meus Dados Profissionais' : (isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta'))}
             </h2>
             {athlete && <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{athlete.name}</p>}
           </div>

@@ -194,8 +194,10 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             { id: 'student', label: 'Dados & Identidade', color: 'bg-purple-500' },
             { id: 'arena', label: 'Minhas Competições', color: 'bg-blue-500' },
             { id: 'training', label: 'Treinos & Agenda', color: 'bg-orange-500' },
+            { id: 'community', label: 'Comunidade & Social', color: 'bg-green-600' },
           ].map((cat) => {
             const items = filteredNavItems.filter(item => item.category === cat.id);
+            if (items.length === 0) return null;
             
             // Additional links for specific categories in student view
             const additionalItems = [];
@@ -910,9 +912,9 @@ export default function App() {
                   onClose={() => setActiveTab('dashboard')} 
                   onSave={() => {
                     setActiveTab('dashboard');
-                    toast.success("Dados atualizados com sucesso!");
                   }} 
                   standalone
+                  userRole={user.role}
                 />
               ) : (
                 <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
@@ -953,7 +955,7 @@ export default function App() {
             </div>
           );
         case 'attendance-history':
-          return <StudentPresenceHistory athleteId={user.athlete_id || ''} />;
+          return <StudentPresenceHistory athleteId={user.athlete_id || user.professor_id || ''} />;
         case 'anamnesis':
           return (
             <div className="max-w-4xl mx-auto space-y-8">

@@ -75,10 +75,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isAthleteOwner(athleteId) {
+    function isDataOwner(personId) {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') == athleteId;
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') == personId ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('professor_id', '') == personId);
     }
 
     function hasRequiredFields(fields) {
@@ -216,14 +217,15 @@ service cloud.firestore {
     match /athletes/{athleteId} {
       allow read: if true;
       allow create: if isAuthenticated() && isValidAthlete(request.resource.data);
-      allow update: if isAdmin() || (isAthleteOwner(athleteId) && isValidAthlete(request.resource.data));
+      allow update: if isAdmin() || (isDataOwner(athleteId) && isValidAthlete(request.resource.data));
       allow delete: if isAdmin();
     }
 
     match /professors/{professorId} {
       allow read: if true;
       allow create: if isValidProfessor(request.resource.data);
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (isDataOwner(professorId));
+      allow delete: if isAdmin();
     }
 
     match /events/{eventId} {
@@ -245,9 +247,9 @@ service cloud.firestore {
     }
 
     match /anamnesis/{athleteId} {
-      allow read: if isAuthenticated() && (isAthleteOwner(athleteId) || isAdmin());
+      allow read: if isAuthenticated() && (isDataOwner(athleteId) || isAdmin());
       allow create: if isAuthenticated() && isValidAnamnesis(request.resource.data);
-      allow update: if isAuthenticated() && (isAthleteOwner(athleteId) || isAdmin()) && isValidAnamnesis(request.resource.data);
+      allow update: if isAuthenticated() && (isDataOwner(athleteId) || isAdmin()) && isValidAnamnesis(request.resource.data);
       allow delete: if isAdmin();
     }
 
