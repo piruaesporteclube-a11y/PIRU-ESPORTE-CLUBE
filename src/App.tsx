@@ -713,19 +713,37 @@ export default function App() {
 
   useEffect(() => {
     // Sync user state with Firebase Auth
-    const unsubscribe = api.onAuthChange((firebaseUser) => {
+    const unsubscribe = api.onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
         // If Firebase Auth says no user, but we have one in state, clear it
         // unless it's the emergency-token admin (which is local only)
         const saved = localStorage.getItem('pirua_user');
         if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.token !== 'emergency-token') {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.token !== 'emergency-token') {
+              setUser(null);
+              localStorage.removeItem('pirua_user');
+            }
+          } catch (e) {
             setUser(null);
             localStorage.removeItem('pirua_user');
           }
         } else {
           setUser(null);
+        }
+      } else if (!user) {
+        // If we have a Firebase user but no local app state, attempt recovery
+        try {
+          const userData = await api.getUserDoc(firebaseUser.uid);
+          if (userData) {
+            const token = await firebaseUser.getIdToken();
+            const userWithToken = { ...userData, token };
+            setUser(userWithToken);
+            localStorage.setItem('pirua_user', JSON.stringify(userWithToken));
+          }
+        } catch (error) {
+          console.error("Session recovery failed:", error);
         }
       }
     });
@@ -1015,7 +1033,7 @@ export default function App() {
         case 'contacts':
           return <ContactList athletes={athletes} />;
         case 'activities':
-          return <ActivityManagement />;
+          return <ActivityManagement role={user?.role} />;
         case 'trainings':
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'official-letters':

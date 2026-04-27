@@ -17,11 +17,16 @@ export interface GeneratedDrill {
 
 export const geminiService = {
   async generateDrill(modality: string, goal?: string): Promise<GeneratedDrill> {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("Chave da API Gemini não configurada. Verifique as configurações do projeto.");
+    }
     const prompt = `Crie um exercício de treinamento profissional altamente criativo para a modalidade: ${modality}. ${goal ? `Objetivo específico: ${goal}` : ''}
     O exercício deve incluir posicionamento estratégico de materiais (cones, barreiras, estacas) e jogadores.
+    Gere um array visualData com pelo menos 5 objetos.
     IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tipos de materiais: cone, barrier, arrow, player, ball.
     Para players, use equipes (A, B, C, D) e labels (números).
+    Retorne a descrição detalhada do exercício.
     A descrição deve ser profissional e em Português-BR.`;
 
     const response = await ai.models.generateContent({
@@ -74,8 +79,12 @@ export const geminiService = {
   },
 
   async generateSuggestions(modality: string): Promise<GeneratedDrill[]> {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("Chave da API Gemini não configurada. Verifique as configurações do projeto.");
+    }
     const prompt = `Gere 3 sugestões de exercícios profissionais de nível elite para a modalidade: ${modality}. 
     Inclua um exercício de Aquecimento, um de Fundamento e um Tático.
+    Para cada um, gere um array visualData com pelo menos 4 objetos.
     IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tudo em Português-BR.`;
 

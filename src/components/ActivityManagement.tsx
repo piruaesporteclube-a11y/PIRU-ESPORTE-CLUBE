@@ -12,6 +12,7 @@ import { Sparkles } from 'lucide-react';
 interface ActivityManagementProps {
   onSelect?: (activity: TrainingActivity) => void;
   isPicker?: boolean;
+  role?: string;
 }
 
 const MODALITIES = ["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"];
@@ -32,7 +33,7 @@ const CATEGORIES = [
   { id: "Outro", name: "Outro", icon: <Package size={16} />, color: "text-zinc-500", bg: "bg-zinc-500/10" },
 ];
 
-export default function ActivityManagement({ onSelect, isPicker = false }: ActivityManagementProps) {
+export default function ActivityManagement({ onSelect, isPicker = false, role }: ActivityManagementProps) {
   const [activities, setActivities] = useState<TrainingActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +41,8 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
   const [selectedModality, setSelectedModality] = useState<string>('Todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visualizingActivity, setVisualizingActivity] = useState<TrainingActivity | null>(null);
+
+  const isStaff = role === 'admin' || role === 'professor';
 
   const [formData, setFormData] = useState<Partial<TrainingActivity>>({
     name: '',
@@ -373,7 +376,7 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {!isPicker && (
+          {!isPicker && isStaff && (
             <div className="flex items-center gap-2">
               <button 
                 onClick={seedTemplates}
@@ -395,16 +398,18 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
               </button>
             </div>
           )}
-          <button 
-            onClick={() => {
-              resetForm();
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-8 py-4 bg-white text-black font-black rounded-2xl uppercase tracking-tighter hover:bg-theme-primary transition-all shadow-xl shadow-theme-primary/20 text-sm"
-          >
-            <Plus size={22} />
-            Criar Atividade
-          </button>
+          {isStaff && (
+            <button 
+              onClick={() => {
+                resetForm();
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-8 py-4 bg-white text-black font-black rounded-2xl uppercase tracking-tighter hover:bg-theme-primary transition-all shadow-xl shadow-theme-primary/20 text-sm"
+            >
+              <Plus size={22} />
+              Criar Atividade
+            </button>
+          )}
         </div>
       </div>
 
@@ -593,15 +598,17 @@ export default function ActivityManagement({ onSelect, isPicker = false }: Activ
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <button 
-                    type="button"
-                    onClick={handleMagicFill}
-                    disabled={isGenerating}
-                    className="hidden sm:flex items-center gap-2 px-6 py-4 bg-indigo-600/10 text-indigo-400 border border-indigo-500/30 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-50"
-                  >
-                    <Sparkles size={20} className={cn("group-hover:scale-110 transition-transform", isGenerating && "animate-spin")} />
-                    {isGenerating ? "Consultando IA..." : "Sincronizar com IA"}
-                  </button>
+                  {isStaff && (
+                    <button 
+                      type="button"
+                      onClick={handleMagicFill}
+                      disabled={isGenerating}
+                      className="hidden sm:flex items-center gap-2 px-6 py-4 bg-indigo-600/10 text-indigo-400 border border-indigo-500/30 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-50"
+                    >
+                      <Sparkles size={20} className={cn("group-hover:scale-110 transition-transform", isGenerating && "animate-spin")} />
+                      {isGenerating ? "Consultando IA..." : "Sincronizar com IA"}
+                    </button>
+                  )}
                   <button 
                     onClick={() => setIsModalOpen(false)} 
                     className="p-4 bg-zinc-800 hover:bg-red-500 text-zinc-400 hover:text-white rounded-2xl transition-all shadow-lg"

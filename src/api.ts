@@ -524,6 +524,19 @@ export const api = {
     }
   },
 
+  getUserDoc: async (uid: string): Promise<User | null> => {
+    try {
+      const docSnap = await getDoc(doc(db, "users", uid));
+      if (docSnap.exists()) {
+        return docSnap.data() as User;
+      }
+      return null;
+    } catch (e) {
+      console.error("Error fetching user data", e);
+      return null;
+    }
+  },
+
   logout: () => signOut(auth),
   
   clearPersistence: async () => {

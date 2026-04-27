@@ -152,9 +152,22 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
               Cadastre aqui
             </button>
             
-            <div className="flex items-center justify-center gap-2 text-zinc-600">
-              <ShieldCheck size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Acesso Seguro</span>
+            <div className="flex items-center justify-between gap-2 text-zinc-600">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Acesso Seguro</span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  if (confirm("Isso irá limpar todos os dados salvos no navegador e recarregar a página. Continuar?")) {
+                    api.clearPersistence();
+                  }
+                }}
+                className="text-[10px] font-bold uppercase tracking-widest hover:text-theme-primary transition-colors underline decoration-dotted"
+              >
+                Limpar Sistema
+              </button>
             </div>
           </div>
         </div>
