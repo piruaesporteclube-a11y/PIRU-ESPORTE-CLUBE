@@ -11,11 +11,12 @@ import * as htmlToImage from 'html-to-image';
 
 interface BirthdaysProps {
   athletes?: Athlete[];
+  professors?: Professor[];
 }
 
-export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
+export default function Birthdays({ athletes: athletesProp, professors: professorsProp }: BirthdaysProps) {
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
-  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
   const { settings } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -40,18 +41,21 @@ export default function Birthdays({ athletes: athletesProp }: BirthdaysProps) {
     if (athletesProp) {
       setAthletes(athletesProp);
     }
+    if (professorsProp) {
+      setProfessors(professorsProp);
+    }
     loadData();
-  }, [athletesProp]);
+  }, [athletesProp, professorsProp]);
 
   const loadData = async () => {
-    const promises: [Promise<Athlete[]> | null, Promise<Professor[]>] = [
+    const promises: [Promise<Athlete[]> | null, Promise<Professor[]> | null] = [
       athletesProp ? null : api.getAthletes(),
-      api.getProfessors()
+      professorsProp ? null : api.getProfessors()
     ];
     
     const [a, p] = await Promise.all(promises);
     if (a) setAthletes(a);
-    setProfessors(p);
+    if (p) setProfessors(p);
   };
 
   const isValidDate = (dateStr: string | undefined | null) => {

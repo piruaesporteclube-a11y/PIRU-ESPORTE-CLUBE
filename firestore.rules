@@ -132,8 +132,8 @@ service cloud.firestore {
     function isValidProfessor(data) {
       return data.name is string && data.name.size() > 0 &&
              data.doc is string && data.doc.size() >= 11 &&
-             data.email is string && data.email.size() > 5 &&
-             data.photo is string && data.photo.size() > 100;
+             data.email is string && data.email.size() >= 3 &&
+             data.photo is string && data.photo.size() > 0;
     }
 
     function isValidAnamnesis(data) {

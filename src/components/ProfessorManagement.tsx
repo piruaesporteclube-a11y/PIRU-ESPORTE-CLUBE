@@ -35,7 +35,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
     uf: '',
     email: '',
     photo: '',
-    role: 'treinador',
+    role: 'Treinador',
     modality: 'Comissão Técnica'
   });
 
@@ -228,7 +228,21 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
       toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
       setEditingProfessor(null);
-      setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' });
+      setFormData({ 
+        name: '', 
+        birth_date: '', 
+        doc: '', 
+        phone: '', 
+        email: '', 
+        street: '', 
+        number: '', 
+        neighborhood: '', 
+        city: '', 
+        uf: '', 
+        photo: '',
+        role: 'Treinador',
+        modality: 'Comissão Técnica'
+      });
       loadProfessors();
     } catch (err: any) {
       toast.error(`Erro ao salvar professor: ${err.message}`);
@@ -375,7 +389,25 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
           <div className="bg-black border border-theme-primary/20 w-full max-w-2xl rounded-3xl shadow-2xl my-auto">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white">{editingProfessor ? 'Editar Membro' : 'Novo Membro'}</h2>
-              <button onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+              <button onClick={() => { 
+                setIsFormOpen(false); 
+                setEditingProfessor(null); 
+                setFormData({ 
+                  name: '', 
+                  birth_date: '', 
+                  doc: '', 
+                  phone: '', 
+                  email: '', 
+                  street: '', 
+                  number: '', 
+                  neighborhood: '', 
+                  city: '', 
+                  uf: '', 
+                  photo: '',
+                  role: 'Treinador',
+                  modality: 'Comissão Técnica'
+                }); 
+              }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
                 <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
               </button>
@@ -559,12 +591,40 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     onChange={e => setFormData({...formData, city: e.target.value})}
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">UF</label>
+                  <input 
+                    type="text" 
+                    maxLength={2}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-center uppercase"
+                    value={formData.uf}
+                    onChange={e => setFormData({...formData, uf: e.target.value.toUpperCase()})}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <button 
                   type="button"
-                  onClick={() => { setIsFormOpen(false); setEditingProfessor(null); setFormData({ name: '', birth_date: '', doc: '', phone: '', email: '', street: '', number: '', neighborhood: '', city: '', uf: '', photo: '' }); }}
+                  onClick={() => { 
+                    setIsFormOpen(false); 
+                    setEditingProfessor(null); 
+                    setFormData({ 
+                      name: '', 
+                      birth_date: '', 
+                      doc: '', 
+                      phone: '', 
+                      email: '', 
+                      street: '', 
+                      number: '', 
+                      neighborhood: '', 
+                      city: '', 
+                      uf: '', 
+                      photo: '',
+                      role: 'Treinador',
+                      modality: 'Comissão Técnica'
+                    }); 
+                  }}
                   className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors"
                 >
                   Cancelar

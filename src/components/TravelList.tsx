@@ -26,7 +26,7 @@ import autoTable from 'jspdf-autotable';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
-export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'student' | 'professor' }) {
+export default function TravelList({ role = 'admin', athletes: athletesProp, professors: professorsProp }: { role?: 'admin' | 'student' | 'professor', athletes?: Athlete[], professors?: Professor[] }) {
   const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
@@ -35,8 +35,8 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
   const [selectedLineupIndexes, setSelectedLineupIndexes] = useState<number[]>([0]);
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
+  const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
   const [loading, setLoading] = useState(false);
   const [isAddingCompanion, setIsAddingCompanion] = useState(false);
   const [isEditingLineup, setIsEditingLineup] = useState(false);
@@ -46,7 +46,13 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
   const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
   const [directorName, setDirectorName] = useState(settings?.president || '');
 
+  useEffect(() => {
+    if (athletesProp) setAthletes(athletesProp);
+    if (professorsProp) setProfessors(professorsProp);
+  }, [athletesProp, professorsProp]);
+
   const loadAthletes = async () => {
+    if (athletesProp && athletesProp.length > 0) return;
     try {
       const data = await api.getAthletes();
       setAthletes(data);
@@ -56,6 +62,7 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
   };
 
   const loadProfessors = async () => {
+    if (professorsProp && professorsProp.length > 0) return;
     try {
       const data = await api.getProfessors();
       setProfessors(data);

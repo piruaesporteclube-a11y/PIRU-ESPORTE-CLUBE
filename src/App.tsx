@@ -40,9 +40,10 @@ import { format } from 'date-fns';
 import { navItems } from './navigation';
 import { cn } from './utils';
 
-const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
+const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
   stats: any, 
   athletes: Athlete[], 
+  professors: Professor[],
   events: Event[], 
   user: User, 
   settings: Settings,
@@ -284,7 +285,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
               </div>
               Aniversariantes do Mês
             </h3>
-            <Birthdays athletes={athletes} />
+            <Birthdays athletes={athletes} professors={professors} />
           </div>
         </section>
       </div>
@@ -469,7 +470,7 @@ const Dashboard = ({ stats, athletes, events, user, settings, activeTab, setActi
             </div>
             Aniversariantes
           </h3>
-          <Birthdays />
+          <Birthdays athletes={athletes} professors={professors} />
         </div>
       </section>
     </div>
@@ -633,19 +634,18 @@ export default function App() {
       }).catch(err => console.error("Erro ao carregar eventos:", err));
     } else if (user.role === 'student' && user.athlete_id) {
       // Students only subscribe to their own document, which is very efficient
-      const unsubscribe = api.subscribeToAthlete(user.athlete_id, (data) => {
-        if (data) {
-          setMyAthleteData(data);
-          setAthletes([data]);
-        }
-      });
+        const unsubscribe = api.subscribeToAthlete(user.athlete_id, (data) => {
+          if (data) {
+            setMyAthleteData(data);
+            setAthletes(prev => (prev.length === 1 && prev[0].id === data.id) ? (JSON.stringify(prev[0]) === JSON.stringify(data) ? prev : [data]) : [data]);
+          }
+        });
       return () => unsubscribe();
     } else if (user.role === 'professor' && user.professor_id) {
       // Fetch professor data and map it to an athlete-like structure for generic components
       const loadProfessorData = async () => {
         try {
-          const allProfs = await api.getProfessors();
-          const me = allProfs.find(p => p.id === user.professor_id);
+          const me = await api.getProfessor(user.professor_id!);
           if (me) {
             const mappedAsAthlete: Athlete = {
               id: me.id,
@@ -802,6 +802,7 @@ export default function App() {
             <Dashboard 
               stats={stats} 
               athletes={athletes} 
+              professors={professors}
               events={events} 
               user={user} 
               settings={settings}
@@ -838,6 +839,7 @@ export default function App() {
                     onSelect={(a) => setSelectedAthleteForAnamnesis(a)}
                     selectedAthleteId={selectedAthleteForAnamnesis?.id}
                     placeholder="SELECIONAR ATLETA..."
+                    athletes={athletes}
                   />
                 </div>
                 <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
@@ -850,6 +852,7 @@ export default function App() {
                     onSelect={(a) => setSelectedAthleteForCard(a)}
                     selectedAthleteId={selectedAthleteForCard?.id}
                     placeholder="SELECIONAR ATLETA..."
+                    athletes={athletes}
                   />
                 </div>
               </div>
@@ -972,6 +975,7 @@ export default function App() {
                 <AthleteSearchSelect 
                   onSelect={(a) => setSelectedAthleteForAnamnesis(a)}
                   selectedAthleteId={selectedAthleteForAnamnesis?.id}
+                  athletes={athletes}
                 />
               </div>
               {selectedAthleteForAnamnesis && (
@@ -1004,6 +1008,8 @@ export default function App() {
                   onSelect={(a) => setSelectedAthleteForCard(a)}
                   selectedAthleteId={selectedAthleteForCard?.id}
                   includeProfessors
+                  athletes={athletes}
+                  professors={professors}
                 />
               </div>
               {selectedAthleteForCard && (
@@ -1026,7 +1032,7 @@ export default function App() {
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':
-          return <Birthdays athletes={athletes} />;
+          return <Birthdays athletes={athletes} professors={professors} />;
         case 'documents':
           return <Documents />;
         case 'sponsors':
@@ -1042,7 +1048,7 @@ export default function App() {
         case 'official-letters':
           return <OfficialLetterGenerator />;
         case 'travel-list':
-          return <TravelList role={user?.role} />;
+          return <TravelList athletes={athletes} professors={professors} role={user?.role} />;
         case 'settings':
           return <SettingsComponent />;
         default:
@@ -1050,6 +1056,7 @@ export default function App() {
             <Dashboard 
               stats={stats} 
               athletes={athletes} 
+              professors={professors}
               events={events} 
               user={user} 
               settings={settings}

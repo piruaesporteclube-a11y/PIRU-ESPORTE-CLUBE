@@ -45,8 +45,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
       if (trainingId) {
         try {
-          const trainings = await api.getTrainings();
-          const found = trainings.find(t => t.id === trainingId);
+          const found = await api.getTraining(trainingId);
           if (found) {
             setTraining(found);
             
@@ -59,7 +58,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 const latestEnd = found.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
                 setIsLocked(latestEnd < currentTimeStr);
               } else {
-                setIsLocked(found.end_time < currentTimeStr);
+                setIsLocked((found.end_time || '00:00') < currentTimeStr);
               }
             } else {
               setIsLocked(false);
@@ -70,13 +69,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         }
       } else if (eventId) {
         try {
-          const events = await api.getEvents();
-          const found = events.find(e => e.id === eventId);
+          const found = await api.getEvent(eventId);
           if (found) {
             setEvent(found);
             if ((found.end_date < todayString && !isAdmin)) {
               setIsLocked(true);
-            } else if (found.end_date === todayString && found.end_time < currentTimeStr && !isAdmin) {
+            } else if (found.end_date === todayString && (found.end_time || '00:00') < currentTimeStr && !isAdmin) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -193,6 +191,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   }, [settings?.schoolCrest]);
 
   const loadData = async (silent = false) => {
+    // If we already have athletes from props, don't fetch unless it's a manual refresh
+    if (athletesProp && athletesProp.length > 0 && silent) {
+      setAthletes(athletesProp);
+      return;
+    }
+
     try {
       const data = await api.getAthletes();
       setAthletes(data);

@@ -14,7 +14,7 @@ export default function PublicProfessorRegistration() {
     doc: '',
     birth_date: '',
     phone: '',
-    role: 'treinador',
+    role: 'Treinador',
     modality: 'Comissão Técnica',
     street: '',
     number: '',
@@ -31,8 +31,8 @@ export default function PublicProfessorRegistration() {
     setError(null);
 
     try {
-      if (!formData.name || !formData.doc || !formData.phone || !formData.email || !formData.photo) {
-        throw new Error("Por favor, preencha todos os campos obrigatórios (Foto, Nome, Email, CPF e Telefone).");
+      if (!formData.name || !formData.doc || !formData.phone || !formData.email || !formData.photo || !formData.birth_date || !formData.role) {
+        throw new Error("Por favor, preencha todos os campos obrigatórios (Foto, Nome, Email, CPF, Data de Nasc. e Telefone). Certifique-se também de selecionar ao menos um cargo.");
       }
 
       const professorData: Professor = {
@@ -273,6 +273,10 @@ export default function PublicProfessorRegistration() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                if (file.size > 1024 * 1024) {
+                                  setError("A foto é muito grande. Por favor, escolha uma imagem com menos de 1MB.");
+                                  return;
+                                }
                                 const reader = new FileReader();
                                 reader.onloadend = () => {
                                   setFormData(prev => ({ ...prev, photo: reader.result as string }));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Athlete } from '../types';
+import { Athlete, Professor } from '../types';
 import { Search, User, ChevronDown, X, Filter } from 'lucide-react';
 import { cn } from '../utils';
 import { getSubCategory, categories } from '../types';
@@ -11,6 +11,8 @@ interface AthleteSearchSelectProps {
   className?: string;
   selectedAthleteId?: string;
   includeProfessors?: boolean;
+  athletes?: Athlete[];
+  professors?: Professor[];
 }
 
 export default function AthleteSearchSelect({ 
@@ -18,7 +20,9 @@ export default function AthleteSearchSelect({
   placeholder = "PESQUISAR ATLETA...", 
   className, 
   selectedAthleteId,
-  includeProfessors = false
+  includeProfessors = false,
+  athletes: athletesProp,
+  professors: professorsProp
 }: AthleteSearchSelectProps) {
   const [data, setData] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +33,39 @@ export default function AthleteSearchSelect({
 
   useEffect(() => {
     const loadData = async () => {
+      // Use props if provided, otherwise fetch
+      if (athletesProp && (!includeProfessors || professorsProp)) {
+        let results = [...athletesProp];
+        if (includeProfessors && professorsProp) {
+          const mappedProfs: Athlete[] = (professorsProp as Professor[]).map(p => ({
+            id: p.id,
+            name: p.name,
+            birth_date: p.birth_date || '1990-01-01',
+            doc: p.doc,
+            nickname: 'COMISSÃO',
+            street: p.street || '',
+            number: p.number || '',
+            neighborhood: p.neighborhood || '',
+            city: p.city || '',
+            uf: p.uf || '',
+            gender: 'Masculino',
+            jersey_number: '00',
+            photo: p.photo || '',
+            status: 'Ativo',
+            modality: 'Comissão Técnica',
+            position: p.role || 'Membro',
+            contact: p.phone || '',
+            email: p.email || '',
+            guardian_name: 'DIRETORIA',
+            guardian_phone: p.phone || '',
+            guardian_doc: ''
+          }));
+          results = [...results, ...mappedProfs];
+        }
+        setData(results);
+        return;
+      }
+
       setLoading(true);
       try {
         const athletes = await api.getAthletes();
@@ -70,7 +107,7 @@ export default function AthleteSearchSelect({
       }
     };
     loadData();
-  }, [includeProfessors]);
+  }, [includeProfessors, athletesProp, professorsProp]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

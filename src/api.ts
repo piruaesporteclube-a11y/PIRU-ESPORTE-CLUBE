@@ -119,6 +119,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 // Simple cache to reduce read operations
 const cache: Record<string, { data: any, timestamp: number }> = {};
+const pendingRequests: { [key: string]: Promise<any> | null } = {};
 const CACHE_TTL = 900000; // 15 minutes (increased from 5m to save quota)
 
 const getCachedData = (key: string) => {
@@ -136,6 +137,9 @@ const setCachedData = (key: string, data: any) => {
 export const clearCache = () => {
   for (const key in cache) {
     delete cache[key];
+  }
+  for (const key in pendingRequests) {
+    pendingRequests[key] = null;
   }
 };
 
@@ -157,39 +161,61 @@ const isQuotaError = (error: any): boolean => {
 };
 
 const getDocsWithCacheFallback = async (q: any) => {
-  try {
-    return await getDocs(q);
-  } catch (error) {
-    if (isQuotaError(error)) {
-      console.warn("Quota exceeded, attempting to load from cache...");
-      try {
-        return await getDocsFromCache(q);
-      } catch (cacheError) {
-        console.error("Failed to load from cache:", cacheError);
-        // If not in cache, return an empty snapshot instead of throwing to prevent app crash
-        return { docs: [], empty: true, size: 0 } as any;
+  const key = `docs_${q.path || (q._query && q._query.path && q._query.path.canonicalString()) || JSON.stringify(q)}`;
+  if (pendingRequests[key]) return pendingRequests[key];
+
+  const promise = (async () => {
+    try {
+      const snapshot = await getDocs(q);
+      pendingRequests[key] = null;
+      return snapshot;
+    } catch (error) {
+      pendingRequests[key] = null;
+      if (isQuotaError(error)) {
+        console.warn("Quota exceeded, attempting to load from cache...");
+        try {
+          return await getDocsFromCache(q);
+        } catch (cacheError) {
+          console.error("Failed to load from cache:", cacheError);
+          // If not in cache, return an empty snapshot instead of throwing to prevent app crash
+          return { docs: [], empty: true, size: 0 } as any;
+        }
       }
+      throw error;
     }
-    throw error;
-  }
+  })();
+
+  pendingRequests[key] = promise;
+  return promise;
 };
 
 const getDocWithCacheFallback = async (docRef: any) => {
-  try {
-    return await getDoc(docRef);
-  } catch (error) {
-    if (isQuotaError(error)) {
-      console.warn("Quota exceeded, attempting to load document from cache...");
-      try {
-        return await getDocFromCache(docRef);
-      } catch (cacheError) {
-        console.error("Failed to load document from cache:", cacheError);
-        // If not in cache, return a non-existent snapshot
-        return { exists: () => false, data: () => undefined } as any;
+  const key = `doc_${docRef.path}`;
+  if (pendingRequests[key]) return pendingRequests[key];
+
+  const promise = (async () => {
+    try {
+      const snapshot = await getDoc(docRef);
+      pendingRequests[key] = null;
+      return snapshot;
+    } catch (error) {
+      pendingRequests[key] = null;
+      if (isQuotaError(error)) {
+        console.warn("Quota exceeded, attempting to load document from cache...");
+        try {
+          return await getDocFromCache(docRef);
+        } catch (cacheError) {
+          console.error("Failed to load document from cache:", cacheError);
+          // If not in cache, return a non-existent snapshot
+          return { exists: () => false, data: () => undefined } as any;
+        }
       }
+      throw error;
     }
-    throw error;
-  }
+  })();
+
+  pendingRequests[key] = promise;
+  return promise;
 };
 
 export const api = {
@@ -571,6 +597,24 @@ export const api = {
     });
   },
 
+  getAthlete: async (id: string): Promise<Athlete | null> => {
+    const cacheKey = `athlete_${id}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+    try {
+      const docSnap = await getDocWithCacheFallback(doc(db, "athletes", id));
+      if (docSnap.exists()) {
+        const data = { ...(docSnap.data() as any), id: docSnap.id } as Athlete;
+        setCachedData(cacheKey, data);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `athletes/${id}`);
+      return null;
+    }
+  },
+
   getAthletes: async (): Promise<Athlete[]> => {
     const cached = getCachedData("athletes");
     if (cached) return cached;
@@ -634,6 +678,24 @@ export const api = {
   },
 
   // Professors
+  getProfessor: async (id: string): Promise<Professor | null> => {
+    const cacheKey = `professor_${id}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+    try {
+      const docSnap = await getDocWithCacheFallback(doc(db, "professors", id));
+      if (docSnap.exists()) {
+        const data = { ...(docSnap.data() as any), id: docSnap.id } as Professor;
+        setCachedData(cacheKey, data);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `professors/${id}`);
+      return null;
+    }
+  },
+
   getProfessors: async (): Promise<Professor[]> => {
     const cached = getCachedData("professors");
     if (cached) return cached;
@@ -689,6 +751,24 @@ export const api = {
   },
 
   // Events
+  getEvent: async (id: string): Promise<Event | null> => {
+    const cacheKey = `event_${id}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+    try {
+      const docSnap = await getDocWithCacheFallback(doc(db, "events", id));
+      if (docSnap.exists()) {
+        const data = { ...(docSnap.data() as any), id: docSnap.id } as Event;
+        setCachedData(cacheKey, data);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `events/${id}`);
+      return null;
+    }
+  },
+
   getEvents: async (): Promise<Event[]> => {
     const cached = getCachedData("events");
     if (cached) return cached;
@@ -1267,6 +1347,24 @@ export const api = {
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "trainings");
       return [];
+    }
+  },
+
+  getTraining: async (id: string): Promise<Training | null> => {
+    const cacheKey = `training_${id}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+    try {
+      const docSnap = await getDocWithCacheFallback(doc(db, "trainings", id));
+      if (docSnap.exists()) {
+        const data = { ...docSnap.data(), id: docSnap.id } as Training;
+        setCachedData(cacheKey, data);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `trainings/${id}`);
+      return null;
     }
   },
   saveTraining: async (training: Partial<Training>) => {
