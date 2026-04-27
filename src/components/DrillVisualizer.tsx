@@ -251,10 +251,15 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
       let currentY = oy;
 
       if (obj.animate && obj.toX !== undefined && obj.toY !== undefined && !isEditable) {
-        const dx = (obj.toX - obj.x) * t;
-        const dy = (obj.toY - obj.y) * t;
-        currentX = ox + (dx / 100) * fw;
-        currentY = oy + (dy / 100) * fh;
+        const targetX = Number(obj.toX);
+        const targetY = Number(obj.toY);
+        const startX = Number(obj.x);
+        const startY = Number(obj.y);
+        
+        const dx = (targetX - startX) * t;
+        const dy = (targetY - startY) * t;
+        currentX = fieldBorder + ((startX + dx) / 100) * fw;
+        currentY = fieldBorder + ((startY + dy) / 100) * fh;
       }
 
       let element: any = null;

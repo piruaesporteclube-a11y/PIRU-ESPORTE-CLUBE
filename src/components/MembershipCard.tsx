@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Athlete, Settings, getSubCategory } from '../types';
 import { api } from '../api';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
-import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode } from 'lucide-react';
+import { Printer, Download, UserCircle, MapPin, Phone, Hash, FileDown, Loader2, AlertCircle, ShieldCheck, QrCode, ZoomIn, ZoomOut, Move as MoveIcon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
-import { fixHtml2CanvasColors } from '../utils';
+import { fixHtml2CanvasColors, cn } from '../utils';
 
 interface MembershipCardProps {
   athlete: Athlete | {
@@ -38,6 +38,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+  
+  // Photo adjustment state
+  const [photoZoom, setPhotoZoom] = useState(1);
+  const [photoX, setPhotoX] = useState(0);
+  const [photoY, setPhotoY] = useState(0);
+  const [showControls, setShowControls] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -173,6 +179,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           img.style.objectFit = 'cover';
           img.style.width = '100%';
           img.style.height = '100%';
+          img.style.transform = `scale(${photoZoom}) translate(${photoX}px, ${photoY}px)`;
         }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
@@ -292,6 +299,17 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         <h2 className="text-2xl font-bold text-white">Carteirinha do Atleta</h2>
         <div className="flex gap-2">
           <button 
+            onClick={() => setShowControls(!showControls)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all",
+              showControls ? "bg-theme-primary text-black" : "bg-zinc-800 text-white"
+            )}
+            title="Ajustar Foto"
+          >
+            <MoveIcon size={18} />
+            Ajustar Foto
+          </button>
+          <button 
             onClick={handleDownloadImage}
             disabled={isGenerating}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
@@ -318,7 +336,62 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         </div>
       </div>
 
-      <div className="flex justify-center p-2 sm:p-8 print:p-0 card-print-container overflow-x-auto bg-zinc-950/50 rounded-[2.5rem] border border-zinc-800/50">
+      <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start p-2 sm:p-8 print:p-0 card-print-container bg-zinc-950/50 rounded-[2.5rem] border border-zinc-800/50 gap-8">
+        {showControls && (
+          <div className="w-full lg:w-64 bg-zinc-900 border border-zinc-800 p-6 rounded-3xl space-y-6 no-print">
+            <h3 className="text-white font-black uppercase text-xs tracking-widest flex items-center gap-2">
+              <MoveIcon size={16} className="text-theme-primary" />
+              Ajuste de Imagem
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-black text-zinc-500 uppercase">
+                  <span>Zoom</span>
+                  <span>{Math.round(photoZoom * 100)}%</span>
+                </div>
+                <input 
+                  type="range" min="0.5" max="3" step="0.1" 
+                  value={photoZoom} onChange={(e) => setPhotoZoom(parseFloat(e.target.value))}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-black text-zinc-500 uppercase">
+                  <span>Horizontal (X)</span>
+                  <span>{photoX}px</span>
+                </div>
+                <input 
+                  type="range" min="-100" max="100" step="1" 
+                  value={photoX} onChange={(e) => setPhotoX(parseInt(e.target.value))}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-black text-zinc-500 uppercase">
+                  <span>Vertical (Y)</span>
+                  <span>{photoY}px</span>
+                </div>
+                <input 
+                  type="range" min="-100" max="100" step="1" 
+                  value={photoY} onChange={(e) => setPhotoY(parseInt(e.target.value))}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+
+              <button 
+                onClick={() => { setPhotoZoom(1); setPhotoX(0); setPhotoY(0); }}
+                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-theme-primary" />
+                Resetar Ajustes
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* The Card Layout - Custom Size (11cm x 8cm ratio) */}
         <div 
           ref={cardRef}
@@ -476,7 +549,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               <div className="w-[65px] h-[85px] bg-white p-0.5 rounded-lg shadow-2xl flex-shrink-0">
                 <div className="w-full h-full bg-zinc-200 rounded-md overflow-hidden relative">
                   {photoDataUrl ? (
-                    <img src={photoDataUrl} className="w-full h-full object-cover" data-type="photo" />
+                    <img 
+                      src={photoDataUrl} 
+                      className="w-full h-full object-cover origin-center" 
+                      style={{ transform: `scale(${photoZoom}) translate(${photoX}px, ${photoY}px)` }}
+                      data-type="photo" 
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-400">
                       <UserCircle size={28} />
@@ -621,15 +699,18 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Motto */}
-            <div className="mt-0.5 text-center">
-              <p className="text-[4px] font-black text-theme-primary tracking-[0.1em] uppercase">
-                Disciplina • Dedicação • Respeito • Evolução
+            <div className="mt-1 text-center bg-theme-primary/5 py-1">
+              <p className="text-[5px] font-black text-theme-primary tracking-[0.3em] uppercase italic">
+                Formando Atletas, Cidadãos e Campeões • Excelência no Esporte
               </p>
             </div>
           </div>
 
           {/* Bottom Validity Bar */}
-          <div className="absolute bottom-0 left-0 w-full h-4 bg-theme-primary flex items-center justify-center z-20">
+          <div className="absolute bottom-0 left-0 w-full h-5 bg-theme-primary flex items-center justify-between px-4 z-20 border-t border-black/10">
+            <p className="text-[8px] font-black text-black uppercase tracking-widest">
+              Identidade Digital Esportiva
+            </p>
             <p className="text-[9px] font-black text-black uppercase tracking-widest">
               Validade: 31/12/{new Date().getFullYear()}
             </p>

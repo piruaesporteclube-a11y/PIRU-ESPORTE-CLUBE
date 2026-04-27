@@ -193,11 +193,14 @@ export default function PublicProfessorRegistration() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">E-mail *</label>
+                <label className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+                  E-mail Oficial
+                  <span className="text-red-500 font-black">*</span>
+                </label>
                 <input 
                   required
                   type="email"
-                  placeholder="EX: JOAO@EMAIL.COM"
+                  placeholder="exemplo@email.com"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})}
@@ -205,7 +208,10 @@ export default function PublicProfessorRegistration() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Telefone / WhatsApp *</label>
+                <label className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+                  Telefone / WhatsApp
+                  <span className="text-red-500 font-black">*</span>
+                </label>
                 <input 
                   required
                   type="tel"
@@ -215,44 +221,81 @@ export default function PublicProfessorRegistration() {
                   onChange={e => setFormData({...formData, phone: e.target.value})}
                 />
               </div>
+               <div className="space-y-4 md:col-span-2">
+                <div className="bg-zinc-800/50 p-6 rounded-[2rem] border-2 border-dashed border-zinc-700 hover:border-theme-primary/50 transition-all">
+                  <label className="text-sm font-black text-white uppercase tracking-widest mb-4 block text-center">
+                    Sua Foto de Perfil Oficial
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  
+                  <div className="flex flex-col md:flex-row gap-8 items-center">
+                    <div className="w-40 h-52 bg-zinc-900 rounded-2xl border-2 border-zinc-700 overflow-hidden flex items-center justify-center group relative shadow-2xl">
+                      {formData.photo ? (
+                        <div className="relative w-full h-full">
+                          <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => setFormData({...formData, photo: ''})}
+                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <UserPlus className="w-12 h-12 text-zinc-600" />
+                          <span className="text-[8px] font-black text-zinc-600 uppercase">Sem Foto</span>
+                        </div>
+                      )}
+                      
+                      {!formData.photo && (
+                        <label className="absolute inset-0 cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity">
+                          <div className="flex flex-col items-center gap-2">
+                            <QrCode className="text-white w-8 h-8" />
+                            <span className="text-[10px] text-white font-black uppercase">Enviar Foto</span>
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setFormData(prev => ({ ...prev, photo: reader.result as string }));
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Sua Foto de Perfil *</label>
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <div className="w-32 h-32 bg-zinc-800 rounded-2xl border-2 border-dashed border-zinc-700 overflow-hidden flex items-center justify-center group relative">
-                    {formData.photo ? (
-                      <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <UserPlus className="w-8 h-8 text-zinc-600" />
-                    )}
-                    <label className="absolute inset-0 cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity">
-                      <QrCode className="text-white w-6 h-6" />
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setFormData(prev => ({ ...prev, photo: reader.result as string }));
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                  <div className="flex-1 space-y-2 w-full">
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase">Clique no quadrado para enviar foto ou cole o link abaixo:</p>
-                    <input 
-                      type="url"
-                      placeholder="Link da sua foto (Opcional se enviou acima)"
-                      className="w-full h-12 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary transition-all font-bold text-sm"
-                      value={formData.photo?.startsWith('data:') ? '' : formData.photo}
-                      onChange={e => setFormData({...formData, photo: e.target.value})}
-                    />
+                    <div className="flex-1 space-y-4 w-full">
+                      <div className="bg-zinc-900/50 p-4 rounded-xl space-y-2">
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-theme-primary" />
+                          Opção 1: Clique no quadro ao lado para carregar arquivo
+                        </p>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-theme-primary" />
+                          Opção 2: Insira o link da imagem abaixo
+                        </p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">URL da Imagem</label>
+                        <input 
+                          type="url"
+                          placeholder="https://exemplo.com/sua-foto.jpg"
+                          className="w-full h-14 bg-zinc-900 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary transition-all font-bold text-sm"
+                          value={formData.photo?.startsWith('data:') ? '' : formData.photo}
+                          onChange={e => setFormData({...formData, photo: e.target.value})}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

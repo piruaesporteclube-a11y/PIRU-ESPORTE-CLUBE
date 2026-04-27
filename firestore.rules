@@ -49,8 +49,8 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         (
-          // Check for primary admin email
-          request.auth.token.email == "piruaesporteclube@gmail.com" ||
+          // Check for primary admin email with verification
+          (request.auth.token.email == "piruaesporteclube@gmail.com" && request.auth.token.email_verified == true) ||
           // Check if user document exists and has admin role
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
@@ -59,6 +59,16 @@ service cloud.firestore {
            exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "05504043689")
         );
+    }
+
+    function isProfessor() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'professor';
+    }
+
+    function isStaff() {
+      return isAdmin() || isProfessor();
     }
 
     function isOwner(userId) {
@@ -115,7 +125,14 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 150 &&
              data.doc is string && (data.doc.size() == 0 || (data.doc.size() >= 11 && data.doc.size() <= 20)) &&
-             data.role in ['admin', 'student'];
+             data.role in ['admin', 'student', 'professor'];
+    }
+
+    function isValidProfessor(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.doc is string && data.doc.size() >= 11 &&
+             data.email is string && data.email.size() > 5 &&
+             data.photo is string && data.photo.size() > 100;
     }
 
     function isValidAnamnesis(data) {
@@ -205,7 +222,8 @@ service cloud.firestore {
 
     match /professors/{professorId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isValidProfessor(request.resource.data);
+      allow update, delete: if isAdmin();
     }
 
     match /events/{eventId} {
@@ -286,7 +304,7 @@ service cloud.firestore {
 
     match /training_activities/{activityId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() && isValidTrainingActivity(request.resource.data);
+      allow write: if isStaff() && isValidTrainingActivity(request.resource.data);
     }
 
     match /event_matches/{matchId} {
