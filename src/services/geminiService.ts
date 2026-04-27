@@ -1,8 +1,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY as string 
-});
+let aiInstance: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (!aiInstance) {
+    const apiKey = (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') as string;
+    aiInstance = new GoogleGenAI({ 
+      apiKey: apiKey || ""
+    });
+  }
+  return aiInstance;
+};
 
 export interface GeneratedDrill {
   name: string;
@@ -17,8 +25,9 @@ export interface GeneratedDrill {
 
 export const geminiService = {
   async generateDrill(modality: string, goal?: string): Promise<GeneratedDrill> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Chave da API Gemini não configurada. Verifique as configurações do projeto.");
+    const apiKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '';
+    if (!apiKey) {
+      throw new Error("Chave da API Gemini não configurada. Ative a IA nas configurações do projeto.");
     }
     const prompt = `Crie um exercício de treinamento profissional altamente criativo para a modalidade: ${modality}. ${goal ? `Objetivo específico: ${goal}` : ''}
     O exercício deve incluir posicionamento estratégico de materiais (cones, barreiras, estacas) e jogadores.
@@ -29,6 +38,7 @@ export const geminiService = {
     Retorne a descrição detalhada do exercício.
     A descrição deve ser profissional e em Português-BR.`;
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -79,8 +89,9 @@ export const geminiService = {
   },
 
   async generateSuggestions(modality: string): Promise<GeneratedDrill[]> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Chave da API Gemini não configurada. Verifique as configurações do projeto.");
+    const apiKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '';
+    if (!apiKey) {
+      throw new Error("Chave da API Gemini não configurada. Ative a IA nas configurações do projeto.");
     }
     const prompt = `Gere 3 sugestões de exercícios profissionais de nível elite para a modalidade: ${modality}. 
     Inclua um exercício de Aquecimento, um de Fundamento e um Tático.
@@ -88,6 +99,7 @@ export const geminiService = {
     IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tudo em Português-BR.`;
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
