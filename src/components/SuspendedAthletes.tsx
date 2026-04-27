@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete } from '../types';
-import { Search, UserMinus, AlertCircle, MessageCircle } from 'lucide-react';
+import { Search, UserMinus, AlertCircle, MessageCircle, Plus, X, Save } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
+import AthleteSearchSelect from './AthleteSearchSelect';
+import { toast } from 'react-hot-toast';
 
 interface SuspendedAthletesProps {
   athletes?: Athlete[];
@@ -11,11 +13,17 @@ interface SuspendedAthletesProps {
 
 export default function SuspendedAthletes({ athletes: athletesProp }: SuspendedAthletesProps) {
   const [suspendedAthletes, setSuspendedAthletes] = useState<Athlete[]>([]);
+  const [allAthletes, setAllAthletes] = useState<Athlete[]>(athletesProp || []);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
+  const [suspensionReason, setSuspensionReason] = useState('');
+  const [loading, setLoading] = useState(false);
   const { settings } = useTheme();
 
   useEffect(() => {
     if (athletesProp) {
+        setAllAthletes(athletesProp);
         setSuspendedAthletes(athletesProp.filter(a => a.status === 'Suspenso'));
     } else {
         loadData();
@@ -25,9 +33,53 @@ export default function SuspendedAthletes({ athletes: athletesProp }: SuspendedA
   const loadData = async () => {
     try {
       const data = await api.getAthletes();
+      setAllAthletes(data);
       setSuspendedAthletes(data.filter(a => a.status === 'Suspenso'));
     } catch (error) {
       console.error("Erro ao carregar atletas suspensos:", error);
+    }
+  };
+
+  const handleSuspend = async () => {
+    if (!selectedAthlete) return;
+    if (!suspensionReason.trim()) {
+      toast.error("Por favor, informe o motivo da suspensão.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.saveAthlete({
+        ...selectedAthlete,
+        status: 'Suspenso',
+        suspension_reason: suspensionReason.toUpperCase()
+      });
+      toast.success(`${selectedAthlete.name} foi suspenso com sucesso.`);
+      setIsModalOpen(false);
+      setSelectedAthlete(null);
+      setSuspensionReason('');
+      loadData();
+    } catch (error) {
+      toast.error("Erro ao suspender atleta.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReactivate = async (athlete: Athlete) => {
+    if (!window.confirm(`Deseja realmente reativar o atleta ${athlete.name}?`)) return;
+
+    try {
+      await api.saveAthlete({
+        ...athlete,
+        status: 'Ativo',
+        suspension_reason: ''
+      });
+      toast.success(`${athlete.name} reativado com sucesso.`);
+      loadData();
+    } catch (error) {
+      toast.error("Erro ao reativar atleta.");
     }
   };
 
@@ -49,15 +101,25 @@ export default function SuspendedAthletes({ athletes: athletesProp }: SuspendedA
           <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">Gestão de atletas com restrição de participação</p>
         </div>
 
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-          <input
-            type="text"
-            placeholder="PESQUISAR ATLETA SUSPENSO..."
-            className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all font-bold text-xs uppercase tracking-widest"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row items-center gap-4 flex-1 max-w-2xl">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+            <input
+              type="text"
+              placeholder="PESQUISAR..."
+              className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all font-bold text-xs uppercase tracking-widest"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-600/20 active:scale-95"
+          >
+            <Plus size={18} />
+            Nova Suspensão
+          </button>
         </div>
       </div>
 
@@ -107,10 +169,12 @@ export default function SuspendedAthletes({ athletes: athletesProp }: SuspendedA
               </div>
               
               <div className="p-4 bg-zinc-900/50 border-t border-zinc-800 flex items-center justify-between gap-4">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Responsável</span>
-                  <span className="text-[11px] font-bold text-white uppercase">{athlete.guardian_name}</span>
-                </div>
+                <button 
+                  onClick={() => handleReactivate(athlete)}
+                  className="px-4 py-2 bg-zinc-800 hover:bg-green-600 text-zinc-400 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest no-print"
+                >
+                  Reativar
+                </button>
                 
                 {athlete.guardian_phone && (
                   <a 
@@ -126,6 +190,73 @@ export default function SuspendedAthletes({ athletes: athletesProp }: SuspendedA
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal Nova Suspensão */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
+                <UserMinus className="text-red-500" size={18} />
+                Nova Suspensão
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-colors"
+                disabled={loading}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-3">Selecionar Atleta</label>
+                <AthleteSearchSelect 
+                  onSelect={(a) => setSelectedAthlete(a)}
+                  selectedAthleteId={selectedAthlete?.id}
+                  athletes={allAthletes.filter(a => a.status !== 'Suspenso')}
+                  className="!bg-zinc-800"
+                />
+              </div>
+
+              {selectedAthlete && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-3">Motivo da Suspensão</label>
+                  <textarea 
+                    className="w-full px-4 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[120px] font-bold text-xs uppercase tracking-widest placeholder:text-zinc-600"
+                    placeholder="DESCREVA O MOTIVO DA SUSPENSÃO..."
+                    value={suspensionReason}
+                    onChange={(e) => setSuspensionReason(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-zinc-800/50 border-t border-zinc-800 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-3 bg-zinc-900 text-zinc-400 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSuspend}
+                disabled={loading || !selectedAthlete || !suspensionReason.trim()}
+                className="flex items-center gap-2 px-8 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+              >
+                {loading ? 'Salvando...' : (
+                  <>
+                    <Save size={18} />
+                    Confirmar Suspensão
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
