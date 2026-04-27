@@ -690,16 +690,31 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status</label>
-              <select 
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                value={formData.status || 'Ativo'}
-                onChange={e => setFormData({...formData, status: e.target.value as any})}
-              >
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo">Inativo</option>
-              </select>
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status</label>
+                <select 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  value={formData.status || 'Ativo'}
+                  onChange={e => setFormData({...formData, status: e.target.value as any})}
+                >
+                  <option value="Ativo">Ativo</option>
+                  <option value="Inativo">Inativo</option>
+                  <option value="Suspenso">Suspenso</option>
+                </select>
+              </div>
+              {formData.status === 'Suspenso' && (
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Motivo da Suspensão</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                    value={formData.suspension_reason || ''}
+                    onChange={e => setFormData({...formData, suspension_reason: e.target.value.toUpperCase()})}
+                    placeholder="DESCREVA O MOTIVO"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

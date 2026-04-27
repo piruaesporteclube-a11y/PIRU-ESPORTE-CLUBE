@@ -1,6 +1,7 @@
 import { 
   Users, 
   UserPlus, 
+  UserMinus,
   Calendar, 
   ClipboardCheck, 
   Cake, 
@@ -30,6 +31,7 @@ export const navItems: NavItem[] = [
   // --- GRUPO: Painel de Comando (Gestão Estratégica) ---
   { id: 'dashboard', label: 'Início', icon: LayoutDashboard, roles: ['admin', 'student', 'professor'], description: 'Visão Geral', category: 'command' },
   { id: 'athletes', label: 'Atletas', icon: Users, roles: ['admin'], description: 'Elenco e Matrículas', color: 'text-theme-primary', category: 'command' },
+  { id: 'suspended-athletes', label: 'Atletas Suspensos', icon: UserMinus, roles: ['admin', 'professor'], description: 'Controle de Disciplina', color: 'text-red-500', category: 'command' },
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin'], description: 'Líderes e Técnicos', color: 'text-theme-primary', category: 'command' },
   { id: 'categories', label: 'Gerir SUBs', icon: ClipboardList, roles: ['admin'], description: 'Divisões Etárias', color: 'text-theme-primary', category: 'command' },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin'], description: 'Ajustes do Sistema', color: 'text-zinc-500', category: 'command' },

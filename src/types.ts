@@ -21,7 +21,8 @@ export type Athlete = {
   guardian_phone: string;
   school?: string;
   school_shift?: "Manhã" | "Tarde" | "Noite";
-  status: "Ativo" | "Inativo";
+  status: "Ativo" | "Inativo" | "Suspenso";
+  suspension_reason?: string;
   position?: string; // Can be comma-separated for multi-role
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";

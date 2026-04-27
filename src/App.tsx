@@ -31,6 +31,7 @@ import OfficialLetterGenerator from './components/OfficialLetterGenerator';
 import TravelList from './components/TravelList';
 import CompanionRegistration from './components/CompanionRegistration';
 import ActivityManagement from './components/ActivityManagement';
+import SuspendedAthletes from './components/SuspendedAthletes';
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History } from 'lucide-react';
@@ -315,8 +316,8 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
         {[
           { label: 'Atletas Totais', value: stats.athletes, icon: Users, color: 'text-theme-primary' },
           { label: 'Atletas Ativos', value: stats.active, icon: UserCheck, color: 'text-green-500' },
+          { label: 'Suspensos', value: stats.suspended, icon: AlertTriangle, color: 'text-red-500' },
           { label: 'Eventos', value: stats.events, icon: Calendar, color: 'text-blue-500' },
-          { label: 'Ranking', value: '#1', icon: Trophy, color: 'text-purple-500' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-zinc-900/40 border border-zinc-800 p-5 sm:p-6 rounded-[2rem] hover:border-theme-primary/30 transition-all group overflow-hidden relative">
             <stat.icon size={32} className={`absolute -right-2 -bottom-2 opacity-5 ${stat.color} group-hover:scale-110 group-hover:opacity-10 transition-all sm:w-10 sm:h-10`} />
@@ -605,7 +606,7 @@ export default function App() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [stats, setStats] = useState({ athletes: 0, active: 0, events: 0 });
+  const [stats, setStats] = useState({ athletes: 0, active: 0, suspended: 0, events: 0 });
   const [myAthleteData, setMyAthleteData] = useState<Athlete | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -620,7 +621,8 @@ export default function App() {
         setStats(prev => ({
           ...prev,
           athletes: data.length,
-          active: data.filter(a => a.status === 'Ativo').length
+          active: data.filter(a => a.status === 'Ativo').length,
+          suspended: data.filter(a => a.status === 'Suspenso').length
         }));
       }).catch(err => {
         console.error("Erro ao carregar atletas para o dashboard:", err);
@@ -824,7 +826,8 @@ export default function App() {
                   setStats(prev => ({
                     ...prev,
                     athletes: data.length,
-                    active: data.filter(a => a.status === 'Ativo').length
+                    active: data.filter(a => a.status === 'Ativo').length,
+                    suspended: data.filter(a => a.status === 'Suspenso').length
                   }));
                 }}
               />
@@ -959,6 +962,8 @@ export default function App() {
           );
         case 'attendance-history':
           return <StudentPresenceHistory athleteId={user.athlete_id || user.professor_id || ''} />;
+        case 'suspended-athletes':
+          return <SuspendedAthletes athletes={athletes} />;
         case 'anamnesis':
           return (
             <div className="max-w-4xl mx-auto space-y-8">

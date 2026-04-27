@@ -104,7 +104,8 @@ service cloud.firestore {
       return data.name is string && data.name.size() > 0 && data.name.size() < 150 &&
              data.nickname is string && data.nickname.size() > 0 && data.nickname.size() < 100 &&
              data.doc is string && data.doc.size() >= 11 && data.doc.size() <= 20 &&
-             data.status in ['Ativo', 'Inativo'] &&
+             data.status in ['Ativo', 'Inativo', 'Suspenso'] &&
+             (!('suspension_reason' in data) || data.suspension_reason is string) &&
              data.photo is string && data.photo.size() < 1048576 &&
              data.birth_date is string &&
              data.guardian_name is string &&
