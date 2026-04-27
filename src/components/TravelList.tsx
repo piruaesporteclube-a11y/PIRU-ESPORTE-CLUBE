@@ -262,60 +262,63 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
     const pageWidth = doc.internal.pageSize.getWidth();
     
     // Header
-    doc.setFontSize(22);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 20, { align: 'center' });
+    doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 15, { align: 'center' });
     
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('Associação Desportiva e Cultural', pageWidth / 2, 26, { align: 'center' });
+    doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
     
     doc.setDrawColor(0);
-    doc.setLineWidth(1);
-    doc.line(15, 30, pageWidth - 15, 30);
+    doc.setLineWidth(0.5);
+    doc.line(15, 23, pageWidth - 15, 23);
     
     // Event Banner Style
-    doc.setFillColor(30, 30, 30);
-    doc.rect(15, 35, pageWidth - 30, 10, 'F');
+    doc.setFillColor(0, 0, 0);
+    doc.rect(15, 26, pageWidth - 30, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('LISTA DE VIAGEM', pageWidth / 2, 42, { align: 'center' });
+    doc.text('LISTA DE VIAGEM', pageWidth / 2, 31, { align: 'center' });
     
     // Event Details
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 55);
-    doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 60);
-    doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 65);
-    doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 55, { align: 'right' });
-    doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - 15, 60, { align: 'right' });
+    doc.setFontSize(8);
+    doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
+    doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
+    doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
+    doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 40, { align: 'right' });
+    doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
     
     // Table - Athletes
-    doc.setFontSize(12);
-    doc.text(`ATLETAS (${lineup.athletes.length})`, 15, 75);
+    doc.setFontSize(10);
+    doc.text(`ATLETAS (${lineup.athletes.length})`, 15, 55);
     
     autoTable(doc, {
-      startY: 78,
+      startY: 57,
       head: [['#', 'NOME COMPLETO', 'RG / CPF', 'RESPONSÁVEL', 'TELEFONE']],
       body: lineup.athletes.map((a, idx) => [
         idx + 1,
         a.name.toUpperCase(),
         a.doc,
-        (a.guardian_name || '---').toUpperCase(),
+        (a.guardian_name || '---').toUpperCase().split(' ').slice(0, 2).join(' '),
         a.guardian_phone || '---'
       ]),
-      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 2 },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
+      styles: { fontSize: 6.5, cellPadding: 0.8 },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      margin: { left: 15, right: 15 }
     });
     
     // Table - Staff
-    const staffStartY = (doc as any).lastAutoTable.finalY + 15;
+    let nextY = (doc as any).lastAutoTable.finalY + 5;
     if (lineup.staff.length > 0) {
-      doc.text(`COMISSÃO TÉCNICA (${lineup.staff.length})`, 15, staffStartY);
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      doc.setFontSize(9);
+      doc.text(`COMISSÃO TÉCNICA (${lineup.staff.length})`, 15, nextY);
       autoTable(doc, {
-        startY: staffStartY + 3,
+        startY: nextY + 2,
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CARGO']],
         body: lineup.staff.map((s, idx) => [
           idx + 1,
@@ -323,18 +326,21 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
           s.doc,
           (s.role || 'COMISSÃO').toUpperCase()
         ]),
-        headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 8, cellPadding: 2 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
+        headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
+        styles: { fontSize: 6.5, cellPadding: 0.8 },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        margin: { left: 15, right: 15 }
       });
+      nextY = (doc as any).lastAutoTable.finalY + 5;
     }
     
     // Table - Companions
-    const companionsStartY = (doc as any).lastAutoTable.finalY + 15;
     if (companions.length > 0) {
-      doc.text(`ACOMPANHANTES (${companions.length})`, 15, companionsStartY);
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      doc.setFontSize(9);
+      doc.text(`ACOMPANHANTES (${companions.length})`, 15, nextY);
       autoTable(doc, {
-        startY: companionsStartY + 3,
+        startY: nextY + 2,
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP']],
         body: companions.map((c, idx) => [
           idx + 1,
@@ -342,14 +348,18 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
           c.doc,
           c.whatsapp
         ]),
-        headStyles: { fillColor: [150, 150, 150], textColor: [0, 0, 0], fontStyle: 'bold' },
-        styles: { fontSize: 8, cellPadding: 2 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
+        headStyles: { fillColor: [150, 150, 150], textColor: [0, 0, 0], fontStyle: 'bold', minCellHeight: 4 },
+        styles: { fontSize: 6.5, cellPadding: 0.8 },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        margin: { left: 15, right: 15 }
       });
+      nextY = (doc as any).lastAutoTable.finalY + 10;
+    } else {
+      nextY = (doc as any).lastAutoTable.finalY + 10;
     }
 
     // Signatures
-    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
     if (finalY + 40 > doc.internal.pageSize.getHeight()) {
       doc.addPage();
     }
@@ -555,219 +565,277 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
         ) : (
           <div className="space-y-6">
             {/* PRINTABLE AREA START */}
-            <div id="printable-travel-list" className="bg-white text-black p-8 md:p-12 min-h-screen">
+            <div id="printable-travel-list" className="bg-white text-black p-4 print:p-0 min-h-screen">
               {/* Report Header */}
-              <div className="flex items-center justify-between border-b-4 border-black pb-8 mb-8">
-                <div className="flex items-center gap-6">
+              <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-4 print:pb-2 print:mb-2">
+                <div className="flex items-center gap-4">
                   {settings?.schoolCrest && (
-                    <img src={settings.schoolCrest} alt="Logo" className="w-20 h-20 object-contain" />
+                    <img src={settings.schoolCrest} alt="Logo" className="w-12 h-12 print:w-10 print:h-10 object-contain" />
                   )}
                   <div>
-                    <h1 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">Piruá Esporte Clube</h1>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-600">Associação Desportiva e Cultural</p>
+                    <h1 className="text-xl print:text-lg font-black uppercase tracking-tighter leading-none mb-0.5">Piruá Esporte Clube</h1>
+                    <p className="text-[10px] print:text-[8px] font-bold uppercase tracking-widest text-zinc-600">Associação Desportiva e Cultural</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="bg-black text-white px-4 py-2 font-black italic transform skew-x-[-12deg] inline-block mb-2">
-                    <span className="skew-x-[12deg] block uppercase text-sm">Lista de Viagem</span>
+                  <div className="bg-black text-white px-3 py-1 font-black italic transform skew-x-[-12deg] inline-block mb-1">
+                    <span className="skew-x-[12deg] block uppercase text-xs">Lista de Viagem</span>
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">{new Date().toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest leading-none">{new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
-
+ 
               {/* Event Info */}
               {selectedEvent && (
-                <div className="grid grid-cols-2 gap-8 mb-12 bg-zinc-50 p-6 border-l-8 border-black">
+                <div className="grid grid-cols-2 gap-4 mb-4 print:mb-2 bg-zinc-50 p-3 print:p-2 border-l-4 border-black">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Evento / Competição</p>
-                    <h3 className="text-xl font-black uppercase italic leading-none">{selectedEvent.name}</h3>
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Evento / Competição</p>
+                    <h3 className="text-sm print:text-xs font-black uppercase italic leading-none">{selectedEvent.name}</h3>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Destino</p>
-                      <p className="font-bold uppercase text-xs">{selectedEvent.city} - {selectedEvent.uf}</p>
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Destino</p>
+                      <p className="font-bold uppercase text-[9px]">{selectedEvent.city} - {selectedEvent.uf}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">Data</p>
-                      <p className="font-bold uppercase text-xs">{new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Data</p>
+                      <p className="font-bold uppercase text-[9px]">{new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 text-zinc-400 font-sans">WhatsApp Resp.</p>
-                      <p className="font-bold uppercase text-xs">{selectedEvent.responsible_phone || 'NÃO INFORMADO'}</p>
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Responsável</p>
+                      <p className="font-bold uppercase text-[9px]">{delegationResponsible || 'NÃO INFORMADO'}</p>
                     </div>
                   </div>
                 </div>
               )}
-
+ 
               {/* Passenger List Table */}
-              <div className="space-y-12">
+              <div className="space-y-6 print:space-y-4">
                 {/* Athletes Section */}
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="h-6 w-1.5 bg-black" />
-                    <h4 className="text-lg font-black uppercase tracking-tight">Atletas ({lineup.athletes.length})</h4>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-4 w-1 bg-black" />
+                    <h4 className="text-sm print:text-xs font-black uppercase tracking-tight">Atletas ({lineup.athletes.length})</h4>
                   </div>
-                  <table className="w-full">
-                    <thead className="bg-black text-white">
-                      <tr>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">#</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Tel. Responsável</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Responsável</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-black text-white">
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">#</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Nome Completo</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">RG / CPF</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Responsável</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Telefone</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print">Presença</th>
+                        <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print w-10"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
+                    <tbody className="border-x border-b border-zinc-200">
                       {lineup.athletes.map((athlete, idx) => {
                         const originalLineup = lineups.find(l => l.athletes.some(a => a.id === athlete.id));
                         const lIdx = originalLineup?.lineup_index ?? 0;
                         
                         return (
-                          <tr key={athlete.id} className="hover:bg-zinc-50 group">
-                            <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
-                            <td className="py-3 px-4 text-xs font-black uppercase">{athlete.name}</td>
-                            <td className="py-3 px-4 text-xs font-medium">{athlete.doc}</td>
-                            <td className="py-3 px-4 text-xs font-medium">{athlete.guardian_phone || '---'}</td>
-                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-600 truncate max-w-[120px]">
+                          <tr key={athlete.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
+                            <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight">{athlete.name}</td>
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{athlete.doc}</td>
+                            <td className="py-1 px-2 text-[9px] font-bold uppercase text-zinc-600 truncate max-w-[150px]">
                               {athlete.guardian_name ? athlete.guardian_name.split(' ').slice(0, 2).join(' ') : '---'}
                             </td>
-                            <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
-                            <td className="py-3 px-4">
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{athlete.guardian_phone || '---'}</td>
+                            <td className="py-1 px-2 no-print">
                               {!isLocked ? (
-                                <div className="flex gap-1 no-print">
+                                <div className="flex gap-1">
                                   <button 
                                     onClick={() => handleUpdateLineupPresence(athlete.id, 'athlete', 'Presente', lIdx)}
-                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${athlete.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
+                                    className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${athlete.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
                                   >
                                     P
                                   </button>
                                   <button 
                                     onClick={() => handleUpdateLineupPresence(athlete.id, 'athlete', 'Ausente', lIdx)}
-                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${athlete.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
+                                    className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${athlete.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
                                   >
                                     F
                                   </button>
                                 </div>
-                              ) : null}
-                              <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
-                                {athlete.presence === 'Presente' ? 'Presente' : athlete.presence === 'Ausente' ? 'Faltou' : '---'}
-                              </span>
+                              ) : (
+                                <span className="font-bold text-[8px] uppercase">
+                                  {athlete.presence === 'Presente' ? 'P' : athlete.presence === 'Ausente' ? 'F' : '---'}
+                                </span>
+                              )}
                             </td>
-                            <td className="py-3 px-4 no-print text-right">
+                            <td className="py-1 px-2 no-print text-right">
                               {!isLocked && (
                                 <button 
                                   onClick={() => handleRemoveFromLineup(athlete.id, 'athlete')}
-                                  className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                                  title="Remover atleta da lista"
+                                  className="text-zinc-400 hover:text-red-600 transition-colors"
                                 >
-                                  <X size={16} />
+                                  <X size={12} />
                                 </button>
                               )}
                             </td>
                           </tr>
                         );
                       })}
-                      {lineup.athletes.length === 0 && (
-                        <tr>
-                          <td colSpan={7} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhum atleta escalado</td>
-                        </tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
-
+ 
                 {/* Staff Section */}
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="h-6 w-1.5 bg-black" />
-                    <h4 className="text-lg font-black uppercase tracking-tight">Comissão Técnica ({lineup.staff.length})</h4>
-                  </div>
-                  <table className="w-full">
-                    <thead className="bg-zinc-800 text-white">
-                      <tr>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">#</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Cargo</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
-                      {lineup.staff.map((p, idx) => {
-                        const originalLineup = lineups.find(l => l.staff.some(s => s.id === p.id));
-                        const lIdx = originalLineup?.lineup_index ?? 0;
-
-                        return (
-                          <tr key={p.id} className="hover:bg-zinc-50 group">
-                            <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
-                            <td className="py-3 px-4 text-xs font-black uppercase">{p.name}</td>
-                            <td className="py-3 px-4 text-xs font-bold uppercase text-zinc-500">{p.role || 'Comissão'}</td>
-                            <td className="py-3 px-4 text-xs font-medium">{p.doc}</td>
-                            <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
-                            <td className="py-3 px-4">
-                              {!isLocked ? (
-                                <div className="flex gap-1 no-print">
+                {lineup.staff.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-4 w-1 bg-zinc-600" />
+                      <h4 className="text-sm print:text-xs font-black uppercase tracking-tight">Comissão Técnica ({lineup.staff.length})</h4>
+                    </div>
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-zinc-800 text-white">
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">#</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Nome Completo</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Cargo</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">RG / CPF</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print">Presença</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="border-x border-b border-zinc-200">
+                        {lineup.staff.map((p, idx) => {
+                          const originalLineup = lineups.find(l => l.staff.some(s => s.id === p.id));
+                          const lIdx = originalLineup?.lineup_index ?? 0;
+  
+                          return (
+                            <tr key={p.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
+                              <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight">{p.name}</td>
+                              <td className="py-1 px-2 text-[9px] font-bold uppercase text-zinc-500">{p.role || 'Comissão'}</td>
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{p.doc}</td>
+                              <td className="py-1 px-2 no-print">
+                                {!isLocked ? (
+                                  <div className="flex gap-1">
+                                    <button 
+                                      onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Presente', lIdx)}
+                                      className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${p.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
+                                    >
+                                      P
+                                    </button>
+                                    <button 
+                                      onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Ausente', lIdx)}
+                                      className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${p.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
+                                    >
+                                      F
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="font-bold text-[8px] uppercase">{p.presence === 'Presente' ? 'P' : 'F'}</span>
+                                )}
+                              </td>
+                              <td className="py-1 px-2 no-print text-right">
+                                {!isLocked && (
                                   <button 
-                                    onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Presente', lIdx)}
-                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${p.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
+                                    onClick={() => handleRemoveFromLineup(p.id, 'staff')}
+                                    className="text-zinc-400 hover:text-red-600 transition-colors"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+ 
+                {/* Companions Section */}
+                {companions.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-4 w-1 bg-zinc-400" />
+                      <h4 className="text-sm print:text-xs font-black uppercase tracking-tight">Acompanhantes ({companions.length})</h4>
+                    </div>
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-zinc-100 text-zinc-600">
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">#</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">Nome Completo</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">RG / CPF</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest">WhatsApp</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print">Presença</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest no-print w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="border-x border-b border-zinc-200">
+                        {companions.map((c, idx) => (
+                          <tr key={c.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
+                            <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight text-zinc-800">{c.name}</td>
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.doc}</td>
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.whatsapp || '---'}</td>
+                            <td className="py-1 px-2 no-print">
+                              {!isLocked ? (
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleUpdateCompanionPresence(c.id, 'Presente')}
+                                    className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${c.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
                                   >
                                     P
                                   </button>
                                   <button 
-                                    onClick={() => handleUpdateLineupPresence(p.id, 'staff', 'Ausente', lIdx)}
-                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${p.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
+                                    onClick={() => handleUpdateCompanionPresence(c.id, 'Ausente')}
+                                    className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded-sm border ${c.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400'}`}
                                   >
                                     F
                                   </button>
                                 </div>
-                              ) : null}
-                              <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
-                                {p.presence === 'Presente' ? 'Presente' : p.presence === 'Ausente' ? 'Faltou' : '---'}
-                              </span>
+                              ) : (
+                                <span className="font-bold text-[8px] uppercase">{c.presence === 'Presente' ? 'P' : 'F'}</span>
+                              )}
                             </td>
-                            <td className="py-3 px-4 no-print text-right">
+                            <td className="py-1 px-2 no-print text-right">
                               {!isLocked && (
                                 <button 
-                                  onClick={() => handleRemoveFromLineup(p.id, 'staff')}
-                                  className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                                  title="Remover comissão da lista"
+                                  onClick={() => handleDeleteCompanion(c.id)}
+                                  className="text-zinc-400 hover:text-red-600 transition-colors"
                                 >
-                                  <X size={16} />
+                                  <X size={12} />
                                 </button>
                               )}
                             </td>
                           </tr>
-                        );
-                      })}
-                      {lineup.staff.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase text-xs">Nenhuma comissão técnica escalada</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Companions Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-6 w-1.5 bg-black" />
-                      <h4 className="text-lg font-black uppercase tracking-tight">Acompanhantes ({companions.length})</h4>
-                    </div>
-                    {!isLocked && (
-                      <button 
-                        onClick={() => setIsAddingCompanion(!isAddingCompanion)}
-                        className="no-print flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-lg text-[10px] font-black uppercase hover:bg-zinc-800 transition-all"
-                      >
-                        {isAddingCompanion ? <X size={14} /> : <Plus size={14} />}
-                        {isAddingCompanion ? 'Cancelar' : 'Adicionar Manual'}
-                      </button>
-                    )}
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
+                )}
+              </div>
+ 
+              {/* Signature Footer */}
+              <div className="mt-8 print:mt-6 grid grid-cols-2 gap-8 max-w-4xl mx-auto border-t-2 border-black pt-4">
+                <div className="text-center">
+                  <p className="font-bold uppercase text-[9px] mb-1">{delegationResponsible || '_________________________________'}</p>
+                  <p className="font-black uppercase text-[8px] leading-none">Responsável pela Delegação</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold uppercase text-[9px] mb-1">{directorName || '_________________________________'}</p>
+                  <p className="font-black uppercase text-[8px] leading-none">Diretoria Executiva</p>
+                </div>
+              </div>
+ 
+              {/* Print Footer */}
+              <div className="mt-6 print:mt-4 pt-4 text-center border-t border-zinc-100">
+                <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest">
+                  Documento Oficial - {settings?.schoolName} • Gerado em: {new Date().toLocaleDateString('pt-BR')} {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                {(settings?.address || settings?.city) && (
+                  <p className="text-[6px] text-zinc-300 uppercase font-medium mt-0.5">
+                    {settings.city || 'São Paulo'} - {settings.uf || 'SP'} • {settings.schoolName}
+                  </p>
+                )}
+              </div>
+            </div>
 
                   {isAddingCompanion && (
                     <div className="no-print mb-6 space-y-6">
@@ -876,109 +944,13 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
                       </div>
                     </div>
                   )}
-
-                  <table className="w-full">
-                    <thead className="bg-zinc-100 text-zinc-600">
-                      <tr>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">#</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Nome Completo</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">RG / CPF</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">WhatsApp</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest">Presença</th>
-                        <th className="py-3 px-4 text-left text-[10px] uppercase font-black tracking-widest no-print w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-200 border-x border-b border-zinc-200">
-                      {companions.map((c, idx) => (
-                        <tr key={c.id} className="hover:bg-zinc-50 group">
-                          <td className="py-3 px-4 text-xs font-bold text-zinc-400">{idx + 1}</td>
-                          <td className="py-3 px-4 text-xs font-black uppercase text-zinc-800">{c.name}</td>
-                          <td className="py-3 px-4 text-xs font-medium text-zinc-600">{c.doc}</td>
-                          <td className="py-3 px-4 text-xs font-medium text-zinc-600">{c.whatsapp || '---'}</td>
-                          <td className="py-3 px-4 no-print text-right bg-zinc-200/50"></td>
-                          <td className="py-3 px-4">
-                            {!isLocked ? (
-                              <div className="flex gap-1 no-print">
-                                <button 
-                                  onClick={() => handleUpdateCompanionPresence(c.id, 'Presente')}
-                                  className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${c.presence === 'Presente' ? 'bg-green-600 border-green-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-green-600 hover:text-green-600'}`}
-                                >
-                                  P
-                                </button>
-                                <button 
-                                  onClick={() => handleUpdateCompanionPresence(c.id, 'Ausente')}
-                                  className={`px-2 py-1 text-[9px] font-black uppercase rounded-sm border ${c.presence === 'Ausente' ? 'bg-red-600 border-red-600 text-white' : 'bg-transparent border-zinc-300 text-zinc-400 hover:border-red-600 hover:text-red-600'}`}
-                                >
-                                  F
-                                </button>
-                              </div>
-                            ) : null}
-                            <span className={`${!isLocked ? 'print:block hidden' : 'block'} font-bold text-xs uppercase`}>
-                              {c.presence === 'Presente' ? 'Presente' : c.presence === 'Ausente' ? 'Faltou' : '---'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 no-print text-right">
-                            {!isLocked && (
-                              <button 
-                                onClick={() => handleDeleteCompanion(c.id)}
-                                className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                                title="Excluir acompanhante da lista"
-                              >
-                                <X size={16} />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {companions.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-zinc-300 font-bold uppercase text-[10px] tracking-widest">Nenhum acompanhante cadastrado</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
                 </div>
-              </div>
-
-              {/* Signature Footer */}
-              <div className="mt-24 grid grid-cols-2 gap-12 max-w-4xl mx-auto">
-                <div className="text-center pt-8 border-t-2 border-black">
-                  <p className="font-bold uppercase text-[11px] mb-2">{delegationResponsible || '_________________________________'}</p>
-                  <p className="font-black uppercase text-[10px] leading-none mb-1">Responsável pela Delegação</p>
-                  <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">{settings?.schoolName}</p>
-                </div>
-                <div className="text-center pt-8 border-t-2 border-black">
-                  <p className="font-bold uppercase text-[11px] mb-2">{directorName || '_________________________________'}</p>
-                  <p className="font-black uppercase text-[10px] leading-none mb-1">Diretoria Executiva</p>
-                  <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">{settings?.schoolName}</p>
-                </div>
-              </div>
-
-              {/* Print Footer */}
-              <div className="mt-20 border-t border-zinc-100 pt-8 text-center">
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
-                  Documento Oficial - {settings?.schoolName}
-                </p>
-                {(settings?.address || settings?.city) && (
-                  <p className="text-[8px] text-zinc-400 uppercase font-medium">
-                    {settings.address && settings.address}
-                    {settings.neighborhood ? `, ${settings.neighborhood}` : ""}
-                    {settings.city ? ` • ${settings.city}` : ""}
-                    {settings.uf ? ` - ${settings.uf}` : ""}
-                    {settings.phone ? ` • ${settings.phone}` : ""}
-                    {settings.email ? ` • ${settings.email}` : ""}
-                  </p>
-                )}
-                <p className="text-[7px] text-zinc-300 font-bold uppercase mt-2 italic">© {new Date().getFullYear()} Desenvolvido pela Piruá Esporte Clube</p>
-              </div>
+              )}
             </div>
-            {/* PRINTABLE AREA END */}
-          </div>
-        )}
-      </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          @page { size: auto; margin: 5mm; }
           body * { visibility: hidden; }
           #printable-travel-list, #printable-travel-list * { visibility: visible; }
           #printable-travel-list { 
@@ -988,11 +960,21 @@ export default function TravelList({ role = 'admin' }: { role?: 'admin' | 'stude
             width: 100%;
             height: auto;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background: white !important;
             color: black !important;
           }
           .no-print { display: none !important; }
+          
+          /* Forced compacting for print */
+          table th, table td { padding: 4px 8px !important; font-size: 8px !important; }
+          h1, h2, h3, h4 { margin-top: 4px !important; margin-bottom: 4px !important; }
+          .mb-12, .mb-8, .mb-6 { margin-bottom: 8px !important; }
+          .mt-24, .mt-20, .mt-12 { margin-top: 8px !important; }
+          .p-8, .p-12, .p-6 { padding: 4px !important; }
+          
+          /* Ensure text is black and high contrast */
+          * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
         }
       `}} />
     </div>
