@@ -128,7 +128,22 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   }, [athletesProp]);
 
   useEffect(() => {
-    loadAttendance();
+    const unsubscribe = api.subscribeToAttendance((attendanceData) => {
+      const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
+      attendanceData.forEach(a => {
+        attMap[a.athlete_id] = { 
+          status: a.status, 
+          justification: a.justification || '',
+          arrival_time: a.arrival_time
+        };
+      });
+      setAttendance(attMap);
+    }, date, trainingId, eventId);
+
+    return () => unsubscribe();
+  }, [date, trainingId, eventId]);
+
+  useEffect(() => {
     if (localStorage.getItem('auto_scan') === 'true') {
       setIsScanning(true);
       localStorage.removeItem('auto_scan');
