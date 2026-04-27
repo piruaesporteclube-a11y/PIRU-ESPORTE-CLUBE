@@ -313,6 +313,39 @@
         "updated_at": { "type": "string" }
       },
       "required": ["id", "event_id", "team_a_name", "team_b_name", "score_a", "score_b"]
+    },
+    "UniformRequest": {
+      "title": "UniformRequest",
+      "description": "Uniform request data model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "athlete_id": { "type": "string" },
+        "athlete_name": { "type": "string" },
+        "category": { "type": "string" },
+        "size": { "type": "string", "enum": ["PP", "P", "M", "G", "GG", "XG"] },
+        "jersey_number": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pendente", "Aprovado", "Entregue", "Recusado"] },
+        "sponsor_block_id": { "type": "string" },
+        "observations": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "athlete_id", "category", "size", "jersey_number", "status"]
+    },
+    "SponsorBlock": {
+      "title": "SponsorBlock",
+      "description": "A block of up to 7 sponsors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "sponsors": { "type": "array", "items": { "$ref": "#/entities/Sponsor" } },
+        "min_sets": { "type": "number" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "name", "sponsors", "min_sets"]
     }
   },
   "firestore": {
@@ -383,6 +416,14 @@
     "/event_matches/{matchId}": {
       "schema": "EventMatchScore",
       "description": "Scores for matches within events"
+    },
+    "/uniform_requests/{requestId}": {
+      "schema": "UniformRequest",
+      "description": "Requests for uniforms"
+    },
+    "/sponsor_blocks/{blockId}": {
+      "schema": "SponsorBlock",
+      "description": "Blocks of sponsors for uniforms"
     }
   }
 }

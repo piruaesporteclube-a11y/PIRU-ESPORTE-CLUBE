@@ -14,7 +14,8 @@ import {
   MessageCircle,
   LayoutDashboard,
   Activity,
-  History
+  History,
+  Shirt
 } from 'lucide-react';
 
 export type NavItem = {
@@ -50,6 +51,7 @@ export const navItems: NavItem[] = [
  
   // --- GRUPO: Gabinete & Saúde (Documentação e Fisiologia) ---
   { id: 'official-letters', label: 'Ofícios', icon: FileText, roles: ['admin'], description: 'Comunicação Oficial', color: 'text-purple-500', category: 'office' },
+  { id: 'uniforms', label: 'Uniforme', icon: Shirt, roles: ['admin', 'student', 'professor'], description: 'Pedidos e Numeração', color: 'text-theme-primary', category: 'office' },
   { id: 'documents', label: 'Arquivos', icon: FileText, roles: ['admin'], description: 'PDFs e Manuais', color: 'text-purple-500', category: 'office' },
   { id: 'anamnesis', label: 'Ficha Médica', icon: Activity, roles: ['admin'], description: 'Saúde dos Atletas', color: 'text-theme-primary', category: 'office' },
   { id: 'membership-card', label: 'Identidade', icon: CreditCard, roles: ['admin'], description: 'Carteirinha Oficial', color: 'text-blue-500', category: 'office' },
@@ -64,4 +66,5 @@ export const navItems: NavItem[] = [
   { id: 'attendance-history', label: 'Histórico', icon: History, roles: ['student', 'professor'], description: 'Sua Presença', category: 'student' },
   { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student', 'professor'], description: 'Sua ID Digital', category: 'student' },
   { id: 'my-anamnesis', label: 'Minha Saúde', icon: Activity, roles: ['student', 'professor'], description: 'Ficha Médica', category: 'student' },
+  { id: 'uniform-request', label: 'Pedir Uniforme', icon: Shirt, roles: ['student'], description: 'Solicitar Kit', category: 'student' },
 ];

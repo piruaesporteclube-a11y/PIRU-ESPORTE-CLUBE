@@ -204,6 +204,21 @@ service cloud.firestore {
              (!('category' in data) || data.category is string);
     }
 
+    function isValidUniformRequest(data) {
+      return data.athlete_id is string && data.athlete_id.size() > 0 &&
+             data.athlete_name is string && data.athlete_name.size() > 0 &&
+             data.category is string &&
+             data.size in ["PP", "P", "M", "G", "GG", "XG"] &&
+             data.jersey_number is string && data.jersey_number.size() > 0 &&
+             data.status in ["Pendente", "Aprovado", "Entregue", "Recusado"];
+    }
+
+    function isValidSponsorBlock(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.sponsors is list && data.sponsors.size() > 0 && data.sponsors.size() <= 7 &&
+             data.min_sets is number && data.min_sets >= 40;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -313,6 +328,18 @@ service cloud.firestore {
     match /event_matches/{matchId} {
       allow read: if true;
       allow write: if isAdmin() && isValidEventMatch(request.resource.data);
+    }
+
+    match /uniform_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUniformRequest(request.resource.data);
+      allow update: if isStaff() || (isAuthenticated() && resource.data.athlete_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') && resource.data.status == 'Pendente');
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.athlete_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') && resource.data.status == 'Pendente');
+    }
+
+    match /sponsor_blocks/{blockId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidSponsorBlock(request.resource.data);
     }
 
     match /test/connection {

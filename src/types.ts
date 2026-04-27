@@ -320,6 +320,29 @@ export type EventMatchScore = {
   updated_at?: any;
 };
 
+export type UniformRequest = {
+  id: string;
+  athlete_id: string;
+  athlete_name: string;
+  category: string;
+  size: "PP" | "P" | "M" | "G" | "GG" | "XG";
+  jersey_number: string;
+  status: "Pendente" | "Aprovado" | "Entregue" | "Recusado";
+  sponsor_block_id?: string;
+  observations?: string;
+  created_at?: any;
+  updated_at?: any;
+};
+
+export type SponsorBlock = {
+  id: string;
+  name: string;
+  sponsors: Sponsor[]; 
+  min_sets: number;
+  created_at?: any;
+  updated_at?: any;
+};
+
 export const getSubCategory = (birthDate: string) => {
   const birthYear = parseISO(birthDate).getFullYear();
   const currentYear = new Date().getFullYear();

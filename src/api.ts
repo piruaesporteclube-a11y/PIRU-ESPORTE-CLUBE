@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore, UniformRequest, getSubCategory, SponsorBlock } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1606,6 +1606,103 @@ export const api = {
       await deleteDoc(doc(db, "event_matches", id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_matches/${id}`);
+    }
+  },
+
+  // Uniform Requests
+  getUniformRequests: async (): Promise<UniformRequest[]> => {
+    try {
+      const q = query(collection(db, "uniform_requests"), orderBy("created_at", "desc"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as UniformRequest));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "uniform_requests");
+      return [];
+    }
+  },
+  saveUniformRequest: async (request: Partial<UniformRequest>) => {
+    try {
+      const id = request.id || doc(collection(db, "uniform_requests")).id;
+      const data = { 
+        ...request, 
+        id,
+        created_at: request.created_at || serverTimestamp(),
+        updated_at: serverTimestamp() 
+      };
+      await setDoc(doc(db, "uniform_requests", id), sanitizeData(data), { merge: true });
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "uniform_requests");
+      throw error;
+    }
+  },
+  deleteUniformRequest: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "uniform_requests", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `uniform_requests/${id}`);
+    }
+  },
+  checkNumberAvailability: async (category: string, jerseyNumber: string, currentAthleteId?: string): Promise<boolean> => {
+    try {
+      // Check in athletes collection
+      const athletes = await api.getAthletes();
+      const isTakenByAthlete = athletes.some(a => {
+        if (a.id === currentAthleteId) return false;
+        const athleteCategory = getSubCategory(a.birth_date);
+        return athleteCategory === category && a.jersey_number === jerseyNumber;
+      });
+
+      if (isTakenByAthlete) return false;
+
+      // Check in pending/approved uniform requests to avoid double booking
+      const requests = await api.getUniformRequests();
+      const isTakenByRequest = requests.some(r => {
+        if (r.athlete_id === currentAthleteId) return false;
+        return r.category === category && 
+               r.jersey_number === jerseyNumber && 
+               (r.status === 'Pendente' || r.status === 'Aprovado' || r.status === 'Entregue');
+      });
+
+      return !isTakenByRequest;
+    } catch (error) {
+      console.error("Error checking number availability", error);
+      return false;
+    }
+  },
+
+  // Sponsor Blocks
+  getSponsorBlocks: async (): Promise<SponsorBlock[]> => {
+    try {
+      const q = query(collection(db, "sponsor_blocks"), orderBy("created_at", "desc"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as SponsorBlock));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "sponsor_blocks");
+      return [];
+    }
+  },
+  saveSponsorBlock: async (block: Partial<SponsorBlock>) => {
+    try {
+      const id = block.id || doc(collection(db, "sponsor_blocks")).id;
+      const data = { 
+        ...block, 
+        id,
+        updated_at: serverTimestamp(),
+        created_at: block.created_at || serverTimestamp()
+      };
+      await setDoc(doc(db, "sponsor_blocks", id), sanitizeData(data), { merge: true });
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "sponsor_blocks");
+      throw error;
+    }
+  },
+  deleteSponsorBlock: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "sponsor_blocks", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `sponsor_blocks/${id}`);
     }
   },
 };

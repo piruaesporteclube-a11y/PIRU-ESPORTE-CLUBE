@@ -32,7 +32,8 @@ import TravelList from './components/TravelList';
 import CompanionRegistration from './components/CompanionRegistration';
 import ActivityManagement from './components/ActivityManagement';
 import SuspendedAthletes from './components/SuspendedAthletes';
-import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion } from './types';
+import UniformManagement from './components/UniformManagement';
+import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
@@ -1052,6 +1053,9 @@ export default function App() {
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'official-letters':
           return <OfficialLetterGenerator />;
+        case 'uniforms':
+        case 'uniform-request':
+          return <UniformManagement user={user} athletes={athletes} />;
         case 'travel-list':
           return <TravelList athletes={athletes} professors={professors} role={user?.role} />;
         case 'settings':
