@@ -165,6 +165,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         left: '0',
         width: '360px',
         height: '640px',
+        boxSizing: 'border-box',
         transform: 'none',
         transition: 'none',
         zIndex: '-9999',
@@ -600,7 +601,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
 
               {/* Dynamic Content Overlay - Centered Design - Higher Z-Index (z-20) */}
-              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between py-8 px-6">
+              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between pt-8 pb-4 px-6">
                 
                 {/* TOP: Parabéns & Crest */}
                 <div 
@@ -704,7 +705,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
                 {/* BOTTOM: Message */}
                 <div 
-                  className="w-full flex flex-col items-center gap-4 mt-auto pb-10 relative z-30 transform"
+                  className="w-full flex flex-col items-center gap-4 mt-auto pb-6 relative z-30 transform"
                   style={{
                     transform: `translate(${footerXOffset}px, ${footerYOffset}px)`
                   }}
