@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Athlete, UniformRequest, getSubCategory, SponsorBlock, Sponsor, categories } from '../types';
-import { Shirt, Search, CheckCircle, Clock, XCircle, Info, Filter, Plus, Save, Trash2, Package, Users, Layers, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Athlete, UniformRequest, getSubCategory, SponsorBlock, Sponsor, categories, UniformModel, UniformGroup } from '../types';
+import { Shirt, Search, CheckCircle, Clock, XCircle, Info, Filter, Plus, Save, Trash2, Package, Users, Layers, AlertTriangle, ExternalLink, Download, FileText, Image as ImageIcon, Camera } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
 import { toast } from 'react-hot-toast';
 import AthleteSearchSelect from './AthleteSearchSelect';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface UniformManagementProps {
   user: any;
@@ -13,9 +17,10 @@ interface UniformManagementProps {
 }
 
 export default function UniformManagement({ user, athletes }: UniformManagementProps) {
-  const [activeTab, setActiveTab] = useState<'requests' | 'blocks'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'blocks' | 'catalog'>('requests');
   const [requests, setRequests] = useState<UniformRequest[]>([]);
   const [sponsorBlocks, setSponsorBlocks] = useState<SponsorBlock[]>([]);
+  const [uniformModels, setUniformModels] = useState<UniformModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -23,6 +28,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
   const [allSponsors, setAllSponsors] = useState<Sponsor[]>([]);
   
@@ -33,8 +39,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     min_sets: 40
   });
 
+  // New model state
+  const [newModel, setNewModel] = useState<Partial<UniformModel>>({
+    name: '',
+    image: '',
+    group: 'Jogo',
+    description: ''
+  });
+
   // New request state
   const [newRequest, setNewRequest] = useState<Partial<UniformRequest>>({
+    type: 'Conjunto Completo',
+    uniform_group: 'Jogo',
     size: 'M',
     jersey_number: '',
     status: 'Pendente',
@@ -52,10 +68,11 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
   const loadData = async () => {
     setLoading(true);
     try {
-      const [requestsData, blocksData, sponsorsData] = await Promise.all([
+      const [requestsData, blocksData, sponsorsData, modelsData] = await Promise.all([
           api.getUniformRequests(),
           api.getSponsorBlocks(),
-          api.getSponsors()
+          api.getSponsors(),
+          api.getUniformModels()
       ]);
       
       let filteredRequests = requestsData;
@@ -65,6 +82,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
       setRequests(filteredRequests);
       setSponsorBlocks(blocksData);
       setAllSponsors(sponsorsData);
+      setUniformModels(modelsData);
 
       if (user?.role === 'student' && user?.athlete_id) {
           const studentAthlete = athletes.find(a => a.id === user.athlete_id);
@@ -167,6 +185,102 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const now = new Date();
+    
+    // Header
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMO DE PEDIDO - UNIFORMES', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`GERADO EM: ${format(now, "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}`, 105, 30, { align: 'center' });
+    
+    // Filters info
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(9);
+    let filterText = `FILTROS: Status: ${statusFilter === 'all' ? 'Todos' : statusFilter} | `;
+    filterText += `Categoria: ${categoryFilter === 'all' ? 'Todas' : categoryFilter} | `;
+    if (blockFilter !== 'all') {
+        const block = sponsorBlocks.find(b => b.id === blockFilter);
+        filterText += `Bloco: ${block?.name || 'N/A'}`;
+    }
+    doc.text(filterText, 14, 50);
+
+    // Table
+    const tableData = filteredData.map(req => [
+        req.athlete_name,
+        req.category,
+        req.type || 'N/A',
+        req.size,
+        `#${req.jersey_number}`,
+        req.status,
+        sponsorBlocks.find(b => b.id === req.sponsor_block_id)?.name || '-'
+    ]);
+
+    autoTable(doc, {
+        startY: 55,
+        head: [['ATLETA', 'CAT.', 'TIPO', 'TAM.', 'Nº', 'STATUS', 'BLOCO']],
+        body: tableData,
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8 },
+        alternateRowStyles: { fillColor: [245, 245, 245] }
+    });
+
+    // Summary
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const stats = {
+        total: filteredData.length,
+        completos: filteredData.filter(r => r.type === 'Conjunto Completo').length,
+        camisas: filteredData.filter(r => r.type === 'Camisa Avulsa').length
+    };
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`TOTAL DE PEDIDOS: ${stats.total}`, 14, finalY);
+    doc.text(`CONJUNTOS COMPLETOS: ${stats.completos}`, 14, finalY + 5);
+    doc.text(`CAMISAS AVULSAS: ${stats.camisas}`, 14, finalY + 10);
+
+    doc.save(`pedidos-uniforme-${format(now, 'dd-MM-yyyy')}.pdf`);
+    toast.success("PDF gerado com sucesso!");
+  };
+
+  const handleSaveModel = async () => {
+    if (!newModel.name || !newModel.image || !newModel.group) {
+        toast.error("Por favor, preencha todos os campos obrigatórios.");
+        return;
+    }
+
+    setLoading(true);
+    try {
+        await api.saveUniformModel(newModel);
+        toast.success("Modelo de uniforme salvo!");
+        setIsModelModalOpen(false);
+        setNewModel({ name: '', image: '', group: 'Jogo', description: '' });
+        loadData();
+    } catch (error) {
+        toast.error("Erro ao salvar modelo.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleDeleteModel = async (id: string) => {
+    if (!window.confirm("Deseja excluir este modelo do catálogo?")) return;
+    try {
+        await api.deleteUniformModel(id);
+        toast.success("Modelo removido.");
+        loadData();
+    } catch (error) {
+        toast.error("Erro ao excluir modelo.");
+    }
+  };
+
   const handleUpdateStatus = async (request: UniformRequest, newStatus: UniformRequest['status']) => {
     try {
       await api.saveUniformRequest({ ...request, status: newStatus });
@@ -227,17 +341,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-            {isAdmin && (
-                <div className="flex bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
-                    <button 
-                        onClick={() => setActiveTab('requests')}
-                        className={cn(
-                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                            activeTab === 'requests' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
-                        )}
-                    >
-                        Solicitações
-                    </button>
+            <div className="flex bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
+                <button 
+                    onClick={() => setActiveTab('requests')}
+                    className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                        activeTab === 'requests' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+                    )}
+                >
+                    Solicitações
+                </button>
+                {isAdmin && (
                     <button 
                         onClick={() => setActiveTab('blocks')}
                         className={cn(
@@ -247,8 +361,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     >
                         Blocos
                     </button>
-                </div>
-            )}
+                )}
+                <button 
+                    onClick={() => setActiveTab('catalog')}
+                    className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                        activeTab === 'catalog' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+                    )}
+                >
+                    Catálogo
+                </button>
+            </div>
             <button 
                 onClick={() => {
                     if (isAdmin) {
@@ -268,6 +391,15 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 <Plus size={18} />
                 SOLICITAR NOVO UNIFORME
             </button>
+            {isAdmin && filteredData.length > 0 && (
+                <button 
+                    onClick={generatePDF}
+                    className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                >
+                    <Download size={18} />
+                    Exportar PDF
+                </button>
+            )}
         </div>
       </div>
 
@@ -353,7 +485,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                 </div>
                                 <div>
                                 <h3 className="text-white font-black uppercase text-sm truncate max-w-[150px]">{req.athlete_name}</h3>
-                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{req.category}</span>
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none block mb-0.5">{req.category}</span>
+                                <div className="flex flex-wrap gap-1">
+                                    <span className={cn(
+                                        "text-[8px] font-black uppercase px-1.5 py-0.5 rounded border leading-none inline-block",
+                                        req.type === 'Camisa Avulsa' ? "border-amber-500/50 text-amber-500 bg-amber-500/5" : "border-theme-primary/50 text-theme-primary bg-theme-primary/5"
+                                    )}>
+                                        {req.type || 'Conjunto'}
+                                    </span>
+                                    <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 leading-none">
+                                        {req.uniform_group || 'Jogo'}
+                                    </span>
+                                </div>
                                 </div>
                             </div>
                             <div className={cn(
@@ -453,7 +596,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 </div>
             )}
         </>
-      ) : (
+      ) : activeTab === 'blocks' ? (
           <div className="space-y-6">
               <div className="flex items-center justify-between">
                   <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
@@ -546,6 +689,79 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                   })}
               </div>
           </div>
+      ) : (
+          <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                  <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
+                        <ImageIcon className="text-theme-primary" size={20} />
+                        CATÁLOGO DE UNIFORMES DO CLUBE
+                  </h3>
+                  {isAdmin && (
+                    <button 
+                        onClick={() => {
+                            setNewModel({ name: '', image: '', group: 'Jogo', description: '' });
+                            setIsModelModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                    >
+                        <Plus size={16} />
+                        Adicionar Modelo
+                    </button>
+                  )}
+              </div>
+
+              {(['Jogo', 'Viagem', 'Torcedor', 'Comissão Técnica'] as UniformGroup[]).map(group => {
+                  const groupModels = uniformModels.filter(m => m.group === group);
+                  if (groupModels.length === 0) return null;
+
+                  return (
+                      <div key={group} className="space-y-4">
+                          <div className="flex items-center gap-4">
+                              <h4 className="text-white font-black uppercase tracking-[0.2em] text-sm flex items-center gap-2">
+                                  <div className="w-8 h-[2px] bg-theme-primary"></div>
+                                  UNIFORME DE {group.toUpperCase()}
+                              </h4>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                              {groupModels.map(model => (
+                                  <div key={model.id} className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden group hover:border-theme-primary/30 transition-all">
+                                      <div className="aspect-[4/5] bg-zinc-800 relative overflow-hidden">
+                                          <img 
+                                            src={model.image} 
+                                            alt={model.name} 
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                          />
+                                          {isAdmin && (
+                                              <button 
+                                                onClick={() => handleDeleteModel(model.id)}
+                                                className="absolute top-4 right-4 p-2 bg-black/50 text-white hover:bg-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                              >
+                                                  <Trash2 size={16} />
+                                              </button>
+                                          )}
+                                      </div>
+                                      <div className="p-4">
+                                          <h5 className="text-white font-black uppercase text-xs mb-1">{model.name}</h5>
+                                          {model.description && (
+                                              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{model.description}</p>
+                                          )}
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  );
+              })}
+
+              {uniformModels.length === 0 && (
+                <div className="bg-zinc-900/50 border-2 border-dashed border-zinc-800 rounded-3xl p-12 text-center">
+                    <ImageIcon className="mx-auto mb-4 text-zinc-600" size={48} />
+                    <h3 className="text-white font-black uppercase mb-1">Nenhum modelo cadastrado</h3>
+                    <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Adicione modelos para que os atletas possam visualizar.</p>
+                </div>
+              )}
+          </div>
       )}
 
       {/* Modal Nova Solicitação */}
@@ -566,6 +782,48 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
             </div>
 
             <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">O que deseja pedir?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button 
+                            onClick={() => setNewRequest({...newRequest, type: 'Conjunto Completo'})}
+                            className={cn(
+                                "py-3 px-4 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                                newRequest.type === 'Conjunto Completo' 
+                                    ? "bg-theme-primary border-theme-primary text-black" 
+                                    : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                            )}
+                        >
+                            Kit Completo
+                        </button>
+                        <button 
+                            onClick={() => setNewRequest({...newRequest, type: 'Camisa Avulsa'})}
+                            className={cn(
+                                "py-3 px-4 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                                newRequest.type === 'Camisa Avulsa' 
+                                    ? "bg-theme-primary border-theme-primary text-black shadow-[0_0_15px_rgba(var(--color-theme-primary),0.2)]" 
+                                    : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                            )}
+                        >
+                            Camisa Avulsa
+                        </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Finalidade do Uniforme</label>
+                    <select 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                        value={newRequest.uniform_group}
+                        onChange={(e) => setNewRequest({...newRequest, uniform_group: e.target.value as any})}
+                    >
+                        {(['Jogo', 'Viagem', 'Torcedor', 'Comissão Técnica'] as UniformGroup[]).map(g => (
+                            <option key={g} value={g}>{g}</option>
+                        ))}
+                    </select>
+                  </div>
+              </div>
+
               {isAdmin && (
                   <div>
                       <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Selecione o Atleta</label>
@@ -782,6 +1040,109 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                               <div className="w-4 h-4 border-2 border-black/30 border-t-black animate-spin rounded-full" />
                           ) : <Save size={18} />}
                           Salvar Bloco
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Modal Novo Modelo de Uniforme */}
+      {isModelModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                  <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+                      <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
+                          <ImageIcon className="text-theme-primary" size={18} />
+                          {newModel.id ? 'Editar Modelo' : 'Adicionar Novo Modelo'}
+                      </h3>
+                      <button 
+                        onClick={() => setIsModelModalOpen(false)}
+                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-colors"
+                      >
+                          <XCircle size={20} />
+                      </button>
+                  </div>
+
+                  <div className="p-6 space-y-6">
+                      <div className="flex justify-center">
+                          <div className="w-full aspect-[4/5] bg-zinc-800 rounded-3xl border-2 border-dashed border-zinc-700 overflow-hidden relative group">
+                              {newModel.image ? (
+                                  <>
+                                    <img src={newModel.image} alt="Preview" className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => setNewModel({...newModel, image: ''})}
+                                        className="absolute top-4 right-4 p-2 bg-black/50 text-white hover:bg-red-500 rounded-xl transition-all"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                  </>
+                              ) : (
+                                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-700/50 transition-colors">
+                                      <Camera className="text-zinc-500 mb-2" size={32} />
+                                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Colar URL da Imagem</span>
+                                      <input 
+                                        type="text" 
+                                        placeholder="https://..."
+                                        className="mt-4 w-3/4 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-[10px] font-bold"
+                                        onBlur={(e) => setNewModel({...newModel, image: e.target.value})}
+                                      />
+                                  </label>
+                              )}
+                          </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                              <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Nome do Modelo</label>
+                              <input 
+                                type="text"
+                                placeholder="EX: CAMISA DE JOGO 1 2024"
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-bold uppercase"
+                                value={newModel.name}
+                                onChange={(e) => setNewModel({...newModel, name: e.target.value.toUpperCase()})}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Categoria/Grupo</label>
+                              <select 
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                                value={newModel.group}
+                                onChange={(e) => setNewModel({...newModel, group: e.target.value as any})}
+                              >
+                                {(['Jogo', 'Viagem', 'Torcedor', 'Comissão Técnica'] as UniformGroup[]).map(g => (
+                                    <option key={g} value={g}>{g}</option>
+                                ))}
+                              </select>
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Descrição Breve</label>
+                            <input 
+                                type="text"
+                                placeholder="EX: MODELO TRADICIONAL LISTRADO"
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-bold uppercase"
+                                value={newModel.description}
+                                onChange={(e) => setNewModel({...newModel, description: e.target.value.toUpperCase()})}
+                            />
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="p-6 bg-zinc-800/50 border-t border-zinc-800 flex justify-end gap-3">
+                      <button 
+                        onClick={() => setIsModelModalOpen(false)}
+                        className="px-6 py-3 bg-zinc-900 text-zinc-400 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                      >
+                          Cancelar
+                      </button>
+                      <button 
+                        onClick={handleSaveModel}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-8 py-3 bg-theme-primary hover:bg-theme-secondary text-black rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                      >
+                          {loading ? (
+                              <div className="w-4 h-4 border-2 border-black/30 border-t-black animate-spin rounded-full" />
+                          ) : <Save size={18} />}
+                          Salvar Modelo
                       </button>
                   </div>
               </div>

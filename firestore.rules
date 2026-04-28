@@ -152,7 +152,8 @@ service cloud.firestore {
 
     function isValidUniformModel(data) {
       return data.id is string && data.name is string && data.name.size() > 0 &&
-             data.image is string && data.image.size() > 0;
+             data.image is string && data.image.size() > 0 &&
+             data.group in ["Viagem", "Jogo", "Torcedor", "Comissão Técnica"];
     }
 
     function isValidOfficialLetter(data) {
@@ -208,6 +209,8 @@ service cloud.firestore {
       return data.athlete_id is string && data.athlete_id.size() > 0 &&
              data.athlete_name is string && data.athlete_name.size() > 0 &&
              data.category is string &&
+             data.type in ["Conjunto Completo", "Camisa Avulsa"] &&
+             data.uniform_group in ["Viagem", "Jogo", "Torcedor", "Comissão Técnica"] &&
              data.size in ["PP", "P", "M", "G", "GG", "XG"] &&
              data.jersey_number is string && data.jersey_number.size() > 0 &&
              data.status in ["Pendente", "Aprovado", "Entregue", "Recusado"];

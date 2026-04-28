@@ -194,10 +194,13 @@ export type Sponsor = {
   phone?: string;
 };
 
+export type UniformGroup = "Viagem" | "Jogo" | "Torcedor" | "Comissão Técnica";
+
 export type UniformModel = {
   id: string;
   name: string;
   image: string;
+  group: UniformGroup;
   description?: string;
 };
 
@@ -328,6 +331,8 @@ export type UniformRequest = {
   athlete_id: string;
   athlete_name: string;
   category: string;
+  type: "Conjunto Completo" | "Camisa Avulsa";
+  uniform_group: UniformGroup;
   size: "PP" | "P" | "M" | "G" | "GG" | "XG";
   jersey_number: string;
   status: "Pendente" | "Aprovado" | "Entregue" | "Recusado";
