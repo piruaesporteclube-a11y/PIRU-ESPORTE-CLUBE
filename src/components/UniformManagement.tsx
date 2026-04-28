@@ -266,7 +266,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 className="flex items-center gap-2 px-6 py-3 bg-theme-primary hover:bg-theme-secondary text-black rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-theme-primary/20 active:scale-95"
             >
                 <Plus size={18} />
-                {isAdmin ? 'Nova Entrega' : 'Solicitar Uniforme'}
+                SOLICITAR NOVO UNIFORME
             </button>
         </div>
       </div>
@@ -555,7 +555,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
             <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
               <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
                 <Shirt className="text-theme-primary" size={18} />
-                Nova Solicitação
+                {isAdmin ? 'SOLICITAÇÃO MANUAL (ADM)' : 'SOLICITAR MEU UNIFORME'}
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -673,7 +673,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 {loading ? (
                     <div className="w-4 h-4 border-2 border-black/30 border-t-black animate-spin rounded-full" />
                 ) : <Save size={18} />}
-                {isAdmin ? 'Confirmar Entrega' : 'Confirmar Solicitação'}
+                {isAdmin ? 'Salvar Solicitação' : 'Enviar Pedido'}
               </button>
             </div>
           </div>
