@@ -287,6 +287,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
+  const handleModelImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewModel(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleUpdateStatus = async (request: UniformRequest, newStatus: UniformRequest['status']) => {
     try {
       await api.saveUniformRequest({ ...request, status: newStatus });
@@ -1107,16 +1118,29 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                     </button>
                                   </>
                               ) : (
-                                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-700/50 transition-colors">
-                                      <Camera className="text-zinc-500 mb-2" size={32} />
-                                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Colar URL da Imagem</span>
-                                      <input 
-                                        type="text" 
-                                        placeholder="https://..."
-                                        className="mt-4 w-3/4 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-[10px] font-bold"
-                                        onBlur={(e) => setNewModel({...newModel, image: e.target.value})}
-                                      />
-                                  </label>
+                                  <div className="flex flex-col items-center justify-center w-full h-full">
+                                      <label className="flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-700/50 transition-colors w-full h-full p-6 text-center">
+                                          <Camera className="text-zinc-500 mb-2" size={32} />
+                                          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Clique para selecionar imagem</span>
+                                          <input type="file" accept="image/*" className="hidden" onChange={handleModelImageUpload} />
+                                      </label>
+                                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-4/5">
+                                          <div className="relative">
+                                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                              <div className="w-full border-t border-zinc-700"></div>
+                                            </div>
+                                            <div className="relative flex justify-center text-xs uppercase">
+                                              <span className="bg-zinc-800 px-2 text-zinc-500 font-bold">ou colar URL</span>
+                                            </div>
+                                          </div>
+                                          <input 
+                                            type="text" 
+                                            placeholder="https://..."
+                                            className="mt-2 w-full px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary/30"
+                                            onBlur={(e) => setNewModel({...newModel, image: e.target.value})}
+                                          />
+                                      </div>
+                                  </div>
                               )}
                           </div>
                       </div>
