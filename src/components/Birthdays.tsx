@@ -35,6 +35,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [footerYOffset, setFooterYOffset] = useState(0);
   const [footerXOffset, setFooterXOffset] = useState(0);
   const [photoScale, setPhotoScale] = useState(1);
+  const [photoYOffset, setPhotoYOffset] = useState(0);
+  const [photoXOffset, setPhotoXOffset] = useState(0);
+  const [customMainPhoto, setCustomMainPhoto] = useState<string | null>(null);
   const [congratsScale, setCongratsScale] = useState(1);
 
   useEffect(() => {
@@ -315,6 +318,22 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       toast.success("Foto adicionada!");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleMainPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("A imagem deve ser menor que 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomMainPhoto(reader.result as string);
+        toast.success("Foto principal personalizada carregada!");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const removeOverlay = (index: number) => {
@@ -640,13 +659,18 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
                   <div 
                     className="relative group z-20 mt-4 transition-transform"
-                    style={{ scale: `${photoScale}` }}
+                    style={{ 
+                      scale: `${photoScale}`,
+                      transform: `translate(${photoXOffset}px, ${photoYOffset}px)`
+                    }}
                   >
                     {/* Glowing background effect */}
                     <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
                     
                     <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
-                      {selectedPerson.photo ? (
+                      {customMainPhoto ? (
+                        <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      ) : selectedPerson.photo ? (
                         <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
@@ -743,6 +767,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   <div className="flex flex-wrap gap-2">
                     <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
                       <Upload size={14} />
+                      Principal
+                      <input type="file" accept="image/*" className="hidden" onChange={handleMainPhotoUpload} />
+                    </label>
+
+                    <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
+                      <Upload size={14} />
                       Fundo
                       <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
                     </label>
@@ -819,12 +849,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         className="flex-1 accent-theme-primary h-1.5"
                       />
                     </div>
-                    <div className="flex items-center gap-3">
+                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO</span>
                       <input 
                         type="range" 
                         min="0.5" 
-                        max="1.5" 
+                        max="2.5" 
                         step="0.05"
                         value={photoScale} 
                         onChange={(e) => setPhotoScale(parseFloat(e.target.value))}
@@ -832,6 +862,31 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       />
                       <span className="text-[10px] font-bold text-white w-8">{Math.round(photoScale * 100)}%</span>
                     </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO Y</span>
+                      <input 
+                        type="range" 
+                        min="-200" 
+                        max="200" 
+                        value={photoYOffset} 
+                        onChange={(e) => setPhotoYOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO X</span>
+                      <input 
+                        type="range" 
+                        min="-200" 
+                        max="200" 
+                        value={photoXOffset} 
+                        onChange={(e) => setPhotoXOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                    </div>
+
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-zinc-400 w-12 text-right">PARABÉNS</span>
                       <input 
@@ -919,6 +974,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         setFooterYOffset(0);
                         setFooterXOffset(0);
                         setPhotoScale(1);
+                        setPhotoYOffset(0);
+                        setPhotoXOffset(0);
                         setCongratsScale(1);
                         setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                       }}
@@ -931,6 +988,14 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
 
               <div className="w-full flex flex-wrap justify-center gap-2 mt-2 pt-4 border-t border-zinc-800/50">
+                {customMainPhoto && (
+                  <button 
+                    onClick={() => setCustomMainPhoto(null)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <X size={12} /> Remover Foto Principal
+                  </button>
+                )}
                 {bgImage && (
                   <button 
                     onClick={() => setBgImage(null)}

@@ -648,10 +648,17 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
                       <div className="number-circle !w-2 !h-2 !text-[4px]">8</div>
-                      <span className="label-text !text-[5px]">Endereço Completo</span>
+                      <span className="label-text !text-[5px]">
+                        {isProfessor ? 'Endereço Profissional / Residencial' : 'Endereço Completo'}
+                      </span>
                     </div>
-                    <div className="input-box !h-auto min-h-[26px] !text-[5.5px] items-start py-1 px-1 leading-[1.2] overflow-visible break-words flex flex-wrap">
-                      {athlete.street}, {athlete.number} - {athlete.neighborhood} • {athlete.city}/{athlete.uf}
+                    <div className="input-box !h-auto min-h-[24px] !text-[6px] items-start py-1 px-2 leading-tight overflow-hidden break-words text-left block">
+                      <div className="truncate w-full font-black">
+                        {athlete.street ? `${athlete.street}, ${athlete.number || 'S/N'}` : 'Endereço não informado'}
+                      </div>
+                      <div className="truncate w-full opacity-80 text-[5px]">
+                        {athlete.neighborhood ? `${athlete.neighborhood} • ` : ''}{athlete.city || 'Cidade'}/{athlete.uf || 'UF'}
+                      </div>
                     </div>
                   </div>
                 </div>
