@@ -37,7 +37,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
   const [customTextSize, setCustomTextSize] = useState(30);
 
   // Positioning States
-  const [sponsorPos, setSponsorPos] = useState({ scale: 1, x: 0, y: 0 });
+  const [sponsorPos, setSponsorPos] = useState({ scale: sponsor.logo_scale || 1, x: 0, y: 0 });
   const [schoolPos, setSchoolPos] = useState({ scale: 1, x: 0, y: 0 });
   const [layoutPos, setLayoutPos] = useState({ y: 0 });
   
@@ -162,7 +162,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar: {activeSlot === 'sponsor' ? 'Sponsor' : 'Brasão'}</span>
                     <button 
-                      onClick={() => activeSlot === 'sponsor' ? setSponsorPos({scale: 1, x: 0, y: 0}) : setSchoolPos({scale: 1, x: 0, y: 0})}
+                      onClick={() => activeSlot === 'sponsor' ? setSponsorPos({scale: sponsor.logo_scale || 1, x: 0, y: 0}) : setSchoolPos({scale: 1, x: 0, y: 0})}
                       className="text-[10px] font-bold text-theme-primary uppercase"
                     >
                       Resetar

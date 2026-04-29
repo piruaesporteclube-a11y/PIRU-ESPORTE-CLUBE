@@ -564,13 +564,15 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                     </div>
                                     <div className="flex -space-x-2 overflow-hidden">
                                         {block.sponsors.map((s, i) => (
-                                            <img 
-                                                key={i}
-                                                src={s.logo}
-                                                alt={s.name}
-                                                className="w-6 h-6 rounded-full border-2 border-zinc-900 object-contain bg-white"
-                                                title={s.name}
-                                            />
+                                            <div key={i} className="w-6 h-6 rounded-full border-2 border-zinc-900 bg-white overflow-hidden flex items-center justify-center">
+                                                <img 
+                                                    src={s.logo}
+                                                    alt={s.name}
+                                                    style={{ transform: `scale(${s.logo_scale || 1})` }}
+                                                    className="max-w-full max-h-full object-contain"
+                                                    title={s.name}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -685,8 +687,13 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                   {block.sponsors.map((s, i) => (
                                       <div key={i} className="p-3 bg-zinc-800 rounded-2xl border border-zinc-700 flex items-center justify-between group/sponsor hover:border-theme-primary/30 transition-all">
                                           <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-white rounded-lg p-1">
-                                              <img src={s.logo} alt={s.name} className="w-full h-full object-contain" />
+                                            <div className="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center overflow-hidden">
+                                              <img 
+                                                src={s.logo} 
+                                                alt={s.name} 
+                                                style={{ transform: `scale(${s.logo_scale || 1})` }}
+                                                className="max-w-full max-h-full object-contain" 
+                                              />
                                             </div>
                                             <div>
                                               <span className="text-[10px] font-black text-white uppercase block leading-none">{s.name}</span>

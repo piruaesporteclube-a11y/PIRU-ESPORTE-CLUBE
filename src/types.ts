@@ -192,6 +192,7 @@ export type Sponsor = {
   responsible_name?: string;
   segment?: string;
   phone?: string;
+  logo_scale?: number;
 };
 
 export type UniformGroup = "Viagem" | "Jogo" | "Torcedor" | "Comissão Técnica";

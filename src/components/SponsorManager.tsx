@@ -44,8 +44,8 @@ export default function SponsorManager() {
   };
 
   const handleSave = async () => {
-    if (!editingSponsor?.name || !editingSponsor?.logo) {
-      toast.error('Nome e Logo são obrigatórios');
+    if (!editingSponsor?.name) {
+      toast.error('O nome do patrocinador é obrigatório');
       return;
     }
 
@@ -111,7 +111,7 @@ export default function SponsorManager() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-white uppercase tracking-widest">Patrocinadores</h3>
         <button 
-          onClick={() => setEditingSponsor({ name: '', logo: '', link: '' })}
+          onClick={() => setEditingSponsor({ name: '', logo: '', link: '', logo_scale: 1 })}
           className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl font-bold hover:opacity-90 transition-all"
         >
           <Plus size={18} />
@@ -186,22 +186,47 @@ export default function SponsorManager() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center gap-4 p-4 bg-zinc-800/50 rounded-2xl border-2 border-dashed border-zinc-700 hover:border-theme-primary transition-colors relative group min-h-[200px]">
-              {editingSponsor.logo ? (
-                <img src={editingSponsor.logo} className="max-h-32 object-contain" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-zinc-600">
-                  <ImageIcon size={48} />
-                  <span className="text-[10px] mt-2 font-bold uppercase tracking-widest">Logo do Patrocinador</span>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col items-center justify-center gap-4 p-4 bg-zinc-800/50 rounded-2xl border-2 border-dashed border-zinc-700 hover:border-theme-primary transition-colors relative group min-h-[200px]">
+                {editingSponsor.logo ? (
+                  <img 
+                    src={editingSponsor.logo} 
+                    className="max-h-32 object-contain transition-transform" 
+                    style={{ transform: `scale(${editingSponsor.logo_scale || 1})` }}
+                    referrerPolicy="no-referrer" 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-zinc-600">
+                    <ImageIcon size={48} />
+                    <span className="text-[10px] mt-2 font-bold uppercase tracking-widest">Logo do Patrocinador</span>
+                  </div>
+                )}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload size={24} className="text-white" />
+                    <span className="text-[10px] text-white font-black uppercase">Alterar Logo</span>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                </label>
+              </div>
+
+              {editingSponsor.logo && (
+                <div className="bg-black/20 p-4 rounded-xl border border-zinc-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Tamanho do Logo</label>
+                    <span className="text-[10px] font-mono text-theme-primary">{Math.round((editingSponsor.logo_scale || 1) * 100)}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.3" 
+                    max="2" 
+                    step="0.05"
+                    value={editingSponsor.logo_scale || 1}
+                    onChange={e => setEditingSponsor({ ...editingSponsor, logo_scale: parseFloat(e.target.value) })}
+                    className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-theme-primary"
+                  />
                 </div>
               )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
-                <div className="flex flex-col items-center gap-2">
-                  <Upload size={24} className="text-white" />
-                  <span className="text-[10px] text-white font-black uppercase">Alterar Logo</span>
-                </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-              </label>
             </div>
           </div>
 
@@ -224,11 +249,21 @@ export default function SponsorManager() {
               return (
                 <div key={sponsor.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 group relative hover:border-theme-primary/50 transition-all flex flex-col h-full shadow-lg">
                     <div className="h-24 flex items-center justify-center mb-4 bg-white/5 rounded-2xl overflow-hidden p-2">
-                    <img 
-                        src={sponsor.logo} 
-                        className="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300 transform group-hover:scale-110" 
-                        referrerPolicy="no-referrer" 
-                    />
+                    {sponsor.logo ? (
+                      <div className="flex items-center justify-center w-full h-full overflow-hidden">
+                        <img 
+                            src={sponsor.logo} 
+                            style={{ transform: `scale(${sponsor.logo_scale || 1})` }}
+                            className="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300 transform group-hover:scale-110" 
+                            referrerPolicy="no-referrer" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-zinc-700">
+                        <ImageIcon size={32} />
+                        <span className="text-[8px] font-black uppercase mt-1">S/ Logo</span>
+                      </div>
+                    )}
                     </div>
                     <div className="text-center flex-1">
                     <p className="text-[11px] font-black text-white uppercase truncate tracking-wider">{sponsor.name}</p>
