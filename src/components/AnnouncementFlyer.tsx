@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { cn } from '../utils';
 
@@ -29,6 +29,16 @@ export default function AnnouncementFlyer() {
   const [themeColor, setThemeColor] = useState('#FFD700'); // Default gold
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
+  
+  // Element Control States
+  const [headerConfig, setHeaderConfig] = useState({ y: 0, scale: 1 });
+  const [titleConfig, setTitleConfig] = useState({ y: 0, scale: 1 });
+  const [subjectConfig, setSubjectConfig] = useState({ y: 0, scale: 0.8 }); // Adjusted default
+  const [messageBoxConfig, setMessageBoxConfig] = useState({ y: 0, scale: 1 });
+  const [footerConfig, setFooterConfig] = useState({ y: 0, scale: 1 });
+  const [borderWidth, setBorderWidth] = useState(6);
+  const [subjectY, setSubjectY] = useState(0);
+
   const [photoScale, setPhotoScale] = useState(1);
   const [photoYOffset, setPhotoYOffset] = useState(0);
   const [photoXOffset, setPhotoXOffset] = useState(0);
@@ -51,24 +61,26 @@ export default function AnnouncementFlyer() {
     if (!flyerRef.current) return;
     setIsGenerating(true);
     
-    // Smooth scrolling to top to avoid offset issues with html2canvas
+    // Smooth scrolling to top to avoid offset issues
     window.scrollTo(0, 0);
 
     try {
       // Small delay to ensure any layout changes are settled
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const canvas = await html2canvas(flyerRef.current, {
-        scale: 2, // Slightly lower scale for better compatibility while maintaining quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#000000',
-        logging: false,
+      const dataUrl = await toPng(flyerRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
         width: 360,
-        height: 640
+        height: 640,
+        cacheBust: true,
+        style: {
+          transform: 'none',
+          margin: '0',
+          position: 'relative'
+        }
       });
 
-      const dataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `comunicado-${format(new Date(), 'dd-MM-yyyy')}.png`;
       link.href = dataUrl;
@@ -79,7 +91,7 @@ export default function AnnouncementFlyer() {
       toast.success("Encarte gerado com sucesso!");
     } catch (error) {
       console.error('Download error:', error);
-      toast.error("Erro ao gerar encarte. Verifique sua conexão.");
+      toast.error("Erro ao gerar encarte. Tente novamente.");
     } finally {
       setIsGenerating(false);
     }
@@ -218,7 +230,74 @@ export default function AnnouncementFlyer() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-zinc-800/50 space-y-4">
+            <div className="pt-4 border-t border-zinc-800/50 space-y-6">
+              <label className="block text-xs font-black text-theme-primary uppercase tracking-widest ml-4">Ajustes de Layout</label>
+              
+              {/* Header Controls */}
+              <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 space-y-4">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Cabeçalho (Logo)</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
+                  <input type="range" min="-100" max="100" value={headerConfig.y} onChange={(e) => setHeaderConfig(prev => ({ ...prev, y: parseInt(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">TAMANHO</span>
+                  <input type="range" min="0.5" max="2" step="0.1" value={headerConfig.scale} onChange={(e) => setHeaderConfig(prev => ({ ...prev, scale: parseFloat(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+              </div>
+
+              {/* Title & Subject Controls */}
+              <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 space-y-4">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Título e Assunto</span>
+                <div className="flex items-center gap-3">
+                   <span className="text-[10px] text-zinc-400 w-12 text-right">POSIÇÃO</span>
+                   <input type="range" min="-100" max="100" value={titleConfig.y} onChange={(e) => setTitleConfig(prev => ({ ...prev, y: parseInt(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">TÍTULO</span>
+                  <input type="range" min="0.5" max="2" step="0.1" value={titleConfig.scale} onChange={(e) => setTitleConfig(prev => ({ ...prev, scale: parseFloat(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">ASSUNTO</span>
+                  <input type="range" min="0.5" max="2.5" step="0.1" value={subjectConfig.scale} onChange={(e) => setSubjectConfig(prev => ({ ...prev, scale: parseFloat(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">SUB Y</span>
+                  <input type="range" min="-50" max="50" value={subjectY} onChange={(e) => setSubjectY(parseInt(e.target.value))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+              </div>
+
+              {/* Message Box Controls */}
+              <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 space-y-4">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Bloco de Mensagem</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
+                  <input type="range" min="-200" max="200" value={messageBoxConfig.y} onChange={(e) => setMessageBoxConfig(prev => ({ ...prev, y: parseInt(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">GERAL</span>
+                  <input type="range" min="0.5" max="1.5" step="0.05" value={messageBoxConfig.scale} onChange={(e) => setMessageBoxConfig(prev => ({ ...prev, scale: parseFloat(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+              </div>
+
+              {/* Border Controls */}
+              <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 space-y-4">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Moldura (Borda)</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">ESPESS.</span>
+                  <input type="range" min="0" max="20" value={borderWidth} onChange={(e) => setBorderWidth(parseInt(e.target.value))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+              </div>
+
+              {/* Footer Controls */}
+              <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 space-y-4">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Rodapé</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
+                  <input type="range" min="-100" max="50" value={footerConfig.y} onChange={(e) => setFooterConfig(prev => ({ ...prev, y: parseInt(e.target.value) }))} className="flex-1 accent-theme-primary h-1.5" />
+                </div>
+              </div>
+
               <label className="block text-[10px] font-black text-zinc-500 uppercase ml-4">Foto do Destaque / Jogador</label>
               
               <div className="flex flex-wrap gap-4">
@@ -310,19 +389,22 @@ export default function AnnouncementFlyer() {
           <div className="absolute inset-0 opacity-[0.03] z-1 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
 
           {/* Content Layer */}
-          <div className="absolute inset-0 z-10 flex flex-col p-10">
+          <div className="absolute inset-0 z-10 flex flex-col p-10 pt-16">
             {/* Border Overlay */}
             <div 
-              className="absolute inset-4 border-[6px] pointer-events-none z-[100] opacity-80"
-              style={{ borderColor: themeColor }}
+              className="absolute inset-4 border-solid pointer-events-none z-[100] opacity-80"
+              style={{ borderColor: themeColor, borderWidth: `${borderWidth}px` }}
             ></div>
             <div className="absolute inset-[18px] border border-white/20 pointer-events-none z-[100]"></div>
 
             {/* Header */}
-            <div className="flex flex-col items-center gap-4 text-center mb-10 pt-4">
+            <div 
+              className="flex flex-col items-center gap-4 text-center mb-6 transition-transform"
+              style={{ transform: `translateY(${headerConfig.y}px) scale(${headerConfig.scale})` }}
+            >
               {settings?.schoolCrest ? (
                 <div className="w-24 h-24 bg-white/5 backdrop-blur-md rounded-3xl p-3 border border-white/10 shadow-2xl">
-                  <img src={settings.schoolCrest} className="w-full h-full object-contain" />
+                  <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                 </div>
               ) : (
                 <div className="w-24 h-24 bg-theme-primary/10 rounded-3xl flex items-center justify-center text-theme-primary border border-theme-primary/20">
@@ -338,11 +420,14 @@ export default function AnnouncementFlyer() {
             </div>
 
             {/* Main Title Area */}
-            <div className="flex flex-col items-center mb-6">
+            <div 
+              className="flex flex-col items-center mb-6 transition-transform"
+              style={{ transform: `translateY(${titleConfig.y}px) scale(${titleConfig.scale})` }}
+            >
               <div className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm mb-4">
                  <span className="text-white font-black uppercase text-[8px] tracking-[0.4em]">{title}</span>
               </div>
-              <h2 className="text-center font-black text-white text-3xl leading-[1.1] uppercase italic tracking-tighter" style={{ color: themeColor }}>
+              <h2 className="text-center font-black text-white text-3xl leading-[1.1] uppercase italic tracking-tighter" style={{ color: themeColor, transform: `translateY(${subjectY}px) scale(${subjectConfig.scale})` }}>
                 {subject}
               </h2>
             </div>
@@ -351,7 +436,10 @@ export default function AnnouncementFlyer() {
             <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/20 to-transparent mb-8"></div>
 
             {/* Details Box */}
-            <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 flex flex-col gap-6 backdrop-blur-md mb-8">
+            <div 
+              className="bg-white/5 border border-white/10 rounded-[40px] p-8 flex flex-col gap-6 backdrop-blur-md mb-8 transition-transform z-20"
+              style={{ transform: `translateY(${messageBoxConfig.y}px) scale(${messageBoxConfig.scale})` }}
+            >
                <div className="flex items-center gap-4">
                  <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: themeColor }}></div>
                  <div className="flex flex-col">
@@ -381,7 +469,7 @@ export default function AnnouncementFlyer() {
             {/* Player Photo Integration */}
             {playerPhoto && (
               <div 
-                className="absolute z-5 pointer-events-none"
+                className="absolute z-10 pointer-events-none"
                 style={{
                   width: '300px',
                   height: '400px',
@@ -396,12 +484,17 @@ export default function AnnouncementFlyer() {
                   src={playerPhoto} 
                   className="w-full h-full object-contain" 
                   style={{ maskImage: 'linear-gradient(to top, transparent, black 20%)' }}
+                  referrerPolicy="no-referrer" 
+                  crossOrigin="anonymous"
                 />
               </div>
             )}
 
             {/* Footer */}
-            <div className="mt-auto flex flex-col items-center text-center gap-4">
+            <div 
+              className="mt-auto flex flex-col items-center text-center gap-4 transition-transform pb-4"
+              style={{ transform: `translateY(${footerConfig.y}px) scale(${footerConfig.scale})` }}
+            >
                <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                <p className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em]">
                  Fique por dentro das novidades!
