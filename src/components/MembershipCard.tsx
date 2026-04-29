@@ -690,7 +690,12 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     </div>
                     
                     <div className="bg-white p-0.5 rounded-md flex flex-col items-center shadow-xl flex-shrink-0 qr-code-container">
-                      <QRCodeCanvas value={isProfessor ? `PIRUA-PROF-${athlete.id}` : `PIRUA-ATHLETE-${athlete.id}`} size={26} level="H" />
+                      <QRCodeCanvas 
+                        value={isProfessor ? `PIRUA-PROF-${athlete.id}` : `PIRUA-ATHLETE-${athlete.id}`} 
+                        size={128} 
+                        level="H" 
+                        style={{ width: '26px', height: '26px', display: 'block' }}
+                      />
                       <p className="text-[2px] font-black text-black mt-0.5">PIRUÁ E.C</p>
                     </div>
                   </div>
