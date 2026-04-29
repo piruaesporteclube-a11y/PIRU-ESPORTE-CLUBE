@@ -218,7 +218,7 @@ service cloud.firestore {
 
     function isValidSponsorBlock(data) {
       return data.name is string && data.name.size() > 0 &&
-             data.sponsors is list && data.sponsors.size() > 0 && data.sponsors.size() <= 7 &&
+             data.sponsors is list && data.sponsors.size() >= 0 && data.sponsors.size() <= 7 &&
              data.min_sets is number && data.min_sets >= 40;
     }
 
@@ -284,12 +284,14 @@ service cloud.firestore {
 
     match /sponsors/{sponsorId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidSponsor(request.resource.data);
+      allow create, update: if isAdmin() && isValidSponsor(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /uniform_models/{uniformId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidUniformModel(request.resource.data);
+      allow create, update: if isAdmin() && isValidUniformModel(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /named_lineups/{lineupId} {
@@ -325,12 +327,14 @@ service cloud.firestore {
 
     match /training_activities/{activityId} {
       allow read: if isAuthenticated();
-      allow write: if isStaff() && isValidTrainingActivity(request.resource.data);
+      allow create, update: if isStaff() && isValidTrainingActivity(request.resource.data);
+      allow delete: if isStaff();
     }
 
     match /event_matches/{matchId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidEventMatch(request.resource.data);
+      allow create, update: if isAdmin() && isValidEventMatch(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /uniform_requests/{requestId} {
@@ -342,7 +346,8 @@ service cloud.firestore {
 
     match /sponsor_blocks/{blockId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() && isValidSponsorBlock(request.resource.data);
+      allow create, update: if isAdmin() && isValidSponsorBlock(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /test/connection {

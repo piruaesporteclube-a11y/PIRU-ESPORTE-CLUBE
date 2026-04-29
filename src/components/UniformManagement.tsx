@@ -26,6 +26,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [blockFilter, setBlockFilter] = useState<string>('all');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
@@ -206,6 +207,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     doc.setFontSize(9);
     let filterText = `FILTROS: Status: ${statusFilter === 'all' ? 'Todos' : statusFilter} | `;
     filterText += `Categoria: ${categoryFilter === 'all' ? 'Todas' : categoryFilter} | `;
+    filterText += `Finalidade: ${groupFilter === 'all' ? 'Todas' : groupFilter} | `;
     if (blockFilter !== 'all') {
         const block = sponsorBlocks.find(b => b.id === blockFilter);
         filterText += `Bloco: ${block?.name || 'N/A'}`;
@@ -216,16 +218,16 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     const tableData = filteredData.map(req => [
         req.athlete_name,
         req.category,
-        req.type || 'N/A',
         req.size,
         `#${req.jersey_number}`,
-        req.status,
-        sponsorBlocks.find(b => b.id === req.sponsor_block_id)?.name || '-'
+        req.uniform_group || 'N/A',
+        req.type || 'N/A',
+        req.status
     ]);
 
     autoTable(doc, {
         startY: 55,
-        head: [['ATLETA', 'CAT.', 'TIPO', 'TAM.', 'Nº', 'STATUS', 'BLOCO']],
+        head: [['ATLETA', 'CAT.', 'TAM.', 'Nº', 'FINALIDADE', 'TIPO', 'STATUS']],
         body: tableData,
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 8 },
@@ -237,14 +239,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     const stats = {
         total: filteredData.length,
         completos: filteredData.filter(r => r.type === 'Conjunto Completo').length,
-        camisas: filteredData.filter(r => r.type === 'Camisa Avulsa').length
+        camisas: filteredData.filter(r => r.type === 'Camisa Avulsa').length,
+        jogo: filteredData.filter(r => r.uniform_group === 'Jogo').length,
+        viagem: filteredData.filter(r => r.uniform_group === 'Viagem').length,
+        torcedor: filteredData.filter(r => r.uniform_group === 'Torcedor').length,
+        comissao: filteredData.filter(r => r.uniform_group === 'Comissão Técnica').length
     };
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(`TOTAL DE PEDIDOS: ${stats.total}`, 14, finalY);
-    doc.text(`CONJUNTOS COMPLETOS: ${stats.completos}`, 14, finalY + 5);
-    doc.text(`CAMISAS AVULSAS: ${stats.camisas}`, 14, finalY + 10);
+    doc.text(`CONJUNTOS COMPLETOS: ${stats.completos} | CAMISAS AVULSAS: ${stats.camisas}`, 14, finalY + 5);
+    doc.text(`POR FINALIDADE: JOGO: ${stats.jogo} | VIAGEM: ${stats.viagem} | TORCEDOR: ${stats.torcedor} | COMISSÃO: ${stats.comissao}`, 14, finalY + 10);
 
     doc.save(`pedidos-uniforme-${format(now, 'dd-MM-yyyy')}.pdf`);
     toast.success("PDF gerado com sucesso!");
@@ -322,7 +328,8 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || r.category === categoryFilter;
     const matchesBlock = blockFilter === 'all' || r.sponsor_block_id === blockFilter;
-    return matchesSearch && matchesStatus && matchesCategory && matchesBlock;
+    const matchesGroup = groupFilter === 'all' || (r as any).uniform_group === groupFilter;
+    return matchesSearch && matchesStatus && matchesCategory && matchesBlock && matchesGroup;
   });
 
   return (
@@ -405,8 +412,8 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
 
       {activeTab === 'requests' ? (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="relative col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="relative md:col-span-2 lg:col-span-2">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                 <input
                     type="text"
@@ -425,6 +432,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     <option value="all">TODAS CATEGORIAS</option>
                     {categories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                </select>
+
+                <select 
+                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                    value={groupFilter}
+                    onChange={(e) => setGroupFilter(e.target.value)}
+                >
+                    <option value="all">TODOS TIPOS</option>
+                    {(['Jogo', 'Viagem', 'Torcedor', 'Comissão Técnica'] as UniformGroup[]).map(g => (
+                        <option key={g} value={g}>{g.toUpperCase()}</option>
                     ))}
                 </select>
 
@@ -493,7 +511,13 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                     )}>
                                         {req.type || 'Conjunto'}
                                     </span>
-                                    <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 leading-none">
+                                    <span className={cn(
+                                        "text-[8px] font-black uppercase px-1.5 py-0.5 rounded border leading-none inline-block",
+                                        req.uniform_group === 'Jogo' ? "border-theme-primary/50 text-theme-primary bg-theme-primary/5" :
+                                        req.uniform_group === 'Viagem' ? "border-purple-500/50 text-purple-500 bg-purple-500/5" :
+                                        req.uniform_group === 'Comissão Técnica' ? "border-sky-500/50 text-sky-500 bg-sky-500/5" :
+                                        "border-pink-500/50 text-pink-500 bg-pink-500/5"
+                                    )}>
                                         {req.uniform_group || 'Jogo'}
                                     </span>
                                 </div>
@@ -718,7 +742,13 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                       <div key={group} className="space-y-4">
                           <div className="flex items-center gap-4">
                               <h4 className="text-white font-black uppercase tracking-[0.2em] text-sm flex items-center gap-2">
-                                  <div className="w-8 h-[2px] bg-theme-primary"></div>
+                                  <div className={cn(
+                                      "w-8 h-[2px]",
+                                      group === 'Jogo' ? "bg-theme-primary" :
+                                      group === 'Viagem' ? "bg-purple-500" :
+                                      group === 'Comissão Técnica' ? "bg-sky-500" :
+                                      "bg-pink-500"
+                                  )}></div>
                                   UNIFORME DE {group.toUpperCase()}
                               </h4>
                           </div>
