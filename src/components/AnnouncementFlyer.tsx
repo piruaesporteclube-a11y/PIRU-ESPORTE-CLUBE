@@ -28,6 +28,10 @@ export default function AnnouncementFlyer() {
   const [category, setCategory] = useState('TODAS AS CATEGORIAS');
   const [themeColor, setThemeColor] = useState('#FFD700'); // Default gold
   const [bgImage, setBgImage] = useState<string | null>(null);
+  const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
+  const [photoScale, setPhotoScale] = useState(1);
+  const [photoYOffset, setPhotoYOffset] = useState(0);
+  const [photoXOffset, setPhotoXOffset] = useState(0);
   const flyerRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -46,27 +50,47 @@ export default function AnnouncementFlyer() {
   const handleDownload = async () => {
     if (!flyerRef.current) return;
     setIsGenerating(true);
+    
+    // Smooth scrolling to top to avoid offset issues with html2canvas
+    window.scrollTo(0, 0);
+
     try {
       // Small delay to ensure any layout changes are settled
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const canvas = await html2canvas(flyerRef.current, {
-        scale: 3, // High quality
+        scale: 2, // Slightly lower scale for better compatibility while maintaining quality
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#000000',
         logging: false,
+        width: 360,
+        height: 640
       });
 
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `comunicado-${format(new Date(), 'dd-MM-yyyy')}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      
       toast.success("Encarte gerado com sucesso!");
     } catch (error) {
-      console.error(error);
-      toast.error("Erro ao gerar encarte.");
+      console.error('Download error:', error);
+      toast.error("Erro ao gerar encarte. Verifique sua conexão.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handlePlayerPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (re) => setPlayerPhoto(re.target?.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -193,6 +217,58 @@ export default function AnnouncementFlyer() {
                 </div>
               </div>
             </div>
+
+            <div className="pt-4 border-t border-zinc-800/50 space-y-4">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase ml-4">Foto do Destaque / Jogador</label>
+              
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer">
+                  <Camera size={14} /> Subir Foto
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePlayerPhotoUpload} />
+                </label>
+
+                {playerPhoto && (
+                  <button 
+                    onClick={() => setPlayerPhoto(null)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                  >
+                    Remover Foto
+                  </button>
+                )}
+              </div>
+
+              {playerPhoto && (
+                <div className="space-y-4 bg-black/40 p-4 rounded-2xl border border-zinc-800">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-zinc-400 w-12 text-right">TAMANHO</span>
+                    <input 
+                      type="range" min="0.5" max="3" step="0.1"
+                      value={photoScale} onChange={(e) => setPhotoScale(parseFloat(e.target.value))}
+                      className="flex-1 accent-theme-primary h-1.5"
+                    />
+                    <span className="text-[10px] font-bold text-white w-8">{Math.round(photoScale * 100)}%</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
+                    <input 
+                      type="range" min="-200" max="200"
+                      value={photoYOffset} onChange={(e) => setPhotoYOffset(parseInt(e.target.value))}
+                      className="flex-1 accent-theme-primary h-1.5"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-zinc-400 w-12 text-right">LATERAL</span>
+                    <input 
+                      type="range" min="-200" max="200"
+                      value={photoXOffset} onChange={(e) => setPhotoXOffset(parseInt(e.target.value))}
+                      className="flex-1 accent-theme-primary h-1.5"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-6">
@@ -235,6 +311,13 @@ export default function AnnouncementFlyer() {
 
           {/* Content Layer */}
           <div className="absolute inset-0 z-10 flex flex-col p-10">
+            {/* Border Overlay */}
+            <div 
+              className="absolute inset-4 border-[6px] pointer-events-none z-[100] opacity-80"
+              style={{ borderColor: themeColor }}
+            ></div>
+            <div className="absolute inset-[18px] border border-white/20 pointer-events-none z-[100]"></div>
+
             {/* Header */}
             <div className="flex flex-col items-center gap-4 text-center mb-10 pt-4">
               {settings?.schoolCrest ? (
@@ -294,6 +377,28 @@ export default function AnnouncementFlyer() {
                   <Share2 className="text-zinc-500" size={16} />
                </div>
             </div>
+
+            {/* Player Photo Integration */}
+            {playerPhoto && (
+              <div 
+                className="absolute z-5 pointer-events-none"
+                style={{
+                  width: '300px',
+                  height: '400px',
+                  bottom: '5%',
+                  left: '50%',
+                  transform: `translateX(calc(-50% + ${photoXOffset}px)) translateY(${photoYOffset}px) scale(${photoScale})`,
+                  transformOrigin: 'bottom center',
+                  filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.8))'
+                }}
+              >
+                <img 
+                  src={playerPhoto} 
+                  className="w-full h-full object-contain" 
+                  style={{ maskImage: 'linear-gradient(to top, transparent, black 20%)' }}
+                />
+              </div>
+            )}
 
             {/* Footer */}
             <div className="mt-auto flex flex-col items-center text-center gap-4">
