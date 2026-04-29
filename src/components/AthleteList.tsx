@@ -219,9 +219,8 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Sexo</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Modalidade</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">UNIFORME</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cadastro</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right no-print">Ações</th>
               </tr>
             </thead>
@@ -254,17 +253,6 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                         </div>
                         <div className="text-xs text-zinc-500 flex items-center gap-2">
                           {athlete.doc}
-                          {athlete.guardian_phone && athlete.guardian_phone.replace(/\D/g, '') && (
-                            <a 
-                              href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-zinc-500 hover:text-green-500 transition-colors"
-                              title="Conversar com Responsável"
-                            >
-                              <MessageCircle size={12} />
-                            </a>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -280,20 +268,23 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-zinc-300 text-xs font-bold uppercase">
-                      {athlete.modality || '--'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-zinc-300 font-mono">
-                    #{athlete.jersey_number || '--'}
-                  </td>
-                  <td className="px-6 py-4">
                     <span className={cn(
                       "px-2 py-1 rounded-md text-xs font-bold uppercase",
                       athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
                     )}>
                       {athlete.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-center">
+                      <span className="text-zinc-300 text-[10px] font-bold">
+                        {athlete.created_at ? (
+                          athlete.created_at.toDate ? 
+                          format(athlete.created_at.toDate(), 'dd/MM/yyyy HH:mm') : 
+                          (typeof athlete.created_at === 'string' ? format(new Date(athlete.created_at), 'dd/MM/yyyy HH:mm') : '--')
+                        ) : '--'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right no-print">
                     <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">

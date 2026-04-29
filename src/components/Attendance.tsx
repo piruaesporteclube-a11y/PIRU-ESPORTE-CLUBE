@@ -479,7 +479,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       if (trainingId) attendanceId = `${athleteId}_training_${trainingId}`;
       if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
       
-      const finalArrivalTime = status === 'Presente' ? (arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm')) : undefined;
+      const finalArrivalTime = arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm');
       
       await api.saveAttendance({ 
         id: attendanceId, 
@@ -961,12 +961,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        {att?.status === 'Presente' ? (
+                        {att ? (
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
-                            <div className="flex items-center gap-1.5 bg-theme-primary/10 border border-theme-primary/20 px-3 py-1.5 rounded-xl">
-                              <Clock size={12} className="text-theme-primary" />
-                              <span className="text-xs font-black text-theme-primary">
+                            <div className={cn(
+                              "flex items-center gap-1.5 border px-3 py-1.5 rounded-xl",
+                              att.status === 'Presente' ? "bg-theme-primary/10 border-theme-primary/20 text-theme-primary" : "bg-red-500/10 border-red-500/20 text-red-500"
+                            )}>
+                              <Clock size={12} />
+                              <span className="text-xs font-black">
                                 {att.arrival_time || '--:--'}
                               </span>
                             </div>
@@ -1076,10 +1079,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           ))}
                         </div>
                       )}
-                      {att?.status === 'Presente' && (
-                        <div className="flex items-center gap-2 mt-2 bg-theme-primary/5 border border-theme-primary/10 p-2 rounded-xl w-fit">
-                          <Clock size={12} className="text-theme-primary" />
-                          <span className="text-[10px] font-black text-theme-primary uppercase"> 
+                      {att && (
+                        <div className={cn(
+                          "flex items-center gap-2 mt-2 border p-2 rounded-xl w-fit",
+                          att.status === 'Presente' ? "bg-theme-primary/5 border-theme-primary/10 text-theme-primary" : "bg-red-500/5 border-red-500/10 text-red-500"
+                        )}>
+                          <Clock size={12} />
+                          <span className="text-[10px] font-black uppercase"> 
                             Registro às {att.arrival_time || '--:--'}
                           </span>
                         </div>

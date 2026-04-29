@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Attendance, Athlete, getSubCategory } from '../types';
-import { Calendar, Search, Filter, User, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Calendar, Search, Filter, User, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../utils';
@@ -270,7 +270,10 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
                                 </div>
                               ) : (
                                 record?.arrival_time && (
-                                  <span className="text-[8px] text-zinc-500 font-bold">{record.arrival_time}</span>
+                                  <div className="flex items-center gap-1 text-zinc-500">
+                                    <Clock size={10} />
+                                    <span className="text-[9px] font-black">{record.arrival_time}</span>
+                                  </div>
                                 )
                               )}
                             </div>
