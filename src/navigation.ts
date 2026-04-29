@@ -15,7 +15,8 @@ import {
   LayoutDashboard,
   Activity,
   History,
-  Shirt
+  Shirt,
+  Megaphone
 } from 'lucide-react';
 
 export type NavItem = {
@@ -58,6 +59,7 @@ export const navItems: NavItem[] = [
   
   // --- GRUPO: Social & Relacionamento (Família Piruá) ---
   { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'], description: 'Responsáveis (Zap)', color: 'text-green-500', category: 'community' },
+  { id: 'announcements', label: 'Recados', icon: Megaphone, roles: ['admin', 'professor'], description: 'Gerar Encarte Story', color: 'text-theme-primary', category: 'community' },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin', 'professor'], description: 'Festa no Elenco', color: 'text-pink-500', category: 'community' },
   { id: 'sponsors', label: 'Patrocinadores', icon: Trophy, roles: ['admin'], description: 'Apoio e Parcerias', color: 'text-theme-primary', category: 'community' },
   

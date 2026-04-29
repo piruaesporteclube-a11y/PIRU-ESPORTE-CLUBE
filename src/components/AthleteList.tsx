@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface AthleteListProps {
   athletes: Athlete[];
