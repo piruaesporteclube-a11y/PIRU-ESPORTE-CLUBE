@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, UniformRequest, getSubCategory, SponsorBlock, Sponsor, categories, UniformModel, UniformGroup } from '../types';
-import { Shirt, Search, CheckCircle, Clock, XCircle, Info, Filter, Plus, Save, Trash2, Package, Users, Layers, AlertTriangle, ExternalLink, Download, FileText, Image as ImageIcon, Camera } from 'lucide-react';
+import { Shirt, Search, CheckCircle, Clock, XCircle, Info, Filter, Plus, Save, Trash2, Package, Users, Layers, AlertTriangle, ExternalLink, Download, FileText, Image as ImageIcon, Camera, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
 import { toast } from 'react-hot-toast';
@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toPng } from 'html-to-image';
 
 interface UniformManagementProps {
   user: any;
@@ -59,8 +60,378 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     sponsor_block_id: ''
   });
 
+  const [isDesigning, setIsDesigning] = useState(false);
+  const [designingModel, setDesigningModel] = useState<UniformModel | null>(null);
+
+  const STANDARD_SLOTS = [
+    { id: 'chest', name: 'PEITO NA FRENTE DA CAMISA', x: 40, y: 32, width: 20, height: 14 },
+    { id: 'sleeves', name: 'MANGAS DA CAMISA', x: 5, y: 25, width: 90, height: 12 },
+    { id: 'shorts', name: 'CALÇÃO LADO ESQUERDO NA FRENTE', x: 22, y: 78, width: 18, height: 12 },
+    { id: 'back_top', name: 'COSTAS ACIMA DO NÚMERO', x: 35, y: 12, width: 30, height: 10 },
+    { id: 'back_bottom', name: 'COSTAS ABAIXO DO NÚMERO', x: 35, y: 68, width: 30, height: 12 },
+  ];
+
+  const handleSaveSlots = async (modelId: string, slots: any[]) => {
+    try {
+      const model = uniformModels.find(m => m.id === modelId);
+      if (model) {
+        await api.saveUniformModel({ ...model, slots });
+        toast.success("Áreas de patrocínio salvas!");
+        setIsDesigning(false);
+        setDesigningModel(null);
+        loadData();
+      }
+    } catch (error) {
+      toast.error("Erro ao salvar áreas.");
+    }
+  };
+
+  const UniformSlotDesigner = ({ model, onSave, onClose }: { model: UniformModel, onSave: (id: string, slots: any[]) => void, onClose: () => void }) => {
+    const [slots, setSlots] = useState(model.slots || []);
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const handleAddSlot = (e: React.MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      const newSlot = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: `Slot ${slots.length + 1}`,
+        x: x - 5,
+        y: y - 5,
+        width: 10,
+        height: 10
+      };
+      
+      setSlots([...slots, newSlot]);
+      setSelectedSlot(newSlot.id);
+    };
+
+    const updateSlot = (id: string, updates: any) => {
+      setSlots(slots.map(s => s.id === id ? { ...s, ...updates } : s));
+    };
+
+    return (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+        <div className="bg-zinc-900 border border-zinc-800 w-full max-w-5xl rounded-3xl overflow-hidden flex flex-col md:flex-row h-[90vh] animate-in fade-in zoom-in duration-300">
+          {/* Editor Area */}
+          <div className="flex-1 p-8 bg-black/40 flex flex-col items-center justify-center overflow-hidden relative">
+            <div className="absolute top-6 left-8">
+              <h3 className="text-white font-black uppercase text-xl tracking-tighter">DESIGNER DE ÁREAS</h3>
+              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest leading-none">Clique na imagem para adicionar um local de patrocínio</p>
+            </div>
+
+            <div 
+              ref={containerRef}
+              className="relative aspect-[4/5] h-[80%] bg-zinc-800 rounded-2xl shadow-2xl cursor-crosshair group overflow-hidden border border-white/5"
+              onClick={handleAddSlot}
+            >
+              <img src={model.image} className="w-full h-full object-contain select-none pointer-events-none" />
+              
+              {slots.map(slot => (
+                <div
+                  key={slot.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedSlot(slot.id);
+                  }}
+                  className={cn(
+                    "absolute border-2 transition-all flex items-center justify-center group/slot",
+                    selectedSlot === slot.id ? "border-theme-primary bg-theme-primary/20 z-20" : "border-white/30 bg-black/20 hover:border-white/60 z-10"
+                  )}
+                  style={{
+                    left: `${slot.x}%`,
+                    top: `${slot.y}%`,
+                    width: `${slot.width}%`,
+                    height: `${slot.height}%`
+                  }}
+                >
+                  <span className={cn(
+                    "text-[8px] font-black uppercase whitespace-nowrap pointer-events-none",
+                    selectedSlot === slot.id ? "text-theme-primary" : "text-white/60"
+                  )}>
+                    {slot.name}
+                  </span>
+                  
+                  {selectedSlot === slot.id && (
+                    <>
+                      <div className="absolute -top-1 -left-1 w-2 h-2 bg-theme-primary rounded-full cursor-nw-resize" />
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-theme-primary rounded-full cursor-ne-resize" />
+                      <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-theme-primary rounded-full cursor-sw-resize" />
+                      <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-theme-primary rounded-full cursor-se-resize" />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Properties Area */}
+          <div className="w-full md:w-80 bg-zinc-900 border-l border-zinc-800 p-6 flex flex-col">
+            <h4 className="text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-6">PROPRIEDADES</h4>
+            
+            <div className="flex-1 space-y-6 overflow-y-auto custom-scrollbar pr-2">
+              {selectedSlot ? (
+                <>
+                  {slots.filter(s => s.id === selectedSlot).map(slot => (
+                    <div key={slot.id} className="space-y-4">
+                      <div>
+                        <label className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Nome da Área</label>
+                        <input 
+                          type="text"
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-[11px] font-bold uppercase"
+                          value={slot.name}
+                          onChange={(e) => updateSlot(slot.id, { name: e.target.value.toUpperCase() })}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Posição X (%)</label>
+                          <input 
+                            type="number"
+                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-[11px] font-bold"
+                            value={Math.round(slot.x)}
+                            onChange={(e) => updateSlot(slot.id, { x: parseFloat(e.target.value) })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Posição Y (%)</label>
+                          <input 
+                            type="number"
+                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-[11px] font-bold"
+                            value={Math.round(slot.y)}
+                            onChange={(e) => updateSlot(slot.id, { y: parseFloat(e.target.value) })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Largura (%)</label>
+                          <input 
+                            type="number"
+                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-[11px] font-bold"
+                            value={Math.round(slot.width)}
+                            onChange={(e) => updateSlot(slot.id, { width: parseFloat(e.target.value) })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Altura (%)</label>
+                          <input 
+                            type="number"
+                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-[11px] font-bold"
+                            value={Math.round(slot.height)}
+                            onChange={(e) => updateSlot(slot.id, { height: parseFloat(e.target.value) })}
+                        />
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                          setSlots(slots.filter(s => s.id !== selectedSlot));
+                          setSelectedSlot(null);
+                        }}
+                        className="w-full py-2 bg-red-500/10 text-red-500 rounded-lg text-xs font-black uppercase mt-4 hover:bg-red-500 hover:text-white transition-all"
+                      >
+                        REMOVER ÁREA
+                      </button>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-4 pt-20">
+                  <Package size={48} className="text-zinc-700" />
+                  <p className="text-[10px] font-black uppercase text-zinc-600">Selecione ou adicione uma área na imagem</p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-6 border-t border-zinc-800 space-y-3">
+              <button 
+                onClick={() => setSlots(STANDARD_SLOTS.map(s => ({ ...s, id: Math.random().toString(36).substr(2, 9) })))}
+                className="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Layers size={18} className="text-theme-primary" />
+                Layout Padrão (5 áreas)
+              </button>
+              <button 
+                onClick={() => onSave(model.id, slots)}
+                className="w-full py-4 bg-theme-primary text-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2"
+              >
+                <Save size={18} />
+                Salvar Layout
+              </button>
+              <button 
+                onClick={onClose}
+                className="w-full py-4 bg-zinc-800 text-zinc-400 rounded-2xl font-black text-xs uppercase tracking-widest"
+              >
+                Sair sem Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewBlock, setPreviewBlock] = useState<SponsorBlock | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPreview = async () => {
+    if (!previewRef.current) return;
+    try {
+      const dataUrl = await toPng(previewRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#09090b'
+      });
+      const link = document.createElement('a');
+      link.download = `mockup-${previewBlock?.name || 'uniforme'}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Mockup exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar imagem.");
+    }
+  };
+
+  const UniformPreviewModal = ({ block, model, onClose }: { block: SponsorBlock, model: UniformModel, onClose: () => void }) => {
+    return (
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
+        <div className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[95vh]">
+           <div className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                {settings?.schoolCrest && (
+                    <img src={settings.schoolCrest} className="w-12 h-12 object-contain" alt="Escudo" />
+                )}
+                <div>
+                  <h3 className="text-white font-black uppercase text-xl tracking-tighter leading-none mb-1">PROJETO DE UNIFORME</h3>
+                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em]">{block.name} • MODELO {model.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleExportPreview}
+                  className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-theme-primary/20"
+                >
+                  <Download size={16} /> Exportar Imagem
+                </button>
+                <button onClick={onClose} className="p-3 hover:bg-zinc-800 text-zinc-400 rounded-2xl transition-all">
+                  <X size={24} />
+                </button>
+              </div>
+           </div>
+
+           <div className="flex-1 overflow-y-auto custom-scrollbar bg-black/40 p-8">
+              <div 
+                ref={previewRef}
+                className="relative w-full aspect-video min-h-[600px] bg-zinc-900 rounded-[32px] overflow-hidden flex items-center justify-center border border-white/5"
+              >
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60 pointer-events-none"></div>
+
+                {/* Info Overlay */}
+                <div className="absolute top-12 left-12 z-10">
+                    <span className="text-zinc-600 font-black text-[8px] tracking-[0.5em] uppercase block mb-2">IDENTIFICAÇÃO DO CLUBE</span>
+                    <h2 className="text-white font-black text-4xl uppercase tracking-tighter italic leading-none">{settings?.schoolName || 'PIRUA E.C.'}</h2>
+                    <div className="flex items-center gap-2 mt-4">
+                        <div className="px-3 py-1 rounded-full bg-theme-primary/10 border border-theme-primary/20 text-theme-primary text-[8px] font-black uppercase tracking-widest">
+                            {model.group}
+                        </div>
+                        <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-400 text-[8px] font-black uppercase tracking-widest">
+                            TEMPORADA {new Date().getFullYear()}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative h-[85%] aspect-square flex items-center justify-center p-12">
+                    <div className="relative h-full w-full">
+                        <img src={model.image} className="w-full h-full object-contain drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]" />
+                        
+                        {/* Escudo da Escolinha - Positioned relative to chest area if single view */}
+                        {settings?.schoolCrest && (
+                            <div 
+                              className="absolute flex items-center justify-center z-10 pointer-events-none"
+                              style={{
+                                left: '42%',
+                                top: '22%',
+                                width: '16%',
+                                height: '12%'
+                              }}
+                            >
+                                <img 
+                                  src={settings.schoolCrest} 
+                                  className="max-w-full max-h-full object-contain filter drop-shadow-2xl" 
+                                  alt="Escudo"
+                                />
+                            </div>
+                        )}
+
+                        {model.slots?.map(slot => {
+                          const sponsorId = block.slot_mapping?.[slot.id];
+                          const sponsor = block.sponsors.find(s => s.id === sponsorId);
+                          if (!sponsor) return null;
+
+                          return (
+                            <div
+                              key={slot.id}
+                              className="absolute flex items-center justify-center transition-all animate-in fade-in duration-500 pointer-events-none"
+                              style={{
+                                left: `${slot.x}%`,
+                                top: `${slot.y}%`,
+                                width: `${slot.width}%`,
+                                height: `${slot.height}%`
+                              }}
+                            >
+                              <img 
+                                src={sponsor.logo} 
+                                className="max-w-full max-h-full object-contain drop-shadow-lg"
+                                style={{ transform: `scale(${sponsor.logo_scale || 1})` }}
+                              />
+                            </div>
+                          );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer Brand */}
+                <div className="absolute bottom-12 right-12 text-right">
+                    <p className="text-zinc-600 font-black text-[8px] tracking-[0.3em] uppercase">Layout Criado por</p>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                            <span className="text-theme-primary font-black text-xs">P.</span>
+                        </div>
+                        <span className="text-white font-black uppercase text-sm tracking-tighter">AMRL SPORTS</span>
+                    </div>
+                </div>
+              </div>
+           </div>
+
+           <div className="p-8 bg-zinc-900 border-t border-zinc-800 flex items-center justify-center gap-12 overflow-x-auto pb-10">
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">PATROCINADORES DO BLOCO</span>
+                <div className="flex gap-4">
+                  {block.sponsors.map((s, i) => (
+                    <div key={i} className="flex flex-col items-center gap-2 group">
+                      <div className="w-16 h-16 bg-white rounded-2xl p-2 flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                        <img src={s.logo} className="max-w-full max-h-full object-contain" style={{ transform: `scale(${s.logo_scale || 1})` }} />
+                      </div>
+                      <span className="text-[8px] font-bold text-zinc-500 truncate w-16 text-center">{s.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
   const { settings } = useTheme();
-  const isAdmin = user?.role === 'admin' || user?.role === 'professor';
+  const isAdmin = user?.role === 'admin' || user?.role === 'professor' || user?.email === 'piruaesporteclube@gmail.com';
 
   useEffect(() => {
     loadData();
@@ -137,14 +508,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
-  const handleDeleteBlock = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir este bloco?")) return;
+  const handleDeleteBlock = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm("Deseja excluir este bloco de patrocinadores?")) return;
+    
+    const loadingToast = toast.loading("Excluindo bloco...");
     try {
       await api.deleteSponsorBlock(id);
-      toast.success("Bloco excluído.");
+      toast.success("Bloco excluído com sucesso.", { id: loadingToast });
       loadData();
     } catch (error) {
-      toast.error("Erro ao excluir bloco.");
+      toast.error("Erro ao excluir bloco.", { id: loadingToast });
     }
   };
 
@@ -276,14 +650,60 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
-  const handleDeleteModel = async (id: string) => {
-    if (!window.confirm("Deseja excluir este modelo do catálogo?")) return;
+  const handleCreateAMRLModel = async () => {
+    const amrlModel: Partial<UniformModel> = {
+      name: "MODELO AMRL (AMARELO/PRETO)",
+      description: "Conjunto oficial: Camisa Amarela e Calção Preto.",
+      group: "Jogo" as UniformGroup,
+      image: "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=1000",
+      slots: [
+        { id: 'chest', name: 'PEITO NA FRENTE DA CAMISA', x: 38, y: 35, width: 24, height: 12 },
+        { id: 'sleeves', name: 'MANGAS DA CAMISA', x: 2, y: 20, width: 96, height: 10 },
+        { id: 'shorts', name: 'CALÇÃO LADO ESQUERDO NA FRENTE', x: 20, y: 75, width: 20, height: 12 },
+        { id: 'back_top', name: 'COSTAS ACIMA DO NÚMERO', x: 35, y: 15, width: 30, height: 10 },
+        { id: 'back_bottom', name: 'COSTAS ABAIXO DO NÚMERO', x: 35, y: 65, width: 30, height: 12 },
+      ]
+    };
+
+    const loadingToast = toast.loading("Criando modelo...");
+    try {
+      setLoading(true);
+      await api.saveUniformModel(amrlModel);
+      toast.success("Modelo AMRL (Amarelo/Preto) criado!", { id: loadingToast });
+      loadData();
+    } catch (error) {
+      toast.error("Erro ao criar modelo.", { id: loadingToast });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteModel = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    
+    // Check if model is being used
+    const isUsedInBlock = sponsorBlocks.some(b => b.model_id === id);
+    const isUsedInRequest = requests.some(r => {
+        if (!r.sponsor_block_id) return false;
+        const block = sponsorBlocks.find(b => b.id === r.sponsor_block_id);
+        return block?.model_id === id;
+    });
+    
+    const hasUsage = isUsedInBlock || isUsedInRequest;
+    const confirmMessage = hasUsage 
+        ? "ATENÇÃO: Este modelo está sendo usado em solicitações ou blocos. Deseja mesmo excluir?"
+        : "Confirmar exclusão do modelo?";
+
+    if (!confirm(confirmMessage)) return;
+
+    const loadingToast = toast.loading("Removendo modelo...");
     try {
         await api.deleteUniformModel(id);
-        toast.success("Modelo removido.");
+        toast.success("Modelo removido com sucesso.", { id: loadingToast });
         loadData();
     } catch (error) {
-        toast.error("Erro ao excluir modelo.");
+        console.error("Erro ao excluir modelo:", error);
+        toast.error("Não foi possível excluir o modelo. Verifique se você tem permissão.", { id: loadingToast });
     }
   };
 
@@ -321,15 +741,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
-  const handleDeleteRequest = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta solicitação?")) return;
+  const handleDeleteRequest = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm("Deseja excluir esta solicitação?")) return;
+    
+    const loadingToast = toast.loading("Excluindo solicitação...");
     try {
       await api.deleteUniformRequest(id);
-      toast.success("Solicitação excluída.");
+      toast.success("Solicitação excluída com sucesso.", { id: loadingToast });
       loadData();
     } catch (error) {
       console.error("Error deleting request:", error);
-      toast.error("Erro ao excluir solicitação.");
+      toast.error("Erro ao excluir solicitação.", { id: loadingToast });
     }
   };
 
@@ -619,7 +1042,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                             
                             {(isAdmin || req.status === 'Pendente') && (
                                 <button 
-                                onClick={() => handleDeleteRequest(req.id)}
+                                onClick={(e) => handleDeleteRequest(req.id, e)}
                                 className="p-2 text-zinc-600 hover:text-red-500 transition-colors"
                                 title="Excluir"
                                 >
@@ -664,7 +1087,17 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                       <h4 className="text-white font-black uppercase">{block.name}</h4>
                                       <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Min. {block.min_sets} conjuntos</span>
                                   </div>
-                                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                  <div className="flex gap-2">
+                                      <button 
+                                        onClick={() => {
+                                            setPreviewBlock(block);
+                                            setIsPreviewOpen(true);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2 bg-theme-primary/10 text-theme-primary hover:bg-theme-primary/20 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+                                      >
+                                          <ImageIcon size={14} />
+                                          Visualizar
+                                      </button>
                                       <button 
                                         onClick={() => {
                                             setNewBlock(block);
@@ -675,7 +1108,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                           <Filter size={16} />
                                       </button>
                                       <button 
-                                        onClick={() => handleDeleteBlock(block.id)}
+                                        onClick={(e) => handleDeleteBlock(block.id, e)}
                                         className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-red-500 rounded-xl transition-all"
                                       >
                                           <Trash2 size={16} />
@@ -739,16 +1172,26 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                         CATÁLOGO DE UNIFORMES DO CLUBE
                   </h3>
                   {isAdmin && (
-                    <button 
-                        onClick={() => {
-                            setNewModel({ name: '', image: '', group: 'Jogo', description: '' });
-                            setIsModelModalOpen(true);
-                        }}
-                        className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
-                    >
-                        <Plus size={16} />
-                        Adicionar Modelo
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleCreateAMRLModel}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-3 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/30 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                        >
+                            <Plus size={14} />
+                            Criar AMRL Magic
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setNewModel({ name: '', image: '', group: 'Jogo', description: '' });
+                                setIsModelModalOpen(true);
+                            }}
+                            className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                        >
+                            <Plus size={16} />
+                            Adicionar Modelo
+                        </button>
+                    </div>
                   )}
               </div>
 
@@ -780,14 +1223,39 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                                             alt={model.name} 
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                           />
-                                          {isAdmin && (
-                                              <button 
-                                                onClick={() => handleDeleteModel(model.id)}
-                                                className="absolute top-4 right-4 p-2 bg-black/50 text-white hover:bg-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                              >
-                                                  <Trash2 size={16} />
-                                              </button>
-                                          )}
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                              {isAdmin && (
+                                                <>
+                                                  <button 
+                                                    onClick={() => {
+                                                        setDesigningModel(model);
+                                                        setIsDesigning(true);
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform"
+                                                  >
+                                                      <Layers size={14} />
+                                                      Desenhar Áreas
+                                                  </button>
+                                                  <button 
+                                                    onClick={() => {
+                                                        setNewModel(model);
+                                                        setIsModelModalOpen(true);
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/20 transition-all"
+                                                  >
+                                                      <FileText size={14} />
+                                                      Editar Info
+                                                  </button>
+                                                  <button 
+                                                    onClick={(e) => handleDeleteModel(model.id, e)}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                                                  >
+                                                      <Trash2 size={14} />
+                                                      Excluir
+                                                  </button>
+                                                </>
+                                              )}
+                                          </div>
                                       </div>
                                       <div className="p-4">
                                           <h5 className="text-white font-black uppercase text-xs mb-1">{model.name}</h5>
@@ -810,6 +1278,30 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 </div>
               )}
           </div>
+      )}
+
+      {/* Previsão do Uniforme */}
+      {isPreviewOpen && previewBlock && (
+          <UniformPreviewModal 
+            block={previewBlock} 
+            model={uniformModels.find(m => m.id === previewBlock.model_id) || uniformModels[0]} 
+            onClose={() => {
+                setIsPreviewOpen(false);
+                setPreviewBlock(null);
+            }}
+          />
+      )}
+
+      {/* Designer de Áreas */}
+      {isDesigning && designingModel && (
+          <UniformSlotDesigner 
+            model={designingModel}
+            onSave={handleSaveSlots}
+            onClose={() => {
+                setIsDesigning(false);
+                setDesigningModel(null);
+            }}
+          />
       )}
 
       {/* Modal Nova Solicitação */}
@@ -1027,7 +1519,115 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                               />
                               <p className="mt-1 text-[8px] text-zinc-500 uppercase font-black tracking-widest">Mínimo de 40 unidades por bloco</p>
                           </div>
+                          <div>
+                              <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Modelo de Uniforme</label>
+                              <select 
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                                value={newBlock.model_id}
+                                onChange={(e) => setNewBlock({...newBlock, model_id: e.target.value, slot_mapping: {}})}
+                              >
+                                <option value="">SELECIONE UM MODELO</option>
+                                {uniformModels.map(model => (
+                                    <option key={model.id} value={model.id}>{model.name} ({model.group})</option>
+                                ))}
+                              </select>
+                          </div>
                       </div>
+
+                      {newBlock.model_id && (
+                          <div className="p-5 bg-black/40 rounded-[32px] border border-zinc-800 space-y-6">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-theme-primary uppercase tracking-[0.3em]">LOCAIS DE PATROCÍNIO</label>
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-800 px-3 py-1 rounded-full">
+                                    {uniformModels.find(m => m.id === newBlock.model_id)?.name}
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 gap-4">
+                                  {uniformModels.find(m => m.id === newBlock.model_id)?.slots?.map(slot => {
+                                      const mappedSponsorId = newBlock.slot_mapping?.[slot.id];
+                                      const mappedSponsor = allSponsors.find(s => s.id === mappedSponsorId);
+                                      
+                                      return (
+                                          <div key={slot.id} className="group/slot bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 hover:border-theme-primary/30 transition-all">
+                                              <div className="flex items-center justify-between mb-3">
+                                                  <div className="flex items-center gap-2">
+                                                      <div className="w-1.5 h-1.5 rounded-full bg-theme-primary shadow-[0_0_8px_rgba(var(--color-theme-primary),0.5)]"></div>
+                                                      <span className="text-[10px] font-black text-white uppercase tracking-wider">{slot.name}</span>
+                                                  </div>
+                                                  {mappedSponsor && (
+                                                      <button 
+                                                        onClick={() => {
+                                                            const newMapping = { ... (newBlock.slot_mapping || {}) };
+                                                            delete newMapping[slot.id];
+                                                            
+                                                            // Check if sponsor is still used in any other slot
+                                                            const remainingSponsorIds = Object.values(newMapping);
+                                                            const isStillUsed = remainingSponsorIds.includes(mappedSponsorId);
+                                                            
+                                                            setNewBlock({
+                                                                ...newBlock,
+                                                                slot_mapping: newMapping,
+                                                                sponsors: isStillUsed 
+                                                                    ? (newBlock.sponsors || []) 
+                                                                    : (newBlock.sponsors || []).filter(s => s.id !== mappedSponsorId)
+                                                            });
+                                                        }}
+                                                        className="text-[9px] font-black text-red-500 uppercase hover:underline"
+                                                      >
+                                                          Remover
+                                                      </button>
+                                                  )}
+                                              </div>
+
+                                              <select 
+                                                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-theme-primary/50 text-[10px] font-bold uppercase truncate"
+                                                value={mappedSponsorId || ''}
+                                                onChange={(e) => {
+                                                    const sponsorId = e.target.value;
+                                                    const sponsor = allSponsors.find(s => s.id === sponsorId);
+                                                    if (!sponsor) return;
+
+                                                    const newMapping = { ...(newBlock.slot_mapping || {}), [slot.id]: sponsorId };
+                                                    const currentSponsors = newBlock.sponsors || [];
+                                                    const uniqueSponsors = Array.from(new Set([...currentSponsors.map(s => s.id), sponsorId]))
+                                                        .map(id => allSponsors.find(s => s.id === id))
+                                                        .filter(Boolean) as Sponsor[];
+
+                                                    setNewBlock({
+                                                        ...newBlock, 
+                                                        slot_mapping: newMapping,
+                                                        sponsors: uniqueSponsors
+                                                    });
+                                                }}
+                                              >
+                                                  <option value="">VAGO - CLIQUE PARA ESCOLHER PATROCINADOR</option>
+                                                  {allSponsors.map(sponsor => (
+                                                      <option key={sponsor.id} value={sponsor.id}>{sponsor.name}</option>
+                                                  ))}
+                                              </select>
+                                          </div>
+                                      );
+                                  })}
+
+                                  {(!uniformModels.find(m => m.id === newBlock.model_id)?.slots || uniformModels.find(m => m.id === newBlock.model_id)?.slots?.length === 0) && (
+                                      <div className="text-center py-8 bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-800">
+                                          <AlertTriangle size={24} className="mx-auto mb-2 text-zinc-700" />
+                                          <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Nenhuma área definida para este modelo.</p>
+                                          <button 
+                                            onClick={() => {
+                                                setDesigningModel(uniformModels.find(m => m.id === newBlock.model_id)!);
+                                                setIsDesigning(true);
+                                            }}
+                                            className="mt-3 text-[10px] font-black text-theme-primary uppercase hover:underline"
+                                          >
+                                              Desenhar áreas agora
+                                          </button>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      )}
 
                       <div>
                           <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">
@@ -1195,6 +1795,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                       >
                           Cancelar
                       </button>
+                      {newModel.id && (
+                          <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteModel(newModel.id!, e);
+                                setIsModelModalOpen(false);
+                            }}
+                            className="px-6 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                          >
+                            Excluir Modelo
+                          </button>
+                      )}
                       <button 
                         onClick={handleSaveModel}
                         disabled={loading}

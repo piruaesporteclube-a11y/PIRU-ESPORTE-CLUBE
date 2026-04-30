@@ -1630,6 +1630,7 @@ export const api = {
         updated_at: serverTimestamp() 
       };
       await setDoc(doc(db, "uniform_requests", id), sanitizeData(data), { merge: true });
+      delete cache["uniform_requests"]; // Invalidate cache
       return id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "uniform_requests");
@@ -1639,6 +1640,7 @@ export const api = {
   deleteUniformRequest: async (id: string) => {
     try {
       await deleteDoc(doc(db, "uniform_requests", id));
+      delete cache["uniform_requests"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `uniform_requests/${id}`);
     }
@@ -1692,6 +1694,7 @@ export const api = {
         created_at: block.created_at || serverTimestamp()
       };
       await setDoc(doc(db, "sponsor_blocks", id), sanitizeData(data), { merge: true });
+      delete cache["sponsor_blocks"]; // Invalidate cache
       return id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "sponsor_blocks");
@@ -1701,6 +1704,7 @@ export const api = {
   deleteSponsorBlock: async (id: string) => {
     try {
       await deleteDoc(doc(db, "sponsor_blocks", id));
+      delete cache["sponsor_blocks"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `sponsor_blocks/${id}`);
     }

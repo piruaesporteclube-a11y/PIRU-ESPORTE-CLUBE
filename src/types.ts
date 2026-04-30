@@ -197,12 +197,22 @@ export type Sponsor = {
 
 export type UniformGroup = "Viagem" | "Jogo" | "Torcedor" | "Comissão Técnica";
 
+export type SponsorSlot = {
+  id: string;
+  name: string;
+  x: number; // Percentage
+  y: number; // Percentage
+  width: number;
+  height: number;
+};
+
 export type UniformModel = {
   id: string;
   name: string;
   image: string;
   group: UniformGroup;
   description?: string;
+  slots?: SponsorSlot[];
 };
 
 export type EventLineup = {
@@ -348,6 +358,8 @@ export type SponsorBlock = {
   name: string;
   sponsors: Sponsor[]; 
   min_sets: number;
+  model_id?: string;
+  slot_mapping?: Record<string, string>; // slotId -> sponsorId
   created_at?: any;
   updated_at?: any;
 };
