@@ -1043,7 +1043,7 @@ export default function App() {
         case 'documents':
           return <Documents />;
         case 'sponsors':
-          return <SponsorManager />;
+          return <SponsorManager user={user} />;
         case 'modalities':
           return <ModalityList />;
         case 'contacts':

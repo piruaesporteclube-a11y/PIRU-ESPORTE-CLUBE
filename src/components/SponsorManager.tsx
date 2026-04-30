@@ -1,34 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Sponsor, SponsorBlock } from '../types';
-import { Plus, Trash2, Link as LinkIcon, Upload, Save, X, Image as ImageIcon, Download, Edit2, Layers } from 'lucide-react';
+import { Sponsor, SponsorBlock, User } from '../types';
+import { Plus, Trash2, Link as LinkIcon, Upload, Save, X, Image as ImageIcon, Download, Edit2, Layers, Grid, FileImage, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import SponsorFlyer from './SponsorFlyer';
+import { cn } from '../utils';
 
-export default function SponsorManager() {
+interface SponsorManagerProps {
+  user?: User | null;
+}
+
+export default function SponsorManager({ user }: SponsorManagerProps) {
+  const [activeTab, setActiveTab] = useState<'list' | 'flyers'>('list');
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [sponsorBlocks, setSponsorBlocks] = useState<SponsorBlock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<Partial<Sponsor> | null>(null);
   const [flyerSponsor, setFlyerSponsor] = useState<Sponsor | null>(null);
+
+  const isAdmin = user?.role === 'admin' || user?.email === 'piruaesporteclube@gmail.com';
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    
     try {
         const [sponsorsData, blocksData] = await Promise.all([
             api.getSponsors(),
             api.getSponsorBlocks()
         ]);
-        setSponsors(sponsorsData);
-        setSponsorBlocks(blocksData);
+        setSponsors(Array.isArray(sponsorsData) ? sponsorsData : []);
+        setSponsorBlocks(Array.isArray(blocksData) ? blocksData : []);
+        if (isRefresh) toast.success('Dados atualizados');
     } catch (error) {
-        toast.error('Erro ao carregar dados');
+        console.error('Erro ao carregar patrocinadores:', error);
+        toast.error('Erro ao carregar patrocinadores');
     } finally {
         setLoading(false);
+        setRefreshing(false);
     }
   };
 
@@ -44,12 +58,20 @@ export default function SponsorManager() {
   };
 
   const handleSave = async () => {
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem gerenciar patrocinadores');
+      return;
+    }
     if (!editingSponsor?.name) {
       toast.error('O nome do patrocinador é obrigatório');
       return;
     }
+    if (!editingSponsor?.logo) {
+      toast.error('O logo é obrigatório para as artes de divulgação');
+      return;
+    }
 
-    setLoading(true);
+    const loadingToast = toast.loading('Salvando patrocinador...');
     try {
       // Save sponsor in main collection
       await api.saveSponsor(editingSponsor);
@@ -68,20 +90,22 @@ export default function SponsorManager() {
         }));
       }
 
-      toast.success('Patrocinador salvo!');
+      toast.success('Patrocinador salvo!', { id: loadingToast });
       setEditingSponsor(null);
       loadData();
     } catch (error) {
-      toast.error('Erro ao salvar patrocinador');
-    } finally {
-      setLoading(false);
+      toast.error('Erro ao salvar patrocinador', { id: loadingToast });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Deseja excluir este patrocinador?')) return;
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem excluir patrocinadores');
+      return;
+    }
+    if (!window.confirm('Deseja excluir este patrocinador? Ele será removido de todos os blocos de uniformes.')) return;
     
-    setLoading(true);
+    const loadingToast = toast.loading('Excluindo patrocinador...');
     try {
         await api.deleteSponsor(id);
 
@@ -97,29 +121,69 @@ export default function SponsorManager() {
             }));
         }
 
-        toast.success('Patrocinador excluído');
+        toast.success('Patrocinador excluído', { id: loadingToast });
         loadData();
     } catch (error) {
-        toast.error('Erro ao excluir patrocinador');
-    } finally {
-        setLoading(false);
+        toast.error('Erro ao excluir patrocinador', { id: loadingToast });
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-white uppercase tracking-widest">Patrocinadores</h3>
-        <button 
-          onClick={() => setEditingSponsor({ name: '', logo: '', link: '', logo_scale: 1 })}
-          className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl font-bold hover:opacity-90 transition-all"
-        >
-          <Plus size={18} />
-          Novo Patrocinador
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Patrocinadores</h3>
+          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Gestão de parceiros e artes para redes sociais</p>
+        </div>
+
+        <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-zinc-800">
+          <button 
+            onClick={() => setActiveTab('list')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest",
+              activeTab === 'list' ? "bg-theme-primary text-black shadow-lg shadow-theme-primary/20" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            <Grid size={14} />
+            Gestão
+          </button>
+          <button 
+            onClick={() => setActiveTab('flyers')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest",
+              activeTab === 'flyers' ? "bg-theme-primary text-black shadow-lg shadow-theme-primary/20" : "text-zinc-500 hover:text-white"
+            )}
+          >
+            <FileImage size={14} />
+            Gerador de Encarte
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={() => loadData(true)}
+            disabled={refreshing || loading}
+            className="p-3 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-2xl transition-all disabled:opacity-50"
+            title="Atualizar dados"
+          >
+            <RefreshCw size={18} className={cn(refreshing && "animate-spin")} />
+          </button>
+
+          {activeTab === 'list' && isAdmin && (
+            <button 
+              onClick={() => setEditingSponsor({ name: '', logo: '', link: '', logo_scale: 1 })}
+              className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:opacity-90 active:scale-95"
+            >
+              <Plus size={18} />
+              Novo Patrocinador
+            </button>
+          )}
+        </div>
       </div>
 
-      {editingSponsor && (
+      {activeTab === 'list' ? (
+        <div className="space-y-6">
+          {editingSponsor && (
         <div className="bg-zinc-900 border border-theme-primary/30 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-4">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-bold text-white uppercase text-xs tracking-widest">
@@ -315,12 +379,75 @@ export default function SponsorManager() {
                 </div>
               );
             })}
-        {sponsors.length === 0 && !loading && (
-          <div className="col-span-full py-12 text-center bg-zinc-900/50 border border-dashed border-zinc-800 rounded-3xl">
-            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Nenhum patrocinador cadastrado</p>
-          </div>
-        )}
+          {sponsors.length === 0 && !loading && (
+            <div className="col-span-full py-20 text-center bg-zinc-900/50 border border-dashed border-zinc-800 rounded-[3rem] space-y-4">
+              <div className="mx-auto w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-600">
+                <AlertCircle size={32} />
+              </div>
+              <div>
+                <p className="text-white font-bold uppercase tracking-widest mb-1">Nenhum patrocinador cadastrado</p>
+                <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest max-w-xs mx-auto">
+                  {isAdmin ? "Comece adicionando seus parceiros para usá-los nos uniformes e gerar materiais de divulgação." : "Nenhum parceiro registrado pela administração até o momento."}
+                </p>
+              </div>
+              {isAdmin && (
+                <button 
+                  onClick={() => setEditingSponsor({ name: '', logo: '', link: '', logo_scale: 1 })}
+                  className="px-6 py-2 bg-theme-primary/10 text-theme-primary border border-theme-primary/30 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-theme-primary hover:text-black transition-all"
+                >
+                  Adicionar Primeiro Patrocinador
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+    ) : (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          <div className="bg-theme-primary/5 border border-theme-primary/20 p-6 rounded-3xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-theme-primary/20 rounded-2xl flex items-center justify-center">
+                <FileImage className="text-theme-primary" size={24} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest italic">Estúdio de Artes</h4>
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Clique em um patrocinador para gerar o encarte oficial do clube para Instagram Stories (9:16)</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sponsors.map(sponsor => (
+              <button 
+                key={`flyer-${sponsor.id}`}
+                onClick={() => setFlyerSponsor(sponsor)}
+                className="bg-zinc-900 border border-zinc-800 p-4 rounded-3xl flex items-center gap-4 hover:border-theme-primary group transition-all text-left"
+              >
+                <div className="w-16 h-16 bg-white/5 rounded-2xl p-2 flex items-center justify-center shrink-0">
+                  {sponsor.logo ? (
+                    <img src={sponsor.logo} className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
+                  ) : (
+                    <ImageIcon className="text-zinc-700" size={24} />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-black text-white uppercase truncate tracking-widest">{sponsor.name}</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase truncate tracking-widest">Gerar Encarte Profissional</p>
+                </div>
+                <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center text-theme-primary group-hover:bg-theme-primary group-hover:text-black transition-all">
+                  <Download size={18} />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {sponsors.length === 0 && (
+            <div className="py-12 text-center bg-zinc-900/50 border border-dashed border-zinc-800 rounded-3xl">
+              <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Crie patrocinadores primeiro para gerar artes</p>
+            </div>
+          )}
+        </div>
+      )}
       {flyerSponsor && (
         <SponsorFlyer 
           sponsor={flyerSponsor} 
