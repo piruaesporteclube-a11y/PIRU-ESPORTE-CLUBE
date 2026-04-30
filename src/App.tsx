@@ -34,6 +34,7 @@ import ActivityManagement from './components/ActivityManagement';
 import SuspendedAthletes from './components/SuspendedAthletes';
 import UniformManagement from './components/UniformManagement';
 import AnnouncementFlyer from './components/AnnouncementFlyer';
+import SchoolReportManagement from './components/SchoolReportManagement';
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
 import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History } from 'lucide-react';
@@ -196,6 +197,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
         <section className="space-y-12">
           {[
             { id: 'student', label: 'Dados & Identidade', color: 'bg-purple-500' },
+            { id: 'office', label: 'Documentação & Saúde', color: 'bg-indigo-500' },
             { id: 'arena', label: 'Minhas Competições', color: 'bg-blue-500' },
             { id: 'training', label: 'Treinos & Agenda', color: 'bg-orange-500' },
             { id: 'community', label: 'Comunidade & Social', color: 'bg-green-600' },
@@ -1061,6 +1063,8 @@ export default function App() {
           return <TravelList athletes={athletes} professors={professors} role={user?.role} />;
         case 'announcements':
           return <AnnouncementFlyer />;
+        case 'school-reports':
+          return <SchoolReportManagement user={user} athletes={athletes} />;
         case 'settings':
           return <SettingsComponent />;
         default:

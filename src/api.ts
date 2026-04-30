@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore, UniformRequest, getSubCategory, SponsorBlock } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1707,6 +1707,43 @@ export const api = {
       delete cache["sponsor_blocks"]; // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `sponsor_blocks/${id}`);
+    }
+  },
+
+  // School Reports
+  getSchoolReports: async (): Promise<SchoolReport[]> => {
+    try {
+      const q = query(collection(db, "school_reports"), orderBy("created_at", "desc"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as SchoolReport));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "school_reports");
+      return [];
+    }
+  },
+  saveSchoolReport: async (report: Partial<SchoolReport>) => {
+    try {
+      const id = report.id || doc(collection(db, "school_reports")).id;
+      const data = { 
+        ...report, 
+        id,
+        created_at: report.created_at || serverTimestamp(),
+        updated_at: serverTimestamp() 
+      };
+      await setDoc(doc(db, "school_reports", id), sanitizeData(data), { merge: true });
+      delete cache["school_reports"]; // Invalidate cache
+      return id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "school_reports");
+      throw error;
+    }
+  },
+  deleteSchoolReport: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "school_reports", id));
+      delete cache["school_reports"]; // Invalidate cache
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `school_reports/${id}`);
     }
   },
 };

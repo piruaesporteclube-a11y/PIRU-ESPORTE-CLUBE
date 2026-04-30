@@ -349,6 +349,23 @@
         "updated_at": { "type": "string" }
       },
       "required": ["id", "name", "sponsors", "min_sets"]
+    },
+    "SchoolReport": {
+      "title": "SchoolReport",
+      "description": "Athlete's school grade report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "athlete_id": { "type": "string" },
+        "athlete_name": { "type": "string" },
+        "category": { "type": "string" },
+        "period": { "type": "string" },
+        "year": { "type": "number" },
+        "report_card_image": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pendente", "Visto", "Recusado"] },
+        "observations": { "type": "string" }
+      },
+      "required": ["id", "athlete_id", "report_card_image", "status"]
     }
   },
   "firestore": {
@@ -427,6 +444,10 @@
     "/sponsor_blocks/{blockId}": {
       "schema": "SponsorBlock",
       "description": "Blocks of sponsors for uniforms"
+    },
+    "/school_reports/{reportId}": {
+      "schema": "SchoolReport",
+      "description": "Reports of school grades"
     }
   }
 }

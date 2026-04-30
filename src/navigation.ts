@@ -68,5 +68,6 @@ export const navItems: NavItem[] = [
   { id: 'attendance-history', label: 'Histórico', icon: History, roles: ['student', 'professor'], description: 'Sua Presença', category: 'student' },
   { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student', 'professor'], description: 'Sua ID Digital', category: 'student' },
   { id: 'my-anamnesis', label: 'Minha Saúde', icon: Activity, roles: ['student', 'professor'], description: 'Ficha Médica', category: 'student' },
+  { id: 'school-reports', label: 'Boletim Escolar', icon: FileText, roles: ['admin', 'student'], description: 'Notas Escolares', category: 'office' },
   { id: 'uniform-request', label: 'Pedir Uniforme', icon: Shirt, roles: ['student'], description: 'Solicitar Kit', category: 'student' },
 ];

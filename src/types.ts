@@ -353,6 +353,20 @@ export type UniformRequest = {
   updated_at?: any;
 };
 
+export type SchoolReport = {
+  id: string;
+  athlete_id: string;
+  athlete_name: string;
+  category: string;
+  period: string; // e.g., "1º Bimestre", "2º Bimestre", etc.
+  year: number;
+  report_card_image: string;
+  status: "Pendente" | "Visto" | "Recusado";
+  observations?: string;
+  created_at?: any;
+  updated_at?: any;
+};
+
 export type SponsorBlock = {
   id: string;
   name: string;
