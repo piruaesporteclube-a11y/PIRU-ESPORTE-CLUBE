@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
 
 export default function AnnouncementFlyer() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -67,6 +67,9 @@ export default function AnnouncementFlyer() {
     try {
       // Small delay to ensure any layout changes are settled
       await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Apply color fixes for oklch support
+      fixHtml2CanvasColors(flyerRef.current);
       
       const dataUrl = await toPng(flyerRef.current, {
         quality: 1.0,
@@ -101,7 +104,15 @@ export default function AnnouncementFlyer() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (re) => setPlayerPhoto(re.target?.result as string);
+      reader.onload = async (re) => {
+        const base64 = re.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 800, 800, 0.7);
+          setPlayerPhoto(compressed);
+        } catch (err) {
+          setPlayerPhoto(base64);
+        }
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -209,7 +220,15 @@ export default function AnnouncementFlyer() {
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (re) => setBgImage(re.target?.result as string);
+                        reader.onload = async (re) => {
+                          const base64 = re.target?.result as string;
+                          try {
+                            const compressed = await compressImage(base64, 1200, 1200, 0.6);
+                            setBgImage(compressed);
+                          } catch (err) {
+                            setBgImage(base64);
+                          }
+                        };
                         reader.readAsDataURL(file);
                       }
                     };

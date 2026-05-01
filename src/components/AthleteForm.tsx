@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
-import { cn, fixHtml2CanvasColors } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface AthleteFormProps {
@@ -103,23 +103,18 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         return;
       }
 
-      // Validate file size
-      if (file.size > 1024 * 1024) { // 1MB limit for raw input, will be checked again or compressed
-        toast.error("O arquivo é muito grande. Para melhor desempenho, escolha uma foto com menos de 1MB.");
-        return;
-      }
-
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64 = reader.result as string;
         
-        // Final size check for Firestore (400KB roughly translates to ~550k base64 characters)
-        if (base64.length > 550000) {
-          toast.error("A foto processada ainda é muito grande para o sistema. Tente uma imagem com menor resolução.");
-          return;
+        // Compress image before saving
+        try {
+          const compressed = await compressImage(base64, 400, 400, 0.6); // Profile pictures don't need to be huge
+          setFormData(prev => ({ ...prev, photo: compressed }));
+        } catch (error) {
+          console.error("Compression error:", error);
+          setFormData(prev => ({ ...prev, photo: base64 }));
         }
-
-        setFormData(prev => ({ ...prev, photo: base64 }));
       };
       reader.onerror = () => {
         toast.error("Erro ao ler o arquivo.");

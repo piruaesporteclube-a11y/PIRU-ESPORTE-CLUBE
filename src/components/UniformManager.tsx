@@ -3,6 +3,7 @@ import { api } from '../api';
 import { UniformModel, UniformGroup } from '../types';
 import { Plus, Trash2, Upload, Save, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { compressImage } from '../utils';
 
 export default function UniformManager() {
   const [models, setModels] = useState<UniformModel[]>([]);
@@ -23,8 +24,9 @@ export default function UniformManager() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingModel(prev => ({ ...prev, image: reader.result as string }));
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string, 800, 800, 0.6);
+        setEditingModel(prev => ({ ...prev, image: compressed }));
       };
       reader.readAsDataURL(file);
     }

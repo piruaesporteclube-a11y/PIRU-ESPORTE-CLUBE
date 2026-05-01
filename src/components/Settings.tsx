@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
 import UniformManager from './UniformManager';
+import { compressImage } from '../utils';
 
 export default function SettingsComponent() {
   const { settings: globalSettings } = useTheme();
@@ -20,8 +21,15 @@ export default function SettingsComponent() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings(prev => ({ ...prev, schoolCrest: reader.result as string }));
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        try {
+          const compressed = await compressImage(base64, 400, 400, 0.7);
+          setSettings(prev => ({ ...prev, schoolCrest: compressed }));
+        } catch (error) {
+          console.error("Compression failed", error);
+          setSettings(prev => ({ ...prev, schoolCrest: base64 }));
+        }
       };
       reader.readAsDataURL(file);
     }

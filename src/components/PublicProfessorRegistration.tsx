@@ -3,6 +3,7 @@ import { Professor } from '../types';
 import { api } from '../api';
 import { UserPlus, CheckCircle2, QrCode, ClipboardList, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { compressImage } from '../utils';
 
 export default function PublicProfessorRegistration() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -273,13 +274,16 @@ export default function PublicProfessorRegistration() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                if (file.size > 1024 * 1024) {
-                                  setError("A foto é muito grande. Por favor, escolha uma imagem com menos de 1MB.");
-                                  return;
-                                }
                                 const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setFormData(prev => ({ ...prev, photo: reader.result as string }));
+                                reader.onloadend = async () => {
+                                  const base64 = reader.result as string;
+                                  try {
+                                    const compressed = await compressImage(base64, 400, 400, 0.6);
+                                    setFormData(prev => ({ ...prev, photo: compressed }));
+                                  } catch (error) {
+                                    console.error("Compression failed", error);
+                                    setFormData(prev => ({ ...prev, photo: base64 }));
+                                  }
                                 };
                                 reader.readAsDataURL(file);
                               }

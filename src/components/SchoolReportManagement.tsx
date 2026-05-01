@@ -15,7 +15,7 @@ import { api } from '../api';
 import { SchoolReport, User, Athlete } from '../types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../utils';
+import { cn, compressImage } from '../utils';
 
 interface SchoolReportManagementProps {
   user: User;
@@ -358,12 +358,13 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                       type="file" 
                       className="hidden" 
                       accept="image/*"
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setEditingReport({ ...editingReport, report_card_image: reader.result as string });
+                          reader.onloadend = async () => {
+                            const compressed = await compressImage(reader.result as string, 1000, 1000, 0.7);
+                            setEditingReport({ ...editingReport, report_card_image: compressed });
                           };
                           reader.readAsDataURL(file);
                         }

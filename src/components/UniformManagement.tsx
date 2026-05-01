@@ -3,7 +3,7 @@ import { api } from '../api';
 import { Athlete, UniformRequest, getSubCategory, SponsorBlock, Sponsor, categories, UniformModel, UniformGroup } from '../types';
 import { Shirt, Search, CheckCircle, Clock, XCircle, Info, Filter, Plus, Save, Trash2, Package, Users, Layers, AlertTriangle, ExternalLink, Download, FileText, Image as ImageIcon, Camera, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { cn } from '../utils';
+import { cn, compressImage } from '../utils';
 import { toast } from 'react-hot-toast';
 import AthleteSearchSelect from './AthleteSearchSelect';
 import jsPDF from 'jspdf';
@@ -711,8 +711,9 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewModel(prev => ({ ...prev, image: reader.result as string }));
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string, 800, 800, 0.6);
+        setNewModel(prev => ({ ...prev, image: compressed }));
       };
       reader.readAsDataURL(file);
     }

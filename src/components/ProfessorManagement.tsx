@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
-import { cn } from '../utils';
+import { cn, compressImage } from '../utils';
 import MembershipCard from './MembershipCard';
 
 interface ProfessorManagementProps {
@@ -197,18 +197,17 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
         toast.error("O arquivo selecionado não é uma imagem válida.");
         return;
       }
-      if (file.size > 1024 * 1024) { // 1MB initial limit
-        toast.error("A foto é muito grande. Por favor, escolha uma imagem com menos de 1MB.");
-        return;
-      }
+      
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64 = reader.result as string;
-        if (base64.length > 700000) { // Approx 500KB
-          toast.error("A foto processada ainda é muito grande. Tente uma imagem com menor resolução.");
-          return;
+        try {
+          const compressed = await compressImage(base64, 400, 400, 0.6);
+          setFormData(prev => ({ ...prev, photo: compressed }));
+        } catch (error) {
+          console.error("Compression failed", error);
+          setFormData(prev => ({ ...prev, photo: base64 }));
         }
-        setFormData(prev => ({ ...prev, photo: base64 }));
       };
       reader.onerror = () => {
         toast.error("Erro ao ler o arquivo da foto.");

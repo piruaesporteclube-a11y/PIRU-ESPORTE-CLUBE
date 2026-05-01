@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
 
 interface TrainingFlyerProps {
   date: string;
@@ -57,13 +57,25 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        if (activeSlot === 1) {
-          setCustomImage(event.target?.result as string);
-          setSelectedAthlete(null);
-        } else {
-          setCustomImage2(event.target?.result as string);
-          setSelectedAthlete2(null);
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 800, 800, 0.7);
+          if (activeSlot === 1) {
+            setCustomImage(compressed);
+            setSelectedAthlete(null);
+          } else {
+            setCustomImage2(compressed);
+            setSelectedAthlete2(null);
+          }
+        } catch (err) {
+          if (activeSlot === 1) {
+            setCustomImage(base64);
+            setSelectedAthlete(null);
+          } else {
+            setCustomImage2(base64);
+            setSelectedAthlete2(null);
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -74,12 +86,22 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
-        setCustomBackgrounds(prev => ({
-          ...prev,
-          [activeId]: event.target?.result as string
-        }));
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 1200, 1200, 0.6);
+          const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
+          setCustomBackgrounds(prev => ({
+            ...prev,
+            [activeId]: compressed
+          }));
+        } catch (err) {
+          const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
+          setCustomBackgrounds(prev => ({
+            ...prev,
+            [activeId]: base64
+          }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -168,6 +190,9 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         padding: '0'
       });
       document.body.appendChild(clone);
+
+      // Apply color fixes for html-to-image
+      fixHtml2CanvasColors(clone);
 
       // 3. Clean clone
       const allCloneElements = clone.querySelectorAll('*');
@@ -639,8 +664,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               ref={flyerRef}
               data-flyer-container="true"
               style={{ width: '360px', height: '640px' }} // Instagram Story 9:16
-              className="bg-black relative overflow-hidden flex flex-col font-sans select-none border-[8px] border-theme-primary/80 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"
+              className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
             >
+              {/* Main Border Overlay - Better for rendering than container border */}
+              <div className="absolute inset-x-0 inset-y-0 border-[8px] border-theme-primary/80 pointer-events-none z-[100] shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"></div>
+
               {/* Layered Background System */}
               <div className="absolute inset-x-0 inset-y-0 pointer-events-none">
                 {/* Backgrounds now start after the border */}

@@ -4,7 +4,7 @@ import { api } from '../api';
 import { Championship, ChampionshipTeam, categories } from '../types';
 import { Trophy, Upload, Plus, Trash2, Save, User, UserPlus, Shield, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '../utils';
+import { cn, compressImage as globalCompressImage } from '../utils';
 
 interface PublicTeamRegistrationProps {
   championshipId?: string;
@@ -72,44 +72,19 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
     }
   }, [championshipId]);
 
-  const compressImage = (base64Str: string, maxWidth = 600, maxHeight = 800, quality = 0.6): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-    });
-  };
-
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const compressed = await compressImage(base64, 400, 400, 0.7);
-        setTeamData(prev => ({ ...prev, logo: compressed }));
+        try {
+          const compressed = await globalCompressImage(base64, 400, 400, 0.7);
+          setTeamData(prev => ({ ...prev, logo: compressed }));
+        } catch (error) {
+          console.error("Compression failed", error);
+          setTeamData(prev => ({ ...prev, logo: base64 }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -144,8 +119,13 @@ export default function PublicTeamRegistration({ championshipId: propChampionshi
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const compressed = await compressImage(base64, 300, 400, 0.6);
-        updatePlayer(index, 'photo', compressed);
+        try {
+          const compressed = await globalCompressImage(base64, 300, 400, 0.6);
+          updatePlayer(index, 'photo', compressed);
+        } catch (error) {
+          console.error("Compression failed", error);
+          updatePlayer(index, 'photo', base64);
+        }
       };
       reader.readAsDataURL(file);
     }

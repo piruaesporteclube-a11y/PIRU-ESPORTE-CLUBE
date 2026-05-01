@@ -4,7 +4,7 @@ import { Sponsor, SponsorBlock, User } from '../types';
 import { Plus, Trash2, Link as LinkIcon, Upload, Save, X, Image as ImageIcon, Download, Edit2, Layers, Grid, FileImage, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import SponsorFlyer from './SponsorFlyer';
-import { cn } from '../utils';
+import { cn, compressImage } from '../utils';
 
 interface SponsorManagerProps {
   user?: User | null;
@@ -50,8 +50,9 @@ export default function SponsorManager({ user }: SponsorManagerProps) {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingSponsor(prev => ({ ...prev, logo: reader.result as string }));
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string, 600, 600, 0.7);
+        setEditingSponsor(prev => ({ ...prev, logo: compressed }));
       };
       reader.readAsDataURL(file);
     }
