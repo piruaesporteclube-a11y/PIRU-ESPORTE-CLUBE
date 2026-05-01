@@ -746,6 +746,15 @@ export const api = {
         return { status: "disconnected", error: true };
       }
     },
+    reset: async () => {
+      try {
+        const response = await fetch("/api/whatsapp/reset", { method: "POST" });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp reset error:", err);
+        return { success: false, error: "Falha ao resetar" };
+      }
+    },
     addToGroup: async (groupName: "Piruá Esporte Clube Responsáveis" | "Piruá Esporte Clube Atletas", phoneNumber: string) => {
       try {
         const response = await fetch("/api/whatsapp/add", {

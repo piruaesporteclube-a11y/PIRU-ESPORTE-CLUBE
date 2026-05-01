@@ -23,10 +23,14 @@ export default function WhatsAppConnection() {
 
   const handleReconnect = async () => {
     setIsRetrying(true);
-    // There's no direct reconnect API yet, let's add one or just wait for the service to auto-retry
-    // Actually, setting the state to connecting visually is enough while we wait for the auto-retry
-    // but better if we had an endpoint. For now, let's just trigger a re-fetch and wait.
-    setTimeout(() => setIsRetrying(false), 2000);
+    try {
+      await api.whatsapp.reset();
+      await fetchStatus();
+    } catch (err) {
+      console.error('Error resetting WhatsApp:', err);
+    } finally {
+      setTimeout(() => setIsRetrying(false), 2000);
+    }
   };
 
   useEffect(() => {
@@ -48,14 +52,15 @@ export default function WhatsAppConnection() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {status === 'disconnected' && (
+          {status !== 'connecting' && (
             <button 
               onClick={handleReconnect}
               disabled={isRetrying}
-              className="p-2 hover:bg-zinc-800 text-zinc-400 rounded-xl transition-colors"
-              title="Tentar Reconectar"
+              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors flex items-center gap-2"
+              title="Resetar Conexão"
             >
-              <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
+              <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+              <span className="text-[10px] font-black uppercase">Resetar</span>
             </button>
           )}
           <div className={cn(

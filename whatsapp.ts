@@ -21,57 +21,99 @@ export class WhatsAppService {
   private authStatePath = './whatsapp_auth_info';
   private groupIds: { [key: string]: string } = {};
 
+  private isInitializing = false;
+
   constructor() {
     this.init();
   }
 
+  public async logout() {
+    try {
+      if (this.socket) {
+        await this.socket.logout();
+      }
+    } catch (e) {
+      console.error('Error logging out from socket:', e);
+    }
+    
+    this.socket = null;
+    this.qrCode = null;
+    this.connectionStatus = 'disconnected';
+    
+    if (fs.existsSync(this.authStatePath)) {
+      fs.rmSync(this.authStatePath, { recursive: true, force: true });
+    }
+    
+    console.log('WhatsApp auth cleared. Re-initializing...');
+    return this.init();
+  }
+
   private async init() {
-    const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
-    const { version } = await fetchLatestBaileysVersion();
+    if (this.isInitializing) return;
+    this.isInitializing = true;
+    
+    try {
+      const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
+      const { version } = await fetchLatestBaileysVersion();
 
-    this.socket = makeWASocket({
-      version,
-      logger,
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger),
-      },
-      printQRInTerminal: true,
-    });
+      this.socket = makeWASocket({
+        version,
+        logger,
+        auth: {
+          creds: state.creds,
+          keys: makeCacheableSignalKeyStore(state.keys, logger),
+        },
+        printQRInTerminal: true,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 0,
+        keepAliveIntervalMs: 10000,
+      });
 
-    this.socket.ev.on('connection.update', async (update: any) => {
-      const { connection, lastDisconnect, qr } = update;
+      this.socket.ev.on('connection.update', async (update: any) => {
+        const { connection, lastDisconnect, qr } = update;
 
-      if (qr) {
-        this.qrCode = await QRCode.toDataURL(qr);
-      }
-
-      if (connection === 'close') {
-        const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        
-        console.log('WhatsApp connection closed:', lastDisconnect?.error?.message, '| Status Code:', statusCode);
-        this.connectionStatus = 'disconnected';
-        this.qrCode = null;
-
-        if (shouldReconnect) {
-          console.log('Reconnecting in 5 seconds...');
-          setTimeout(() => this.init(), 5000); // 5 second delay before trying again
-        } else {
-          console.log('Connection closed. User logged out.');
+        if (qr) {
+          this.qrCode = await QRCode.toDataURL(qr);
+          this.connectionStatus = 'connecting';
+          console.log('New QR Code generated');
         }
-      } else if (connection === 'connecting') {
-        this.connectionStatus = 'connecting';
-      } else if (connection === 'open') {
-        console.log('WhatsApp connection opened successfully');
-        this.connectionStatus = 'connected';
-        this.qrCode = null;
-        // Small delay before setting up groups to avoid race conditions or rate limits
-        setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 3000);
-      }
-    });
 
-    this.socket.ev.on('creds.update', saveCreds);
+        if (connection === 'close') {
+          const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          
+          console.log('WhatsApp connection closed:', lastDisconnect?.error?.message || 'Unknown error', '| Status Code:', statusCode);
+          this.connectionStatus = 'disconnected';
+          this.qrCode = null;
+
+          if (shouldReconnect) {
+            console.log('Reconnecting in 5 seconds...');
+            setTimeout(() => {
+              this.isInitializing = false;
+              this.init();
+            }, 5000);
+          } else {
+            console.log('Connection closed. User logged out.');
+            this.isInitializing = false;
+          }
+        } else if (connection === 'connecting') {
+          this.connectionStatus = 'connecting';
+        } else if (connection === 'open') {
+          console.log('WhatsApp connection opened successfully');
+          this.connectionStatus = 'connected';
+          this.qrCode = null;
+          this.isInitializing = false;
+          // Small delay before setting up groups to avoid race conditions or rate limits
+          setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 3000);
+        }
+      });
+
+      this.socket.ev.on('creds.update', saveCreds);
+    } catch (err) {
+      console.error('Failed to initialize WhatsApp socket:', err);
+      this.isInitializing = false;
+      setTimeout(() => this.init(), 10000);
+    }
   }
 
   private async setupGroups() {
