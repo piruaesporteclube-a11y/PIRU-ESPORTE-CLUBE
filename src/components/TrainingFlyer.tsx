@@ -164,7 +164,6 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         opacity: '1',
         pointerEvents: 'none',
         borderRadius: '0',
-        border: 'none',
         margin: '0',
         padding: '0'
       });
