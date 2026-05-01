@@ -28,23 +28,37 @@ export class WhatsAppService {
   }
 
   public async logout() {
+    this.isInitializing = true; // Block init while logging out
     try {
       if (this.socket) {
-        await this.socket.logout();
+        // Only try to logout if socket exists. 
+        // If connection is already closed, this might throw, which we catch.
+        await this.socket.logout().catch(() => {});
+        this.socket.ev.removeAllListeners('connection.update');
+        this.socket.end();
       }
     } catch (e) {
-      console.error('Error logging out from socket:', e);
+      console.error('Error during socket cleanup:', e);
     }
     
     this.socket = null;
     this.qrCode = null;
     this.connectionStatus = 'disconnected';
     
+    // Safety delay to ensure file handles are closed
+    await new Promise(r => setTimeout(r, 1000));
+
     if (fs.existsSync(this.authStatePath)) {
-      fs.rmSync(this.authStatePath, { recursive: true, force: true });
+      try {
+        fs.rmSync(this.authStatePath, { recursive: true, force: true });
+        console.log('WhatsApp auth session cleared');
+      } catch (err) {
+        console.error('Failed to delete auth session files:', err);
+      }
     }
     
-    console.log('WhatsApp auth cleared. Re-initializing...');
+    this.isInitializing = false;
+    console.log('WhatsApp reset complete. Re-initializing...');
     return this.init();
   }
 
@@ -53,8 +67,15 @@ export class WhatsAppService {
     this.isInitializing = true;
     
     try {
+      // Ensure path exists
+      if (!fs.existsSync(this.authStatePath)) {
+        fs.mkdirSync(this.authStatePath, { recursive: true });
+      }
+
       const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
       const { version } = await fetchLatestBaileysVersion();
+
+      console.log(`Initializing WhatsApp with Baileys v${version}`);
 
       this.socket = makeWASocket({
         version,
@@ -66,7 +87,8 @@ export class WhatsAppService {
         printQRInTerminal: true,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 0,
-        keepAliveIntervalMs: 10000,
+        keepAliveIntervalMs: 15000,
+        retryRequestDelayMs: 5000,
       });
 
       this.socket.ev.on('connection.update', async (update: any) => {
@@ -75,36 +97,41 @@ export class WhatsAppService {
         if (qr) {
           this.qrCode = await QRCode.toDataURL(qr);
           this.connectionStatus = 'connecting';
-          console.log('New QR Code generated');
+          console.log('New WhatsApp QR Code generated');
         }
 
         if (connection === 'close') {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          const errorMessage = lastDisconnect?.error?.message || 'Unknown error';
           
-          console.log('WhatsApp connection closed:', lastDisconnect?.error?.message || 'Unknown error', '| Status Code:', statusCode);
+          console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
 
+          // If it's a stream error (515) or other critical errors, we might want to wait longer
+          const isStreamError = statusCode === 515;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
           if (shouldReconnect) {
-            console.log('Reconnecting in 5 seconds...');
+            const delay = isStreamError ? 10000 : 5000;
+            console.log(`Reconnecting in ${delay/1000} seconds...`);
             setTimeout(() => {
               this.isInitializing = false;
               this.init();
-            }, 5000);
+            }, delay);
           } else {
-            console.log('Connection closed. User logged out.');
+            console.log('WhatsApp: Logged out or manual disconnect. Re-init blocked.');
             this.isInitializing = false;
           }
         } else if (connection === 'connecting') {
           this.connectionStatus = 'connecting';
         } else if (connection === 'open') {
-          console.log('WhatsApp connection opened successfully');
+          console.log('WhatsApp connection established');
           this.connectionStatus = 'connected';
           this.qrCode = null;
           this.isInitializing = false;
-          // Small delay before setting up groups to avoid race conditions or rate limits
-          setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 3000);
+          // Initial setup of groups
+          setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 5000);
         }
       });
 
