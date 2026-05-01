@@ -349,8 +349,26 @@ export const api = {
         }
       }
 
+      const userData = userDocSnap.data() as User;
+
+      // Check if athlete is pending before allowing login
+      if (userData.role === 'student' && userData.athlete_id) {
+        const athleteSnap = await getDoc(doc(db, "athletes", userData.athlete_id));
+        if (athleteSnap.exists()) {
+          const athleteData = athleteSnap.data() as Athlete;
+          if (athleteData.confirmation === 'Pendente') {
+            await signOut(auth);
+            throw new Error("Seu cadastro está em análise. Por favor, aguarde a aprovação do administrador para acessar o sistema.");
+          }
+          if (athleteData.confirmation === 'Recusado') {
+            await signOut(auth);
+            throw new Error("Seu cadastro foi recusado. Por favor, entre em contato com a administração.");
+          }
+        }
+      }
+
       return { 
-        user: userDocSnap.data() as User, 
+        user: userData, 
         token: await firebaseUser.getIdToken()
       };
     } catch (error: any) {
@@ -424,6 +442,22 @@ export const api = {
         };
         await setDoc(userDocRef, sanitizeData(userData));
       }
+
+      // Check if athlete is pending before allowing login
+      if (userData.role === 'student' && userData.athlete_id) {
+        const athleteSnap = await getDoc(doc(db, "athletes", userData.athlete_id));
+        if (athleteSnap.exists()) {
+          const athleteData = athleteSnap.data() as Athlete;
+          if (athleteData.confirmation === 'Pendente') {
+            await signOut(auth);
+            throw new Error("Seu cadastro está em análise. Por favor, aguarde a aprovação do administrador para acessar o sistema.");
+          }
+          if (athleteData.confirmation === 'Recusado') {
+            await signOut(auth);
+            throw new Error("Seu cadastro foi recusado. Por favor, entre em contato com a administração.");
+          }
+        }
+      }
       
       return { user: userData, token: await firebaseUser.getIdToken() };
     } catch (error) {
@@ -471,7 +505,8 @@ export const api = {
         id: athleteId,
         doc: normalizedDoc,
         email: email,
-        status: "Ativo",
+        status: "Inativo",
+        confirmation: "Pendente",
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       } as any;
@@ -666,6 +701,30 @@ export const api = {
         throw error;
       }
       handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
+    }
+  },
+  approveAthlete: async (id: string) => {
+    try {
+      await updateDoc(doc(db, "athletes", id), {
+        status: "Ativo",
+        confirmation: "Confirmado",
+        updated_at: serverTimestamp()
+      });
+      delete cache["athletes"];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
+    }
+  },
+  rejectAthlete: async (id: string) => {
+    try {
+      await updateDoc(doc(db, "athletes", id), {
+        status: "Inativo",
+        confirmation: "Recusado",
+        updated_at: serverTimestamp()
+      });
+      delete cache["athletes"];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
   },
   deleteAthlete: async (id: string) => {

@@ -343,7 +343,7 @@ export default function LineupManagement() {
 
                   <div className="bg-black/50 border border-zinc-800 rounded-2xl p-2 h-64 overflow-y-auto space-y-1">
                     {athletes
-                      .filter(a => (athleteFilterSub === 'Todos' || getSubCategory(a.birth_date) === athleteFilterSub) && (a.name.toLowerCase().includes(athleteSearchTerm.toLowerCase()) || (a.nickname && a.nickname.toLowerCase().includes(athleteSearchTerm.toLowerCase()))))
+                      .filter(a => (a.confirmation !== 'Pendente') && (athleteFilterSub === 'Todos' || getSubCategory(a.birth_date) === athleteFilterSub) && (a.name.toLowerCase().includes(athleteSearchTerm.toLowerCase()) || (a.nickname && a.nickname.toLowerCase().includes(athleteSearchTerm.toLowerCase()))))
                       .map(athlete => (
                         <button
                           key={athlete.id}

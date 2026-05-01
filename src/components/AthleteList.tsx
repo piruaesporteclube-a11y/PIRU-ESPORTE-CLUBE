@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'active' | 'pending'>('active');
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -43,6 +44,28 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     setIsDeleteConfirmOpen(true);
   };
 
+  const handleApprove = async (id: string) => {
+    const toastId = toast.loading("Aprovando atleta...");
+    try {
+      await api.approveAthlete(id);
+      toast.success("Atleta aprovado com sucesso!", { id: toastId });
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(`Erro ao aprovar: ${err.message}`, { id: toastId });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const toastId = toast.loading("Recusando solicitação...");
+    try {
+      await api.rejectAthlete(id);
+      toast.success("Solicitação recusada.", { id: toastId });
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(`Erro ao recusar: ${err.message}`, { id: toastId });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!athleteToDelete) return;
     try {
@@ -50,11 +73,18 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       toast.success("Atleta excluído com sucesso!");
       setIsDeleteConfirmOpen(false);
       setAthleteToDelete(null);
+      if (onRefresh) onRefresh();
     } catch (err: any) {
       toast.error(`Erro ao excluir atleta: ${err.message}`);
     }
   };
-  const filteredAthletes = athletes
+
+  const pendingAthletes = athletes.filter(a => a.confirmation === 'Pendente');
+  const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
+
+  const currentAthletes = viewMode === 'active' ? activeAthletes : pendingAthletes;
+
+  const filteredAthletes = currentAthletes
     .filter(a => {
       const normalizedSearch = search.replace(/\D/g, "");
       const normalizedDoc = a.doc.replace(/\D/g, "");
@@ -121,10 +151,39 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
-          <h2 className="text-2xl font-bold text-white">Lista Geral de Alunos</h2>
+          <h2 className="text-2xl font-bold text-white">Gestão de Alunos</h2>
           <p className="text-zinc-400 text-sm">Gerencie todos os atletas da escolinha</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* View Toggler */}
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mr-2">
+            <button
+              onClick={() => setViewMode('active')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all",
+                viewMode === 'active' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+              )}
+            >
+              Ativos ({activeAthletes.length})
+            </button>
+            <button
+              onClick={() => setViewMode('pending')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
+                viewMode === 'pending' ? "bg-amber-500 text-black border-amber-500" : "text-zinc-500 hover:text-white"
+              )}
+            >
+              Pendentes
+              {pendingAthletes.length > 0 && (
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                  viewMode === 'pending' ? "bg-black text-amber-500" : "bg-amber-500 text-black"
+                )}>
+                  {pendingAthletes.length}
+                </span>
+              )}
+            </button>
+          </div>
           <button 
             onClick={() => {
               const link = `${window.location.origin}/?register=true`;
@@ -289,20 +348,41 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </td>
                   <td className="px-6 py-4 text-right no-print">
                     <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => onEdit(athlete)}
-                        className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(athlete.id)}
-                        className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                        title="Excluir"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {viewMode === 'pending' ? (
+                        <>
+                          <button 
+                            onClick={() => handleApprove(athlete.id)}
+                            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
+                            title="Aprovar Cadastro"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleReject(athlete.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            title="Recusar"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => onEdit(athlete)}
+                            className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(athlete.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -377,20 +457,41 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                 </div>
 
               <div className="flex items-center gap-2 pt-2">
-                <button 
-                  onClick={() => onEdit(athlete)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"
-                >
-                  <Edit2 size={14} />
-                  Editar
-                </button>
-                <button 
-                  onClick={() => handleDelete(athlete.id)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
-                >
-                  <Trash2 size={14} />
-                  Excluir
-                </button>
+                {viewMode === 'pending' ? (
+                  <>
+                    <button 
+                      onClick={() => handleApprove(athlete.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors text-xs font-bold"
+                    >
+                      <Check size={14} />
+                      Aprovar
+                    </button>
+                    <button 
+                      onClick={() => handleReject(athlete.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
+                    >
+                      <XCircle size={14} />
+                      Recusar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => onEdit(athlete)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"
+                    >
+                      <Edit2 size={14} />
+                      Editar
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(athlete.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
+                    >
+                      <Trash2 size={14} />
+                      Excluir
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

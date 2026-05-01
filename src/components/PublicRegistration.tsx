@@ -179,13 +179,18 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             transition={{ delay: 0.3 }}
             className="space-y-2"
           >
-            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Matrícula Realizada!</h2>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Matrícula Solicitada!</h2>
             <p className="text-zinc-400 uppercase">
               Seja bem-vindo ao Piruá E.C., <span className="text-theme-primary font-bold">{newAthlete?.name}</span>! 
             </p>
-            <p className="text-xs text-zinc-500 uppercase mt-2">
-              Agora você deve preencher sua <span className="text-green-500 font-bold">Ficha de Saúde</span> usando o link enviado pelo professor.
-            </p>
+            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl mt-4">
+              <p className="text-sm text-amber-500 font-bold uppercase">
+                Sua matrícula está em análise pelo administrador. 
+              </p>
+              <p className="text-[10px] text-zinc-400 uppercase mt-1">
+                Você poderá acessar o portal assim que seu cadastro for aprovado.
+              </p>
+            </div>
           </motion.div>
 
           <motion.div 

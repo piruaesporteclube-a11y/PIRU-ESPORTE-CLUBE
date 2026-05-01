@@ -507,7 +507,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     }
   };
 
-  const activeAthletes = athletes.filter(a => a.status === 'Ativo');
+  const activeAthletes = athletes.filter(a => a.status === 'Ativo' && a.confirmation !== 'Pendente');
   const filteredAthletes = activeAthletes.filter(a => {
     const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
     const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 

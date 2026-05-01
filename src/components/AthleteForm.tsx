@@ -44,7 +44,8 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     status: 'Ativo',
     position: '',
     modality: '',
-    gender: 'Masculino'
+    gender: 'Masculino',
+    confirmation: 'Confirmado'
   });
   const [loading, setLoading] = useState(false);
 
