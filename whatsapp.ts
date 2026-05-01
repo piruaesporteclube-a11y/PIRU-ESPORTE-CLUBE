@@ -192,38 +192,77 @@ export class WhatsAppService {
 
   public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string) {
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      throw new Error('WhatsApp not connected');
+      throw new Error('WhatsApp não conectado');
     }
 
     const groupId = this.groupIds[groupName];
     if (!groupId) {
-      throw new Error(`Group ${groupName} not found or not created yet`);
+      // Tentar re-mapear grupos se não estiver cacheado
+      await this.setupGroups();
+      const retryGroupId = this.groupIds[groupName];
+      if (!retryGroupId) {
+        throw new Error(`Grupo ${groupName} não encontrado. Por favor, verifique se o bot criou os grupos.`);
+      }
     }
 
-    // Clean phone number: remove non-digits, ensure country code 55 (Brazil) if missing
+    const currentGroupId = this.groupIds[groupName];
+
+    // Limpar número: apenas dígitos
     let cleanNumber = phoneNumber.replace(/\D/g, '');
     if (!cleanNumber.startsWith('55')) {
       cleanNumber = '55' + cleanNumber;
     }
-    
-    const jid = `${cleanNumber}@s.whatsapp.net`;
 
     try {
-      await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
-      console.log(`Added ${jid} to group ${groupName}`);
-      return true;
-    } catch (err) {
-      console.error(`Error adding to group ${groupName}:`, err);
-      // Try to send an invite link if direct add fails (often happens with privacy settings)
-      try {
-        const code = await this.socket.groupInviteCode(groupId);
-        const inviteLink = `https://chat.whatsapp.com/${code}`;
-        await this.socket.sendMessage(jid, { text: `Olá! Você foi aprovado no Piruá E.C. Entre no grupo oficial: ${inviteLink}` });
-        return { invited: true, link: inviteLink };
-      } catch (inviteErr) {
-        console.error('Failed to even send invite message:', inviteErr);
-        throw err;
+      // 1. Verificar se o número está no WhatsApp e pegar o JID correto (resolve 9º dígito)
+      const [result] = await this.socket.onWhatsApp(cleanNumber);
+      
+      if (!result || !result.exists) {
+        // Tentar sem o 9º dígito se for brasileiro e tiver 13 dígitos (55 + DDD + 9 + 8 dígitos)
+        if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+          const alternativeNumber = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
+          const [altResult] = await this.socket.onWhatsApp(alternativeNumber);
+          if (altResult && altResult.exists) {
+            result.exists = true;
+            result.jid = altResult.jid;
+          }
+        }
       }
+
+      if (!result || !result.exists) {
+        throw new Error('Número não encontrado no WhatsApp');
+      }
+
+      const jid = result.jid;
+
+      // 2. Tentar adicionar ao grupo
+      try {
+        const response = await this.socket.groupParticipantsUpdate(currentGroupId, [jid], 'add');
+        
+        // A resposta é um array, verificamos se o status é 200 (sucesso)
+        if (response && response[0] && response[0].status === '200') {
+          console.log(`Sucesso: ${jid} adicionado ao grupo ${groupName}`);
+          return { success: true, method: 'direct' };
+        } else {
+          // Se o status não for 200, provavelmente é restrição de privacidade
+          console.log(`Add direto falhou (status ${response[0]?.status}), enviando convite...`);
+          throw new Error('Restrição de privacidade');
+        }
+      } catch (addErr) {
+        // 3. Fallback: Enviar link de convite se falhar a adição direta
+        const inviteCode = await this.socket.groupInviteCode(currentGroupId);
+        const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+        
+        await this.socket.sendMessage(jid, { 
+          text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nIdentificamos que suas configurações de privacidade impedem que você seja adicionado diretamente aos grupos.\n\nPor favor, entre no grupo oficial pelo link abaixo:\n${inviteLink}` 
+        });
+        
+        console.log(`Convite enviado para ${jid} (${groupName})`);
+        return { success: true, method: 'invite_link', link: inviteLink };
+      }
+    } catch (err: any) {
+      console.error(`Erro fatal ao processar WhatsApp para ${phoneNumber}:`, err);
+      throw err;
     }
   }
 }
