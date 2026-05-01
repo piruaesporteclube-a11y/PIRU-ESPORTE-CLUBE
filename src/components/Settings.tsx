@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Settings } from '../types';
+import { Settings, Athlete } from '../types';
 import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -13,10 +13,21 @@ export default function SettingsComponent() {
   const { settings: globalSettings } = useTheme();
   const [settings, setSettings] = useState<Settings>(globalSettings);
   const [saved, setSaved] = useState(false);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   useEffect(() => {
     setSettings(globalSettings);
+    fetchAthletes();
   }, [globalSettings]);
+
+  const fetchAthletes = async () => {
+    try {
+      const data = await api.getAthletes();
+      setAthletes(data);
+    } catch (err) {
+      console.error('Error fetching athletes for sync:', err);
+    }
+  };
 
   const handleCrestUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -531,7 +542,7 @@ export default function SettingsComponent() {
         </div>
 
         {/* WhatsApp Management */}
-        <WhatsAppConnection />
+        <WhatsAppConnection athletes={athletes} />
 
         {/* Data Management */}
         <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
