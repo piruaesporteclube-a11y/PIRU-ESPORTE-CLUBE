@@ -736,6 +736,31 @@ export const api = {
     }
   },
 
+  whatsapp: {
+    getStatus: async () => {
+      try {
+        const response = await fetch("/api/whatsapp/status");
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp status error:", err);
+        return { status: "disconnected", error: true };
+      }
+    },
+    addToGroup: async (groupName: "Piruá Esporte Clube Responsáveis" | "Piruá Esporte Clube Atletas", phoneNumber: string) => {
+      try {
+        const response = await fetch("/api/whatsapp/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupName, phoneNumber }),
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp add error:", err);
+        return { success: false, error: "Conexão falhou" };
+      }
+    }
+  },
+
   // Professors
   getProfessor: async (id: string): Promise<Professor | null> => {
     const cacheKey = `professor_${id}`;

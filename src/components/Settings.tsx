@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
 import UniformManager from './UniformManager';
+import WhatsAppConnection from './WhatsAppConnection';
 import { compressImage } from '../utils';
 
 export default function SettingsComponent() {
@@ -528,6 +529,9 @@ export default function SettingsComponent() {
           </div>
           <UniformManager />
         </div>
+
+        {/* WhatsApp Management */}
+        <WhatsAppConnection />
 
         {/* Data Management */}
         <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">

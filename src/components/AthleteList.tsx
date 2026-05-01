@@ -48,6 +48,25 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     const toastId = toast.loading("Aprovando atleta...");
     try {
       await api.approveAthlete(id);
+      
+      // WhatsApp Integration
+      const athlete = athletes.find(a => a.id === id);
+      if (athlete) {
+        try {
+          // Add athlete to group
+          if (athlete.contact) {
+            await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+          }
+          // Add guardian to group
+          if (athlete.guardian_phone) {
+            await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+          }
+        } catch (waErr) {
+          console.error("Erro ao adicionar no WhatsApp:", waErr);
+          toast.error("Atleta aprovado, mas erro ao adicionar no WhatsApp. Verifique a conexão com o WhatsApp nas configurações.", { duration: 4000 });
+        }
+      }
+
       toast.success("Atleta aprovado com sucesso!", { id: toastId });
       if (onRefresh) onRefresh();
     } catch (err: any) {

@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { whatsappService } from "./whatsapp.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,21 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
 
   const PORT = 3000;
+
+  // WhatsApp API Routes
+  app.get("/api/whatsapp/status", (req, res) => {
+    res.json(whatsappService.getStatus());
+  });
+
+  app.post("/api/whatsapp/add", async (req, res) => {
+    const { groupName, phoneNumber } = req.body;
+    try {
+      const result = await whatsappService.addToGroup(groupName, phoneNumber);
+      res.json({ success: true, result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
 
   // Health check
   app.get("/api/health", (req, res) => {
