@@ -106,6 +106,18 @@ export default function AnnouncementFlyer() {
     }
   };
 
+  const formatDateSafely = (dateStr: string) => {
+    try {
+      if (!dateStr) return '---';
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime())) return '---';
+      return format(d, "dd 'de' MMMM", { locale: ptBR });
+    } catch (e) {
+      return '---';
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
       {/* Editor Controls */}
@@ -445,7 +457,7 @@ export default function AnnouncementFlyer() {
                  <div className="flex flex-col">
                     <span className="text-zinc-500 font-bold uppercase text-[8px] tracking-[0.2em] mb-1">Data de Emissão</span>
                     <span className="text-white font-black uppercase text-base tracking-tighter">
-                      {format(new Date(date), "dd 'de' MMMM", { locale: ptBR })}
+                      {formatDateSafely(date)}
                     </span>
                  </div>
                </div>

@@ -232,8 +232,20 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     }
   };
 
-  const formattedDate = format(new Date(date + 'T12:00:00'), "dd 'de' MMMM", { locale: ptBR });
-  const dayOfWeek = format(new Date(date + 'T12:00:00'), "EEEE", { locale: ptBR });
+  const formatDateSafely = (dateStr: string, pattern: string) => {
+    try {
+      if (!dateStr) return '---';
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime())) return '---';
+      return format(d, pattern, { locale: ptBR });
+    } catch {
+      return '---';
+    }
+  };
+
+  const formattedDate = formatDateSafely(date, "dd 'de' MMMM");
+  const dayOfWeek = formatDateSafely(date, "EEEE");
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
