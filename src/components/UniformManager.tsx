@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { UniformModel } from '../types';
+import { UniformModel, UniformGroup } from '../types';
 import { Plus, Trash2, Upload, Save, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,7 +37,9 @@ export default function UniformManager() {
     }
 
     try {
-      await api.saveUniformModel(editingModel);
+      // Ensure group is present
+      const modelToSave = { ...editingModel, group: editingModel.group || 'Jogo' };
+      await api.saveUniformModel(modelToSave);
       toast.success('Modelo salvo!');
       setEditingModel(null);
       loadModels();
@@ -59,7 +61,7 @@ export default function UniformManager() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-white uppercase tracking-widest">Modelos de Uniforme</h3>
         <button 
-          onClick={() => setEditingModel({ name: '', image: '', description: '' })}
+          onClick={() => setEditingModel({ name: '', image: '', group: 'Jogo', description: '' })}
           className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl font-bold hover:opacity-90 transition-all"
         >
           <Plus size={18} />
@@ -97,6 +99,19 @@ export default function UniformManager() {
                   onChange={e => setEditingModel({ ...editingModel, description: e.target.value.toUpperCase() })}
                   placeholder="EX: UNIFORME DE TREINO 2024..."
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Categoria/Finalidade</label>
+                <select 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-xs"
+                  value={editingModel.group || 'Jogo'}
+                  onChange={e => setEditingModel({ ...editingModel, group: e.target.value as UniformGroup })}
+                >
+                  {["Viagem", "Jogo", "Torcedor", "Comissão Técnica"].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -136,6 +151,9 @@ export default function UniformManager() {
             </div>
             <div className="space-y-1">
               <h4 className="text-xs font-black text-white uppercase tracking-widest">{model.name}</h4>
+              <span className="inline-block px-2 py-0.5 bg-theme-primary/10 text-theme-primary text-[8px] font-black uppercase rounded-md mb-1">
+                {model.group || 'Jogo'}
+              </span>
               {model.description && (
                 <p className="text-[10px] text-zinc-500 uppercase leading-relaxed line-clamp-2">{model.description}</p>
               )}

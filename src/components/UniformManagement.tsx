@@ -75,7 +75,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     try {
       const model = uniformModels.find(m => m.id === modelId);
       if (model) {
-        await api.saveUniformModel({ ...model, slots });
+        await api.saveUniformModel({ ...model, slots, group: model.group || 'Jogo' });
         toast.success("Áreas de patrocínio salvas!");
         setIsDesigning(false);
         setDesigningModel(null);
