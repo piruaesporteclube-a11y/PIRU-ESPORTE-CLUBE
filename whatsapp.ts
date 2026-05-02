@@ -268,24 +268,37 @@ export class WhatsAppService {
           return { success: true, method: 'direct', message: 'Adicionado diretamente' };
         } else if (status === '403') {
           console.log(`[WhatsApp] Privacidade restringiu adição direta. Enviando convite.`);
-          throw new Error('Restrição de privacidade (Convite enviado)');
+          
+          // Tentar enviar convite
+          try {
+            const inviteCode = await this.socket.groupInviteCode(currentGroupId);
+            const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+            await this.socket.sendMessage(jid, { 
+              text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nIdentificamos que não foi possível te adicionar diretamente ao grupo devido às suas configurações de privacidade.\n\nPor favor, entre no canal oficial pelo link abaixo:\n${inviteLink}\n\nEste grupo é para: ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.` 
+            });
+            return { success: true, method: 'invite_link', message: 'Convite enviado via Chat' };
+          } catch (invErr) {
+            throw new Error(`Privacidade restringiu adição e falhou ao enviar convite (O robô é administrador?)`);
+          }
+        } else if (status === '409') {
+          return { success: true, method: 'already_in', message: 'Já está no grupo' };
         } else {
           console.log(`[WhatsApp] Falha ao adicionar (Status: ${status}).`);
-          throw new Error(`Restrição do WhatsApp (Status: ${status})`);
+          throw new Error(`Erro do WhatsApp (Status ${status}): O robô talvez precise de permissão de administrador.`);
         }
       } catch (addErr: any) {
         if (addErr.message && (addErr.message.includes('403') || addErr.message.includes('privacidade') || addErr.message.includes('Restrição'))) {
-          // 5. Fallback: Enviar link de convite
-          console.log(`[WhatsApp] Fallback: Gerando link de convite para ${jid}`);
-          const inviteCode = await this.socket.groupInviteCode(currentGroupId);
-          const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-          
-          await this.socket.sendMessage(jid, { 
-            text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nIdentificamos que não foi possível te adicionar diretamente ao grupo devido às suas configurações de privacidade.\n\nPor favor, entre no canal oficial pelo link abaixo:\n${inviteLink}\n\nEste grupo é para: ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.` 
-          });
-          
-          console.log(`[WhatsApp] Link de convite enviado.`);
-          return { success: true, method: 'invite_link', message: 'Link de convite enviado por mensagem' };
+          // Re-tentar envio de convite se o erro veio da tentativa de update
+          try {
+            const inviteCode = await this.socket.groupInviteCode(currentGroupId);
+            const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+            await this.socket.sendMessage(jid, { 
+              text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nClique para entrar no grupo: ${inviteLink}` 
+            });
+            return { success: true, method: 'invite_link', message: 'Convite enviado' };
+          } catch (e) {
+            throw new Error('Falha ao adicionar e falha ao enviar convite por chat.');
+          }
         }
         throw addErr;
       }

@@ -49,7 +49,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       return;
     }
 
-    const activeAthletes = athletes.filter(a => a.status === 'Ativo' && a.confirmation === 'Confirmado');
+    // Incluir todos os atletas que estão no sistema e não estão pendentes (mesma lógica da aba 'Ativos')
+    const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
     if (activeAthletes.length === 0) {
       toast.info("Nenhum atleta ativo para sincronizar");
       return;
@@ -118,7 +119,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     return () => clearInterval(interval);
   }, []);
 
-  const activeCount = athletes.filter(a => a.status === 'Ativo' && a.confirmation === 'Confirmado').length;
+  const activeCount = athletes.filter(a => a.confirmation !== 'Pendente').length;
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">

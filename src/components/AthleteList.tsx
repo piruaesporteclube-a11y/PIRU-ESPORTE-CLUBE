@@ -19,7 +19,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'active' | 'pending'>('active');
+  const [viewMode, setViewMode] = useState<'active' | 'pending' | 'recent'>('active');
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -113,7 +113,15 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const pendingAthletes = athletes.filter(a => a.confirmation === 'Pendente');
   const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
 
-  const currentAthletes = viewMode === 'active' ? activeAthletes : pendingAthletes;
+  const recentAthletes = [...athletes]
+    .sort((a, b) => {
+      const dateA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
+      const dateB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
+      return dateB - dateA;
+    })
+    .slice(0, 5);
+
+  const currentAthletes = viewMode === 'active' ? activeAthletes : (viewMode === 'recent' ? recentAthletes : pendingAthletes);
 
   const filteredAthletes = currentAthletes
     .filter(a => {
@@ -129,8 +137,12 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
       const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
       return matchesSearch && matchesSub && matchesStatus;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+  // Only sort alphabetically for 'active' and 'pending' modes. 'recent' stays by date.
+  if (viewMode !== 'recent') {
+    filteredAthletes.sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   const handlePrint = () => {
     window.print();
@@ -196,6 +208,16 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
               )}
             >
               Ativos ({activeAthletes.length})
+            </button>
+            <button
+              onClick={() => setViewMode('recent')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
+                viewMode === 'recent' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
+              )}
+            >
+              <Clock size={12} />
+              Últimos 5
             </button>
             <button
               onClick={() => setViewMode('pending')}
@@ -266,6 +288,17 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+        {viewMode === 'recent' && (
+          <div className="md:col-span-3 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
+            <div className="p-3 bg-theme-primary/20 rounded-full text-theme-primary">
+              <Clock size={24} />
+            </div>
+            <div>
+              <h4 className="text-white font-black uppercase text-sm">Últimos 5 Cadastros</h4>
+              <p className="text-zinc-400 text-xs">Estes são os atletas que foram registrados mais recentemente no sistema.</p>
+            </div>
+          </div>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 

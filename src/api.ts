@@ -691,7 +691,8 @@ export const api = {
 
       const finalData = { 
         ...sanitizedAthlete,
-        updated_at: serverTimestamp()
+        updated_at: serverTimestamp(),
+        ...(!athlete.id || (athlete.id && !athlete.created_at) ? { created_at: serverTimestamp() } : {})
       };
 
       await setDoc(doc(db, "athletes", athlete.id), sanitizeData(finalData), { merge: true });

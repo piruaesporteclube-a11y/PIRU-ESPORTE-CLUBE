@@ -2,9 +2,9 @@ import React, { useRef, useState } from 'react';
 import { Sponsor } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-import { Trophy, Download, X, Camera, Image as ImageIcon, Layout, Settings2 } from 'lucide-react';
+import { Trophy, Download, X, Camera, Image as ImageIcon, Layout, Settings2, RefreshCw } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors } from '../utils';
 
 interface SponsorFlyerProps {
   sponsor: Sponsor;
@@ -64,25 +64,44 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
     setIsExporting(true);
     const loadingToast = toast.loading('Gerando Flyer Profissional...');
     
+    // Smooth scrolling to top to avoid offset issues
+    window.scrollTo(0, 0);
+
     try {
+      // Small delay to ensure any layout changes are settled
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Apply color fixes for oklch support
+      fixHtml2CanvasColors(flyerRef.current);
+
       const element = flyerRef.current;
       const dataUrl = await htmlToImage.toPng(element, {
         width: 1080,
         height: 1920,
         pixelRatio: 1,
         backgroundColor: '#000000',
+        cacheBust: true,
+        style: {
+          transform: 'none',
+          margin: '0',
+          padding: '0'
+        }
       });
 
       toast.dismiss(loadingToast);
       const link = document.createElement('a');
       link.download = `PATROCINIO_${sponsor.name.replace(/\s+/g, '_')}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.success('Pronto para o Instagram!');
-    } catch (error) {
-      toast.error('Erro ao gerar imagem.');
+    } catch (error: any) {
+      console.error('Error generating flyer:', error);
+      toast.error(`Erro ao gerar imagem: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsExporting(false);
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -270,24 +289,31 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
         {/* Right: Instagram Story Preview (1080x1920 logical scale) */}
         <div className="flex flex-col items-center">
           <div 
-            ref={flyerRef}
-            className="relative overflow-hidden bg-black flex flex-col select-none ring-1 ring-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)]"
             style={{ 
-              width: '1080px', 
-              height: '1920px', 
-              transform: 'scale(0.333)', 
-              transformOrigin: 'top center', 
-              marginBottom: '-1280px',
-              border: `${borderWidth}px solid ${borderColor}`
+              width: '360px', 
+              height: '640px', 
+              position: 'relative'
             }}
           >
-            {/* 1. Backgrounds & Textures */}
-            <div className="absolute inset-0 z-0">
-               <img src={bgUrl} className="w-full h-full object-cover scale-110 blur-[2px]" crossOrigin="anonymous" />
-               <div className="absolute inset-0 bg-black/60" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/80" />
-               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
-            </div>
+            <div 
+              ref={flyerRef}
+              className="relative overflow-hidden bg-black flex flex-col select-none"
+              style={{ 
+                width: '1080px', 
+                height: '1920px', 
+                transform: 'scale(0.333333)', 
+                transformOrigin: 'top left', 
+                border: `${borderWidth}px solid ${borderColor}`
+              }}
+            >
+              {/* 1. Backgrounds & Textures */}
+              <div className="absolute inset-0 z-0">
+                 <img src={bgUrl} className="w-full h-full object-cover scale-110 opacity-50" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+                 <div className="absolute inset-0 bg-black/60" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/80" />
+                 {/* Removed external texture that often causes CORS/capture issues */}
+                 <div className="absolute inset-0 bg-white/[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+              </div>
 
             {/* 2. Content Layer (Positionable) */}
             <div 
@@ -302,7 +328,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
               >
                 <div className="w-64 h-64 mx-auto p-4 flex items-center justify-center relative">
                   {schoolCrest ? (
-                    <img src={schoolCrest} className="w-full h-full object-contain relative z-10" crossOrigin="anonymous" />
+                    <img src={schoolCrest} className="w-full h-full object-contain relative z-10" crossOrigin="anonymous" referrerPolicy="no-referrer" />
                   ) : (
                     <Trophy size={112} className="text-theme-primary relative z-10" />
                   )}
@@ -365,14 +391,12 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
             </div>
 
             {/* Aesthetic Polish */}
-            <div className="absolute inset-x-0 top-0 h-4 bg-theme-primary" />
-            <div className="absolute inset-x-0 bottom-0 h-4 bg-theme-primary" />
-            <div className="absolute inset-0 z-[5] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.03] pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-4 bg-theme-primary z-[20]" />
+            <div className="absolute inset-x-0 bottom-0 h-4 bg-theme-primary z-[20]" />
           </div>
-          
-          <p className="mt-4 text-[10px] font-black text-zinc-600 uppercase tracking-widest">Ajuste os sliders para enquadrar as marcas perfeitamente</p>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
