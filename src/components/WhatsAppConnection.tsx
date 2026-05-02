@@ -12,6 +12,7 @@ interface WhatsAppConnectionProps {
 export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps) {
   const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrTimeoutCount, setQrTimeoutCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -22,6 +23,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       const data = await api.whatsapp.getStatus();
       setStatus(data.status);
       setQrCode(data.qrCode);
+      setQrTimeoutCount(data.qrTimeoutCount || 0);
     } catch (err) {
       console.error('Error fetching WhatsApp status:', err);
     } finally {
@@ -72,6 +74,12 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
         return;
       }
 
+      if (errors > 5) {
+        setIsSyncing(false);
+        toast.error("Muitos erros detectados. Sincronização interrompida para evitar bloqueios.");
+        return;
+      }
+
       const athlete = activeAthletes[i];
       const name = athlete.name || "Atleta";
       let lastMessage = 'Sucesso';
@@ -107,8 +115,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       }
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
-      // Increased delay to 5 seconds to significantly reduce rate-limit risk from WhatsApp
-      await new Promise(r => setTimeout(r, 5000));
+      // Increased delay to 12 seconds to significantly reduce rate-limit risk from WhatsApp platform
+      await new Promise(r => setTimeout(r, 12000));
     }
 
     setIsSyncing(false);
@@ -260,6 +268,24 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                   Sincronizar {activeCount} Contatos Existentes
                 </button>
               )}
+            </div>
+          </div>
+        ) : qrTimeoutCount >= 4 ? (
+          <div className="space-y-4">
+            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
+              <AlertCircle className="text-red-500 mx-auto mb-3" size={48} />
+              <h4 className="text-white font-black uppercase mb-1">QR Code Expirado</h4>
+              <p className="text-zinc-400 text-xs uppercase font-bold leading-relaxed mb-4">
+                O QR Code expirou sem ser escaneado. Por segurança, a geração automática foi pausada.
+              </p>
+              <button
+                onClick={handleReconnect}
+                disabled={isRetrying}
+                className="px-6 py-2 bg-theme-primary text-black font-black uppercase text-[10px] rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 mx-auto"
+              >
+                {isRetrying ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Gerar Novo QR Code
+              </button>
             </div>
           </div>
         ) : (

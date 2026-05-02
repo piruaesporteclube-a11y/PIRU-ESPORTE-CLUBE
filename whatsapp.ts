@@ -24,6 +24,7 @@ export class WhatsAppService {
 
   private isInitializing = false;
   private reconnectAttempts = 0;
+  private qrTimeoutCount = 0;
   private lastResetTime = 0;
   private connectionWatchdog: NodeJS.Timeout | null = null;
 
@@ -31,7 +32,7 @@ export class WhatsAppService {
     this.init();
   }
 
-  public async logout() {
+  public async logout(autoReinit = true) {
     // Prevent overlapping logouts
     if (this.lastResetTime && Date.now() - this.lastResetTime < 10000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
@@ -77,8 +78,15 @@ export class WhatsAppService {
     
     this.isInitializing = false;
     this.reconnectAttempts = 0;
-    console.log('WhatsApp reset complete. Re-initializing in 5s...');
-    setTimeout(() => this.init(), 5000);
+    this.qrTimeoutCount = 0; // Reset on manual/force logout
+    
+    if (autoReinit) {
+      this.qrTimeoutCount = 0;
+      console.log('WhatsApp reset complete. Re-initializing in 10s...');
+      setTimeout(() => this.init(), 10000);
+    } else {
+      console.log('WhatsApp reset complete. Auto-reinitialization disabled.');
+    }
   }
 
   private startWatchdog() {
@@ -88,7 +96,7 @@ export class WhatsAppService {
         console.warn('WhatsApp: Watchdog triggered. Connection stuck. Resetting...');
         this.logout();
       }
-    }, 180000); // 3 minutes timeout
+    }, 300000); // 5 minutes timeout
   }
 
   private stopWatchdog() {
@@ -207,17 +215,38 @@ export class WhatsAppService {
 
           // If device was removed or QR expired after too many attempts, we MUST clear credentials
           if (isDeviceRemoved || isQRExpired) {
-            console.log(`WhatsApp: ${isDeviceRemoved ? 'Session invalidated' : 'QR expired'}. Clearing session for fresh start...`);
+            console.log(`WhatsApp: ${isDeviceRemoved ? 'Session invalidated' : 'QR expired'}.`);
+            
+            if (isQRExpired) {
+              this.qrTimeoutCount++;
+              console.log(`WhatsApp: QR Timeout count: ${this.qrTimeoutCount}`);
+              
+              if (this.qrTimeoutCount >= 4) { // Increased slightly but will stop now
+                console.warn('WhatsApp: QR Code expired multiple times without scan. Stopping auto-reinit.');
+                this.isInitializing = false;
+                this.socket = null;
+                this.qrCode = null;
+                this.connectionStatus = 'disconnected';
+                // Stop the watchdog and don't call logout which might re-trigger init
+                this.stopWatchdog();
+                return;
+              }
+            } else {
+              this.qrTimeoutCount = 0;
+            }
+
             this.reconnectAttempts = 0;
-            this.logout();
+            // Delay logout to avoid race conditions. Pass false to stop auto-reinit if it was a QR expire.
+            const shouldReinit = !isQRExpired || this.qrTimeoutCount < 2;
+            setTimeout(() => this.logout(shouldReinit), 2000);
             return;
           }
 
           // Force logout/reset after heavy consecutive failures to fix potentially corrupted sessions
-          if (this.reconnectAttempts > 8) {
+          if (this.reconnectAttempts > 4) { // Lowered to 4 for faster recovery
             console.warn('WhatsApp: Too many consecutive connection failures. Forcing full session reset...');
             this.reconnectAttempts = 0;
-            this.logout();
+            setTimeout(() => this.logout(), 2000);
             return;
           }
 
@@ -249,6 +278,7 @@ export class WhatsAppService {
           this.qrCode = null;
           this.isInitializing = false;
           this.reconnectAttempts = 0; // Reset attempts on success
+          this.qrTimeoutCount = 0; // Reset QR timeouts on success
           // Initial setup of groups
           setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 5000);
         }
@@ -259,10 +289,18 @@ export class WhatsAppService {
       console.error('Failed to initialize WhatsApp socket catch block:', err);
       this.isInitializing = false;
       const errorMessage = err?.message || err?.toString() || '';
-      const isQRExpired = errorMessage.includes('QR refs attempts ended');
+      const isQRExpired = errorMessage.includes('QR refs attempts ended') || errorMessage.includes('timed out');
       
       if (isQRExpired) {
-        this.logout();
+        this.qrTimeoutCount++;
+        console.log(`WhatsApp: Catch block QR Timeout count: ${this.qrTimeoutCount}`);
+        if (this.qrTimeoutCount >= 4) {
+          console.warn('WhatsApp: Catch block detected QR Timeout limit. Stopping.');
+          this.isInitializing = false;
+          this.connectionStatus = 'disconnected';
+          return;
+        }
+        this.logout(this.qrTimeoutCount < 2);
       } else {
         const delay = 15000;
         console.log(`WhatsApp init error: ${errorMessage}. Retrying in ${delay/1000}s...`);
@@ -315,6 +353,7 @@ export class WhatsAppService {
     return {
       status: this.connectionStatus,
       qrCode: this.qrCode,
+      qrTimeoutCount: this.qrTimeoutCount,
     };
   }
 
@@ -423,6 +462,12 @@ export class WhatsAppService {
       }
     } catch (err: any) {
       const isRateLimit = err.message?.includes('rate-overlimit') || err.output?.payload?.error === 'Rate Overlimit';
+      const isIntegrityBlocked = err.message?.includes('integrity-enforcement');
+      
+      if (isIntegrityBlocked) {
+        const errorMsg = 'Sincronização temporariamente bloqueada por segurança. Por favor, aguarde alguns minutos e tente novamente em grupos menores. (Erro: Integrity Block)';
+        throw new Error(errorMsg);
+      }
       
       if (isRateLimit && retryCount < 3) {
         console.log(`[WhatsApp] Rate limit hit for ${phoneNumber}, retrying in ${(retryCount + 1) * 5}s...`);
