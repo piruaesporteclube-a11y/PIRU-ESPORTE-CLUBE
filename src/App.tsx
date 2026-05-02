@@ -785,6 +785,10 @@ export default function App() {
   }, []);
 
   const handleLogin = (auth: any) => {
+    if (!auth || !auth.user) {
+      console.error("Login failed: missing auth data", auth);
+      return;
+    }
     setUser(auth.user);
     localStorage.setItem('pirua_user', JSON.stringify(auth.user));
     setActiveTab((auth.user.role === 'student' || auth.user.role === 'professor') ? 'my-card' : 'dashboard');

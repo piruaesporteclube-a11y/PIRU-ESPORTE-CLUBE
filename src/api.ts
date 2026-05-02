@@ -416,6 +416,7 @@ export const api = {
         throw new Error("CPF ou senha incorretos.");
       }
       handleFirestoreError(error, OperationType.GET, "auth/login");
+      throw error;
     }
   },
 
@@ -462,6 +463,7 @@ export const api = {
       return { user: userData, token: await firebaseUser.getIdToken() };
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, "auth/google");
+      throw error;
     }
   },
 
@@ -582,6 +584,7 @@ export const api = {
       return { user: guestUser, token: await firebaseUser.getIdToken() };
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, "auth/guest");
+      throw error;
     }
   },
 

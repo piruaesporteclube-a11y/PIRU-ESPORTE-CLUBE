@@ -148,6 +148,7 @@ export type Settings = {
   instagram: string;
   whatsapp: string;
   schoolCrest: string;
+  themeColor?: string;
   // Institutional/Registration Base
   president?: string;
   technicalDirector?: string;
