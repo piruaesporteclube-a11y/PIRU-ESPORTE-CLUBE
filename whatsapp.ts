@@ -124,26 +124,27 @@ export class WhatsAppService {
 
         if (connection === 'close') {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-          const errorMessage = lastDisconnect?.error?.message || 'Unknown error';
+          const errorMessage = lastDisconnect?.error?.message || lastDisconnect?.error?.toString() || 'Unknown error';
           const isQRExpired = errorMessage.includes('QR refs attempts ended');
-          const isDeviceRemoved = statusCode === 401 || errorMessage.includes('device_removed') || errorMessage.includes('Conflict');
+          const isDeviceRemoved = statusCode === 401 || statusCode === 403 || errorMessage.includes('device_removed') || errorMessage.includes('Conflict');
           
           console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
+          this.isInitializing = false;
 
-          // If device was removed, we must clear credentials to allow a fresh scan
-          if (isDeviceRemoved) {
-            console.log('WhatsApp: Device removed. Logging out and clearing session...');
+          // If device was removed or QR expired after too many attempts, we must clear credentials
+          if (isDeviceRemoved || isQRExpired) {
+            console.log(`WhatsApp: ${isDeviceRemoved ? 'Device removed/Unauthorised' : 'QR expired'}. Clearing session...`);
             this.logout();
             return;
           }
 
-          // If it's a stream error (515), QR timeout or other critical errors, we must reconnect
+          // If it's a stream error (515) or other critical errors, we must reconnect
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
           if (shouldReconnect) {
-            const delayTime = (statusCode === 515 || statusCode === 411 || isQRExpired) ? 10000 : 5000;
+            const delayTime = (statusCode === 515 || statusCode === 411) ? 15000 : 5000;
             console.log(`Reconnecting WhatsApp after ${errorMessage}... in ${delayTime/1000} seconds.`);
             setTimeout(() => {
               this.isInitializing = false;
