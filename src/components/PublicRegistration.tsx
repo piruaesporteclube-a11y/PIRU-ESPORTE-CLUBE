@@ -36,7 +36,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     guardian_phone: '',
     school: '',
     school_shift: undefined,
-    status: 'Ativo',
+    status: 'Inativo',
     modality: '',
     gender: 'Masculino'
   });

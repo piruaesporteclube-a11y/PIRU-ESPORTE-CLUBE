@@ -245,6 +245,7 @@ export const api = {
         };
         // Save the admin user doc so rules can check it
         await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(adminUser), { merge: true });
+        api.logAccess(adminUser);
         return { user: adminUser, token: await firebaseUser.getIdToken() };
       } catch (error: any) {
         console.error("Error during anonymous login:", error);
@@ -367,6 +368,7 @@ export const api = {
         }
       }
 
+      api.logAccess(userData);
       return { 
         user: userData, 
         token: await firebaseUser.getIdToken()
@@ -406,6 +408,7 @@ export const api = {
               };
               
               await setDoc(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
+              api.logAccess(newUser);
               return { user: newUser, token: await firebaseUser.getIdToken() };
             }
           } catch (regErr) {
@@ -413,8 +416,10 @@ export const api = {
           }
         }
         
+        api.logLoginError(normalizedUsername, "CPF ou senha incorretos.");
         throw new Error("CPF ou senha incorretos.");
       }
+      api.logLoginError(normalizedUsername, error.message || "Erro desconhecido.");
       handleFirestoreError(error, OperationType.GET, "auth/login");
       throw error;
     }
@@ -460,6 +465,7 @@ export const api = {
         }
       }
       
+      api.logAccess(userData);
       return { user: userData, token: await firebaseUser.getIdToken() };
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, "auth/google");
@@ -694,6 +700,8 @@ export const api = {
 
       const finalData = { 
         ...sanitizedAthlete,
+        // Enforce Inativo if Pending or Rejected
+        ...(sanitizedAthlete.confirmation === 'Pendente' || sanitizedAthlete.confirmation === 'Recusado' ? { status: 'Inativo' as any } : {}),
         updated_at: serverTimestamp(),
         ...(!athlete.id || (athlete.id && !athlete.created_at) ? { created_at: serverTimestamp() } : {})
       };
@@ -1881,5 +1889,57 @@ export const api = {
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `school_reports/${id}`);
     }
+  },
+
+  // Access Logging
+  logAccess: async (user: User) => {
+    try {
+      const logId = doc(collection(db, "access_logs")).id;
+      const logData = {
+        id: logId,
+        user_id: user.id,
+        user_name: user.name,
+        role: user.role,
+        created_at: serverTimestamp()
+      };
+      await setDoc(doc(db, "access_logs", logId), sanitizeData(logData));
+    } catch (e) {
+      console.error("Failed to log access", e);
+    }
+  },
+
+  logLoginError: async (docAttempted: string, errorMessage: string) => {
+    try {
+      const errorId = doc(collection(db, "login_errors")).id;
+      const errorData = {
+        id: errorId,
+        doc_attempted: docAttempted,
+        error_message: errorMessage,
+        created_at: serverTimestamp()
+      };
+      await setDoc(doc(db, "login_errors", errorId), sanitizeData(errorData));
+    } catch (e) {
+      console.error("Failed to log login error", e);
+    }
+  },
+
+  subscribeToAccessLogs: (callback: (logs: any[]) => void) => {
+    const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      callback(logs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, "access_logs/subscription");
+    });
+  },
+
+  subscribeToLoginErrors: (callback: (errors: any[]) => void) => {
+    const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const errors = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      callback(errors);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, "login_errors/subscription");
+    });
   },
 };

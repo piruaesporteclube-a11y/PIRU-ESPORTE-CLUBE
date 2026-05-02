@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 interface AthleteListProps {
   athletes: Athlete[];
@@ -363,6 +363,21 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       <div>
                         <div className="font-medium text-white flex items-center gap-2">
                           {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
+                          {athlete.confirmation === 'Pendente' && athlete.created_at && (
+                            (() => {
+                              const date = athlete.created_at.toDate ? athlete.created_at.toDate() : new Date(athlete.created_at);
+                              const days = differenceInDays(new Date(), date);
+                              if (days >= 10) {
+                                return (
+                                  <span className="flex items-center gap-1 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded animate-pulse" title="Cadastro pendente há mais de 10 dias!">
+                                    <AlertTriangle size={10} />
+                                    {days} DIAS
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()
+                          )}
                           {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                             <a 
                               href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}

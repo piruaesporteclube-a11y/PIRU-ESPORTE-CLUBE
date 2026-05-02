@@ -366,6 +366,31 @@
         "observations": { "type": "string" }
       },
       "required": ["id", "athlete_id", "report_card_image", "status"]
+    },
+    "AccessLog": {
+      "title": "AccessLog",
+      "description": "Log of user access to the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "role": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "user_id", "user_name", "role", "created_at"]
+    },
+    "LoginError": {
+      "title": "LoginError",
+      "description": "Log of failed login attempts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "doc_attempted": { "type": "string" },
+        "error_message": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "doc_attempted", "error_message", "created_at"]
     }
   },
   "firestore": {
@@ -448,6 +473,14 @@
     "/school_reports/{reportId}": {
       "schema": "SchoolReport",
       "description": "Reports of school grades"
+    },
+    "/access_logs/{logId}": {
+      "schema": "AccessLog",
+      "description": "Logs of successful logins"
+    },
+    "/login_errors/{errorId}": {
+      "schema": "LoginError",
+      "description": "Logs of failed login attempts"
     }
   }
 }

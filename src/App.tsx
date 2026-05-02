@@ -35,9 +35,12 @@ import SuspendedAthletes from './components/SuspendedAthletes';
 import UniformManagement from './components/UniformManagement';
 import AnnouncementFlyer from './components/AnnouncementFlyer';
 import SchoolReportManagement from './components/SchoolReportManagement';
+import { AccessAudit } from './components/AccessAudit';
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
 import { api, clearCache } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
@@ -720,6 +723,38 @@ export default function App() {
   }, [user?.id, user?.athlete_id, setActiveTab]);
 
   useEffect(() => {
+    // Listen for login errors and notify admin
+    if (user?.role === 'admin') {
+      const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"), limit(1));
+      let isFirstLoad = true;
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (isFirstLoad) {
+          isFirstLoad = false;
+          return;
+        }
+        
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const error = change.doc.data();
+            toast.error("Tentativa de login falhou!", {
+              description: `O usuário ${error.doc_attempted} não conseguiu logar: ${error.error_message}`,
+              duration: 8000,
+              icon: <ShieldAlert className="text-red-500" />,
+              action: {
+                label: 'Ver Auditoria',
+                onClick: () => setActiveTab('access-audit')
+              }
+            });
+          }
+        });
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [user?.role, setActiveTab]);
+
+  useEffect(() => {
     // Sync user state with Firebase Auth
     const unsubscribe = api.onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
@@ -1069,6 +1104,8 @@ export default function App() {
           return <AnnouncementFlyer />;
         case 'school-reports':
           return <SchoolReportManagement user={user} athletes={athletes} />;
+        case 'access-audit':
+          return <AccessAudit />;
         case 'settings':
           return <SettingsComponent />;
         default:

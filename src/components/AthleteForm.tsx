@@ -41,17 +41,26 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     guardian_phone: '',
     school: '',
     school_shift: undefined,
-    status: 'Ativo',
+    status: 'Inativo',
     position: '',
     modality: '',
     gender: 'Masculino',
-    confirmation: 'Confirmado'
+    confirmation: 'Pendente'
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (athlete) setFormData(prev => ({ ...prev, ...athlete }));
   }, [athlete]);
+
+  // Enforce Inativo status if confirmation is Pendente or Recusado
+  useEffect(() => {
+    if (formData.confirmation === 'Pendente' || formData.confirmation === 'Recusado') {
+      if (formData.status !== 'Inativo') {
+        setFormData(prev => ({ ...prev, status: 'Inativo' }));
+      }
+    }
+  }, [formData.confirmation]);
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -686,19 +695,41 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               </div>
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status</label>
                 <select 
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                   value={formData.status || 'Ativo'}
                   onChange={e => setFormData({...formData, status: e.target.value as any})}
+                  disabled={formData.confirmation === 'Pendente' || formData.confirmation === 'Recusado'}
                 >
                   <option value="Ativo">Ativo</option>
                   <option value="Inativo">Inativo</option>
                   <option value="Suspenso">Suspenso</option>
                 </select>
+                {(formData.confirmation === 'Pendente' || formData.confirmation === 'Recusado') && (
+                  <p className="text-[10px] text-amber-500 mt-1 uppercase font-bold">
+                    Status bloqueado em Inativo devido ao status de cadastro ({formData.confirmation})
+                  </p>
+                )}
               </div>
+              
+              {userRole === 'admin' && (
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status de Cadastro</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                    value={formData.confirmation || 'Confirmado'}
+                    onChange={e => setFormData({...formData, confirmation: e.target.value as any})}
+                  >
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Recusado">Recusado</option>
+                  </select>
+                </div>
+              )}
+
               {formData.status === 'Suspenso' && (
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Motivo da Suspensão</label>

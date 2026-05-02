@@ -100,8 +100,22 @@ export class WhatsAppService {
 
   private async init() {
     if (this.isInitializing) return;
+    
+    // Ensure any previously existing socket is cleaned up
+    if (this.socket) {
+      try {
+        this.socket.ev.removeAllListeners('connection.update');
+        this.socket.ev.removeAllListeners('creds.update');
+        this.socket.end();
+      } catch (e) {}
+      this.socket = null;
+    }
+
     this.isInitializing = true;
     this.startWatchdog();
+    
+    // Ensure cleanup of any previous session artifacts
+    await new Promise(r => setTimeout(r, 1000));
     
     try {
       // Ensure path exists
@@ -122,12 +136,14 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: true,
-        connectTimeoutMs: 120000, 
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 60000,
+        browser: ['Ubuntu', 'Chrome', '20.0.04'],
+        syncFullHistory: false,
+        connectTimeoutMs: 60000, 
+        defaultQueryTimeoutMs: 30000,
+        keepAliveIntervalMs: 30000,
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: true,
-        generateHighQualityLinkPreview: true,
+        markOnlineOnConnect: false,
+        generateHighQualityLinkPreview: false,
         patchMessageBeforeSending: (message) => {
           const requiresPatch = !!(
             message.buttonsMessage ||
@@ -167,10 +183,24 @@ export class WhatsAppService {
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
           const isQRExpired = errorMessage.includes('QR refs attempts ended') || errorMessage.includes('timed out');
-          const isTerminated = errorMessage.includes('Connection Terminated') || errorMessage.includes('Connection Failure') || errorMessage.includes('stream errored') || errorMessage.includes('Connection Closed');
+          const isTerminated = errorMessage.includes('Connection Terminated') || 
+                              errorMessage.includes('Connection Failure') || 
+                              errorMessage.includes('stream errored') || 
+                              errorMessage.includes('Connection Closed') || 
+                              errorMessage.includes('Connection Reset') ||
+                              errorMessage.includes('Refused') ||
+                              errorMessage.includes('timeout') ||
+                              errorMessage.includes('ECONNRESET');
           const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || errorMessage.includes('device_removed') || errorMessage.includes('Conflict');
           
           console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
+          
+          // Clear socket reference and reset status
+          if (this.socket) {
+            this.socket.ev.removeAllListeners('connection.update');
+            this.socket.ev.removeAllListeners('creds.update');
+          }
+          this.socket = null;
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
           this.isInitializing = false;
