@@ -270,7 +270,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               )}
             </div>
           </div>
-        ) : qrTimeoutCount >= 4 ? (
+        ) : qrTimeoutCount >= 2 ? (
           <div className="space-y-4">
             <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
               <AlertCircle className="text-red-500 mx-auto mb-3" size={48} />

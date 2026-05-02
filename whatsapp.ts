@@ -32,7 +32,7 @@ export class WhatsAppService {
     this.init();
   }
 
-  public async logout(autoReinit = true) {
+  public async logout(autoReinit = true, resetQrTimeout = true) {
     // Prevent overlapping logouts
     if (this.lastResetTime && Date.now() - this.lastResetTime < 10000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
@@ -78,10 +78,11 @@ export class WhatsAppService {
     
     this.isInitializing = false;
     this.reconnectAttempts = 0;
-    this.qrTimeoutCount = 0; // Reset on manual/force logout
+    if (resetQrTimeout) {
+      this.qrTimeoutCount = 0;
+    }
     
     if (autoReinit) {
-      this.qrTimeoutCount = 0;
       console.log('WhatsApp reset complete. Re-initializing in 10s...');
       setTimeout(() => this.init(), 10000);
     } else {
@@ -221,7 +222,7 @@ export class WhatsAppService {
               this.qrTimeoutCount++;
               console.log(`WhatsApp: QR Timeout count: ${this.qrTimeoutCount}`);
               
-              if (this.qrTimeoutCount >= 4) { // Increased slightly but will stop now
+              if (this.qrTimeoutCount >= 2) { 
                 console.warn('WhatsApp: QR Code expired multiple times without scan. Stopping auto-reinit.');
                 this.isInitializing = false;
                 this.socket = null;
@@ -236,9 +237,9 @@ export class WhatsAppService {
             }
 
             this.reconnectAttempts = 0;
-            // Delay logout to avoid race conditions. Pass false to stop auto-reinit if it was a QR expire.
-            const shouldReinit = !isQRExpired || this.qrTimeoutCount < 2;
-            setTimeout(() => this.logout(shouldReinit), 2000);
+            // Pass false to resetQrTimeout to maintain count during the auto-retry cycle
+            const canRetry = isQRExpired ? this.qrTimeoutCount < 2 : true;
+            setTimeout(() => this.logout(canRetry, !isQRExpired), 2000);
             return;
           }
 
@@ -294,13 +295,13 @@ export class WhatsAppService {
       if (isQRExpired) {
         this.qrTimeoutCount++;
         console.log(`WhatsApp: Catch block QR Timeout count: ${this.qrTimeoutCount}`);
-        if (this.qrTimeoutCount >= 4) {
+        if (this.qrTimeoutCount >= 2) {
           console.warn('WhatsApp: Catch block detected QR Timeout limit. Stopping.');
           this.isInitializing = false;
           this.connectionStatus = 'disconnected';
           return;
         }
-        this.logout(this.qrTimeoutCount < 2);
+        this.logout(true, false); // Retry once, don't reset count
       } else {
         const delay = 15000;
         console.log(`WhatsApp init error: ${errorMessage}. Retrying in ${delay/1000}s...`);
