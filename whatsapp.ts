@@ -214,54 +214,80 @@ export class WhatsAppService {
     }
 
     try {
-      // 1. Verificar se o número está no WhatsApp e pegar o JID correto (resolve 9º dígito)
-      const [result] = await this.socket.onWhatsApp(cleanNumber);
+      // 1. Limpar número: apenas dígitos
+      let cleanNumber = phoneNumber.replace(/\D/g, '');
+      if (!cleanNumber.startsWith('55') && cleanNumber.length >= 10) {
+        cleanNumber = '55' + cleanNumber;
+      }
+
+      console.log(`Tentando adicionar/convidar: ${cleanNumber} para ${groupName}`);
+
+      // 2. Garantir que temos o ID do grupo
+      if (!this.groupIds[groupName]) {
+        await this.setupGroups();
+      }
+
+      const currentGroupId = this.groupIds[groupName];
+      if (!currentGroupId) {
+        throw new Error(`Grupo "${groupName}" não encontrado no WhatsApp. Certifique-se de que o Bot tem permissão para criar/ver grupos.`);
+      }
+
+      // 3. Verificar se o número está no WhatsApp e resolver JID
+      let jid = '';
+      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
       
-      if (!result || !result.exists) {
-        // Tentar sem o 9º dígito se for brasileiro e tiver 13 dígitos (55 + DDD + 9 + 8 dígitos)
-        if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
-          const alternativeNumber = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
-          const [altResult] = await this.socket.onWhatsApp(alternativeNumber);
-          if (altResult && altResult.exists) {
-            result.exists = true;
-            result.jid = altResult.jid;
+      if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
+        jid = onWhatsApp[0].jid;
+      } else {
+        // Tentar variação do 9º dígito (se tem 13, tenta com 12. Se tem 12, tenta com 13)
+        // Isso é comum em números brasileiros (DDD + 8 ou 9 dígitos)
+        let alternative = '';
+        if (cleanNumber.length === 13) { // 55 + DDD + 9 + 8 dígitos
+          alternative = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
+        } else if (cleanNumber.length === 12) { // 55 + DDD + 8 dígitos
+          alternative = cleanNumber.slice(0, 4) + '9' + cleanNumber.slice(4);
+        }
+
+        if (alternative) {
+          const altOnWA = await this.socket.onWhatsApp(alternative);
+          if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
+            jid = altOnWA[0].jid;
           }
         }
       }
 
-      if (!result || !result.exists) {
-        throw new Error('Número não encontrado no WhatsApp');
+      if (!jid) {
+        console.warn(`Número ${cleanNumber} não encontrado no WhatsApp.`);
+        throw new Error('Este número não parece estar cadastrado no WhatsApp.');
       }
 
-      const jid = result.jid;
-
-      // 2. Tentar adicionar ao grupo
+      // 4. Tentar adicionar ao grupo
       try {
         const response = await this.socket.groupParticipantsUpdate(currentGroupId, [jid], 'add');
         
-        // A resposta é um array, verificamos se o status é 200 (sucesso)
-        if (response && response[0] && response[0].status === '200') {
-          console.log(`Sucesso: ${jid} adicionado ao grupo ${groupName}`);
+        // Verificar status da resposta (200 = sucesso)
+        const status = response?.[0]?.status;
+        if (status === '200') {
+          console.log(`Sucesso: ${jid} adicionado diretamente ao ${groupName}`);
           return { success: true, method: 'direct' };
         } else {
-          // Se o status não for 200, provavelmente é restrição de privacidade
-          console.log(`Add direto falhou (status ${response[0]?.status}), enviando convite...`);
-          throw new Error('Restrição de privacidade');
+          console.log(`Add direto falhou (status ${status}). Enviando convite...`);
+          throw new Error('Privacidade restringiu adição direta');
         }
       } catch (addErr) {
-        // 3. Fallback: Enviar link de convite se falhar a adição direta
+        // 5. Fallback: Enviar link de convite
         const inviteCode = await this.socket.groupInviteCode(currentGroupId);
         const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
         
         await this.socket.sendMessage(jid, { 
-          text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nIdentificamos que suas configurações de privacidade impedem que você seja adicionado diretamente aos grupos.\n\nPor favor, entre no grupo oficial pelo link abaixo:\n${inviteLink}` 
+          text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nNotamos que você não pôde ser adicionado automaticamente aos nossos grupos informativos.\n\nPor favor, entre no grupo oficial clicando no link abaixo:\n${inviteLink}\n\nEste é o canal oficial de comunicação para ${groupName === 'Piruá Esporte Clube Atletas' ? 'atletas' : 'responsáveis'}.` 
         });
         
-        console.log(`Convite enviado para ${jid} (${groupName})`);
+        console.log(`Link de convite enviado para ${jid}`);
         return { success: true, method: 'invite_link', link: inviteLink };
       }
     } catch (err: any) {
-      console.error(`Erro fatal ao processar WhatsApp para ${phoneNumber}:`, err);
+      console.error(`Erro ao processar WhatsApp para ${phoneNumber}:`, err.message);
       throw err;
     }
   }
