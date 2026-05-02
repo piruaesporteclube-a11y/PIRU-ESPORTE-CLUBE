@@ -64,25 +64,36 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     let errors = 0;
 
     for (let i = 0; i < activeAthletes.length; i++) {
+      // Check for connection status change mid-sync
+      const currentStatusData = await api.whatsapp.getStatus();
+      if (currentStatusData.status !== 'connected') {
+        setIsSyncing(false);
+        toast.error("Conexão com WhatsApp interrompida durante a sincronização.");
+        return;
+      }
+
       const athlete = activeAthletes[i];
       const name = athlete.name || "Atleta";
+      let lastMessage = 'Sucesso';
       
       try {
         // Add Athlete
         if (athlete.contact) {
           const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
           if (res.error && !res.success) throw new Error(res.error);
+          if (res.message) lastMessage = res.message;
         }
         // Add Responsible
         if (athlete.guardian_phone) {
           const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
           if (res.error && !res.success) throw new Error(res.error);
+          if (res.message) lastMessage = res.message;
         }
         
         successes++;
         setSyncLogs(prev => {
           const newLogs = [...prev];
-          newLogs[i] = { name, status: 'success', message: res.result?.message || 'Sucesso' };
+          newLogs[i] = { name, status: 'success', message: lastMessage };
           return newLogs;
         });
       } catch (err: any) {

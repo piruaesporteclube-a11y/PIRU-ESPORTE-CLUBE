@@ -87,8 +87,30 @@ export class WhatsAppService {
         printQRInTerminal: true,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 0,
-        keepAliveIntervalMs: 15000,
+        keepAliveIntervalMs: 30000,
         retryRequestDelayMs: 5000,
+        generateHighQualityLinkPreview: true,
+        patchMessageBeforeSending: (message) => {
+          const requiresPatch = !!(
+            message.buttonsMessage ||
+            message.templateMessage ||
+            message.listMessage
+          );
+          if (requiresPatch) {
+            message = {
+              viewOnceMessage: {
+                message: {
+                  messageContextInfo: {
+                    deviceListMetadata: {},
+                    deviceListMetadataVersion: 2,
+                  },
+                  ...message,
+                },
+              },
+            };
+          }
+          return message;
+        },
       });
 
       this.socket.ev.on('connection.update', async (update: any) => {
@@ -109,16 +131,15 @@ export class WhatsAppService {
           this.qrCode = null;
 
           // If it's a stream error (515) or other critical errors, we might want to wait longer
-          const isStreamError = statusCode === 515;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
           if (shouldReconnect) {
-            const delay = isStreamError ? 10000 : 5000;
-            console.log(`Reconnecting in ${delay/1000} seconds...`);
+            const delayTime = (statusCode === 515 || statusCode === 411) ? 15000 : 5000;
+            console.log(`Reconnecting in ${delayTime/1000} seconds...`);
             setTimeout(() => {
               this.isInitializing = false;
               this.init();
-            }, delay);
+            }, delayTime);
           } else {
             console.log('WhatsApp: Logged out or manual disconnect. Re-init blocked.');
             this.isInitializing = false;
