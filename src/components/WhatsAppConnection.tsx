@@ -41,6 +41,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     }
   };
 
+  const [syncLogs, setSyncLogs] = useState<{name: string, status: 'pending' | 'success' | 'error', message?: string}[]>([]);
+
   const handleSyncAll = async () => {
     if (status !== 'connected') {
       toast.error("WhatsApp não está conectado");
@@ -55,35 +57,60 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
     setIsSyncing(true);
     setSyncProgress({ current: 0, total: activeAthletes.length });
+    setSyncLogs(activeAthletes.map(a => ({ name: a.name || 'Sem nome', status: 'pending' })));
     
     let successes = 0;
     let errors = 0;
 
-    for (const athlete of activeAthletes) {
+    for (let i = 0; i < activeAthletes.length; i++) {
+      const athlete = activeAthletes[i];
+      const name = athlete.name || "Atleta";
+      
       try {
         // Add Athlete
         if (athlete.contact) {
-          await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+          const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+          if (res.error && !res.success) throw new Error(res.error);
         }
         // Add Responsible
         if (athlete.guardian_phone) {
-          await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+          const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+          if (res.error && !res.success) throw new Error(res.error);
         }
+        
         successes++;
-      } catch (err) {
+        setSyncLogs(prev => {
+          const newLogs = [...prev];
+          newLogs[i] = { name, status: 'success', message: res.result?.message || 'Sucesso' };
+          return newLogs;
+        });
+      } catch (err: any) {
+        console.error(`Erro ao sincronizar ${name}:`, err);
         errors++;
+        setSyncLogs(prev => {
+          const newLogs = [...prev];
+          newLogs[i] = { name, status: 'error', message: err.message };
+          return newLogs;
+        });
       }
-      setSyncProgress(prev => ({ ...prev, current: prev.current + 1 }));
-      // Small delay to avoid rate limiting
-      await new Promise(r => setTimeout(r, 1000));
+      
+      setSyncProgress(prev => ({ ...prev, current: i + 1 }));
+      // Increase delay to 3 seconds for better reliability and lower rate-limit risk
+      await new Promise(r => setTimeout(r, 3000));
     }
 
     setIsSyncing(false);
-    toast.success(`Sincronização concluída! ${successes} processados com sucesso.`);
+    toast.success(`Sincronização concluída! ${successes} processados.`);
     if (errors > 0) {
-      toast.warning(`${errors} contatos tiveram erros ou restrições de privacidade (convites enviados se possível).`);
+      toast.warning(`${errors} contatos tiveram erros. Verifique a lista.`);
     }
   };
+
+  // ... inside return ...
+  
+  // Replace the progress bar area with something that can show logs
+  // (later in the JSX)
+
 
   useEffect(() => {
     fetchStatus();
@@ -155,18 +182,63 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                 </div>
               </div>
 
-              {isSyncing ? (
-                <div className="space-y-3">
-                  <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-theme-primary transition-all duration-300"
-                      style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
-                    />
+              {isSyncing || syncLogs.length > 0 ? (
+                <div className="space-y-4">
+                  {isSyncing && (
+                    <div className="space-y-3">
+                      <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-theme-primary transition-all duration-300"
+                          style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500">
+                        <span>Sincronizando contatos...</span>
+                        <span>{syncProgress.current} / {syncProgress.total}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-black/20 rounded-xl p-3 border border-zinc-700/30">
+                    <div className="flex justify-between items-center mb-2 px-1">
+                      <h5 className="text-[10px] font-black uppercase text-zinc-400">Log de Sincronização</h5>
+                      {!isSyncing && (
+                        <button 
+                          onClick={() => setSyncLogs([])}
+                          className="text-[9px] font-black uppercase text-theme-primary hover:underline"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                      {syncLogs.length === 0 && (
+                        <p className="text-[9px] text-zinc-600 uppercase font-bold text-center py-4">Nenhum log disponível</p>
+                      )}
+                      {[...syncLogs].reverse().map((log, i) => (
+                        <div key={i} className="flex justify-between items-center text-[9px] font-bold uppercase py-1.5 border-b border-zinc-800/50 last:border-0">
+                          <span className="text-zinc-300 truncate max-w-[180px]">{log.name}</span>
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded",
+                            log.status === 'success' ? "bg-green-500/10 text-green-500" : 
+                            log.status === 'error' ? "bg-red-500/10 text-red-500" : 
+                            "bg-zinc-800 text-zinc-500"
+                          )}>
+                            {log.status === 'success' ? 'Sucesso' : log.status === 'error' ? (log.message || 'Erro') : 'Pendente'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500">
-                    <span>Sincronizando contatos...</span>
-                    <span>{syncProgress.current} / {syncProgress.total}</span>
-                  </div>
+
+                  {!isSyncing && (
+                    <button
+                      onClick={handleSyncAll}
+                      className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase text-[10px] rounded-lg transition-all border border-zinc-700"
+                    >
+                      Reiniciar Sincronização
+                    </button>
+                  )}
                 </div>
               ) : (
                 <button

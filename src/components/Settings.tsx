@@ -17,8 +17,11 @@ export default function SettingsComponent() {
 
   useEffect(() => {
     setSettings(globalSettings);
-    fetchAthletes();
   }, [globalSettings]);
+
+  useEffect(() => {
+    fetchAthletes();
+  }, []);
 
   const fetchAthletes = async () => {
     try {

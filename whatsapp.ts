@@ -195,24 +195,6 @@ export class WhatsAppService {
       throw new Error('WhatsApp não conectado');
     }
 
-    const groupId = this.groupIds[groupName];
-    if (!groupId) {
-      // Tentar re-mapear grupos se não estiver cacheado
-      await this.setupGroups();
-      const retryGroupId = this.groupIds[groupName];
-      if (!retryGroupId) {
-        throw new Error(`Grupo ${groupName} não encontrado. Por favor, verifique se o bot criou os grupos.`);
-      }
-    }
-
-    const currentGroupId = this.groupIds[groupName];
-
-    // Limpar número: apenas dígitos
-    let cleanNumber = phoneNumber.replace(/\D/g, '');
-    if (!cleanNumber.startsWith('55')) {
-      cleanNumber = '55' + cleanNumber;
-    }
-
     try {
       // 1. Limpar número: apenas dígitos
       let cleanNumber = phoneNumber.replace(/\D/g, '');
@@ -220,7 +202,11 @@ export class WhatsAppService {
         cleanNumber = '55' + cleanNumber;
       }
 
-      console.log(`Tentando adicionar/convidar: ${cleanNumber} para ${groupName}`);
+      if (cleanNumber.length < 10) {
+        throw new Error('Número de telefone inválido ou incompleto');
+      }
+
+      console.log(`[WhatsApp] Processando: ${cleanNumber} para o grupo ${groupName}`);
 
       // 2. Garantir que temos o ID do grupo
       if (!this.groupIds[groupName]) {
@@ -229,65 +215,82 @@ export class WhatsAppService {
 
       const currentGroupId = this.groupIds[groupName];
       if (!currentGroupId) {
-        throw new Error(`Grupo "${groupName}" não encontrado no WhatsApp. Certifique-se de que o Bot tem permissão para criar/ver grupos.`);
+        throw new Error(`Grupo "${groupName}" não encontrado. O sistema tentou criar mas falhou ou não tem permissão.`);
       }
 
       // 3. Verificar se o número está no WhatsApp e resolver JID
       let jid = '';
-      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
+      let onWhatsApp = [];
+      try {
+        onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
+      } catch (err) {
+        console.error(`[WhatsApp] Erro ao verificar número ${cleanNumber}:`, err);
+      }
       
       if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
         jid = onWhatsApp[0].jid;
       } else {
-        // Tentar variação do 9º dígito (se tem 13, tenta com 12. Se tem 12, tenta com 13)
-        // Isso é comum em números brasileiros (DDD + 8 ou 9 dígitos)
+        // Tentar variação do 9º dígito para números brasileiros
         let alternative = '';
-        if (cleanNumber.length === 13) { // 55 + DDD + 9 + 8 dígitos
+        if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) { // 55 + DDD + 9 + 8 dígitos
           alternative = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
-        } else if (cleanNumber.length === 12) { // 55 + DDD + 8 dígitos
+        } else if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) { // 55 + DDD + 8 dígitos
           alternative = cleanNumber.slice(0, 4) + '9' + cleanNumber.slice(4);
         }
 
         if (alternative) {
-          const altOnWA = await this.socket.onWhatsApp(alternative);
-          if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
-            jid = altOnWA[0].jid;
+          console.log(`[WhatsApp] Tentando número alternativo: ${alternative}`);
+          try {
+            const altOnWA = await this.socket.onWhatsApp(alternative);
+            if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
+              jid = altOnWA[0].jid;
+            }
+          } catch (err) {
+            console.error(`[WhatsApp] Erro ao verificar número alternativo ${alternative}:`, err);
           }
         }
       }
 
       if (!jid) {
-        console.warn(`Número ${cleanNumber} não encontrado no WhatsApp.`);
-        throw new Error('Este número não parece estar cadastrado no WhatsApp.');
+        console.warn(`[WhatsApp] Número ${cleanNumber} não encontrado.`);
+        throw new Error('Este número não parece estar registrado no WhatsApp.');
       }
 
       // 4. Tentar adicionar ao grupo
       try {
+        console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${currentGroupId}`);
         const response = await this.socket.groupParticipantsUpdate(currentGroupId, [jid], 'add');
         
-        // Verificar status da resposta (200 = sucesso)
+        // Verificar status da resposta
         const status = response?.[0]?.status;
         if (status === '200') {
-          console.log(`Sucesso: ${jid} adicionado diretamente ao ${groupName}`);
-          return { success: true, method: 'direct' };
+          console.log(`[WhatsApp] Sucesso: ${jid} adicionado.`);
+          return { success: true, method: 'direct', message: 'Adicionado diretamente' };
+        } else if (status === '403') {
+          console.log(`[WhatsApp] Privacidade restringiu adição direta. Enviando convite.`);
+          throw new Error('Restrição de privacidade (Convite enviado)');
         } else {
-          console.log(`Add direto falhou (status ${status}). Enviando convite...`);
-          throw new Error('Privacidade restringiu adição direta');
+          console.log(`[WhatsApp] Falha ao adicionar (Status: ${status}).`);
+          throw new Error(`Restrição do WhatsApp (Status: ${status})`);
         }
-      } catch (addErr) {
-        // 5. Fallback: Enviar link de convite
-        const inviteCode = await this.socket.groupInviteCode(currentGroupId);
-        const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-        
-        await this.socket.sendMessage(jid, { 
-          text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nNotamos que você não pôde ser adicionado automaticamente aos nossos grupos informativos.\n\nPor favor, entre no grupo oficial clicando no link abaixo:\n${inviteLink}\n\nEste é o canal oficial de comunicação para ${groupName === 'Piruá Esporte Clube Atletas' ? 'atletas' : 'responsáveis'}.` 
-        });
-        
-        console.log(`Link de convite enviado para ${jid}`);
-        return { success: true, method: 'invite_link', link: inviteLink };
+      } catch (addErr: any) {
+        if (addErr.message && (addErr.message.includes('403') || addErr.message.includes('privacidade') || addErr.message.includes('Restrição'))) {
+          // 5. Fallback: Enviar link de convite
+          console.log(`[WhatsApp] Fallback: Gerando link de convite para ${jid}`);
+          const inviteCode = await this.socket.groupInviteCode(currentGroupId);
+          const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+          
+          await this.socket.sendMessage(jid, { 
+            text: `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽\n\nIdentificamos que não foi possível te adicionar diretamente ao grupo devido às suas configurações de privacidade.\n\nPor favor, entre no canal oficial pelo link abaixo:\n${inviteLink}\n\nEste grupo é para: ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.` 
+          });
+          
+          console.log(`[WhatsApp] Link de convite enviado.`);
+          return { success: true, method: 'invite_link', message: 'Link de convite enviado por mensagem' };
+        }
+        throw addErr;
       }
     } catch (err: any) {
-      console.error(`Erro ao processar WhatsApp para ${phoneNumber}:`, err.message);
+      console.error(`[WhatsApp] Erro fatal: ${err.message}`);
       throw err;
     }
   }
