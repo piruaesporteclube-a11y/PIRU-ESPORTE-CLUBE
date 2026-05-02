@@ -125,17 +125,18 @@ export class WhatsAppService {
         if (connection === 'close') {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
           const errorMessage = lastDisconnect?.error?.message || 'Unknown error';
+          const isQRExpired = errorMessage.includes('QR refs attempts ended');
           
           console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
 
-          // If it's a stream error (515) or other critical errors, we might want to wait longer
+          // If it's a stream error (515), QR timeout or other critical errors, we must reconnect
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
           if (shouldReconnect) {
-            const delayTime = (statusCode === 515 || statusCode === 411) ? 15000 : 5000;
-            console.log(`Reconnecting in ${delayTime/1000} seconds...`);
+            const delayTime = (statusCode === 515 || statusCode === 411 || isQRExpired) ? 10000 : 5000;
+            console.log(`Reconnecting WhatsApp after ${errorMessage}... in ${delayTime/1000} seconds.`);
             setTimeout(() => {
               this.isInitializing = false;
               this.init();
@@ -157,10 +158,15 @@ export class WhatsAppService {
       });
 
       this.socket.ev.on('creds.update', saveCreds);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to initialize WhatsApp socket:', err);
       this.isInitializing = false;
-      setTimeout(() => this.init(), 10000);
+      const errorMessage = err?.message || '';
+      const isQRExpired = errorMessage.includes('QR refs attempts ended');
+      const delay = isQRExpired ? 5000 : 15000;
+      
+      console.log(`WhatsApp init error: ${errorMessage}. Retrying in ${delay/1000}s...`);
+      setTimeout(() => this.init(), delay);
     }
   }
 
