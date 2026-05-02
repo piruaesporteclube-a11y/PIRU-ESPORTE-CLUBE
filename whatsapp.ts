@@ -126,10 +126,18 @@ export class WhatsAppService {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
           const errorMessage = lastDisconnect?.error?.message || 'Unknown error';
           const isQRExpired = errorMessage.includes('QR refs attempts ended');
+          const isDeviceRemoved = statusCode === 401 || errorMessage.includes('device_removed') || errorMessage.includes('Conflict');
           
           console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
+
+          // If device was removed, we must clear credentials to allow a fresh scan
+          if (isDeviceRemoved) {
+            console.log('WhatsApp: Device removed. Logging out and clearing session...');
+            this.logout();
+            return;
+          }
 
           // If it's a stream error (515), QR timeout or other critical errors, we must reconnect
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
@@ -278,7 +286,7 @@ export class WhatsAppService {
     return null;
   }
 
-  public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string) {
+  public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0): Promise<any> {
     if (this.connectionStatus !== 'connected' || !this.socket) {
       throw new Error('WhatsApp não conectado');
     }
@@ -313,6 +321,14 @@ export class WhatsAppService {
         throw new Error(`Erro do WhatsApp (Status ${status})`);
       }
     } catch (err: any) {
+      const isRateLimit = err.message?.includes('rate-overlimit') || err.output?.payload?.error === 'Rate Overlimit';
+      
+      if (isRateLimit && retryCount < 3) {
+        console.log(`[WhatsApp] Rate limit hit for ${phoneNumber}, retrying in ${(retryCount + 1) * 5}s...`);
+        await new Promise(r => setTimeout(r, (retryCount + 1) * 5000));
+        return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1);
+      }
+
       console.error(`[WhatsApp] Erro ao adicionar participante:`, err);
       throw err;
     }

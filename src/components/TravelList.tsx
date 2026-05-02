@@ -85,7 +85,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       for (const p of participants) {
         if (p.phone) {
           await api.whatsapp.addParticipant(groupId!, p.phone, `Olá ${p.name}! Você está na lista de viagem para ${selectedEvent.name}. Bem-vindo ao grupo oficial.`);
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 3000));
         }
       }
 

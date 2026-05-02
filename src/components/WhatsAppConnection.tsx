@@ -107,8 +107,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       }
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
-      // Increase delay to 3 seconds for better reliability and lower rate-limit risk
-      await new Promise(r => setTimeout(r, 3000));
+      // Increased delay to 5 seconds to significantly reduce rate-limit risk from WhatsApp
+      await new Promise(r => setTimeout(r, 5000));
     }
 
     setIsSyncing(false);

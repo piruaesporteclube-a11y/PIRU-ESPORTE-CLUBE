@@ -189,7 +189,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       for (const staff of lineupStaff) {
         if (staff.phone) {
           await api.whatsapp.addParticipant(groupId!, staff.phone, `Olá ${staff.name}! Você foi escalado para o evento ${selectedEvent.name}.`);
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 3000));
         }
       }
 
@@ -197,11 +197,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       for (const athlete of lineupAthletes) {
         if (athlete.contact) {
           await api.whatsapp.addParticipant(groupId!, athlete.contact, `Olá ${athlete.name}! Você foi escalado para o evento ${selectedEvent.name}.`);
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 3000));
         }
         if (athlete.guardian_phone) {
           await api.whatsapp.addParticipant(groupId!, athlete.guardian_phone, `Olá! O atleta ${athlete.name} foi escalado para o evento ${selectedEvent.name}. Você está sendo adicionado ao grupo de viagem.`);
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 3000));
         }
       }
 
@@ -228,7 +228,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       for (const staff of lineupStaff) {
         if (staff.phone) {
           await api.whatsapp.removeParticipant(groupId, staff.phone);
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 1500));
         }
       }
 
@@ -236,11 +236,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       for (const athlete of lineupAthletes) {
         if (athlete.contact) {
           await api.whatsapp.removeParticipant(groupId, athlete.contact);
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 1500));
         }
         if (athlete.guardian_phone) {
           await api.whatsapp.removeParticipant(groupId, athlete.guardian_phone);
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 1500));
         }
       }
 
