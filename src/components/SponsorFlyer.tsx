@@ -36,6 +36,9 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
   const [mainHeadlineSize, setMainHeadlineSize] = useState(82);
   const [customTextSize, setCustomTextSize] = useState(32);
   const [multiplyLogo, setMultiplyLogo] = useState(false);
+  const [screenLogo, setScreenLogo] = useState(false);
+  const [logoBrightness, setLogoBrightness] = useState(1);
+  const [logoContrast, setLogoContrast] = useState(1);
   const [glowIntensity, setGlowIntensity] = useState(0.4);
 
   // Positioning States
@@ -219,6 +222,60 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                           <span className="text-[9px] font-bold text-zinc-600 uppercase block">Eixo Y</span>
                           <input type="range" min="-300" max="300" step="1" value={activeSlot === 'sponsor' ? sponsorPos.y : schoolPos.y} onChange={e => activeSlot === 'sponsor' ? setSponsorPos({...sponsorPos, y: parseInt(e.target.value)}) : setSchoolPos({...schoolPos, y: parseInt(e.target.value)})} className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg" />
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 space-y-4 border-t border-zinc-800/50">
+                    <h4 className="text-[10px] font-black text-theme-primary uppercase tracking-widest flex items-center gap-2 pt-4">
+                      <Settings2 size={12} />
+                      Tratamento de Imagem
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => { setMultiplyLogo(!multiplyLogo); setScreenLogo(false); }}
+                        className={cn(
+                          "px-4 py-3 rounded-xl border text-[10px] font-bold uppercase transition-all",
+                          multiplyLogo ? "bg-theme-primary text-black border-theme-primary" : "bg-black border-zinc-800 text-zinc-500"
+                        )}
+                      >
+                        Remover Fundo Branco
+                      </button>
+                      <button 
+                        onClick={() => { setScreenLogo(!screenLogo); setMultiplyLogo(false); }}
+                        className={cn(
+                          "px-4 py-3 rounded-xl border text-[10px] font-bold uppercase transition-all",
+                          screenLogo ? "bg-theme-primary text-black border-theme-primary" : "bg-black border-zinc-800 text-zinc-500"
+                        )}
+                      >
+                        Remover Fundo Preto
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between px-1">
+                          <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Brilho do Logo</span>
+                          <span className="text-[9px] text-zinc-400">{Math.round(logoBrightness * 100)}%</span>
+                        </div>
+                        <input 
+                          type="range" min="0.5" max="2" step="0.05"
+                          className="w-full accent-theme-primary h-1.5 bg-zinc-800 rounded-lg"
+                          value={logoBrightness}
+                          onChange={e => setLogoBrightness(parseFloat(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between px-1">
+                          <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Contraste do Logo</span>
+                          <span className="text-[9px] text-zinc-400">{Math.round(logoContrast * 100)}%</span>
+                        </div>
+                        <input 
+                          type="range" min="0.5" max="2" step="0.05"
+                          className="w-full accent-theme-primary h-1.5 bg-zinc-800 rounded-lg"
+                          value={logoContrast}
+                          onChange={e => setLogoContrast(parseFloat(e.target.value))}
+                        />
                       </div>
                     </div>
                   </div>
@@ -439,8 +496,11 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                            src={sponsorLogo} 
                            className={cn(
                              "w-full h-full object-contain relative z-10 transition-all",
-                             multiplyLogo ? "mix-blend-multiply brightness-110" : "drop-shadow-[0_25px_50px_rgba(0,0,0,0.8)]"
+                             multiplyLogo ? "mix-blend-multiply" : "",
+                             screenLogo ? "mix-blend-screen" : "",
+                             !multiplyLogo && !screenLogo ? "drop-shadow-[0_25px_50px_rgba(0,0,0,0.8)]" : ""
                            )} 
+                           style={{ filter: `brightness(${logoBrightness}) contrast(${logoContrast})` }}
                            crossOrigin="anonymous" 
                          />
                        ) : (

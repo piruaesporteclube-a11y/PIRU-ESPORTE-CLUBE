@@ -162,6 +162,96 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const lineupRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  const [isWhatsAppGroupLoading, setIsWhatsAppGroupLoading] = useState(false);
+
+  const handleSyncWhatsAppGroup = async () => {
+    if (!selectedEvent) return;
+    
+    setIsWhatsAppGroupLoading(true);
+    const loadingToast = toast.loading('Sincronizando grupo do WhatsApp...');
+    
+    try {
+      let groupId = selectedEvent.whatsapp_group_id;
+      
+      if (!groupId) {
+        toast.message('Criando novo grupo para o evento...');
+        const createRes = await api.whatsapp.createGroup(`VIAGEM: ${selectedEvent.name}`.toUpperCase());
+        if (createRes.success && createRes.groupId) {
+          groupId = createRes.groupId;
+          await api.saveEvent({ ...selectedEvent, whatsapp_group_id: groupId });
+          setSelectedEvent(prev => prev ? { ...prev, whatsapp_group_id: groupId } : null);
+        } else {
+          throw new Error('Falha ao criar grupo');
+        }
+      }
+
+      // Add staff
+      for (const staff of lineupStaff) {
+        if (staff.phone) {
+          await api.whatsapp.addParticipant(groupId!, staff.phone, `Olá ${staff.name}! Você foi escalado para o evento ${selectedEvent.name}.`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      // Add athletes and guardians
+      for (const athlete of lineupAthletes) {
+        if (athlete.contact) {
+          await api.whatsapp.addParticipant(groupId!, athlete.contact, `Olá ${athlete.name}! Você foi escalado para o evento ${selectedEvent.name}.`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        if (athlete.guardian_phone) {
+          await api.whatsapp.addParticipant(groupId!, athlete.guardian_phone, `Olá! O atleta ${athlete.name} foi escalado para o evento ${selectedEvent.name}. Você está sendo adicionado ao grupo de viagem.`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      toast.success('Grupo sincronizado com sucesso!', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(`Erro ao sincronizar grupo: ${err.message}`, { id: loadingToast });
+    } finally {
+      setIsWhatsAppGroupLoading(false);
+    }
+  };
+
+  const handleClearWhatsAppGroup = async () => {
+    if (!selectedEvent || !selectedEvent.whatsapp_group_id) return;
+    
+    if (!confirm("Isso removerá todos os atletas e responsáveis do grupo. Deseja continuar?")) return;
+
+    setIsWhatsAppGroupLoading(true);
+    const loadingToast = toast.loading('Removendo participantes...');
+
+    try {
+      const groupId = selectedEvent.whatsapp_group_id;
+      
+      // Remove staff
+      for (const staff of lineupStaff) {
+        if (staff.phone) {
+          await api.whatsapp.removeParticipant(groupId, staff.phone);
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      // Remove athletes and guardians
+      for (const athlete of lineupAthletes) {
+        if (athlete.contact) {
+          await api.whatsapp.removeParticipant(groupId, athlete.contact);
+          await new Promise(r => setTimeout(r, 500));
+        }
+        if (athlete.guardian_phone) {
+          await api.whatsapp.removeParticipant(groupId, athlete.guardian_phone);
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      toast.success('Membros removidos com sucesso!', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(`Erro ao limpar grupo: ${err.message}`, { id: loadingToast });
+    } finally {
+      setIsWhatsAppGroupLoading(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!lineupRef.current || !selectedEvent) return;
     
@@ -945,9 +1035,33 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
-                <button onClick={() => setIsLineupOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={handleSyncWhatsAppGroup}
+                        disabled={isWhatsAppGroupLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-900/20 hover:bg-green-900/40 text-green-500 text-xs font-black rounded-xl transition-all border border-green-900/30"
+                        title="Criar/Sincronizar Grupo do WhatsApp"
+                      >
+                        <MessageCircle size={16} />
+                        {selectedEvent.whatsapp_group_id ? 'Sincronizar Grupo' : 'Criar Grupo Viagem'}
+                      </button>
+                      {selectedEvent.whatsapp_group_id && (
+                        <button 
+                          onClick={handleClearWhatsAppGroup}
+                          disabled={isWhatsAppGroupLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 text-xs font-black rounded-xl transition-all border border-red-900/30"
+                          title="Remover todos os membros do grupo"
+                        >
+                          <Trash2 size={16} />
+                          Limpar Grupo
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <button onClick={() => setIsLineupOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                   <X size={18} className="group-hover:rotate-90 transition-transform" />
                   <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
                 </button>

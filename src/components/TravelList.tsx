@@ -17,7 +17,8 @@ import {
   UserPlus,
   ChevronRight,
   Edit,
-  FileText
+  FileText,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EventsManagement from './EventsManagement';
@@ -50,6 +51,51 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     if (athletesProp) setAthletes(athletesProp);
     if (professorsProp) setProfessors(professorsProp);
   }, [athletesProp, professorsProp]);
+
+  const [isSyncingWhatsApp, setIsSyncingWhatsApp] = useState(false);
+
+  const handleSyncWhatsApp = async () => {
+    if (!selectedEvent) return;
+    
+    setIsSyncingWhatsApp(true);
+    const loadingToast = toast.loading('Sincronizando grupo de viagem...');
+    
+    try {
+      let groupId = selectedEvent.whatsapp_group_id;
+      
+      if (!groupId) {
+        toast.message('Criando novo grupo...');
+        const res = await api.whatsapp.createGroup(`DELEGAÇÃO: ${selectedEvent.name}`.toUpperCase());
+        if (res.success && res.groupId) {
+          groupId = res.groupId;
+          await api.saveEvent({ ...selectedEvent, whatsapp_group_id: groupId });
+        } else {
+          throw new Error('Falha ao criar grupo');
+        }
+      }
+
+      // Add all from combined lineup
+      const participants = [
+        ...lineup.staff.map(s => ({ phone: s.phone, name: s.name, role: 'Comissão' })),
+        ...lineup.athletes.map(a => ({ phone: a.contact, name: a.name, role: 'Atleta' })),
+        ...lineup.athletes.filter(a => a.guardian_phone).map(a => ({ phone: a.guardian_phone, name: `${a.guardian_name} (Resp. ${a.name})`, role: 'Responsável' })),
+        ...companions.map(c => ({ phone: c.whatsapp, name: c.name, role: 'Acompanhante' }))
+      ];
+
+      for (const p of participants) {
+        if (p.phone) {
+          await api.whatsapp.addParticipant(groupId!, p.phone, `Olá ${p.name}! Você está na lista de viagem para ${selectedEvent.name}. Bem-vindo ao grupo oficial.`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      toast.success('Grupo sincronizado com sucesso!', { id: loadingToast });
+    } catch (error: any) {
+      toast.error(`Erro: ${error.message}`, { id: loadingToast });
+    } finally {
+      setIsSyncingWhatsApp(false);
+    }
+  };
 
   const loadAthletes = async () => {
     if (athletesProp && athletesProp.length > 0) return;
@@ -429,6 +475,14 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
           >
             <FileText size={18} />
             Gerar PDF
+          </button>
+          <button 
+            onClick={handleSyncWhatsApp}
+            disabled={isSyncingWhatsApp}
+            className="flex items-center gap-2 px-6 py-4 bg-green-900/20 text-green-500 font-black rounded-2xl border border-green-900/30 hover:bg-green-900/40 transition-all uppercase tracking-widest text-xs"
+          >
+            <MessageCircle size={18} />
+            {isSyncingWhatsApp ? 'Sincronizando...' : 'Sincronizar WhatsApp'}
           </button>
           <button 
             onClick={handlePrint}

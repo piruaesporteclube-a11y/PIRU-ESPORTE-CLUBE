@@ -64,7 +64,8 @@ export type Event = {
   end_date: string;
   start_time: string;
   end_time: string;
-  responsible_phone?: string; // New field
+  responsible_phone?: string; 
+  whatsapp_group_id?: string;
   created_at?: any;
   updated_at?: any;
 };

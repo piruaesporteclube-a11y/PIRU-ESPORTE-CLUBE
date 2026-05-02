@@ -768,6 +768,45 @@ export const api = {
         console.error("WhatsApp add error:", err);
         return { success: false, error: "Conexão falhou" };
       }
+    },
+    createGroup: async (name: string) => {
+      try {
+        const response = await fetch("/api/whatsapp/groups/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp group create error:", err);
+        return { success: false, error: "Falha ao criar grupo" };
+      }
+    },
+    addParticipant: async (groupId: string, phoneNumber: string, welcomeMessage?: string) => {
+      try {
+        const response = await fetch("/api/whatsapp/groups/add-participant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId, phoneNumber, welcomeMessage }),
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp participant add error:", err);
+        return { success: false, error: "Falha ao adicionar participante" };
+      }
+    },
+    removeParticipant: async (groupId: string, phoneNumber: string) => {
+      try {
+        const response = await fetch("/api/whatsapp/groups/remove-participant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId, phoneNumber }),
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp participant remove error:", err);
+        return { success: false, error: "Falha ao remover participante" };
+      }
     }
   },
 

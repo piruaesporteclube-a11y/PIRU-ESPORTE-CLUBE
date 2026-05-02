@@ -37,6 +37,36 @@ async function startServer() {
     }
   });
 
+  app.post("/api/whatsapp/groups/create", async (req, res) => {
+    const { name } = req.body;
+    try {
+      const groupId = await whatsappService.createGroup(name);
+      res.json({ success: true, groupId });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/groups/add-participant", async (req, res) => {
+    const { groupId, phoneNumber, welcomeMessage } = req.body;
+    try {
+      const result = await whatsappService.addParticipant(groupId, phoneNumber, welcomeMessage);
+      res.json({ success: true, result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/groups/remove-participant", async (req, res) => {
+    const { groupId, phoneNumber } = req.body;
+    try {
+      const result = await whatsappService.removeFromGroup(groupId, phoneNumber);
+      res.json({ success: true, result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
