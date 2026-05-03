@@ -56,13 +56,18 @@ service cloud.firestore {
         (
           // Check for primary admin email
           request.auth.token.email == "piruaesporteclube@gmail.com" ||
-          // Check if user document exists and has admin role
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
           // Check for demo user by doc field in their user document (for anonymous)
           (request.auth.token.firebase.sign_in_provider == 'anonymous' && 
-           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "05504043689")
+           (
+             (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.doc == "05504043689") ||
+             // Fallback if user doc doesn't exist yet but we trust the UID if it's the known one 
+             // (Not ideal but good for recovery)
+             request.auth.uid == "tMltXCnkboSxsDy5ZaPEdAINlQ12"
+           )) ||
+          // Check if user document exists and has admin role
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
         );
     }
 
@@ -73,7 +78,8 @@ service cloud.firestore {
     }
 
     function isStaff() {
-      return isAdmin() || isProfessor();
+      // Direct UID check for known admin who is getting permission errors
+      return isAdmin() || isProfessor() || request.auth.uid == "tMltXCnkboSxsDy5ZaPEdAINlQ12";
     }
 
     function isOwner(userId) {
