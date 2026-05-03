@@ -35,6 +35,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   };
   const [filterSub, setFilterSub] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'created_new' | 'created_old'>('name_asc');
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [athleteToDelete, setAthleteToDelete] = useState<string | null>(null);
@@ -137,12 +138,24 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
       const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
       return matchesSearch && matchesSub && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sorting Logic
+      if (sortBy === 'name_asc') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'name_desc') {
+        return b.name.localeCompare(a.name);
+      } else if (sortBy === 'created_new' || sortBy === 'created_old') {
+        const dateA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
+        const dateB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
+        return sortBy === 'created_new' ? dateB - dateA : dateA - dateB;
+      }
+      return 0;
     });
 
-  // Only sort alphabetically for 'active' and 'pending' modes. 'recent' stays by date.
-  if (viewMode !== 'recent') {
-    filteredAthletes.sort((a, b) => a.name.localeCompare(b.name));
-  }
+  // Force alphabetical sort logic override if viewMode is 'recent'
+  // Actually, 'recent' viewMode usually wants its own fixed sort, 
+  // but we can let the user decide if they change the sortBy dropdown.
 
   const handlePrint = () => {
     window.print();
@@ -287,9 +300,9 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         {viewMode === 'recent' && (
-          <div className="md:col-span-3 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
+          <div className="sm:col-span-2 lg:col-span-4 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
             <div className="p-3 bg-theme-primary/20 rounded-full text-theme-primary">
               <Clock size={24} />
             </div>
@@ -330,6 +343,19 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             <option value="Todos">Todos os Status</option>
             <option value="Ativo">Ativos</option>
             <option value="Inativo">Inativos</option>
+          </select>
+        </div>
+        <div className="relative">
+          <FileDown className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <select 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+          >
+            <option value="name_asc">Ordem: Nome (A-Z)</option>
+            <option value="name_desc">Ordem: Nome (Z-A)</option>
+            <option value="created_new">Ordem: Mais Recentes</option>
+            <option value="created_old">Ordem: Mais Antigos</option>
           </select>
         </div>
       </div>
