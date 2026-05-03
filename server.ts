@@ -67,6 +67,15 @@ async function startServer() {
     }
   });
 
+  app.post("/api/whatsapp/groups/sync", async (req, res) => {
+    try {
+      const groupIds = await whatsappService.syncGroups();
+      res.json({ success: true, groupIds });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });

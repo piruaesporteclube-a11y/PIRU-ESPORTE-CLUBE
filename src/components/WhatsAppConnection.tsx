@@ -45,6 +45,24 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
   const [syncLogs, setSyncLogs] = useState<{name: string, status: 'pending' | 'success' | 'error', message?: string}[]>([]);
 
+  const [isSyncingGroups, setIsSyncingGroups] = useState(false);
+
+  const handleSyncGroups = async () => {
+    setIsSyncingGroups(true);
+    try {
+      const res = await api.whatsapp.syncGroups();
+      if (res.success) {
+        toast.success("Grupos sincronizados/verificados com sucesso!");
+      } else {
+        toast.error("Erro ao sincronizar grupos: " + res.error);
+      }
+    } catch (err) {
+      toast.error("Erro de conexão ao sincronizar grupos.");
+    } finally {
+      setIsSyncingGroups(false);
+    }
+  };
+
   const handleSyncAll = async () => {
     if (status !== 'connected') {
       toast.error("WhatsApp não está conectado");
@@ -314,15 +332,30 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700/50">
-            <h5 className="text-zinc-500 text-[10px] font-black uppercase mb-2">Grupo de Atletas</h5>
-            <p className="text-white text-xs font-bold uppercase">Piruá Esporte Clube Atletas</p>
+          <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700/50 flex flex-col justify-between">
+            <div>
+              <h5 className="text-zinc-500 text-[10px] font-black uppercase mb-2">Grupo de Atletas</h5>
+              <p className="text-white text-xs font-bold uppercase">Piruá Esporte Clube Atletas</p>
+            </div>
           </div>
-          <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700/50">
-            <h5 className="text-zinc-500 text-[10px] font-black uppercase mb-2">Grupo de Responsáveis</h5>
-            <p className="text-white text-xs font-bold uppercase">Piruá Esporte Clube Responsáveis</p>
+          <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700/50 flex flex-col justify-between">
+            <div>
+              <h5 className="text-zinc-500 text-[10px] font-black uppercase mb-2">Grupo de Responsáveis</h5>
+              <p className="text-white text-xs font-bold uppercase">Piruá Esporte Clube Responsáveis</p>
+            </div>
           </div>
         </div>
+
+        {status === 'connected' && (
+          <button
+            onClick={handleSyncGroups}
+            disabled={isSyncingGroups || isSyncing}
+            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-black uppercase text-[10px] rounded-lg transition-all border border-zinc-700 flex items-center justify-center gap-2"
+          >
+            {isSyncingGroups ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            Verificar/Criar Grupos no WhatsApp
+          </button>
+        )}
       </div>
     </div>
   );

@@ -818,6 +818,18 @@ export const api = {
         console.error("WhatsApp participant remove error:", err);
         return { success: false, error: "Falha ao remover participante" };
       }
+    },
+    syncGroups: async () => {
+      try {
+        const response = await fetch("/api/whatsapp/groups/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp group sync error:", err);
+        return { success: false, error: "Falha ao sincronizar grupos" };
+      }
     }
   },
 

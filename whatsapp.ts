@@ -314,7 +314,8 @@ export class WhatsAppService {
     if (!this.socket || this.connectionStatus !== 'connected') return;
 
     try {
-      // First, get participating groups
+      console.log('[WhatsApp] Sincronizando grupos...');
+      // Fetch all groups we are part of
       const groups = await this.socket.groupFetchAllParticipating();
       this.groupIds = {}; // Reset local cache
 
@@ -324,29 +325,35 @@ export class WhatsAppService {
       ];
 
       for (const name of targetGroupNames) {
+        // Find existing group by subject
         const existing = Object.values(groups).find((g: any) => g.subject === name);
+        
         if (existing) {
           this.groupIds[name] = (existing as any).id;
-          console.log(`Found existing group: ${name} (${this.groupIds[name]})`);
+          console.log(`[WhatsApp] Grupo encontrado: ${name} (${this.groupIds[name]})`);
         } else {
           try {
-            console.log(`Group ${name} not found. Attemping to create...`);
+            console.log(`[WhatsApp] Grupo "${name}" não encontrado. Tentando criar...`);
+            // Some accounts may fail with [], but it's the standard for new groups in Baileys
             const group = await this.socket.groupCreate(name, []);
             this.groupIds[name] = group.id;
-            console.log(`Created group: ${name}`);
-            // Wait between creations to avoid rate limits
-            await new Promise(r => setTimeout(r, 2000));
+            console.log(`[WhatsApp] Grupo criado com sucesso: ${name}`);
+            // Wait between actions to minimize rate limit risks
+            await new Promise(r => setTimeout(r, 3000));
           } catch (err: any) {
-            if (err.message?.includes('rate-overlimit')) {
-              console.warn(`Rate limit hit while creating ${name}. Will try again later.`);
+            const errorMsg = err.message || '';
+            if (errorMsg.includes('rate-overlimit')) {
+              console.warn(`[WhatsApp] Limite de frequência atingido ao criar "${name}".`);
+            } else if (errorMsg.includes('not-authorized')) {
+              console.error(`[WhatsApp] Sem permissão para criar grupos.`);
             } else {
-              console.error(`Error creating group ${name}:`, err);
+              console.error(`[WhatsApp] Erro ao criar grupo ${name}:`, err);
             }
           }
         }
       }
     } catch (err) {
-      console.error('Error in setupGroups:', err);
+      console.error('[WhatsApp] Erro crítico no setupGroups:', err);
     }
   }
 
@@ -435,15 +442,22 @@ export class WhatsAppService {
     try {
       const jid = await this.resolveJid(phoneNumber);
       if (!jid) {
-        throw new Error('Este número não parece estar registrado no WhatsApp.');
+        throw new Error(`O número ${phoneNumber} não parece estar registrado no WhatsApp.`);
       }
 
+      console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
       const response = await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
+      
+      // The response is an array of objects: { jid: string, status: string }
       const status = response?.[0]?.status;
 
       if (status === '200') {
         if (welcomeMessage) {
-          await this.socket.sendMessage(jid, { text: welcomeMessage });
+          try {
+            await this.socket.sendMessage(jid, { text: welcomeMessage });
+          } catch (msgErr) {
+            console.warn('[WhatsApp] Erro ao enviar mensagem de boas-vindas:', msgErr);
+          }
         }
         return { success: true, method: 'direct', message: 'Adicionado diretamente' };
       } else if (status === '403') {
@@ -455,66 +469,79 @@ export class WhatsAppService {
           : `Olá! Identificamos que não foi possível te adicionar diretamente devido às suas configurações de privacidade. Por favor, entre pelo link: ${inviteLink}`;
 
         await this.socket.sendMessage(jid, { text: message });
-        return { success: true, method: 'invite_link', message: 'Convite enviado' };
+        return { success: true, method: 'invite_link', message: 'Convite enviado via PV' };
       } else if (status === '409') {
         return { success: true, method: 'already_in', message: 'Já está no grupo' };
+      } else if (status === '429') {
+        throw new Error('Muitas tentativas em pouco tempo. Aguarde alguns minutos.');
       } else {
         throw new Error(`Erro do WhatsApp (Status ${status})`);
       }
     } catch (err: any) {
-      const isRateLimit = err.message?.includes('rate-overlimit') || err.output?.payload?.error === 'Rate Overlimit';
-      const isIntegrityBlocked = err.message?.includes('integrity-enforcement');
+      const errorMessage = err.message || '';
+      const isRateLimit = errorMessage.includes('rate-overlimit') || err.output?.payload?.error === 'Rate Overlimit' || errorMessage.includes('429');
+      const isIntegrityBlocked = errorMessage.includes('integrity-enforcement');
       
       if (isIntegrityBlocked) {
-        const errorMsg = 'Sincronização temporariamente bloqueada por segurança. Por favor, aguarde alguns minutos e tente novamente em grupos menores. (Erro: Integrity Block)';
-        throw new Error(errorMsg);
+        throw new Error('Sincronização pausada preventivamente pelo WhatsApp por segurança. Tente novamente em 20 minutos.');
       }
       
       if (isRateLimit && retryCount < 3) {
-        console.log(`[WhatsApp] Rate limit hit for ${phoneNumber}, retrying in ${(retryCount + 1) * 5}s...`);
-        await new Promise(r => setTimeout(r, (retryCount + 1) * 5000));
+        const delayMs = (retryCount + 1) * 10000;
+        console.log(`[WhatsApp] Rate limit para ${phoneNumber}, retry ${retryCount + 1} em ${delayMs/1000}s...`);
+        await new Promise(r => setTimeout(r, delayMs));
         return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1);
       }
 
-      console.error(`[WhatsApp] Erro ao adicionar participante:`, err);
+      console.error(`[WhatsApp] Erro ao adicionar ${phoneNumber}:`, err);
       throw err;
     }
   }
 
   public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string) {
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      throw new Error('WhatsApp não conectado');
+      const error = new Error('WhatsApp não conectado. Por favor, verifique o QR Code.');
+      (error as any).noConnection = true;
+      throw error;
     }
 
     try {
-      // 1. Limpar número: apenas dígitos
       let cleanNumber = phoneNumber.replace(/\D/g, '');
       if (!cleanNumber.startsWith('55') && cleanNumber.length >= 10) {
         cleanNumber = '55' + cleanNumber;
       }
 
       if (cleanNumber.length < 10) {
-        throw new Error('Número de telefone inválido ou incompleto');
+        throw new Error('Número de telefone inválido.');
       }
 
-      console.log(`[WhatsApp] Processando: ${cleanNumber} para o grupo ${groupName}`);
-
-      // 2. Garantir que temos o ID do grupo
+      // Ensure groups are cached
       if (!this.groupIds[groupName]) {
         await this.setupGroups();
       }
 
       const currentGroupId = this.groupIds[groupName];
       if (!currentGroupId) {
-        throw new Error(`Grupo "${groupName}" não encontrado.`);
+        // One last attempt to find/create if not in cache
+        await this.setupGroups();
+        const retryGroupId = this.groupIds[groupName];
+        if (!retryGroupId) {
+          throw new Error(`Não foi possível localizar ou criar o grupo "${groupName}".`);
+        }
       }
 
-      const welcomeMessage = `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽ Este grupo é para: ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.`;
-      return this.addParticipant(currentGroupId, phoneNumber, welcomeMessage);
+      const finalGroupId = this.groupIds[groupName];
+      const welcomeMessage = `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽ Você foi adicionado ao grupo de ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.`;
+      
+      return await this.addParticipant(finalGroupId, phoneNumber, welcomeMessage);
     } catch (err: any) {
-      console.error(`[WhatsApp] Erro fatal: ${err.message}`);
+      console.error(`[WhatsApp] Erro em addToGroup para ${phoneNumber}:`, err.message);
       throw err;
     }
+  }
+  public async syncGroups() {
+    await this.setupGroups();
+    return this.groupIds;
   }
 }
 
