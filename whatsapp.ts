@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import QRCode from 'qrcode';
 
-const logger = pino({ level: 'info' });
+const logger = pino({ level: 'warn' });
 
 export class WhatsAppService {
   private socket: any = null;

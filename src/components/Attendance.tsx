@@ -489,6 +489,35 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     setHasChanges(true);
   };
 
+  const clearAttendance = async (athleteId: string) => {
+    const athlete = athletes.find(a => a.id === athleteId);
+    if (athlete && isAthleteLocked(athlete)) {
+      toast.error("Esta chamada para este atleta já foi finalizada.");
+      return;
+    }
+
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    let attendanceId = `${athleteId}_${date}`;
+    if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
+    if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
+
+    try {
+      // If we are "saving manually", we should probably only clear local state
+      // but the user wants to "desmarcar", so we should remove it from the DB too if it's there
+      await api.deleteAttendance(attendanceId);
+      
+      setAttendance(prev => {
+        const newState = { ...prev };
+        delete newState[athleteId];
+        return newState;
+      });
+      setHasChanges(true);
+      toast.success("Presença removida");
+    } catch (err: any) {
+      toast.error(`Erro ao remover presença: ${err.message}`);
+    }
+  };
+
   const saveCurrentAttendance = async () => {
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     const loadingToast = toast.loading('Salvando chamada...');
@@ -786,8 +815,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </button>
 
           {!isLocked && (
-            <>
-              {hasChanges && (
+            <div className="flex flex-wrap items-center gap-3">
+              {(isAdmin || role === 'professor') && hasChanges && (
                 <button 
                   onClick={saveCurrentAttendance}
                   className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/40 animate-pulse border-2 border-black"
@@ -804,23 +833,29 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 <CheckCircle2 size={16} />
                 Presença Rápida
               </button>
-            </>
+            </div>
           )}
 
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-zinc-500" />
-            <select
-              className="px-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs appearance-none pr-10 min-w-[150px]"
-              value={selectedTrainingId}
-              onChange={(e) => setSelectedTrainingId(e.target.value)}
-            >
-              <option value="geral">CHAMADA GERAL</option>
-              {availableTrainings.map(t => (
-                <option key={t.id} value={t.id}>
-                  TREINO: {t.category} ({t.start_time})
-                </option>
-              ))}
-            </select>
+            <div className="relative group">
+              <select
+                className="px-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-zinc-400 group-hover:text-white focus:text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs appearance-none pr-10 min-w-[200px] transition-colors"
+                value={selectedTrainingId}
+                onChange={(e) => setSelectedTrainingId(e.target.value)}
+                disabled={!!trainingId}
+              >
+                {!trainingId && <option value="geral">CHAMADA GERAL</option>}
+                {availableTrainings.map(t => (
+                  <option key={t.id} value={t.id}>
+                    TREINO: {t.category} ({t.start_time})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-theme-primary/40">
+                <Filter size={14} />
+              </div>
+            </div>
           </div>
 
           <div className="hidden sm:block">
@@ -1065,7 +1100,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => markAttendance(athlete.id, 'Presente')}
+                          onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
                           disabled={isAthleteLocked(athlete)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
@@ -1077,7 +1112,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           <span className="text-[10px] uppercase font-black">Presente</span>
                         </button>
                         <button 
-                          onClick={() => markAttendance(athlete.id, 'Faltou')}
+                          onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
                           disabled={isAthleteLocked(athlete)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
@@ -1172,7 +1207,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   
                   <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => markAttendance(athlete.id, 'Presente')}
+                      onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
                       disabled={isAthleteLocked(athlete)}
                       className={cn(
                         "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
@@ -1184,7 +1219,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       <span className="text-[10px] uppercase font-black">Presente</span>
                     </button>
                     <button 
-                      onClick={() => markAttendance(athlete.id, 'Faltou')}
+                      onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
                       disabled={isAthleteLocked(athlete)}
                       className={cn(
                         "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",

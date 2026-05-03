@@ -1020,6 +1020,17 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, `attendance/${attendance.id}`);
     }
   },
+  deleteAttendance: async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "attendance", id));
+      // Invalidate all attendance cache
+      Object.keys(cache).forEach(key => {
+        if (key.startsWith('attendance_')) delete cache[key];
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `attendance/${id}`);
+    }
+  },
 
   // Anamnesis
   getAnamnesis: async (athlete_id: string): Promise<Anamnesis> => {
