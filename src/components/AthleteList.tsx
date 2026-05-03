@@ -98,6 +98,20 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     }
   };
 
+  const handleStatusToggle = async (athlete: Athlete) => {
+    const newStatus = athlete.status === 'Ativo' ? 'Inativo' : 'Ativo';
+    const toastId = toast.loading(`${newStatus === 'Ativo' ? 'Ativando' : 'Desativando'} atleta...`);
+    try {
+      // If we are activating a rejected athlete, we also update confirmation to 'Confirmado'
+      const newConfirmation = (newStatus === 'Ativo' && athlete.confirmation === 'Recusado') ? 'Confirmado' : undefined;
+      await api.updateAthleteStatus(athlete.id, newStatus, newConfirmation);
+      toast.success(`Atleta ${newStatus === 'Ativo' ? 'ativado' : 'desativado'} com sucesso!`, { id: toastId });
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`, { id: toastId });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!athleteToDelete) return;
     try {
@@ -388,7 +402,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       )}
                       <div>
                         <div className="font-medium text-white flex items-center gap-2">
-                          {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
+                          {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
                           {athlete.confirmation === 'Pendente' && athlete.created_at && (
                             (() => {
                               const date = athlete.created_at.toDate ? athlete.created_at.toDate() : new Date(athlete.created_at);
@@ -433,12 +447,16 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={cn(
-                      "px-2 py-1 rounded-md text-xs font-bold uppercase",
-                      athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                    )}>
+                    <button 
+                      onClick={() => handleStatusToggle(athlete)}
+                      className={cn(
+                        "px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:ring-2 hover:ring-theme-primary/30",
+                        athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                      )}
+                      title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
+                    >
                       {athlete.status}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-center">
@@ -534,7 +552,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   )}
                   <div>
                     <div className="font-bold text-white flex items-center gap-2">
-                      {athlete.nickname ? `${athlete.nickname} (${athlete.name})` : athlete.name}
+                      {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
                       {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
@@ -561,12 +579,16 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     </div>
                   </div>
                 </div>
-                <span className={cn(
-                  "px-2 py-1 rounded-md text-[10px] font-bold uppercase",
-                  athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                )}>
+                <button 
+                  onClick={() => handleStatusToggle(athlete)}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-transparent hover:border-theme-primary/30",
+                    athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                  )}
+                  title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
+                >
                   {athlete.status}
-                </span>
+                </button>
               </div>
               
                 <div className="flex items-center justify-between text-sm">
@@ -678,7 +700,9 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
           <tbody>
             {filteredAthletes.map(a => (
               <tr key={a.id}>
-                <td className="border border-black p-2">{a.name}</td>
+                <td className="border border-black p-2">
+                  {a.name}{a.nickname ? ` (${a.nickname})` : ''}
+                </td>
                 <td className="border border-black p-2">{a.gender}</td>
                 <td className="border border-black p-2">{a.doc}</td>
                 <td className="border border-black p-2">{a.birth_date}</td>

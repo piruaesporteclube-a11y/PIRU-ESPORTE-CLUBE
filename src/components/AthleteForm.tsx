@@ -368,7 +368,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
             <h2 className="text-xl font-bold text-white leading-tight">
               {userRole === 'professor' ? 'Meus Dados Profissionais' : (isRegistration ? 'Novo Cadastro de Aluno' : (athlete ? 'Editar Atleta' : 'Novo Cadastro de Atleta'))}
             </h2>
-            {athlete && <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{athlete.name}</p>}
+            {athlete && <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">

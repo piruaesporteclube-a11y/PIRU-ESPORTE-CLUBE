@@ -739,6 +739,18 @@ export const api = {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
   },
+  updateAthleteStatus: async (id: string, status: 'Ativo' | 'Inativo', confirmation?: 'Confirmado' | 'Recusado' | 'Pendente') => {
+    try {
+      await updateDoc(doc(db, "athletes", id), {
+        status,
+        ...(confirmation ? { confirmation } : {}),
+        updated_at: serverTimestamp()
+      });
+      delete cache["athletes"];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
+    }
+  },
   deleteAthlete: async (id: string) => {
     try {
       await deleteDoc(doc(db, "athletes", id));

@@ -218,8 +218,8 @@ export class WhatsAppService {
               this.qrTimeoutCount++;
               console.log(`WhatsApp: QR Timeout count (update): ${this.qrTimeoutCount}`);
               
-              if (this.qrTimeoutCount >= 3) { 
-                console.warn('[WhatsApp] QR Code expired 3 times. Halting auto-reinitialization to prevent spam.');
+              if (this.qrTimeoutCount >= 2) { 
+                console.warn('[WhatsApp] QR Code expired 2 times. Halting auto-reinitialization to prevent spam.');
                 this.isHalted = true;
                 this.isInitializing = false;
                 this.socket = null;
@@ -233,7 +233,7 @@ export class WhatsAppService {
             }
 
             this.reconnectAttempts = 0;
-            const canRetry = isQRExpired ? this.qrTimeoutCount < 3 : true;
+            const canRetry = isQRExpired ? this.qrTimeoutCount < 2 : true;
             setTimeout(() => this.logout(canRetry, !isQRExpired), 2000);
             return;
           }
@@ -293,7 +293,7 @@ export class WhatsAppService {
       
       if (isQRExpired) {
         this.qrTimeoutCount++;
-        if (this.qrTimeoutCount >= 3) {
+        if (this.qrTimeoutCount >= 2) {
           console.warn('[WhatsApp] Catch block: QR Code timeout threshold reached. Halting.');
           this.isHalted = true;
           this.connectionStatus = 'disconnected';
@@ -373,6 +373,7 @@ export class WhatsAppService {
       status: this.connectionStatus,
       qrCode: this.qrCode,
       qrTimeoutCount: this.qrTimeoutCount,
+      isHalted: this.isHalted,
     };
   }
 
