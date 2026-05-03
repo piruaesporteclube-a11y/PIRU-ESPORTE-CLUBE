@@ -32,10 +32,33 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [tabFilter, setTabFilter] = useState<'all' | 'present' | 'absent' | 'observation'>('all');
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
+  const [availableTrainings, setAvailableTrainings] = useState<Training[]>([]);
+  const [selectedTrainingId, setSelectedTrainingId] = useState<string | 'geral'>(trainingId || 'geral');
   const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
+
+  useEffect(() => {
+    const fetchDayTrainings = async () => {
+      try {
+        const allTrainings = await api.getTrainings();
+        const dayTrainings = allTrainings.filter(t => t.date === date);
+        setAvailableTrainings(dayTrainings);
+        
+        if (trainingId) {
+          setSelectedTrainingId(trainingId);
+        } else if (dayTrainings.length > 0 && selectedTrainingId === 'geral') {
+          // If there's training today and we are in "geral", maybe we should prompt?
+          // For now, let's just keep 'geral' unless specifically selected.
+        }
+      } catch (err) {
+        console.error("Error fetching day trainings:", err);
+      }
+    };
+    fetchDayTrainings();
+  }, [date, trainingId]);
 
   useEffect(() => {
     const checkLock = async () => {
@@ -43,9 +66,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const todayString = format(now, 'yyyy-MM-dd');
       const currentTimeStr = format(now, 'HH:mm');
 
-      if (trainingId) {
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+
+      if (activeTrainingId) {
         try {
-          const found = await api.getTraining(trainingId);
+          const found = await api.getTraining(activeTrainingId);
           if (found) {
             setTraining(found);
             
@@ -96,7 +121,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     checkLock();
     const interval = setInterval(checkLock, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [trainingId, eventId, date]);
+  }, [trainingId, eventId, date, selectedTrainingId]);
 
   useEffect(() => {
     const fetchEventAthletes = async () => {
@@ -136,17 +161,18 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         };
       });
       setAttendance(attMap);
-    }, date, trainingId, eventId);
+      setHasChanges(false);
+    }, date, selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId, eventId);
 
     return () => unsubscribe();
-  }, [date, trainingId, eventId]);
+  }, [date, trainingId, eventId, selectedTrainingId]);
 
   useEffect(() => {
     if (localStorage.getItem('auto_scan') === 'true') {
       setIsScanning(true);
       localStorage.removeItem('auto_scan');
     }
-  }, [date, trainingId, eventId]);
+  }, [date, trainingId, eventId, selectedTrainingId]);
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -208,7 +234,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const loadAttendance = async (silent = false) => {
     try {
-      const attendanceData = await api.getAttendance(date, undefined, trainingId, eventId);
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      const attendanceData = await api.getAttendance(date, undefined, activeTrainingId, eventId);
       
       const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
       attendanceData.forEach(a => {
@@ -219,6 +246,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         };
       });
       setAttendance(attMap);
+      setHasChanges(false);
       if (!silent) toast.success("Presenças carregadas!");
     } catch (err) {
       console.error("Erro ao carregar presenças:", err);
@@ -351,12 +379,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
         playBeep();
         
-        // Only save if not already present to avoid redundant writes
-        if (attendance[athleteId]?.status !== 'Presente') {
-          await markAttendance(athleteId, 'Presente');
-        }
-        
         const scanTime = format(new Date(), 'HH:mm');
+        
+        // Update local state first
+        if (attendance[athleteId]?.status !== 'Presente') {
+          await markAttendance(athleteId, 'Presente', '', scanTime);
+        }
         
         // Check for events today and confirm automatically
         try {
@@ -433,38 +461,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const markAllPresent = async () => {
     if (isLocked) return;
-    if (!confirm(`Deseja marcar todos os ${filteredAthletes.length} atletas filtrados como PRESENTES?`)) return;
+    if (!confirm(`Deseja marcar todos os ${filteredAthletes.length} atletas filtrados como PRESENTES Localmente? (Será necessário clicar em "Salvar Chamada" para efetivar no sistema)`)) return;
     
-    const loadingToast = toast.loading('Marcando presenças...');
-    try {
-      const now = format(new Date(), 'HH:mm');
-      const promises = filteredAthletes.map(athlete => {
-        let attendanceId = `${athlete.id}_${date}`;
-        if (trainingId) attendanceId = `${athlete.id}_training_${trainingId}`;
-        if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
-        
-        return api.saveAttendance({ 
-          id: attendanceId, 
-          athlete_id: athlete.id, 
-          training_id: trainingId,
-          event_id: eventId,
-          date, 
-          status: 'Presente', 
-          arrival_time: now
-        });
-      });
-
-      await Promise.all(promises);
-      
-      const newAttendance = { ...attendance };
-      filteredAthletes.forEach(athlete => {
-        newAttendance[athlete.id] = { status: 'Presente', justification: '', arrival_time: now };
-      });
-      setAttendance(newAttendance);
-      toast.success('Todas as presenças foram registradas!', { id: loadingToast });
-    } catch (err: any) {
-      toast.error(`Erro ao salvar presenças: ${err.message}`, { id: loadingToast });
-    }
+    const now = format(new Date(), 'HH:mm');
+    const newAttendance = { ...attendance };
+    filteredAthletes.forEach(athlete => {
+      newAttendance[athlete.id] = { status: 'Presente', justification: '', arrival_time: now };
+    });
+    setAttendance(newAttendance);
+    setHasChanges(true);
+    toast.success('Todas as presenças foram marcadas localmente! Não esqueça de salvar.');
   };
 
   const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '', arrival_time?: string) => {
@@ -473,27 +479,42 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       toast.error("Esta chamada para este atleta já foi finalizada.");
       return;
     }
+    
+    // Update local state first
+    const finalArrivalTime = arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm');
+    setAttendance(prev => ({ 
+      ...prev, 
+      [athleteId]: { status, justification, arrival_time: finalArrivalTime } 
+    }));
+    setHasChanges(true);
+  };
+
+  const saveCurrentAttendance = async () => {
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    const loadingToast = toast.loading('Salvando chamada...');
     try {
-      // Use a stable ID to prevent duplicate records
-      let attendanceId = `${athleteId}_${date}`;
-      if (trainingId) attendanceId = `${athleteId}_training_${trainingId}`;
-      if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
-      
-      const finalArrivalTime = arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm');
-      
-      await api.saveAttendance({ 
-        id: attendanceId, 
-        athlete_id: athleteId, 
-        training_id: trainingId,
-        event_id: eventId,
-        date, 
-        status, 
-        justification,
-        arrival_time: finalArrivalTime
+      const promises = Object.entries(attendance).map(([athleteId, data]) => {
+        let attendanceId = `${athleteId}_${date}`;
+        if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
+        if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
+
+        return api.saveAttendance({
+          id: attendanceId,
+          athlete_id: athleteId,
+          training_id: activeTrainingId,
+          event_id: eventId,
+          date,
+          status: data.status as any,
+          justification: data.justification,
+          arrival_time: data.arrival_time
+        });
       });
-      setAttendance(prev => ({ ...prev, [athleteId]: { status, justification, arrival_time: finalArrivalTime } }));
+
+      await Promise.all(promises);
+      setHasChanges(false);
+      toast.success('Chamada salva com sucesso!', { id: loadingToast });
     } catch (err: any) {
-      toast.error(`Erro ao salvar presença: ${err.message}`);
+      toast.error(`Erro ao salvar chamada: ${err.message}`, { id: loadingToast });
     }
   };
 
@@ -508,20 +529,34 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const activeAthletes = athletes.filter(a => a.status === 'Ativo' && a.confirmation !== 'Pendente');
-  const filteredAthletes = activeAthletes.filter(a => {
-    const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
-                         (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
-                         a.doc.includes(search);
-    
-    // Apply tab filter
-    const att = attendance[a.id];
-    if (tabFilter === 'present' && att?.status !== 'Presente') return false;
-    if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
-    if (tabFilter === 'observation' && att) return false;
+  const filteredAthletes = activeAthletes
+    .filter(a => {
+      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
+                          (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
+                          a.doc.includes(search);
+      
+      // Filter by selected training category if not "geral" and not explicit trainingId prop
+      if (selectedTrainingId !== 'geral') {
+        const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
+        if (selTraining) {
+           // We might want to filter strictly by training's category or just show all but link it
+           // For "chamada via treino", we usually only show eligible athletes
+           const athleteSub = getSubCategory(a.birth_date);
+           const isEligible = selTraining.category === 'Todos' || selTraining.category === athleteSub;
+           if (!isEligible) return false;
+        }
+      }
 
-    return matchesSub && matchesSearch;
-  });
+      // Apply tab filter
+      const att = attendance[a.id];
+      if (tabFilter === 'present' && att?.status !== 'Presente') return false;
+      if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
+      if (tabFilter === 'observation' && att) return false;
+
+      return matchesSub && matchesSearch;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -751,14 +786,42 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </button>
 
           {!isLocked && (
-            <button 
-              onClick={markAllPresent}
-              className="flex items-center gap-2 px-4 py-3 bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
-            >
-              <CheckCircle2 size={16} />
-              Presença Rápida
-            </button>
+            <>
+              {hasChanges && (
+                <button 
+                  onClick={saveCurrentAttendance}
+                  className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/40 animate-pulse border-2 border-black"
+                >
+                  <FileDown size={20} />
+                  Salvar Chamada
+                </button>
+              )}
+              
+              <button 
+                onClick={markAllPresent}
+                className="flex items-center gap-2 px-4 py-3 bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
+              >
+                <CheckCircle2 size={16} />
+                Presença Rápida
+              </button>
+            </>
           )}
+
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-zinc-500" />
+            <select
+              className="px-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs appearance-none pr-10 min-w-[150px]"
+              value={selectedTrainingId}
+              onChange={(e) => setSelectedTrainingId(e.target.value)}
+            >
+              <option value="geral">CHAMADA GERAL</option>
+              {availableTrainings.map(t => (
+                <option key={t.id} value={t.id}>
+                  TREINO: {t.category} ({t.start_time})
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="hidden sm:block">
             <input 
@@ -945,7 +1008,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             <User size={16} />
                           )}
                         </div>
-                        <span className="font-medium text-white">{athlete.name}</span>
+                        <span className="font-medium text-white">
+                          {athlete.name}
+                          {athlete.nickname && (
+                            <span className="ml-1 text-zinc-500 text-xs font-normal">
+                              ({athlete.nickname})
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -1058,7 +1128,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       )}
                     </div>
                     <div>
-                      <div className="font-bold text-white text-sm">{athlete.name}</div>
+                      <div className="font-bold text-white text-sm">
+                        {athlete.name}
+                        {athlete.nickname && (
+                          <span className="ml-1 text-zinc-500 text-[10px] font-normal">
+                            ({athlete.nickname})
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
                       {getAthleteSchedules(athlete) && (
                         <div className="space-y-1 mt-2">

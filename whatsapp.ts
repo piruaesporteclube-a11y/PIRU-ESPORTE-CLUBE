@@ -184,6 +184,12 @@ export class WhatsAppService {
                               errorMessage.toLowerCase().includes('qr refs attempts ended') ||
                               errorMessage.toLowerCase().includes('timed out');
           
+          if (errorMessage.toLowerCase().includes('qr refs attempts ended')) {
+            console.warn('[WhatsApp] QR generation limit reached. Halting automatically to prevent spam.');
+            this.isHalted = true;
+            this.qrTimeoutCount = 2; // Directly set to threshold
+          }
+          
           const isTerminated = errorMessage.toLowerCase().includes('connection terminated') || 
                               errorMessage.toLowerCase().includes('connection failure') || 
                               errorMessage.toLowerCase().includes('stream errored') || 
@@ -292,7 +298,13 @@ export class WhatsAppService {
       this.isInitializing = false;
       
       if (isQRExpired) {
-        this.qrTimeoutCount++;
+        if (errorMessage.toLowerCase().includes('qr refs attempts ended')) {
+          this.isHalted = true;
+          this.qrTimeoutCount = 2;
+        } else {
+          this.qrTimeoutCount++;
+        }
+        
         if (this.qrTimeoutCount >= 2) {
           console.warn('[WhatsApp] Catch block: QR Code timeout threshold reached. Halting.');
           this.isHalted = true;
