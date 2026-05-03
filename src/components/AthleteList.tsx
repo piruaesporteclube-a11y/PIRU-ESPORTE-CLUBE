@@ -447,6 +447,29 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       ) : (
                         <>
                           <button 
+                            onClick={async () => {
+                              const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
+                              try {
+                                let messages = [];
+                                if (athlete.contact) {
+                                  const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+                                  messages.push(`Atleta: ${res.message || 'OK'}`);
+                                }
+                                if (athlete.guardian_phone) {
+                                  const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+                                  messages.push(`Responsável: ${res.message || 'OK'}`);
+                                }
+                                toast.success(`${athlete.name}: ${messages.join(' | ')}`, { id: toastId });
+                              } catch (err: any) {
+                                toast.error(`Erro ao sincronizar: ${err.message}`, { id: toastId });
+                              }
+                            }}
+                            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
+                            title="Sincronizar com WhatsApp"
+                          >
+                            <MessageCircle size={18} />
+                          </button>
+                          <button 
                             onClick={() => onEdit(athlete)}
                             className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
                             title="Editar"
@@ -555,6 +578,22 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </>
                 ) : (
                   <>
+                    <button 
+                      onClick={async () => {
+                        const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
+                        try {
+                          if (athlete.contact) await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+                          if (athlete.guardian_phone) await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+                          toast.success(`${athlete.name} sincronizado!`, { id: toastId });
+                        } catch (err: any) {
+                          toast.error(`Erro: ${err.message}`, { id: toastId });
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors text-xs font-bold"
+                    >
+                      <MessageCircle size={14} />
+                      WhatsApp
+                    </button>
                     <button 
                       onClick={() => onEdit(athlete)}
                       className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"

@@ -25,6 +25,7 @@ export class WhatsAppService {
   private isInitializing = false;
   private reconnectAttempts = 0;
   private qrTimeoutCount = 0;
+  private isHalted = false;
   private lastResetTime = 0;
   private connectionWatchdog: NodeJS.Timeout | null = null;
 
@@ -33,6 +34,9 @@ export class WhatsAppService {
   }
 
   public async logout(autoReinit = true, resetQrTimeout = true) {
+    // If we are halting, we should not auto-reinit
+    const actualAutoReinit = autoReinit && !this.isHalted;
+
     // Prevent overlapping logouts
     if (this.lastResetTime && Date.now() - this.lastResetTime < 10000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
@@ -53,6 +57,7 @@ export class WhatsAppService {
         } catch (e) {}
         
         this.socket.ev.removeAllListeners('connection.update');
+        this.socket.ev.removeAllListeners('creds.update');
         this.socket.end();
       }
     } catch (e) {
@@ -80,13 +85,14 @@ export class WhatsAppService {
     this.reconnectAttempts = 0;
     if (resetQrTimeout) {
       this.qrTimeoutCount = 0;
+      this.isHalted = false; // Reset halt when explicitly resetting
     }
     
-    if (autoReinit) {
+    if (actualAutoReinit) {
       console.log('WhatsApp reset complete. Re-initializing in 10s...');
       setTimeout(() => this.init(), 10000);
     } else {
-      console.log('WhatsApp reset complete. Auto-reinitialization disabled.');
+      console.log(`WhatsApp reset complete. Auto-reinitialization disabled. (Halted: ${this.isHalted})`);
     }
   }
 
@@ -108,7 +114,10 @@ export class WhatsAppService {
   }
 
   private async init() {
-    if (this.isInitializing) return;
+    if (this.isInitializing || this.isHalted) {
+      if (this.isHalted) console.log('WhatsApp: Initialization blocked - Halted state');
+      return;
+    }
     
     // Ensure any previously existing socket is cleaned up
     if (this.socket) {
@@ -144,36 +153,15 @@ export class WhatsAppService {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
-        printQRInTerminal: true,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'],
+        printQRInTerminal: false, // Avoid log spam
+        browser: ['Piruá Dashboard', 'Chrome', '110.0'],
         syncFullHistory: false,
         connectTimeoutMs: 60000, 
         defaultQueryTimeoutMs: 30000,
         keepAliveIntervalMs: 30000,
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: false,
+        markOnlineOnConnect: true,
         generateHighQualityLinkPreview: false,
-        patchMessageBeforeSending: (message) => {
-          const requiresPatch = !!(
-            message.buttonsMessage ||
-            message.templateMessage ||
-            message.listMessage
-          );
-          if (requiresPatch) {
-            message = {
-              viewOnceMessage: {
-                message: {
-                  messageContextInfo: {
-                    deviceListMetadata: {},
-                    deviceListMetadataVersion: 2,
-                  },
-                  ...message,
-                },
-              },
-            };
-          }
-          return message;
-        },
       });
 
       this.socket.ev.on('connection.update', async (update: any) => {
@@ -182,7 +170,7 @@ export class WhatsAppService {
         if (qr) {
           this.qrCode = await QRCode.toDataURL(qr);
           this.connectionStatus = 'connecting';
-          console.log('New WhatsApp QR Code generated');
+          console.log(`[WhatsApp] QR Code Ready (Attempt ${this.qrTimeoutCount + 1})`);
           this.startWatchdog();
         }
 
@@ -191,19 +179,27 @@ export class WhatsAppService {
           const error = lastDisconnect?.error as Boom;
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
-          const isQRExpired = errorMessage.includes('QR refs attempts ended') || errorMessage.includes('timed out');
-          const isTerminated = errorMessage.includes('Connection Terminated') || 
-                              errorMessage.includes('Connection Failure') || 
-                              errorMessage.includes('stream errored') || 
-                              errorMessage.includes('Connection Closed') || 
-                              errorMessage.includes('Connection Reset') ||
-                              errorMessage.includes('Refused') ||
-                              errorMessage.includes('timeout') ||
-                              errorMessage.includes('ECONNRESET');
-          const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || errorMessage.includes('device_removed') || errorMessage.includes('Conflict');
+          const isQRExpired = statusCode === DisconnectReason.timedOut || 
+                              statusCode === 408 ||
+                              errorMessage.toLowerCase().includes('qr refs attempts ended') ||
+                              errorMessage.toLowerCase().includes('timed out');
+          
+          const isTerminated = errorMessage.toLowerCase().includes('connection terminated') || 
+                              errorMessage.toLowerCase().includes('connection failure') || 
+                              errorMessage.toLowerCase().includes('stream errored') || 
+                              errorMessage.toLowerCase().includes('connection closed') || 
+                              errorMessage.toLowerCase().includes('connection reset') ||
+                              errorMessage.toLowerCase().includes('refused') ||
+                              errorMessage.toLowerCase().includes('econnreset') ||
+                              statusCode === 515;
+          const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || 
+                                  errorMessage.toLowerCase().includes('device_removed') || 
+                                  errorMessage.toLowerCase().includes('conflict') ||
+                                  errorMessage.toLowerCase().includes('unauthorized');
           
           console.log(`WhatsApp connection closed: ${errorMessage} | Status Code: ${statusCode}`);
           
+          const isStreamErrored = statusCode === 515 || errorMessage.toLowerCase().includes('stream errored');
           // Clear socket reference and reset status
           if (this.socket) {
             this.socket.ev.removeAllListeners('connection.update');
@@ -220,15 +216,15 @@ export class WhatsAppService {
             
             if (isQRExpired) {
               this.qrTimeoutCount++;
-              console.log(`WhatsApp: QR Timeout count: ${this.qrTimeoutCount}`);
+              console.log(`WhatsApp: QR Timeout count (update): ${this.qrTimeoutCount}`);
               
-              if (this.qrTimeoutCount >= 2) { 
-                console.warn('WhatsApp: QR Code expired multiple times without scan. Stopping auto-reinit.');
+              if (this.qrTimeoutCount >= 3) { 
+                console.warn('[WhatsApp] QR Code expired 3 times. Halting auto-reinitialization to prevent spam.');
+                this.isHalted = true;
                 this.isInitializing = false;
                 this.socket = null;
                 this.qrCode = null;
                 this.connectionStatus = 'disconnected';
-                // Stop the watchdog and don't call logout which might re-trigger init
                 this.stopWatchdog();
                 return;
               }
@@ -237,49 +233,51 @@ export class WhatsAppService {
             }
 
             this.reconnectAttempts = 0;
-            // Pass false to resetQrTimeout to maintain count during the auto-retry cycle
-            const canRetry = isQRExpired ? this.qrTimeoutCount < 2 : true;
+            const canRetry = isQRExpired ? this.qrTimeoutCount < 3 : true;
             setTimeout(() => this.logout(canRetry, !isQRExpired), 2000);
             return;
           }
 
           // Force logout/reset after heavy consecutive failures to fix potentially corrupted sessions
-          if (this.reconnectAttempts > 4) { // Lowered to 4 for faster recovery
-            console.warn('WhatsApp: Too many consecutive connection failures. Forcing full session reset...');
+          if (this.reconnectAttempts > 4) {
+            console.warn('WhatsApp: Too many failures. Resetting session...');
             this.reconnectAttempts = 0;
             setTimeout(() => this.logout(), 2000);
             return;
           }
 
           // Decide if we should try simple reconnect or full reset
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut && !this.isHalted;
 
+          // Re-initialize logic
           if (shouldReconnect) {
             this.reconnectAttempts++;
-            const backoff = Math.min(this.reconnectAttempts * 2000, 30000); // Progressive backoff
-            const isCritical = statusCode === 515 || statusCode === 500 || statusCode === 408 || isTerminated;
-            const delayTime = isCritical ? Math.max(backoff, 10000) : Math.max(backoff, 3000);
+            const backoff = Math.min(this.reconnectAttempts * 5000, 60000); 
+            const isCritical = statusCode === 515 || statusCode === 500 || statusCode === 408 || isTerminated || isStreamErrored;
+            const delayTime = isCritical ? Math.max(backoff, 20000) : Math.max(backoff, 5000);
             
             console.log(`Reconnecting WhatsApp (${errorMessage}) in ${delayTime/1000}s... (Attempt: ${this.reconnectAttempts})`);
             setTimeout(() => {
-              this.isInitializing = false;
-              this.init();
+              if (this.connectionStatus === 'disconnected' && !this.isHalted) {
+                this.isInitializing = false;
+                this.init();
+              }
             }, delayTime);
           } else {
-            console.log('WhatsApp: Logged out or manual disconnect. Re-init blocked.');
+            console.log(`WhatsApp: Stopped. (Halted: ${this.isHalted}, LoggedOut: ${statusCode === DisconnectReason.loggedOut})`);
             this.isInitializing = false;
-            this.reconnectAttempts = 0;
           }
         } else if (connection === 'connecting') {
           this.connectionStatus = 'connecting';
         } else if (connection === 'open') {
           this.stopWatchdog();
-          console.log('WhatsApp: Connection established successfully');
+          console.log('WhatsApp: Connection established successfully!');
           this.connectionStatus = 'connected';
           this.qrCode = null;
           this.isInitializing = false;
-          this.reconnectAttempts = 0; // Reset attempts on success
-          this.qrTimeoutCount = 0; // Reset QR timeouts on success
+          this.reconnectAttempts = 0;
+          this.qrTimeoutCount = 0; 
+          this.isHalted = false;
           // Initial setup of groups
           setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 5000);
         }
@@ -287,73 +285,86 @@ export class WhatsAppService {
 
       this.socket.ev.on('creds.update', saveCreds);
     } catch (err: any) {
-      console.error('Failed to initialize WhatsApp socket catch block:', err);
-      this.isInitializing = false;
       const errorMessage = err?.message || err?.toString() || '';
-      const isQRExpired = errorMessage.includes('QR refs attempts ended') || errorMessage.includes('timed out');
+      const isQRExpired = errorMessage.toLowerCase().includes('qr refs attempts ended') || errorMessage.toLowerCase().includes('timed out');
+      
+      console.error('Failed to initialize WhatsApp socket catch block:', isQRExpired ? 'QR Timeout' : err);
+      this.isInitializing = false;
       
       if (isQRExpired) {
         this.qrTimeoutCount++;
-        console.log(`WhatsApp: Catch block QR Timeout count: ${this.qrTimeoutCount}`);
-        if (this.qrTimeoutCount >= 2) {
-          console.warn('WhatsApp: Catch block detected QR Timeout limit. Stopping.');
-          this.isInitializing = false;
+        if (this.qrTimeoutCount >= 3) {
+          console.warn('[WhatsApp] Catch block: QR Code timeout threshold reached. Halting.');
+          this.isHalted = true;
           this.connectionStatus = 'disconnected';
+          this.qrCode = null;
+          this.isInitializing = false;
+          this.stopWatchdog();
           return;
         }
-        this.logout(true, false); // Retry once, don't reset count
+        this.logout(true, false); 
       } else {
-        const delay = 15000;
-        console.log(`WhatsApp init error: ${errorMessage}. Retrying in ${delay/1000}s...`);
-        setTimeout(() => this.init(), delay);
+        const delay = 30000;
+        console.log(`[WhatsApp] Init error: ${errorMessage}. Retrying in ${delay/1000}s...`);
+        setTimeout(() => {
+          if (!this.isHalted) this.init();
+        }, delay);
       }
     }
   }
 
-  private async setupGroups() {
+  private async setupGroups(retryCount = 0) {
     if (!this.socket || this.connectionStatus !== 'connected') return;
 
     try {
-      console.log('[WhatsApp] Sincronizando grupos...');
+      console.log(`[WhatsApp] Sincronizando grupos (Tentativa ${retryCount + 1})...`);
       // Fetch all groups we are part of
       const groups = await this.socket.groupFetchAllParticipating();
       this.groupIds = {}; // Reset local cache
 
       const targetGroupNames = [
-        'Piruá Esporte Clube Responsáveis',
-        'Piruá Esporte Clube Atletas'
+        'Piruá Esporte Clube Atletas',
+        'Piruá Esporte Clube Responsáveis'
       ];
+
+      // If we got an empty object but we expect to be in groups, maybe wait and retry
+      if (Object.keys(groups).length === 0 && retryCount < 2) {
+        console.log('[WhatsApp] Nenhum grupo retornado, tentando novamente em 5s...');
+        await new Promise(r => setTimeout(r, 5000));
+        return this.setupGroups(retryCount + 1);
+      }
 
       for (const name of targetGroupNames) {
         // Find existing group by subject
         const existing = Object.values(groups).find((g: any) => g.subject === name);
         
         if (existing) {
-          this.groupIds[name] = (existing as any).id;
-          console.log(`[WhatsApp] Grupo encontrado: ${name} (${this.groupIds[name]})`);
+          const gid = (existing as any).id;
+          this.groupIds[name] = gid;
+          console.log(`[WhatsApp] Grupo mapeado: ${name} (${gid})`);
         } else {
           try {
-            console.log(`[WhatsApp] Grupo "${name}" não encontrado. Tentando criar...`);
-            // Some accounts may fail with [], but it's the standard for new groups in Baileys
+            console.log(`[WhatsApp] Criando grupo: "${name}"...`);
+            // Standard group creation. Participants list is mandatory, can be empty []
             const group = await this.socket.groupCreate(name, []);
             this.groupIds[name] = group.id;
-            console.log(`[WhatsApp] Grupo criado com sucesso: ${name}`);
+            console.log(`[WhatsApp] Grupo criado: ${name} (ID: ${group.id})`);
             // Wait between actions to minimize rate limit risks
-            await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 8000));
           } catch (err: any) {
             const errorMsg = err.message || '';
+            console.error(`[WhatsApp] Falha ao criar "${name}":`, err);
+            
             if (errorMsg.includes('rate-overlimit')) {
-              console.warn(`[WhatsApp] Limite de frequência atingido ao criar "${name}".`);
+              console.warn(`[WhatsApp] Bloqueio temporário (rate-limit) ao criar "${name}".`);
             } else if (errorMsg.includes('not-authorized')) {
-              console.error(`[WhatsApp] Sem permissão para criar grupos.`);
-            } else {
-              console.error(`[WhatsApp] Erro ao criar grupo ${name}:`, err);
+              console.error(`[WhatsApp] Sem permissão para criar grupos nesta conta.`);
             }
           }
         }
       }
     } catch (err) {
-      console.error('[WhatsApp] Erro crítico no setupGroups:', err);
+      console.error('[WhatsApp] Erro em setupGroups:', err);
     }
   }
 

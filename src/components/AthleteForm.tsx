@@ -159,6 +159,19 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       if (isRegistration) {
         const { athlete } = await api.register(formData);
         toast.success("Cadastro realizado com sucesso!");
+        
+        // Automatic WhatsApp Sync for New Registration
+        if (athlete.contact || athlete.guardian_phone) {
+          const syncToast = toast.loading("Sincronizando com WhatsApp...");
+          try {
+            if (athlete.contact) await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+            if (athlete.guardian_phone) await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+            toast.success("Sincronizado com WhatsApp!", { id: syncToast });
+          } catch (wsErr) {
+            toast.error("Atleta salvo, mas erro ao sincronizar WhatsApp. Tente manualmente depois.", { id: syncToast });
+          }
+        }
+        
         onRegisterSuccess?.(athlete);
       } else {
         if (userRole === 'professor') {
@@ -167,6 +180,23 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         } else {
           await api.saveAthlete(formData);
           toast.success("Atleta salvo com sucesso!");
+
+          // Automatic WhatsApp Sync for New Athletes (or updates)
+          // We only do this automatically if it's a new or significant change, 
+          // but for simplicity and safety, the prompt implies "new ones added automatically".
+          // If the user is just editing something else, we avoid spamming.
+          // However, Baileys is fast. Let's do it if it's a manual admin save.
+          if (!athlete && (formData.contact || formData.guardian_phone)) {
+            const syncToast = toast.loading("Adicionando aos grupos do WhatsApp...");
+            try {
+              if (formData.contact) await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", formData.contact);
+              if (formData.guardian_phone) await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", formData.guardian_phone);
+              toast.success("WhatsApp sincronizado!", { id: syncToast });
+            } catch (wsErr) {
+              console.error("WhatsApp auto-sync error:", wsErr);
+              toast.info("Atleta salvo. Use o botão WhatsApp na lista para sincronizar manualmente se necessário.");
+            }
+          }
         }
         onSave(formData as Athlete);
       }

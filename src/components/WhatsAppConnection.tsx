@@ -288,13 +288,13 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               )}
             </div>
           </div>
-        ) : qrTimeoutCount >= 2 ? (
+        ) : qrTimeoutCount >= 3 ? (
           <div className="space-y-4">
             <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
               <AlertCircle className="text-red-500 mx-auto mb-3" size={48} />
               <h4 className="text-white font-black uppercase mb-1">QR Code Expirado</h4>
               <p className="text-zinc-400 text-xs uppercase font-bold leading-relaxed mb-4">
-                O QR Code expirou sem ser escaneado. Por segurança, a geração automática foi pausada.
+                O QR Code expirou 3 vezes seguidas sem ser escaneado. Por segurança, a geração automática foi pausada.
               </p>
               <button
                 onClick={handleReconnect}
