@@ -224,6 +224,8 @@ export type EventLineup = {
   type: 'athlete' | 'staff';
   confirmation: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field
+  category?: string;
+  lineup_name?: string;
 };
 
 export type Championship = {

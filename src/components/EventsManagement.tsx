@@ -52,7 +52,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [templateName, setTemplateName] = useState('');
   const [isEventFinished, setIsEventFinished] = useState(false);
   const [lineupCategory, setLineupCategory] = useState('');
+  const [lineupName, setLineupName] = useState('');
   const [lineupIndicesWithData, setLineupIndicesWithData] = useState<Record<number, string>>({});
+  const [lineupIndicesWithNames, setLineupIndicesWithNames] = useState<Record<number, string>>({});
+  const [maxLineupIndex, setMaxLineupIndex] = useState(9);
   const [lineupCounts, setLineupCounts] = useState<Record<string, number>>({});
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
@@ -365,7 +368,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       const x = (pdfWidth - finalWidth) / 2;
 
       pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
-      pdf.save(`escalacao_${selectedEvent.name.replace(/\s+/g, '_')}_sub_${activeLineupIndex + 1}.pdf`);
+      const fileName = `escalacao_${selectedEvent.name.replace(/\s+/g, '_')}_${(lineupName || `sub_${activeLineupIndex + 1}`).replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
       
       toast.success('PDF gerado com sucesso!', { id: loadingToast });
     } catch (error) {
@@ -443,28 +447,41 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       
       setIsEventFinished(eventEnd < now && !isAdmin);
 
-      const { athletes: lineup, staff, category } = await api.getLineup(event.id, index);
+      const { athletes: lineup, staff, category, lineup_name } = await api.getLineup(event.id, index);
       setLineupAthletes(lineup);
       setLineupStaff(staff);
       setLineupCategory(category || '');
+      setLineupName(lineup_name || '');
       setSelectedAthletes(lineup.map(a => a.id));
       setSelectedStaff(staff.map(s => s.id));
       
       // Also fetch which other indices have data to show in tabs
       const indices: Record<number, string> = {};
-      await Promise.all(Array.from({ length: 10 }).map(async (_, i) => {
+      const names: Record<number, string> = {};
+      let currentMax = 9;
+
+      // We need to check all potential lineups. Since we don't have a list of all indices, 
+      // we'll check up to currentMax + 1, and also query a few more to be safe
+      const checkRange = Math.max(10, index + 2);
+      
+      await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
         if (i === index) {
           indices[i] = category || '';
+          names[i] = lineup_name || '';
         } else {
           try {
-            const { athletes, category: cat } = await api.getLineup(event.id, i);
-            if (athletes.length > 0) {
+            const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
+            if (athletes.length > 0 || lName || cat) {
               indices[i] = cat || 'Com Dados';
+              names[i] = lName || '';
+              if (i > currentMax) currentMax = i;
             }
           } catch (e) {}
         }
       }));
       setLineupIndicesWithData(indices);
+      setLineupIndicesWithNames(names);
+      setMaxLineupIndex(currentMax);
       
       setIsLineupOpen(true);
     } catch (err: any) {
@@ -489,15 +506,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
       // Also set which indices have data for the lineup tab if the user switches
       const indices: Record<number, string> = {};
-      await Promise.all(Array.from({ length: 10 }).map(async (_, i) => {
+      const names: Record<number, string> = {};
+      let currentMax = 9;
+      
+      // Check a reasonable range
+      const checkRange = 20;
+
+      await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
         try {
-          const { athletes, category: cat } = await api.getLineup(event.id, i);
-          if (athletes.length > 0) {
+          const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
+          if (athletes.length > 0 || lName || cat) {
             indices[i] = cat || 'Com Dados';
+            names[i] = lName || '';
+            if (i > currentMax) currentMax = i;
           }
         } catch (e) {}
       }));
       setLineupIndicesWithData(indices);
+      setLineupIndicesWithNames(names);
+      setMaxLineupIndex(currentMax);
       
       setIsLineupOpen(true);
     } catch (err: any) {
@@ -558,7 +585,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
     if (selectedEvent) {
       try {
-        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex, lineupCategory);
+        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex, lineupCategory, lineupName);
         const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
@@ -567,6 +594,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         setLineupIndicesWithData(prev => ({
           ...prev,
           [activeLineupIndex]: lineupCategory || 'Com Dados'
+        }));
+        setLineupIndicesWithNames(prev => ({
+          ...prev,
+          [activeLineupIndex]: lineupName
         }));
         
         toast.success('Escalação salva com sucesso!');
@@ -985,8 +1016,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   </button>
                 </div>
                 {modalTab === 'lineup' && (
-                  <div className="flex flex-wrap gap-1">
-                    {Array.from({ length: 10 }).map((_, i) => (
+                  <div className="flex flex-wrap gap-1 items-end">
+                    {Array.from({ length: maxLineupIndex + 1 }).map((_, i) => (
                       <button
                         key={i}
                         onClick={() => handleOpenLineup(selectedEvent, i)}
@@ -997,7 +1028,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
                         )}
                       >
-                        <span>SUB {i + 1}</span>
+                        <span className="truncate max-w-[80px]">{lineupIndicesWithNames[i] || `LISTA ${i + 1}`}</span>
                         {lineupIndicesWithData[i] && (
                           <span className={cn(
                             "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[50px]",
@@ -1008,12 +1039,35 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                         )}
                       </button>
                     ))}
+                    {isAdmin && !isEventFinished && (
+                      <button
+                        onClick={() => {
+                          const nextIdx = maxLineupIndex + 1;
+                          setMaxLineupIndex(nextIdx);
+                          handleOpenLineup(selectedEvent, nextIdx);
+                        }}
+                        className="px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white hover:bg-zinc-700 transition-all flex items-center gap-1"
+                        title="Adicionar Nova Lista"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    )}
                   </div>
                 )}
-                {isAdmin && !isEventFinished && (
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Subs/Categorias Vinculadas:</label>
+                {isAdmin && !isEventFinished && modalTab === 'lineup' && (
+                  <div className="mt-4 flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Nome da Lista:</label>
+                      <input 
+                        type="text" 
+                        placeholder={lineupIndicesWithNames[activeLineupIndex] || `LISTA ${activeLineupIndex + 1}`}
+                        className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-1 focus:ring-theme-primary uppercase font-bold"
+                        value={lineupName}
+                        onChange={(e) => setLineupName(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Categorias Vinculadas:</label>
                       <div className="flex flex-wrap gap-1">
                         {categories.map(c => {
                           const isSelected = lineupCategory.split(',').includes(c);
@@ -1029,7 +1083,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                 }
                               }}
                               className={cn(
-                                "px-2 py-1 rounded-lg text-[8px] font-bold transition-all border",
+                                "px-2 py-0.5 rounded text-[8px] font-bold transition-all border",
                                 isSelected 
                                   ? "bg-theme-primary border-theme-primary text-black" 
                                   : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"

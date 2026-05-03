@@ -1062,7 +1062,7 @@ export const api = {
   },
 
   // Lineups (using a subcollection or separate collection)
-  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[], category?: string }> => {
+  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
     const cacheKey = `lineup_${event_id}_${lineup_index}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
@@ -1077,6 +1077,7 @@ export const api = {
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
       const category = lineupData.length > 0 ? lineupData[0].category : undefined;
+      const lineup_name = lineupData.length > 0 ? lineupData[0].lineup_name : undefined;
       const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
       const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
       
@@ -1097,7 +1098,7 @@ export const api = {
           return { ...p, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
         });
       
-      const result = { athletes, staff, category };
+      const result = { athletes, staff, category, lineup_name };
       setCachedData(cacheKey, result);
       return result;
     } catch (error) {
@@ -1105,7 +1106,7 @@ export const api = {
       return { athletes: [], staff: [] };
     }
   },
-  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0, category?: string) => {
+  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0, category?: string, lineup_name?: string) => {
     try {
       const batch = writeBatch(db);
       
@@ -1127,6 +1128,7 @@ export const api = {
           person_id: aid,
           type: 'athlete',
           category,
+          lineup_name,
           confirmation: "Pendente",
           updated_at: serverTimestamp()
         });
@@ -1141,6 +1143,7 @@ export const api = {
           person_id: sid,
           type: 'staff',
           category,
+          lineup_name,
           confirmation: "Pendente",
           updated_at: serverTimestamp()
         });
