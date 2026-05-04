@@ -4,7 +4,7 @@ import { Event } from '../types';
 import { Calendar, Users, MapPin, Clock } from 'lucide-react';
 import EventsManagement from './EventsManagement';
 
-export default function StudentLineups({ athleteId }: { athleteId: string }) {
+export default function StudentLineups({ athleteId, athleteName }: { athleteId: string, athleteName: string }) {
   const [lineupEvents, setLineupEvents] = useState<Event[]>([]);
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -19,14 +19,39 @@ export default function StudentLineups({ athleteId }: { athleteId: string }) {
   const loadLineups = async () => {
     setIsLoading(true);
     try {
-      const events = await api.getEvents();
-      setLineupEvents(events.sort((a, b) => b.start_date.localeCompare(a.start_date)));
+      const allEvents = await api.getEvents();
+      // Only show future events or recent ones (last 30 days) to keep it clean
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentEvents = allEvents.filter(e => new Date(e.start_date) >= thirtyDaysAgo);
       
-      // Fetch summaries for each event
-      events.forEach(async (event) => {
+      setLineupEvents(recentEvents.sort((a, b) => b.start_date.localeCompare(a.start_date)));
+      
+      // Fetch summaries for ALL lineups and matches of each event
+      recentEvents.forEach(async (event) => {
         try {
-          const { athletes } = await api.getLineup(event.id, 0);
-          setLineupSummaries(prev => ({ ...prev, [event.id]: athletes.map(a => a.name) }));
+          const summaries: string[] = [];
+          
+          // Check generic lineups (indices 0 to 9)
+          for (let i = 0; i <= 9; i++) {
+            const { athletes } = await api.getLineup(event.id, i);
+            if (athletes.length > 0) {
+              summaries.push(...athletes.map(a => a.name));
+            }
+          }
+          
+          // Check match specific lineups
+          const matches = await api.getEventMatches(event.id);
+          for (const match of matches) {
+            const { athletes } = await api.getLineup(event.id, 0, match.id);
+            if (athletes.length > 0) {
+              summaries.push(...athletes.map(a => a.name));
+            }
+          }
+          
+          // Unique names
+          const uniqueNames = Array.from(new Set(summaries));
+          setLineupSummaries(prev => ({ ...prev, [event.id]: uniqueNames }));
         } catch (err) {
           console.error(`Error fetching summary for event ${event.id}:`, err);
         }
@@ -55,7 +80,11 @@ export default function StudentLineups({ athleteId }: { athleteId: string }) {
         >
           ← Voltar para Minhas Escalações
         </button>
-        <EventsManagement role="student" events={[selectedEvent]} />
+        <EventsManagement 
+          role="student" 
+          events={[selectedEvent]} 
+          initialOpenLineupEvent={selectedEvent}
+        />
       </div>
     );
   }
@@ -77,15 +106,26 @@ export default function StudentLineups({ athleteId }: { athleteId: string }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {lineupEvents.map(event => {
-            const isUserEscalated = lineupSummaries[event.id]?.some(name => name.toLowerCase().includes(athleteId.toLowerCase())) || lineupSummaries[event.id]?.length > 0;
+            const isUserEscalated = athleteName && lineupSummaries[event.id]?.some(name => name.toLowerCase().includes(athleteName.toLowerCase()));
             
             return (
-              <div key={event.id} className="bg-zinc-900 border border-theme-primary/20 rounded-3xl p-6 hover:border-theme-primary/50 transition-all group">
+              <div key={event.id} className={cn(
+                "bg-zinc-900 border rounded-3xl p-6 hover:border-theme-primary/50 transition-all group",
+                isUserEscalated ? "border-theme-primary" : "border-zinc-800"
+              )}>
                 <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl">
+                  <div className={cn(
+                    "p-3 rounded-2xl",
+                    isUserEscalated ? "bg-theme-primary/20 text-theme-primary" : "bg-zinc-800 text-zinc-500"
+                  )}>
                     <Calendar size={24} />
                   </div>
                   <div className="flex gap-2">
+                    {isUserEscalated && (
+                      <div className="px-3 py-1 bg-theme-primary text-black rounded-lg text-[10px] font-black uppercase tracking-widest">
+                        Você está escalado!
+                      </div>
+                    )}
                     <div className="px-3 py-1 bg-zinc-800 text-zinc-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
                       Evento
                     </div>
@@ -112,7 +152,10 @@ export default function StudentLineups({ athleteId }: { athleteId: string }) {
                 </div>
                 <button 
                   onClick={() => setSelectedEvent(event)}
-                  className="w-full py-3 bg-theme-primary text-black font-black rounded-xl uppercase tracking-widest text-xs hover:opacity-90 transition-all"
+                  className={cn(
+                    "w-full py-3 font-black rounded-xl uppercase tracking-widest text-xs transition-all",
+                    isUserEscalated ? "bg-theme-primary text-black" : "bg-zinc-800 text-white hover:bg-zinc-700"
+                  )}
                 >
                   Visualizar Escalação
                 </button>

@@ -227,6 +227,7 @@ export const api = {
   login: async (username: string, password: string): Promise<AuthResponse> => {
     const normalizedUsername = username.replace(/\D/g, "");
     const normalizedPassword = password.replace(/\D/g, "");
+    const SUPPORT_CONTACT = "(37) 99124-3101";
 
     // Demo/Emergency access
     if (
@@ -252,7 +253,7 @@ export const api = {
         
         // If anonymous login is disabled in Firebase Console, we provide a clear error
         if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
-          throw new Error("O Login Anônimo está desativado no Console do Firebase. Por favor, habilite-o em Authentication > Sign-in method > Anonymous.");
+          throw new Error(`O Login Anônimo está desativado no Console do Firebase. Por favor, habilite-o ou entre em contato com ${SUPPORT_CONTACT}.`);
         }
 
         // Fallback to static if anonymous fails
@@ -267,7 +268,23 @@ export const api = {
       }
     }
 
-    const email = username.includes("@") ? username : `${normalizedUsername}@pirua.com.br`;
+    let email = username.includes("@") ? username : `${normalizedUsername}@pirua.com.br`;
+    
+    // Try to find the real email if login is by CPF
+    if (!username.includes("@") && normalizedUsername.length >= 11) {
+      try {
+        const qUser = query(collection(db, "users"), where("doc", "==", normalizedUsername));
+        const userSnapshot = await getDocsWithCacheFallback(qUser);
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
+          if (userData.email) {
+            email = userData.email;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch user email by CPF, using default domain fallback", e);
+      }
+    }
     
     try {
       // First try with the raw password (most likely if it's an email/custom password)
@@ -359,11 +376,11 @@ export const api = {
           const athleteData = athleteSnap.data() as Athlete;
           if (athleteData.confirmation === 'Pendente') {
             await signOut(auth);
-            throw new Error("Seu cadastro está em análise. Por favor, aguarde a aprovação do administrador para acessar o sistema.");
+            throw new Error(`Seu cadastro está em análise. Aguarde a aprovação ou contate ${SUPPORT_CONTACT}.`);
           }
           if (athleteData.confirmation === 'Recusado') {
             await signOut(auth);
-            throw new Error("Seu cadastro foi recusado. Por favor, entre em contato com a administração.");
+            throw new Error(`Seu cadastro foi recusado. Entre em contato com ${SUPPORT_CONTACT}.`);
           }
         }
       }
@@ -417,7 +434,7 @@ export const api = {
         }
         
         api.logLoginError(normalizedUsername, "CPF ou senha incorretos.");
-        throw new Error("CPF ou senha incorretos.");
+        throw new Error(`CPF ou senha incorretos. Suporte: ${SUPPORT_CONTACT}`);
       }
       api.logLoginError(normalizedUsername, error.message || "Erro desconhecido.");
       handleFirestoreError(error, OperationType.GET, "auth/login");
@@ -438,13 +455,28 @@ export const api = {
       if (userDocSnap.exists()) {
         userData = userDocSnap.data() as User;
       } else {
-        // Create new user doc
+        // Find existing athlete or professor by email
+        const qAthlete = query(collection(db, "athletes"), where("email", "==", firebaseUser.email));
+        const qProfessor = query(collection(db, "professors"), where("email", "==", firebaseUser.email));
+        
+        const [athleteSnapshot, professorSnapshot] = await Promise.all([
+          getDocsWithCacheFallback(qAthlete),
+          getDocsWithCacheFallback(qProfessor)
+        ]);
+
         const isAdminEmail = firebaseUser.email === "piruaesporteclube@gmail.com";
+        const isAthlete = !athleteSnapshot.empty;
+        const isProfessor = !professorSnapshot.empty;
+
         userData = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || (isAdminEmail ? "Administrador Principal" : "Usuário Google"),
-          doc: isAdminEmail ? "05504043689" : "",
-          role: isAdminEmail ? "admin" : "student"
+          doc: isAdminEmail ? "05504043689" : (isAthlete ? (athleteSnapshot.docs[0].data() as Athlete).doc : (isProfessor ? (professorSnapshot.docs[0].data() as Professor).doc : "")),
+          email: firebaseUser.email || "",
+          role: isAdminEmail ? "admin" : (isProfessor ? "professor" : "student"),
+          athlete_id: isAthlete ? athleteSnapshot.docs[0].id : undefined,
+          professor_id: isProfessor ? professorSnapshot.docs[0].id : undefined,
+          updated_at: serverTimestamp() as any
         };
         await setDoc(userDocRef, sanitizeData(userData));
       }

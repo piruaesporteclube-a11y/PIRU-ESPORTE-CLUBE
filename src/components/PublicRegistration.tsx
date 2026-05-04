@@ -132,7 +132,20 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
         errorMessage = `Erro: ${err.message}`;
       }
 
-      toast.error(errorMessage, { duration: 6000 });
+      toast.error(
+        <div className="flex flex-col gap-2">
+          <span>{errorMessage}</span>
+          <a 
+            href="https://wa.me/5537991243101" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-white underline font-bold"
+          >
+            Suporte: (37) 99124-3101
+          </a>
+        </div>, 
+        { duration: 8000 }
+      );
     } finally {
       setLoading(false);
     }

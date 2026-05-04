@@ -1076,7 +1076,7 @@ export default function App() {
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
-          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} />;
+          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} athleteName={myAthleteData?.name || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
         case 'birthdays':

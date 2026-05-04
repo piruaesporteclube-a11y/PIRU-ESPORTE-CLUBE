@@ -110,8 +110,16 @@ export default function Login({ onLogin, onRegisterClick }: LoginProps) {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center">
-                {error}
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center flex flex-col gap-2">
+                <span>{error}</span>
+                <a 
+                  href="https://wa.me/5537991243101" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="mt-2 text-theme-primary hover:underline flex items-center justify-center gap-1"
+                >
+                  Suporte: (37) 99124-3101
+                </a>
               </div>
             )}
 
