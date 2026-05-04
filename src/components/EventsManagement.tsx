@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories, EventMatchScore } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity, FileText } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -164,6 +164,122 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
   const lineupRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+  const [isManualReceiptModalOpen, setIsManualReceiptModalOpen] = useState(false);
+  const [manualReceiptData, setManualReceiptData] = useState({ name: '', event: '', date: '' });
+
+  const handleGenerateReceiptPDF = async (data: { name: string; event: string; date: string; type?: string }) => {
+    setIsGeneratingReceipt(true);
+    const loadingToast = toast.loading('Gerando comprovante...');
+    
+    try {
+      // Use standard A6 size in portrait
+      const pdf = new jsPDF('p', 'mm', [105, 148]);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      
+      const primaryColor = settings?.primaryColor || '#fbbf24';
+      
+      // Header Banner
+      pdf.setFillColor(primaryColor);
+      pdf.rect(0, 0, pageWidth, 25, 'F');
+      
+      // Crest
+      if (crestDataUrl) {
+        try {
+          pdf.addImage(crestDataUrl, 'PNG', margin, 5, 15, 15);
+        } catch (e) {
+          console.warn("Could not add crest to individual PDF:", e);
+        }
+      }
+      
+      // School Name
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(settings?.schoolName || 'Piruá Esporte Clube', 28, 12);
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('COMPROVANTE OFICIAL DE PARTICIPAÇÃO', 28, 17);
+
+      // Body Section
+      pdf.setTextColor(20, 20, 20);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('CERTIFICADO / COMPROVANTE', pageWidth / 2, 45, { align: 'center' });
+      
+      pdf.setDrawColor(primaryColor);
+      pdf.setLineWidth(0.8);
+      pdf.line(pageWidth / 4, 48, (pageWidth / 4) * 3, 48);
+      
+      let currentY = 65;
+      
+      const addField = (label: string, value: string) => {
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(label, margin, currentY);
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(value.toUpperCase(), margin, currentY + 6);
+        currentY += 20;
+      };
+
+      addField('NOME COMPLETO:', data.name);
+      addField('EVENTO / ATIVIDADE:', data.event);
+      addField('DATA DO EVENTO:', data.date);
+      if (data.type) addField('CATEGORIA / FUNÇÃO:', data.type);
+
+      // Contact Details from settings
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('DADOS DA INSTITUIÇÃO:', margin, currentY + 10);
+      
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(80, 80, 80);
+      let contactY = currentY + 15;
+      if (settings?.address) {
+        pdf.text(`Endereço: ${settings.address}`, margin, contactY);
+        contactY += 4;
+      }
+      const contactPhone = settings?.whatsapp || settings?.phone;
+      if (contactPhone) {
+        pdf.text(`Contato: ${contactPhone}`, margin, contactY);
+        contactY += 4;
+      }
+      if (settings?.instagram) {
+        pdf.text(`Instagram: @${settings.instagram.replace('@', '')}`, margin, contactY);
+      }
+
+      // Footer
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      
+      pdf.setFontSize(6);
+      pdf.setTextColor(150, 150, 150);
+      const now = new Date();
+      pdf.text(`Documento emitido em: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`, margin, pageHeight - 12);
+      pdf.text(`Código de Autenticidade: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, margin, pageHeight - 8);
+      
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(primaryColor);
+      pdf.text('PIRUÁ ESPORTE CLUBE', pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+      pdf.save(`comprovante_${data.name.replace(/\s+/g, '_')}_${data.event.replace(/\s+/g, '_')}.pdf`);
+      toast.success('Comprovante gerado com sucesso!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('Error generating receipt:', error);
+      toast.error(`Erro ao gerar comprovante: ${error.message}`, { id: loadingToast });
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  };
 
   const [isWhatsAppGroupLoading, setIsWhatsAppGroupLoading] = useState(false);
 
@@ -563,10 +679,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const toggleStaff = (id: string) => {
     if (selectedStaff.includes(id)) {
       setSelectedStaff(selectedStaff.filter(sid => sid !== id));
-    } else if (selectedStaff.length < 3) {
+    } else if (selectedStaff.length < 4) {
       setSelectedStaff([...selectedStaff, id]);
     } else {
-      toast.warning('Limite máximo de 3 membros da comissão atingido.');
+      toast.warning('Limite máximo de 4 membros da comissão atingido.');
     }
   };
 
@@ -1410,7 +1526,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                       
                       {selectedStaff.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comissão Técnica:</p>
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comissão Técnica ({selectedStaff.length}/4):</p>
                           <p className="text-xs text-zinc-300 font-medium">
                             {professors.filter(p => selectedStaff.includes(p.id)).map(s => s.name).join(' • ')}
                           </p>
@@ -1419,7 +1535,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
                       {selectedAthletes.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({selectedAthletes.length}):</p>
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({selectedAthletes.length}/22):</p>
                           <p className="text-xs text-zinc-300 font-medium leading-relaxed">
                             {athletes.filter(a => selectedAthletes.includes(a.id)).map(a => a.name).join(' • ')}
                           </p>
@@ -1488,7 +1604,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                         </div>
 
                         <div className="space-y-4 pt-6 border-t border-zinc-800">
-                          <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Comissão Técnica ({selectedStaff.length}/3)</h3>
+                          <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Comissão Técnica ({selectedStaff.length}/4)</h3>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {professors.map(p => (
                               <button
@@ -1522,7 +1638,24 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
                       {/* Confirmation Area */}
                       <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
-                        <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
+                          <button 
+                            onClick={() => {
+                              setManualReceiptData({ 
+                                name: '', 
+                                event: selectedEvent?.name || '', 
+                                date: selectedEvent?.start_date || '' 
+                              });
+                              setIsManualReceiptModalOpen(true);
+                            }}
+                            className="p-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
+                            title="Gerar comprovante avulso"
+                          >
+                            <Plus size={10} />
+                            Avulso
+                          </button>
+                        </div>
                         <div className="space-y-4">
                           {(selectedAthletes.length === 0 && selectedStaff.length === 0) ? (
                             <p className="text-zinc-500 text-xs italic">Selecione atletas e comissão para gerenciar confirmações.</p>
@@ -1565,27 +1698,41 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                     
                                     <div className="flex items-center gap-1">
                                       {savedStaff ? (
-                                        <div className="flex-1 flex flex-col gap-1">
-                                          <div className="flex gap-1">
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedStaff.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Sim
-                                            </button>
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedStaff.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Não
-                                            </button>
+                                        <div className="flex-1 flex gap-1">
+                                          <div className="flex-1 flex flex-col gap-1">
+                                            <div className="flex gap-1">
+                                              <button 
+                                                onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
+                                                className={cn(
+                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                  savedStaff.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                                )}
+                                              >
+                                                Sim
+                                              </button>
+                                              <button 
+                                                onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
+                                                className={cn(
+                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                  savedStaff.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                                )}
+                                              >
+                                                Não
+                                              </button>
+                                            </div>
                                           </div>
+                                          <button 
+                                            onClick={() => handleGenerateReceiptPDF({
+                                              name: s.name,
+                                              event: selectedEvent?.name || '',
+                                              date: selectedEvent?.start_date || '',
+                                              type: 'Comissão Técnica'
+                                            })}
+                                            className="p-2 rounded-lg bg-zinc-800 text-zinc-500 hover:text-theme-primary hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
+                                            title="Gerar Comprovante PDF"
+                                          >
+                                            <FileText size={14} />
+                                          </button>
                                         </div>
                                       ) : (
                                         <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
@@ -1618,27 +1765,41 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                     
                                     <div className="flex items-center gap-1">
                                       {savedAthlete ? (
-                                        <div className="flex-1 flex flex-col gap-1">
-                                          <div className="flex gap-1">
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Sim
-                                            </button>
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Não
-                                            </button>
+                                        <div className="flex-1 flex gap-1">
+                                          <div className="flex-1 flex flex-col gap-1">
+                                            <div className="flex gap-1">
+                                              <button 
+                                                onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                                className={cn(
+                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                  savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                                )}
+                                              >
+                                                Sim
+                                              </button>
+                                              <button 
+                                                onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                                className={cn(
+                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                  savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                                )}
+                                              >
+                                                Não
+                                              </button>
+                                            </div>
                                           </div>
+                                          <button 
+                                            onClick={() => handleGenerateReceiptPDF({
+                                              name: a.name,
+                                              event: selectedEvent?.name || '',
+                                              date: selectedEvent?.start_date || '',
+                                              type: 'Atleta'
+                                            })}
+                                            className="p-2 rounded-lg bg-zinc-800 text-zinc-500 hover:text-theme-primary hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
+                                            title="Gerar Comprovante PDF"
+                                          >
+                                            <FileText size={14} />
+                                          </button>
                                         </div>
                                       ) : (
                                         <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
@@ -1942,6 +2103,63 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors"
               >
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Receipt Modal */}
+      {isManualReceiptModalOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter">Comprovante Avulso</h3>
+              <button onClick={() => setIsManualReceiptModalOpen(false)} className="text-zinc-500 hover:text-white"><X size={24} /></button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Nome do Atleta/Membro:</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-bold uppercase"
+                  value={manualReceiptData.name}
+                  onChange={e => setManualReceiptData({...manualReceiptData, name: e.target.value})}
+                  placeholder="Ex: JOÃO SILVA"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Evento:</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-bold uppercase"
+                  value={manualReceiptData.event}
+                  onChange={e => setManualReceiptData({...manualReceiptData, event: e.target.value})}
+                  placeholder="Ex: CAMPEONATO REGIONAL"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Data:</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-bold uppercase"
+                  value={manualReceiptData.date}
+                  onChange={e => setManualReceiptData({...manualReceiptData, date: e.target.value})}
+                  placeholder="Ex: 01/01/2026"
+                />
+              </div>
+
+              <button 
+                onClick={() => {
+                  handleGenerateReceiptPDF(manualReceiptData);
+                  setIsManualReceiptModalOpen(false);
+                }}
+                disabled={!manualReceiptData.name || !manualReceiptData.event || !manualReceiptData.date || isGeneratingReceipt}
+                className="w-full py-4 bg-theme-primary text-black font-black uppercase text-sm rounded-2xl shadow-lg shadow-theme-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale"
+              >
+                <FileText size={18} />
+                {isGeneratingReceipt ? 'Gerando...' : 'Gerar PDF agora'}
               </button>
             </div>
           </div>
