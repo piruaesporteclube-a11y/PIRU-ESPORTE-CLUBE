@@ -571,9 +571,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleResetLineup = () => {
-    if (confirm("Tem certeza que deseja limpar todos os atletas e comissão técnica desta escalação?")) {
+    if (window.confirm("Tem certeza que deseja limpar todos os atletas e comissão técnica desta escalação?")) {
       setSelectedAthletes([]);
       setSelectedStaff([]);
+      setLineupCategory('');
+      setLineupName('');
       toast.success("Escalação limpa! Não esqueça de salvar para confirmar as alterações.");
     }
   };
@@ -583,27 +585,38 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       toast.error("Este evento já finalizou. A escalação não pode ser alterada.");
       return;
     }
-    if (selectedEvent) {
-      try {
-        await api.saveLineup(selectedEvent.id, selectedAthletes, selectedStaff, activeLineupIndex, lineupCategory, lineupName);
-        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
-        setLineupAthletes(updatedLineup);
-        setLineupStaff(updatedStaff);
-        
-        // Update indices data for UI
-        setLineupIndicesWithData(prev => ({
-          ...prev,
-          [activeLineupIndex]: lineupCategory || 'Com Dados'
-        }));
-        setLineupIndicesWithNames(prev => ({
-          ...prev,
-          [activeLineupIndex]: lineupName
-        }));
-        
-        toast.success('Escalação salva com sucesso!');
-      } catch (err: any) {
-        toast.error(`Erro ao salvar escalação: ${err.message}`);
-      }
+    if (!selectedEvent) return;
+
+    const loadingToast = toast.loading('Salvando escalação...');
+    try {
+      await api.saveLineup(
+        selectedEvent.id, 
+        selectedAthletes, 
+        selectedStaff, 
+        activeLineupIndex, 
+        lineupCategory, 
+        lineupName
+      );
+      
+      // Force refresh data
+      const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
+      setLineupAthletes(updatedLineup);
+      setLineupStaff(updatedStaff);
+      
+      // Update indices data for UI
+      setLineupIndicesWithData(prev => ({
+        ...prev,
+        [activeLineupIndex]: lineupCategory || 'Com Dados'
+      }));
+      setLineupIndicesWithNames(prev => ({
+        ...prev,
+        [activeLineupIndex]: lineupName
+      }));
+      
+      toast.success('Escalação salva com sucesso!', { id: loadingToast });
+    } catch (err: any) {
+      console.error('Save error:', err);
+      toast.error(`Erro ao salvar escalação: ${err.message}`, { id: loadingToast });
     }
   };
 
@@ -1363,27 +1376,27 @@ export default function EventsManagement({ athletes: athletesProp, events: event
               ) : (
                 <>
                   {/* Summary Section */}
-                  {(lineupAthletes.length > 0 || lineupStaff.length > 0) && (
+                  {(selectedAthletes.length > 0 || selectedStaff.length > 0) && (
                     <div className="mb-8 p-6 bg-zinc-900/50 border border-zinc-800 rounded-[2rem] space-y-4">
                       <div className="flex items-center gap-2 text-theme-primary">
                         <Users size={18} />
                         <h3 className="text-sm font-black uppercase tracking-widest">Resumo do SUB</h3>
                       </div>
                       
-                      {lineupStaff.length > 0 && (
+                      {selectedStaff.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comissão Técnica:</p>
                           <p className="text-xs text-zinc-300 font-medium">
-                            {lineupStaff.map(s => s.name).join(' • ')}
+                            {professors.filter(p => selectedStaff.includes(p.id)).map(s => s.name).join(' • ')}
                           </p>
                         </div>
                       )}
 
-                      {lineupAthletes.length > 0 && (
+                      {selectedAthletes.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({lineupAthletes.length}):</p>
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({selectedAthletes.length}):</p>
                           <p className="text-xs text-zinc-300 font-medium leading-relaxed">
-                            {lineupAthletes.map(a => a.name).join(' • ')}
+                            {athletes.filter(a => selectedAthletes.includes(a.id)).map(a => a.name).join(' • ')}
                           </p>
                         </div>
                       )}
@@ -1486,111 +1499,129 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                       <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
                         <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
                         <div className="space-y-4">
-                          {(lineupAthletes.length === 0 && lineupStaff.length === 0) ? (
-                            <p className="text-zinc-500 text-xs italic">Salve a escalação para gerenciar as confirmações.</p>
+                          {(selectedAthletes.length === 0 && selectedStaff.length === 0) ? (
+                            <p className="text-zinc-500 text-xs italic">Selecione atletas e comissão para gerenciar confirmações.</p>
                           ) : (
                             <>
-                              {lineupStaff.map(s => (
-                                <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
-                                      {s.photo && s.photo.trim() !== "" ? (
-                                        <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                          <User size={16} />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-bold truncate text-xs uppercase">{s.name}</p>
-                                        {s.phone && s.phone.replace(/\D/g, '') && (
-                                          <a 
-                                            href={`https://wa.me/55${s.phone.replace(/\D/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-green-500 hover:text-green-400 transition-colors"
-                                            title="Conversar no WhatsApp"
-                                          >
-                                            <MessageCircle size={12} />
-                                          </a>
+                              {selectedStaff.map(sid => {
+                                const s = professors.find(p => p.id === sid);
+                                if (!s) return null;
+                                const savedStaff = lineupStaff.find(ls => ls.id === sid);
+                                return (
+                                  <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
+                                        {s.photo && s.photo.trim() !== "" ? (
+                                          <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                            <User size={16} />
+                                          </div>
                                         )}
                                       </div>
-                                      <p className="text-[10px] text-theme-primary font-bold">COMISSÃO</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <div className="flex-1 flex flex-col gap-1">
-                                      <div className="flex gap-1">
-                                        <button 
-                                          onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
-                                          className={cn(
-                                            "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                            s.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-bold truncate text-xs uppercase">{s.name}</p>
+                                          {s.phone && (
+                                            <a 
+                                              href={`https://wa.me/55${s.phone.replace(/\D/g, '')}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-green-500 hover:text-green-400 transition-colors"
+                                              title="Conversar no WhatsApp"
+                                            >
+                                              <MessageCircle size={12} />
+                                            </a>
                                           )}
-                                        >
-                                          Sim
-                                        </button>
-                                        <button 
-                                          onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
-                                          className={cn(
-                                            "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                            s.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                          )}
-                                        >
-                                          Não
-                                        </button>
+                                        </div>
+                                        <p className="text-[10px] text-theme-primary font-bold">COMISSÃO</p>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
-                              ))}
-                              {lineupAthletes.map(a => (
-                                <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
-                                      {a.photo && a.photo.trim() !== "" ? (
-                                        <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                          <User size={16} />
+                                    
+                                    <div className="flex items-center gap-1">
+                                      {savedStaff ? (
+                                        <div className="flex-1 flex flex-col gap-1">
+                                          <div className="flex gap-1">
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedStaff.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Sim
+                                            </button>
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedStaff.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Não
+                                            </button>
+                                          </div>
                                         </div>
+                                      ) : (
+                                        <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
                                       )}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-bold truncate text-xs uppercase">{a.name}</p>
-                                      <p className="text-[10px] text-zinc-500">#{a.jersey_number}</p>
-                                    </div>
                                   </div>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <div className="flex-1 flex flex-col gap-1">
-                                      <div className="flex gap-1">
-                                        <button 
-                                          onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
-                                          className={cn(
-                                            "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                            a.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                          )}
-                                        >
-                                          Sim
-                                        </button>
-                                        <button 
-                                          onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
-                                          className={cn(
-                                            "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                            a.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                          )}
-                                        >
-                                          Não
-                                        </button>
+                                );
+                              })}
+                              {selectedAthletes.map(aid => {
+                                const a = athletes.find(ath => ath.id === aid);
+                                if (!a) return null;
+                                const savedAthlete = lineupAthletes.find(la => la.id === aid);
+                                return (
+                                  <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-zinc-700 rounded-full overflow-hidden">
+                                        {a.photo && a.photo.trim() !== "" ? (
+                                          <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                            <User size={16} />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-bold truncate text-xs uppercase">{a.name}</p>
+                                        <p className="text-[10px] text-zinc-500">#{a.jersey_number}</p>
                                       </div>
                                     </div>
+                                    
+                                    <div className="flex items-center gap-1">
+                                      {savedAthlete ? (
+                                        <div className="flex-1 flex flex-col gap-1">
+                                          <div className="flex gap-1">
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Sim
+                                            </button>
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Não
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
                         </div>
