@@ -222,7 +222,7 @@ service cloud.firestore {
              data.category is string &&
              data.type in ["Conjunto Completo", "Camisa Avulsa"] &&
              data.uniform_group in ["Viagem", "Jogo", "Torcedor", "Comissão Técnica"] &&
-             data.size in ["PP", "P", "M", "G", "GG", "XG"] &&
+             data.size in ["1 ANO", "2 ANOS", "4 ANOS", "6 ANOS", "8 ANOS", "10 ANOS", "12 ANOS", "14 ANOS", "16 ANOS", "PP", "P", "M", "G", "GG", "EGG", "XGG", "BLPP", "BLP", "BLM", "BLG", "BLGG", "BLG1", "BLG2", "BLG3", "BLG4"] &&
              data.jersey_number is string && data.jersey_number.size() > 0 &&
              data.status in ["Pendente", "Aprovado", "Entregue", "Recusado"];
     }

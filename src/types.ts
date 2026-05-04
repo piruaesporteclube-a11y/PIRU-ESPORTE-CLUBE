@@ -368,7 +368,7 @@ export type UniformRequest = {
   category: string;
   type: "Conjunto Completo" | "Camisa Avulsa";
   uniform_group: UniformGroup;
-  size: "02" | "04" | "06" | "08" | "10" | "12" | "14" | "16" | "PP" | "P" | "M" | "G" | "GG" | "XG" | "XXG";
+  size: "1 ANO" | "2 ANOS" | "4 ANOS" | "6 ANOS" | "8 ANOS" | "10 ANOS" | "12 ANOS" | "14 ANOS" | "16 ANOS" | "PP" | "P" | "M" | "G" | "GG" | "EGG" | "XGG" | "BLPP" | "BLP" | "BLM" | "BLG" | "BLGG" | "BLG1" | "BLG2" | "BLG3" | "BLG4";
   jersey_number: string;
   status: "Pendente" | "Aprovado" | "Entregue" | "Recusado";
   sponsor_block_id?: string;

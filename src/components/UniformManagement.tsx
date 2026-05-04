@@ -1432,10 +1432,27 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     value={newRequest.size}
                     onChange={(e) => setNewRequest({...newRequest, size: e.target.value as any})}
                   >
-                    {['02', '04', '06', '08', '10', '12', '14', '16', 'PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'].map(size => (
-                      <option key={size} value={size}>{size}</option>
-                    ))}
+                    <optgroup label="Adulto Tradicional">
+                      {['PP', 'P', 'M', 'G', 'GG', 'EGG', 'XGG'].map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Infantil Tradicional">
+                      {['1 ANO', '2 ANOS', '4 ANOS', '6 ANOS', '8 ANOS', '10 ANOS', '12 ANOS', '14 ANOS', '16 ANOS'].map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Baby Look">
+                      {['BLPP', 'BLP', 'BLM', 'BLG', 'BLGG', 'BLG1', 'BLG2', 'BLG3', 'BLG4'].map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </optgroup>
                   </select>
+                  {newRequest.size?.startsWith('BL') && (
+                    <p className="mt-2 text-[9px] text-amber-500 font-black uppercase italic animate-pulse">
+                      * BABY LOOK É CAMISA PEQUENA E ACINTURADA!
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Número Desejado</label>
