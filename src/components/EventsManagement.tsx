@@ -167,6 +167,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
   const [isManualReceiptModalOpen, setIsManualReceiptModalOpen] = useState(false);
   const [manualReceiptData, setManualReceiptData] = useState({ name: '', event: '', date: '' });
+  const [showLineupResetConfirm, setShowLineupResetConfirm] = useState(false);
 
   const handleGenerateReceiptPDF = async (data: { name: string; event: string; date: string; type?: string }) => {
     setIsGeneratingReceipt(true);
@@ -687,15 +688,18 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleResetLineup = () => {
-    if (window.confirm("Tem certeza que deseja limpar todos os atletas e comissão técnica desta escalação?")) {
-      setSelectedAthletes([]);
-      setSelectedStaff([]);
-      setLineupAthletes([]);
-      setLineupStaff([]);
-      setLineupCategory('');
-      setLineupName('');
-      toast.success("Escalação limpa! Não esqueça de salvar para confirmar as alterações.");
-    }
+    setShowLineupResetConfirm(true);
+  };
+
+  const confirmResetLineup = () => {
+    setSelectedAthletes([]);
+    setSelectedStaff([]);
+    setLineupAthletes([]);
+    setLineupStaff([]);
+    setLineupCategory('');
+    setLineupName('');
+    setShowLineupResetConfirm(false);
+    toast.success("Escalação limpa! Não esqueça de salvar para confirmar no sistema.");
   };
 
   const [isSavingLineup, setIsSavingLineup] = useState(false);
@@ -2160,6 +2164,35 @@ export default function EventsManagement({ athletes: athletesProp, events: event
               >
                 <FileText size={18} />
                 {isGeneratingReceipt ? 'Gerando...' : 'Gerar PDF agora'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Lineup Confirmation Modal */}
+      {showLineupResetConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl max-w-sm w-full text-center space-y-6 shadow-2xl">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={32} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Limpar Escalação?</h3>
+              <p className="text-zinc-400 text-sm font-medium">Esta ação irá remover todos os atletas e comissão técnica selecionados localmente.</p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => setShowLineupResetConfirm(false)}
+                className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all uppercase text-xs"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmResetLineup}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all uppercase text-xs shadow-lg shadow-red-600/20"
+              >
+                Confirmar
               </button>
             </div>
           </div>
