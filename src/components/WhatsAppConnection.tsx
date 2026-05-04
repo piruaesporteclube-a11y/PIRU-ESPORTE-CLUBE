@@ -105,18 +105,12 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       let lastMessage = 'Sucesso';
       
       try {
-        // Add Athlete
-        if (athlete.contact) {
-          const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
-          if (res.error && !res.success) throw new Error(res.error);
-          if (res.message) lastMessage = res.message;
-        }
-        // Add Responsible
-        if (athlete.guardian_phone) {
-          const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
-          if (res.error && !res.success) throw new Error(res.error);
-          if (res.message) lastMessage = res.message;
-        }
+        const res = await api.whatsapp.syncAthlete(athlete);
+        
+        if (res.athlete && !res.athlete.success) throw new Error(res.athlete.error || "Erro no atleta");
+        if (res.guardian && !res.guardian.success) throw new Error(res.guardian.error || "Erro no responsável");
+        
+        lastMessage = res.guardian?.message || res.athlete?.message || 'Sucesso';
         
         successes++;
         setSyncLogs(prev => {

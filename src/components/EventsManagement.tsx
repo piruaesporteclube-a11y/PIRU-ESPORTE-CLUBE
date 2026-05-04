@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Event, Athlete, Professor, getSubCategory, categories, EventMatchScore } from '../types';
+import { Event, Athlete, Professor, getSubCategory, categories, EventMatchScore, EventMatch } from '../types';
 import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity, FileText } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
@@ -545,6 +545,12 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     } catch (err: any) {
       toast.error(`Erro ao excluir evento: ${err.message}`);
     }
+  };
+
+  const handleOpenScores = (event: Event) => {
+    setSelectedEvent(event);
+    setModalTab('scores');
+    setIsLineupOpen(true);
   };
 
   const handleOpenLineup = async (event: Event, index: number = 0, matchId?: string) => {

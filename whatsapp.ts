@@ -463,11 +463,13 @@ export class WhatsAppService {
       throw new Error('WhatsApp não conectado');
     }
 
+    let jid = '';
     try {
-      const jid = await this.resolveJid(phoneNumber);
-      if (!jid) {
+      const resolvedJid = await this.resolveJid(phoneNumber);
+      if (!resolvedJid) {
         throw new Error(`O número ${phoneNumber} não parece estar registrado no WhatsApp.`);
       }
+      jid = resolvedJid;
 
       console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
       const response = await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
@@ -512,9 +514,9 @@ export class WhatsAppService {
       
       if (isRateLimit && retryCount < 3) {
         const delayMs = (retryCount + 1) * 10000;
-        console.log(`[WhatsApp] Rate limit para ${phoneNumber}, retry ${retryCount + 1} em ${delayMs/1000}s...`);
+        console.log(`[WhatsApp] Rate limit for ${jid}, retry ${retryCount + 1} in ${delayMs/1000}s...`);
         await new Promise(r => setTimeout(r, delayMs));
-        return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1);
+        return this.addParticipant(groupId, jid, welcomeMessage, retryCount + 1);
       }
 
       console.error(`[WhatsApp] Erro ao adicionar ${phoneNumber}:`, err);

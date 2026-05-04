@@ -824,6 +824,24 @@ export const api = {
         return { success: false, error: "Conexão falhou" };
       }
     },
+    syncAthlete: async (athlete: { contact?: string, guardian_phone?: string }) => {
+      const results: { 
+        athlete: { success: boolean, message?: string, error?: string } | null, 
+        guardian: { success: boolean, message?: string, error?: string } | null 
+      } = { athlete: null, guardian: null };
+
+      if (athlete.contact) {
+        results.athlete = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+        // Small delay between calls to avoid WhatsApp rate limiting or Baileys conflicts
+        if (athlete.guardian_phone) await new Promise(r => setTimeout(r, 3000));
+      }
+
+      if (athlete.guardian_phone) {
+        results.guardian = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+      }
+
+      return results;
+    },
     createGroup: async (name: string) => {
       try {
         const response = await fetch("/api/whatsapp/groups/create", {
@@ -1169,7 +1187,7 @@ export const api = {
       // Store existing statuses to preserve them
       const existingData: Record<string, any> = {};
       querySnapshot.docs.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         if (data.person_id) {
           existingData[data.person_id] = {
             confirmation: data.confirmation,

@@ -55,24 +55,13 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       if (athlete) {
         // Run WhatsApp additions in background but handle errors specifically
         const processWhatsApp = async () => {
-          // Add athlete to group
-          if (athlete.contact) {
-            try {
-              await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
-            } catch (waErr: any) {
-              console.error("Erro ao adicionar atleta no WhatsApp:", waErr);
-              toast.error(`Atleta: ${waErr.message || "Erro no WhatsApp"}`, { duration: 5000 });
-            }
-          }
+          const res = await api.whatsapp.syncAthlete(athlete);
           
-          // Add guardian to group
-          if (athlete.guardian_phone) {
-            try {
-              await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
-            } catch (waErr: any) {
-              console.error("Erro ao adicionar responsável no WhatsApp:", waErr);
-              toast.error(`Responsável: ${waErr.message || "Erro no WhatsApp"}`, { duration: 5000 });
-            }
+          if (res.athlete && !res.athlete.success) {
+            toast.error(`Atleta: ${res.athlete.error || "Erro no WhatsApp"}`, { duration: 5000 });
+          }
+          if (res.guardian && !res.guardian.success) {
+            toast.error(`Responsável: ${res.guardian.error || "Erro no WhatsApp"}`, { duration: 5000 });
           }
         };
 
@@ -494,16 +483,17 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                             onClick={async () => {
                               const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
                               try {
-                                let messages = [];
-                                if (athlete.contact) {
-                                  const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
-                                  messages.push(`Atleta: ${res.message || 'OK'}`);
+                                const res = await api.whatsapp.syncAthlete(athlete);
+                                const msgs = [];
+                                if (res.athlete) msgs.push(`Atleta: ${res.athlete.success ? 'OK' : (res.athlete.error || 'Erro')}`);
+                                if (res.guardian) msgs.push(`Responsável: ${res.guardian.success ? 'OK' : (res.guardian.error || 'Erro')}`);
+                                
+                                const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
+                                if (allSuccess) {
+                                  toast.success(`${athlete.name} sincronizado!`, { id: toastId });
+                                } else {
+                                  toast.warning(`Sincronização parcial: ${msgs.join(' | ')}`, { id: toastId });
                                 }
-                                if (athlete.guardian_phone) {
-                                  const res = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
-                                  messages.push(`Responsável: ${res.message || 'OK'}`);
-                                }
-                                toast.success(`${athlete.name}: ${messages.join(' | ')}`, { id: toastId });
                               } catch (err: any) {
                                 toast.error(`Erro ao sincronizar: ${err.message}`, { id: toastId });
                               }
@@ -630,9 +620,17 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       onClick={async () => {
                         const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
                         try {
-                          if (athlete.contact) await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
-                          if (athlete.guardian_phone) await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
-                          toast.success(`${athlete.name} sincronizado!`, { id: toastId });
+                          const res = await api.whatsapp.syncAthlete(athlete);
+                          const messages = [];
+                          if (res.athlete) messages.push(`Atleta: ${res.athlete.success ? 'OK' : (res.athlete.error || 'Erro')}`);
+                          if (res.guardian) messages.push(`Responsável: ${res.guardian.success ? 'OK' : (res.guardian.error || 'Erro')}`);
+                          
+                          const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
+                          if (allSuccess) {
+                            toast.success(`${athlete.name} sincronizado!`, { id: toastId });
+                          } else {
+                            toast.warning(`Sincronização parcial: ${messages.join(' | ')}`, { id: toastId });
+                          }
                         } catch (err: any) {
                           toast.error(`Erro: ${err.message}`, { id: toastId });
                         }

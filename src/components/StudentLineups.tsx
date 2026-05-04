@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event } from '../types';
+import { cn } from '../utils';
 import { Calendar, Users, MapPin, Clock } from 'lucide-react';
 import EventsManagement from './EventsManagement';
 
