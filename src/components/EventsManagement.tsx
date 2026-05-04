@@ -61,9 +61,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
   const [activeFlyerEvent, setActiveFlyerEvent] = useState<Event | null>(null);
   const [modalTab, setModalTab] = useState<'lineup' | 'scores'>('lineup');
-  const [eventMatchScores, setEventMatchScores] = useState<EventMatchScore[]>([]);
+  const [eventMatches, setEventMatches] = useState<EventMatch[]>([]);
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
-  const [editingMatch, setEditingMatch] = useState<Partial<EventMatchScore> | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Partial<EventMatch> | null>(null);
   const [isDeletingMatch, setIsDeletingMatch] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Event>>({
@@ -96,7 +97,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     api.getNamedLineups().then(setNamedLineups);
   }, [athletesProp, eventsProp]);
 
-  const [eventScoresSummary, setEventScoresSummary] = useState<Record<string, EventMatchScore[]>>({});
+  const [eventScoresSummary, setEventScoresSummary] = useState<Record<string, EventMatch[]>>({});
 
   useEffect(() => {
     if (events.length > 0) {
@@ -106,8 +107,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           setLineupCounts(prev => ({ ...prev, [event.id]: athletes.length }));
           setLineupSummaries(prev => ({ ...prev, [event.id]: athletes.map(a => a.name) }));
           
-          const scores = await api.getEventMatchScores(event.id);
-          setEventScoresSummary(prev => ({ ...prev, [event.id]: scores }));
+          const matches = await api.getEventMatches(event.id);
+          setEventScoresSummary(prev => ({ ...prev, [event.id]: matches }));
         } catch (err) {
           console.error(`Error fetching data for event ${event.id}:`, err);
         }
@@ -546,15 +547,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
-  const handleOpenLineup = async (event: Event, index: number = 0) => {
+  const handleOpenLineup = async (event: Event, index: number = 0, matchId?: string) => {
     try {
       setSelectedEvent(event);
       setActiveLineupIndex(index);
+      setActiveMatchId(matchId || null);
       setModalTab('lineup');
       
-      // Fetch scores for this event
-      const scores = await api.getEventMatchScores(event.id);
-      setEventMatchScores(scores);
+      // Fetch matches for this event
+      const matches = await api.getEventMatches(event.id);
+      setEventMatches(matches);
       
       // Check if event is finished based on date and time
       const now = new Date();
@@ -564,7 +566,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       
       setIsEventFinished(eventEnd < now && !isAdmin);
 
-      const { athletes: lineup, staff, category, lineup_name } = await api.getLineup(event.id, index);
+      const { athletes: lineup, staff, category, lineup_name } = await api.getLineup(event.id, index, matchId);
       setLineupAthletes(lineup);
       setLineupStaff(staff);
       setLineupCategory(category || '');
@@ -572,47 +574,45 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setSelectedAthletes(lineup.map(a => a.id));
       setSelectedStaff(staff.map(s => s.id));
       
-      // Also fetch which other indices have data to show in tabs
-      const indices: Record<number, string> = {};
-      const names: Record<number, string> = {};
-      let currentMax = 9;
+      if (!matchId) {
+        // Also fetch which other indices have data to show in tabs (only for generic lineups)
+        const indices: Record<number, string> = {};
+        const names: Record<number, string> = {};
+        let currentMax = 9;
 
-      // We need to check all potential lineups. Since we don't have a list of all indices, 
-      // we'll check up to currentMax + 1, and also query a few more to be safe
-      const checkRange = Math.max(10, index + 2);
-      
-      await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
-        if (i === index) {
-          indices[i] = category || '';
-          names[i] = lineup_name || '';
-        } else {
-          try {
-            const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
-            if (athletes.length > 0 || lName || cat) {
-              indices[i] = cat || 'Com Dados';
-              names[i] = lName || '';
-              if (i > currentMax) currentMax = i;
-            }
-          } catch (e) {}
-        }
-      }));
-      setLineupIndicesWithData(indices);
-      setLineupIndicesWithNames(names);
-      setMaxLineupIndex(currentMax);
-      
-      setIsLineupOpen(true);
+        const checkRange = Math.max(10, index + 2);
+        
+        await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
+          if (i === index) {
+            indices[i] = category || '';
+            names[i] = lineup_name || '';
+          } else {
+            try {
+              const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
+              if (athletes.length > 0 || lName || cat) {
+                indices[i] = cat || 'Com Dados';
+                names[i] = lName || '';
+                if (i > currentMax) currentMax = i;
+              }
+            } catch (e) {}
+          }
+        }));
+        setLineupIndicesWithData(indices);
+        setLineupIndicesWithNames(names);
+      }
     } catch (err: any) {
       toast.error(`Erro ao carregar escalação: ${err.message}`);
+    } finally {
+      setIsLineupOpen(true);
     }
   };
-
-  const handleOpenScores = async (event: Event) => {
+  const handleOpenMatches = async (event: Event) => {
     try {
       setSelectedEvent(event);
       setModalTab('scores');
       
-      const scores = await api.getEventMatchScores(event.id);
-      setEventMatchScores(scores);
+      const matches = await api.getEventMatches(event.id);
+      setEventMatches(matches);
       
       const now = new Date();
       const [year, month, day] = event.end_date.split('-').map(Number);
@@ -620,32 +620,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       const eventEnd = new Date(year, month - 1, day, hours, minutes);
       
       setIsEventFinished(eventEnd < now && !isAdmin);
-
-      // Also set which indices have data for the lineup tab if the user switches
-      const indices: Record<number, string> = {};
-      const names: Record<number, string> = {};
-      let currentMax = 9;
-      
-      // Check a reasonable range
-      const checkRange = 20;
-
-      await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
-        try {
-          const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
-          if (athletes.length > 0 || lName || cat) {
-            indices[i] = cat || 'Com Dados';
-            names[i] = lName || '';
-            if (i > currentMax) currentMax = i;
-          }
-        } catch (e) {}
-      }));
-      setLineupIndicesWithData(indices);
-      setLineupIndicesWithNames(names);
-      setMaxLineupIndex(currentMax);
-      
       setIsLineupOpen(true);
     } catch (err: any) {
-      toast.error(`Erro ao carregar placares: ${err.message}`);
+      toast.error(`Erro ao carregar jogos: ${err.message}`);
+    }
+  };
+  const handleUpdateAthleteStatus = async (athleteId: string, status: "Titular" | "Reserva") => {
+    if (isEventFinished) {
+      toast.error("Evento finalizado.");
+      return;
+    }
+    if (selectedEvent) {
+      try {
+        await api.updateAthleteStatusInLineup(selectedEvent.id, athleteId, status, activeLineupIndex, activeMatchId || undefined);
+        const { athletes: updatedLineup } = await api.getLineup(selectedEvent.id, activeLineupIndex, activeMatchId || undefined);
+        setLineupAthletes(updatedLineup);
+        toast.success(`Status atualizado: ${status}`);
+      } catch (err: any) {
+        toast.error(`Erro: ${err.message}`);
+      }
     }
   };
 
@@ -657,7 +650,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     if (selectedEvent) {
       try {
         await api.confirmLineup(selectedEvent.id, athleteId, type, status, activeLineupIndex);
-        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
+        const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex, activeMatchId || undefined);
         setLineupAthletes(updatedLineup);
         setLineupStaff(updatedStaff);
         toast.success("Confirmação registrada!");
@@ -720,14 +713,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         selectedStaff, 
         activeLineupIndex, 
         lineupCategory, 
-        lineupName
+        lineupName,
+        activeMatchId || undefined
       );
       
       // Delay slightly to ensure Firebase consistency if needed, though usually not required with the cache clear
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Force refresh data
-      const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
+      const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex, activeMatchId || undefined);
       setLineupAthletes(updatedLineup);
       setLineupStaff(updatedStaff);
       
@@ -765,33 +759,33 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
-  const handleSaveMatchScore = async (e: React.FormEvent) => {
+  const handleSaveMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEvent) return;
     try {
-      await api.saveEventMatchScore({
+      await api.saveEventMatch({
         ...editingMatch,
         event_id: selectedEvent.id
-      });
-      toast.success("Placar salvo com sucesso!");
+      } as EventMatch);
+      toast.success("Jogo salvo com sucesso!");
       setIsMatchFormOpen(false);
       setEditingMatch(null);
-      const scores = await api.getEventMatchScores(selectedEvent.id);
-      setEventMatchScores(scores);
-      setEventScoresSummary(prev => ({ ...prev, [selectedEvent.id]: scores }));
+      const matches = await api.getEventMatches(selectedEvent.id);
+      setEventMatches(matches);
+      setEventScoresSummary(prev => ({ ...prev, [selectedEvent.id]: matches }));
     } catch (err: any) {
-      toast.error(`Erro ao salvar placar: ${err.message}`);
+      toast.error(`Erro ao salvar jogo: ${err.message}`);
     }
   };
 
-  const handleDeleteMatchScore = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este placar?")) return;
+  const handleDeleteMatch = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este jogo? Isso também excluirá a escalação vinculada a ele.")) return;
     try {
-      await api.deleteEventMatchScore(id);
-      toast.success("Placar excluído!");
+      await api.deleteEventMatch(id);
+      toast.success("Jogo excluído!");
       if (selectedEvent) {
-        const scores = await api.getEventMatchScores(selectedEvent.id);
-        setEventMatchScores(scores);
+        const matches = await api.getEventMatches(selectedEvent.id);
+        setEventMatches(matches);
       }
     } catch (err: any) {
       toast.error(`Erro ao excluir: ${err.message}`);
@@ -1130,6 +1124,17 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     <input type="text" maxLength={2} className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase" value={formData.uf} onChange={e => setFormData({...formData, uf: e.target.value})} />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Link do Grupo WhatsApp (Comunicação)</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" 
+                    value={formData.whatsapp_group_id || ''} 
+                    onChange={e => setFormData({...formData, whatsapp_group_id: e.target.value})} 
+                    placeholder="https://chat.whatsapp.com/..."
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold italic">Facilita a comunicação com os atletas e comissão escalados.</p>
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Cancelar</button>
@@ -1146,31 +1151,42 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           <div className="bg-black border border-theme-primary/20 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-zinc-800 no-print">
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-white uppercase">Evento: {selectedEvent.name}</h2>
+                <h2 className="text-xl font-bold text-white uppercase">
+                  Evento: {selectedEvent.name}
+                  {activeMatchId && eventMatches.find(m => m.id === activeMatchId) && (
+                    <span className="ml-2 text-theme-primary block sm:inline text-sm">
+                      — JOGO: {eventMatches.find(m => m.id === activeMatchId)?.team_a_name} VS {eventMatches.find(m => m.id === activeMatchId)?.team_b_name}
+                    </span>
+                  )}
+                </h2>
                 <div className="flex items-center gap-2 mb-2">
                   <button
-                    onClick={() => setModalTab('lineup')}
+                    onClick={() => {
+                      setModalTab('lineup');
+                      setActiveMatchId(null);
+                      handleOpenLineup(selectedEvent, 0);
+                    }}
                     className={cn(
                       "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
-                      modalTab === 'lineup'
+                      modalTab === 'lineup' && !activeMatchId
                         ? "bg-theme-primary border-theme-primary text-black"
                         : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
                     )}
                   >
                     <Users size={14} />
-                    SUBS
+                    LISTAS GERAIS
                   </button>
                   <button
                     onClick={() => setModalTab('scores')}
                     className={cn(
                       "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
-                      modalTab === 'scores'
+                      modalTab === 'scores' || activeMatchId
                         ? "bg-theme-primary border-theme-primary text-black"
                         : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
                     )}
                   >
                     <Trophy size={14} />
-                    Placar dos Jogos
+                    JOGOS E ESCALAÇÕES
                   </button>
                 </div>
                 {modalTab === 'lineup' && (
@@ -1300,7 +1316,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
               {modalTab === 'scores' ? (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Placar dos Jogos</h3>
+                    <div>
+                      <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Gerenciamento de Jogos</h3>
+                      <p className="text-[10px] text-zinc-500 font-medium">Adicione jogos, defina locais, datas e faça a escalação individual por jogo.</p>
+                    </div>
                     {isAdmin && (
                       <button
                         onClick={() => {
@@ -1310,7 +1329,9 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                             score_a: 0, 
                             score_b: 0, 
                             category: lineupCategory,
-                            date: selectedEvent.start_date
+                            date: selectedEvent.start_date,
+                            time: selectedEvent.start_time,
+                            location: `${selectedEvent.street}, ${selectedEvent.number}`
                           });
                           setIsMatchFormOpen(true);
                         }}
@@ -1322,70 +1343,99 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     )}
                   </div>
 
-                  {eventMatchScores.length === 0 ? (
+                  {eventMatches.length === 0 ? (
                     <div className="text-center py-12 bg-zinc-900/30 border border-zinc-800 rounded-[2rem]">
                       <Trophy size={48} className="mx-auto text-zinc-700 mb-4" />
-                      <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Nenhum placar registrado para este evento.</p>
+                      <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Nenhum jogo registrado para este evento.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {eventMatchScores.map(match => (
-                        <div key={match.id} className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem] space-y-4 group relative">
+                      {eventMatches.map(match => (
+                        <div key={match.id} className={cn(
+                          "bg-zinc-900/50 border p-6 rounded-[2rem] space-y-4 group relative transition-all",
+                          activeMatchId === match.id ? "border-theme-primary ring-1 ring-theme-primary/20 bg-theme-primary/5" : "border-zinc-800"
+                        )}>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest">{match.category || 'Geral'}</span>
                             <div className="flex items-center gap-2">
-                              {match.date && <span className="text-[10px] text-zinc-500 font-bold">{match.date}</span>}
+                              <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest">{match.category || 'Geral'}</span>
+                              {activeMatchId === match.id && (
+                                <span className="bg-theme-primary text-black text-[8px] font-black px-2 py-0.5 rounded-full">ESCALAÇÃO ATIVA</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
                               {isAdmin && (
                                 <>
-                                  <button onClick={() => { setEditingMatch(match); setIsMatchFormOpen(true); }} className="text-zinc-500 hover:text-white"><Edit size={14} /></button>
-                                  <button onClick={() => handleDeleteMatchScore(match.id)} className="text-zinc-500 hover:text-red-500"><Trash2 size={14} /></button>
+                                  <button onClick={() => { setEditingMatch(match); setIsMatchFormOpen(true); }} className="text-zinc-500 hover:text-white p-1"><Edit size={14} /></button>
+                                  <button onClick={() => handleDeleteMatch(match.id)} className="text-zinc-500 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                                 </>
                               )}
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-center gap-6">
-                            <div className="text-center flex-1">
-                              <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time A</p>
+                          <div className="flex items-center justify-around gap-4 text-center">
+                            <div className="flex-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase mb-1">Mandante</p>
                               <p className="font-black text-white uppercase text-sm truncate">{match.team_a_name}</p>
-                              {match.scorers_a && (
-                                <div className="mt-2 text-[10px] text-zinc-400 font-medium">
-                                  <div className="flex flex-wrap justify-center gap-1">
-                                    {match.scorers_a.split(',').map((s, i) => (
-                                      <span key={i} className="bg-zinc-800 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                        <Activity size={8} /> {s.trim()}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
-                            <div className="flex flex-col items-center gap-1">
-                              <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-zinc-800">
-                                <span className="text-3xl font-black text-white">{match.score_a}</span>
-                                <span className="text-zinc-700 font-black">X</span>
-                                <span className="text-3xl font-black text-white">{match.score_b}</span>
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-xl border border-zinc-800">
+                                <span className="text-xl font-black text-white">{match.score_a}</span>
+                                <span className="text-zinc-700 font-black text-xs">X</span>
+                                <span className="text-xl font-black text-white">{match.score_b}</span>
                               </div>
                             </div>
-                            <div className="text-center flex-1">
-                              <p className="text-[10px] font-black text-zinc-500 uppercase truncate mb-1">Time B</p>
+                            <div className="flex-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase mb-1">Visitante</p>
                               <p className="font-black text-white uppercase text-sm truncate">{match.team_b_name}</p>
-                              {match.scorers_b && (
-                                <div className="mt-2 text-[10px] text-zinc-400 font-medium">
-                                  <div className="flex flex-wrap justify-center gap-1">
-                                    {match.scorers_b.split(',').map((s, i) => (
-                                      <span key={i} className="bg-zinc-800 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                        <Activity size={8} /> {s.trim()}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
 
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/50">
+                            <div className="flex items-center gap-2 text-zinc-400">
+                              <Calendar size={12} className="text-theme-primary" />
+                              <span className="text-[10px] font-bold">{match.date}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-zinc-400">
+                              <Clock size={12} className="text-theme-primary" />
+                              <span className="text-[10px] font-bold">{match.time}</span>
+                            </div>
+                            {match.location && (
+                              <div className="flex items-center gap-2 text-zinc-400 col-span-2">
+                                <MapPin size={12} className="text-theme-primary" />
+                                <span className="text-[10px] font-bold truncate">{match.location}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-4 flex gap-2">
+                            <button
+                              onClick={() => handleOpenLineup(selectedEvent, 0, match.id)}
+                              className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all border",
+                                activeMatchId === match.id
+                                  ? "bg-theme-primary border-theme-primary text-black"
+                                  : "bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700"
+                              )}
+                            >
+                              <Users size={14} />
+                              {activeMatchId === match.id ? 'GERENCIAR ESCALAÇÃO' : 'ESCALAR PARA ESTE JOGO'}
+                            </button>
+                            {isAdmin && (
+                               <button
+                               onClick={() => {
+                                 setEditingMatch(match);
+                                 setIsMatchFormOpen(true);
+                               }}
+                               className="px-4 py-3 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all"
+                               title="Editar Placar e Detalhes"
+                             >
+                               <Trophy size={14} />
+                             </button>
+                            )}
+                          </div>
+
                           {match.observations && (
-                            <p className="text-xs text-zinc-500 italic text-center border-t border-zinc-800 pt-3">{match.observations}</p>
+                            <p className="text-[10px] text-zinc-500 italic text-center pt-2">{match.observations}</p>
                           )}
                         </div>
                       ))}
@@ -1397,12 +1447,55 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
                       <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex items-center justify-between mb-8">
-                          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Registrar Placar</h3>
+                          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Detalhes do Jogo</h3>
                           <button onClick={() => setIsMatchFormOpen(false)} className="text-zinc-500 hover:text-white"><X size={24} /></button>
                         </div>
                         
-                        <form onSubmit={handleSaveMatchScore} className="space-y-6">
-                          <div className="grid grid-cols-2 gap-6">
+                        <form onSubmit={handleSaveMatch} className="space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Categoria (ex: Sub-15)</label>
+                              <input 
+                                type="text" 
+                                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-xs focus:ring-1 focus:ring-theme-primary"
+                                value={editingMatch?.category || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, category: e.target.value})}
+                                placeholder="Geral"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Data</label>
+                              <input 
+                                required
+                                type="date" 
+                                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-xs"
+                                value={editingMatch?.date || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, date: e.target.value})}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Horário</label>
+                              <input 
+                                required
+                                type="time" 
+                                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-xs"
+                                value={editingMatch?.time || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, time: e.target.value})}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Local</label>
+                              <input 
+                                type="text" 
+                                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-xs focus:ring-1 focus:ring-theme-primary"
+                                value={editingMatch?.location || ''}
+                                onChange={e => setEditingMatch({...editingMatch!, location: e.target.value})}
+                                placeholder="Nome do Campo / Ginásio"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-6 pt-4 border-t border-zinc-800/50">
                             <div className="space-y-4">
                               <div className="text-center">
                                 <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Time Local</label>
@@ -1769,42 +1862,62 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                     
                                     <div className="flex items-center gap-1">
                                       {savedAthlete ? (
-                                        <div className="flex-1 flex gap-1">
-                                          <div className="flex-1 flex flex-col gap-1">
-                                            <div className="flex gap-1">
-                                              <button 
-                                                onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
-                                                className={cn(
-                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                  savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                                )}
-                                              >
-                                                Sim
-                                              </button>
-                                              <button 
-                                                onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
-                                                className={cn(
-                                                  "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                  savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                                                )}
-                                              >
-                                                Não
-                                              </button>
-                                            </div>
+                                        <div className="flex-1 flex min-w-0">
+                                        <div className="flex-1 flex flex-col gap-1">
+                                          <div className="flex gap-1">
+                                            <button 
+                                              onClick={() => handleUpdateAthleteStatus(a.id, 'Titular')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                                                (savedAthlete as any).lineup_status === 'Titular' ? "bg-theme-primary text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Titular
+                                            </button>
+                                            <button 
+                                              onClick={() => handleUpdateAthleteStatus(a.id, 'Reserva')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all",
+                                                (savedAthlete as any).lineup_status === 'Reserva' ? "bg-zinc-700 text-white" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Reserva
+                                            </button>
                                           </div>
-                                          <button 
-                                            onClick={() => handleGenerateReceiptPDF({
-                                              name: a.name,
-                                              event: selectedEvent?.name || '',
-                                              date: selectedEvent?.start_date || '',
-                                              type: 'Atleta'
-                                            })}
-                                            className="p-2 rounded-lg bg-zinc-800 text-zinc-500 hover:text-theme-primary hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
-                                            title="Gerar Comprovante PDF"
-                                          >
-                                            <FileText size={14} />
-                                          </button>
+                                          <div className="flex gap-1">
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Confirmar
+                                            </button>
+                                            <button 
+                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                              className={cn(
+                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                                                savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
+                                              )}
+                                            >
+                                              Recusar
+                                            </button>
+                                          </div>
                                         </div>
+                                        <button 
+                                          onClick={() => handleGenerateReceiptPDF({
+                                            name: a.name,
+                                            event: selectedEvent?.name || '',
+                                            date: selectedEvent?.start_date || '',
+                                            type: `Atleta (${(savedAthlete as any).lineup_status || 'Não definido'})`
+                                          })}
+                                          className="p-2 ml-1 rounded-lg bg-zinc-900 text-zinc-500 hover:text-theme-primary hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
+                                          title="Gerar Comprovante PDF"
+                                        >
+                                          <FileText size={14} />
+                                        </button>
+                                      </div>
                                       ) : (
                                         <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
                                       )}

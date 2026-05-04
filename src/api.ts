@@ -28,7 +28,7 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatchScore, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
 
 const SETTINGS_ID = "global_settings";
 
@@ -1062,17 +1062,25 @@ export const api = {
   },
 
   // Lineups (using a subcollection or separate collection)
-  getLineup: async (event_id: string, lineup_index: number = 0): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
-    const cacheKey = `lineup_${event_id}_${lineup_index}`;
+  getLineup: async (event_id: string, lineup_index: number = 0, match_id?: string): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
+    const cacheKey = match_id ? `lineup_match_${match_id}` : `lineup_${event_id}_${lineup_index}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
-      const q = query(
-        collection(db, "event_lineups"), 
-        where("event_id", "==", event_id),
-        where("lineup_index", "==", lineup_index)
-      );
+      let q;
+      if (match_id) {
+        q = query(
+          collection(db, "event_lineups"), 
+          where("match_id", "==", match_id)
+        );
+      } else {
+        q = query(
+          collection(db, "event_lineups"), 
+          where("event_id", "==", event_id),
+          where("lineup_index", "==", lineup_index)
+        );
+      }
       const querySnapshot = await getDocsWithCacheFallback(q);
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
@@ -1088,7 +1096,7 @@ export const api = {
         .filter(a => athleteIds.includes(a.id))
         .map(a => {
           const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
-          return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
+          return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence, lineup_status: el?.lineup_status };
         });
 
       const staff = allProfessors
@@ -1106,25 +1114,34 @@ export const api = {
       return { athletes: [], staff: [] };
     }
   },
-  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0, category?: string, lineup_name?: string) => {
+  saveLineup: async (event_id: string, athlete_ids: string[], staff_ids: string[] = [], lineup_index: number = 0, category?: string, lineup_name?: string, match_id?: string) => {
     try {
       const batch = writeBatch(db);
       
       // Delete existing for this specific lineup
-      const q = query(
-        collection(db, "event_lineups"), 
-        where("event_id", "==", event_id),
-        where("lineup_index", "==", lineup_index)
-      );
+      let q;
+      if (match_id) {
+        q = query(
+          collection(db, "event_lineups"), 
+          where("match_id", "==", match_id)
+        );
+      } else {
+        q = query(
+          collection(db, "event_lineups"), 
+          where("event_id", "==", event_id),
+          where("lineup_index", "==", lineup_index)
+        );
+      }
       const querySnapshot = await getDocs(q);
       querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
       
       // Add athletes
       athlete_ids.forEach(aid => {
-        const id = `${event_id}_${lineup_index}_athlete_${aid}`;
+        const id = match_id ? `${match_id}_athlete_${aid}` : `${event_id}_${lineup_index}_athlete_${aid}`;
         batch.set(doc(db, "event_lineups", id), {
           event_id,
-          lineup_index,
+          lineup_index: match_id ? undefined : lineup_index,
+          match_id,
           person_id: aid,
           type: 'athlete',
           category,
@@ -1136,10 +1153,11 @@ export const api = {
 
       // Add staff
       staff_ids.forEach(sid => {
-        const id = `${event_id}_${lineup_index}_staff_${sid}`;
+        const id = match_id ? `${match_id}_staff_${sid}` : `${event_id}_${lineup_index}_staff_${sid}`;
         batch.set(doc(db, "event_lineups", id), {
           event_id,
-          lineup_index,
+          lineup_index: match_id ? undefined : lineup_index,
+          match_id,
           person_id: sid,
           type: 'staff',
           category,
@@ -1150,7 +1168,8 @@ export const api = {
       });
       
       await batch.commit();
-      delete cache[`lineup_${event_id}_${lineup_index}`];
+      if (match_id) delete cache[`lineup_match_${match_id}`];
+      else delete cache[`lineup_${event_id}_${lineup_index}`];
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
@@ -1258,6 +1277,18 @@ export const api = {
       delete cache[`lineup_${event_id}_${lineup_index}`];
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
+    }
+  },
+
+  updateAthleteStatusInLineup: async (event_id: string, person_id: string, status: "Titular" | "Reserva", lineup_index: number = 0, match_id?: string) => {
+    try {
+      const id = match_id ? `${match_id}_athlete_${person_id}` : `${event_id}_${lineup_index}_athlete_${person_id}`;
+      const docRef = doc(db, "event_lineups", id);
+      await updateDoc(docRef, { lineup_status: status, updated_at: serverTimestamp() });
+      if (match_id) delete cache[`lineup_match_${match_id}`];
+      else delete cache[`lineup_${event_id}_${lineup_index}`];
+    } catch (error) {
+       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${match_id || event_id}_status_${person_id}`);
     }
   },
 
@@ -1756,18 +1787,18 @@ export const api = {
     }
   },
 
-  // Event Match Scores
-  getEventMatchScores: async (eventId: string): Promise<EventMatchScore[]> => {
+  // Event Matches
+  getEventMatches: async (eventId: string): Promise<EventMatch[]> => {
     try {
       const q = query(collection(db, "event_matches"), where("event_id", "==", eventId), orderBy("created_at", "asc"));
       const querySnapshot = await getDocsWithCacheFallback(q);
-      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as EventMatchScore));
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as EventMatch));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, `event_matches?event_id=${eventId}`);
       return [];
     }
   },
-  saveEventMatchScore: async (match: Partial<EventMatchScore>) => {
+  saveEventMatch: async (match: Partial<EventMatch>) => {
     try {
       const id = match.id || doc(collection(db, "event_matches")).id;
       const data = { 
@@ -1783,9 +1814,20 @@ export const api = {
       throw error;
     }
   },
-  deleteEventMatchScore: async (id: string) => {
+  deleteEventMatch: async (id: string) => {
     try {
-      await deleteDoc(doc(db, "event_matches", id));
+      const batch = writeBatch(db);
+      
+      // Delete the match
+      batch.delete(doc(db, "event_matches", id));
+      
+      // Delete the associated lineup
+      const q = query(collection(db, "event_lineups"), where("match_id", "==", id));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      
+      await batch.commit();
+      delete cache[`lineup_match_${id}`];
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_matches/${id}`);
     }

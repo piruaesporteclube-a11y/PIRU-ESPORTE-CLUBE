@@ -219,13 +219,33 @@ export type UniformModel = {
 
 export type EventLineup = {
   event_id: string;
-  lineup_index: number;
+  lineup_index?: number;
+  match_id?: string;
   person_id: string;
   type: 'athlete' | 'staff';
+  lineup_status?: "Titular" | "Reserva";
   confirmation: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field
   category?: string;
   lineup_name?: string;
+};
+
+export type EventMatch = {
+  id: string;
+  event_id: string;
+  team_a_name: string;
+  team_b_name: string;
+  score_a: number;
+  score_b: number;
+  scorers_a?: string;
+  scorers_b?: string;
+  category?: string;
+  date: string;
+  time: string;
+  location?: string;
+  observations?: string;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type Championship = {
