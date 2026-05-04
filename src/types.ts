@@ -368,7 +368,7 @@ export type UniformRequest = {
   category: string;
   type: "Conjunto Completo" | "Camisa Avulsa";
   uniform_group: UniformGroup;
-  size: "PP" | "P" | "M" | "G" | "GG" | "XG";
+  size: "02" | "04" | "06" | "08" | "10" | "12" | "14" | "16" | "PP" | "P" | "M" | "G" | "GG" | "XG" | "XXG";
   jersey_number: string;
   status: "Pendente" | "Aprovado" | "Entregue" | "Recusado";
   sponsor_block_id?: string;

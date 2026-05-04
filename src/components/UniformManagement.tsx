@@ -742,6 +742,16 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     }
   };
 
+  const handleUpdateBlock = async (request: UniformRequest, blockId: string) => {
+    try {
+      await api.saveUniformRequest({ ...request, sponsor_block_id: blockId });
+      toast.success("Bloco atualizado com sucesso!");
+      loadData();
+    } catch (error) {
+      toast.error("Erro ao atualizar bloco.");
+    }
+  };
+
   const handleDeleteRequest = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!confirm("Deseja excluir esta solicitação?")) return;
@@ -881,16 +891,18 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     ))}
                 </select>
 
-                <select 
-                    className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
-                    value={blockFilter}
-                    onChange={(e) => setBlockFilter(e.target.value)}
-                >
-                    <option value="all">TODOS BLOCOS</option>
-                    {sponsorBlocks.map(block => (
-                        <option key={block.id} value={block.id}>{block.name}</option>
-                    ))}
-                </select>
+                {isAdmin && (
+                    <select 
+                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                        value={blockFilter}
+                        onChange={(e) => setBlockFilter(e.target.value)}
+                    >
+                        <option value="all">TODOS BLOCOS</option>
+                        {sponsorBlocks.map(block => (
+                            <option key={block.id} value={block.id}>{block.name}</option>
+                        ))}
+                    </select>
+                )}
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -980,7 +992,35 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                             </div>
                             </div>
 
-                            {block && (
+                            {isAdmin ? (
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Designar Bloco (ADM)</label>
+                                    <select 
+                                        className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-theme-primary/50 text-[10px] font-black uppercase"
+                                        value={req.sponsor_block_id || ''}
+                                        onChange={(e) => handleUpdateBlock(req, e.target.value)}
+                                    >
+                                        <option value="">AGUARDANDO DEFINIÇÃO</option>
+                                        {sponsorBlocks.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                    {block && (
+                                        <div className="flex -space-x-1.5 overflow-hidden mt-1 px-1">
+                                            {block.sponsors.map((s, i) => (
+                                                <div key={i} className="w-5 h-5 rounded-full border border-zinc-900 bg-white overflow-hidden flex items-center justify-center">
+                                                    <img 
+                                                        src={s.logo} 
+                                                        className="max-w-full max-h-full object-contain" 
+                                                        title={s.name}
+                                                        style={{ transform: `scale(${s.logo_scale || 1})` }}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : block && (
                                 <div className="p-3 bg-theme-primary/5 rounded-xl border border-theme-primary/10">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Layers className="text-theme-primary" size={12} />
@@ -1392,7 +1432,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     value={newRequest.size}
                     onChange={(e) => setNewRequest({...newRequest, size: e.target.value as any})}
                   >
-                    {['PP', 'P', 'M', 'G', 'GG', 'XG'].map(size => (
+                    {['02', '04', '06', '08', '10', '12', '14', '16', 'PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'].map(size => (
                       <option key={size} value={size}>{size}</option>
                     ))}
                   </select>
@@ -1417,19 +1457,21 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                 </div>
               </div>
 
-              <div>
-                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Bloco de Patrocinadores</label>
-                  <select 
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
-                    value={newRequest.sponsor_block_id}
-                    onChange={(e) => setNewRequest({...newRequest, sponsor_block_id: e.target.value})}
-                  >
-                    <option value="">NENHUM (OU AGUARDAR DEFINIÇÃO)</option>
-                    {sponsorBlocks.map(block => (
-                        <option key={block.id} value={block.id}>{block.name}</option>
-                    ))}
-                  </select>
-              </div>
+              {isAdmin && (
+                <div>
+                    <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Bloco de Patrocinadores</label>
+                    <select 
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-[10px] font-black uppercase tracking-widest"
+                      value={newRequest.sponsor_block_id}
+                      onChange={(e) => setNewRequest({...newRequest, sponsor_block_id: e.target.value})}
+                    >
+                      <option value="">NENHUM (OU AGUARDAR DEFINIÇÃO)</option>
+                      {sponsorBlocks.map(block => (
+                          <option key={block.id} value={block.id}>{block.name}</option>
+                      ))}
+                    </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Observações</label>
