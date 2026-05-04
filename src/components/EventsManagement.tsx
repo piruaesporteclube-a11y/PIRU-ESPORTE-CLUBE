@@ -574,11 +574,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     if (window.confirm("Tem certeza que deseja limpar todos os atletas e comissão técnica desta escalação?")) {
       setSelectedAthletes([]);
       setSelectedStaff([]);
+      setLineupAthletes([]);
+      setLineupStaff([]);
       setLineupCategory('');
       setLineupName('');
       toast.success("Escalação limpa! Não esqueça de salvar para confirmar as alterações.");
     }
   };
+
+  const [isSavingLineup, setIsSavingLineup] = useState(false);
 
   const handleSaveLineup = async () => {
     if (isEventFinished) {
@@ -587,6 +591,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
     if (!selectedEvent) return;
 
+    setIsSavingLineup(true);
     const loadingToast = toast.loading('Salvando escalação...');
     try {
       await api.saveLineup(
@@ -598,25 +603,45 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         lineupName
       );
       
+      // Delay slightly to ensure Firebase consistency if needed, though usually not required with the cache clear
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Force refresh data
       const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex);
       setLineupAthletes(updatedLineup);
       setLineupStaff(updatedStaff);
       
       // Update indices data for UI
-      setLineupIndicesWithData(prev => ({
-        ...prev,
-        [activeLineupIndex]: lineupCategory || 'Com Dados'
-      }));
+      setLineupIndicesWithData(prev => {
+        const hasData = selectedAthletes.length > 0 || selectedStaff.length > 0 || lineupCategory;
+        if (!hasData) {
+          const next = { ...prev };
+          delete next[activeLineupIndex];
+          return next;
+        }
+        return {
+          ...prev,
+          [activeLineupIndex]: lineupCategory || 'Com Dados'
+        };
+      });
+
       setLineupIndicesWithNames(prev => ({
         ...prev,
         [activeLineupIndex]: lineupName
+      }));
+
+      // Update total counts for the main list
+      setLineupCounts(prev => ({
+        ...prev,
+        [selectedEvent.id]: selectedAthletes.length
       }));
       
       toast.success('Escalação salva com sucesso!', { id: loadingToast });
     } catch (err: any) {
       console.error('Save error:', err);
       toast.error(`Erro ao salvar escalação: ${err.message}`, { id: loadingToast });
+    } finally {
+      setIsSavingLineup(false);
     }
   };
 
@@ -1699,9 +1724,12 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                       <Trash2 size={16} />
                       Limpar
                     </button>
-                    <button onClick={handleSaveLineup} className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2">
-                      <Save size={20} />
-                      Salvar SUB
+                    <button 
+                      onClick={handleSaveLineup} 
+                      disabled={isSavingLineup}
+                      className="px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {isSavingLineup ? <span className="animate-pulse">Salvando...</span> : <><Save size={20} /> Salvar SUB</>}
                     </button>
                   </div>
                 )}
