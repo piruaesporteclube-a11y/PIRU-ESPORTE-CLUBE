@@ -725,30 +725,35 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setLineupAthletes(updatedLineup);
       setLineupStaff(updatedStaff);
       
-      // Update indices data for UI
-      setLineupIndicesWithData(prev => {
-        const hasData = selectedAthletes.length > 0 || selectedStaff.length > 0 || lineupCategory;
-        if (!hasData) {
-          const next = { ...prev };
-          delete next[activeLineupIndex];
-          return next;
-        }
-        return {
+      // Update indices data for UI (only for general lineups)
+      if (!activeMatchId) {
+        setLineupIndicesWithData(prev => {
+          const hasData = selectedAthletes.length > 0 || selectedStaff.length > 0 || lineupCategory;
+          if (!hasData) {
+            const next = { ...prev };
+            delete next[activeLineupIndex];
+            return next;
+          }
+          return {
+            ...prev,
+            [activeLineupIndex]: lineupCategory || 'Com Dados'
+          };
+        });
+
+        setLineupIndicesWithNames(prev => ({
           ...prev,
-          [activeLineupIndex]: lineupCategory || 'Com Dados'
-        };
-      });
+          [activeLineupIndex]: lineupName
+        }));
 
-      setLineupIndicesWithNames(prev => ({
-        ...prev,
-        [activeLineupIndex]: lineupName
-      }));
-
-      // Update total counts for the main list
-      setLineupCounts(prev => ({
-        ...prev,
-        [selectedEvent.id]: selectedAthletes.length
-      }));
+        // Update total counts for the main list
+        setLineupCounts(prev => ({
+          ...prev,
+          [selectedEvent.id]: selectedAthletes.length
+        }));
+      } else {
+        // For matches, we might want to refresh the match list counts or something, 
+        // but for now refreshes on event list are usually enough
+      }
       
       toast.success('Escalação salva com sucesso!', { id: loadingToast });
     } catch (err: any) {
@@ -789,6 +794,47 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       }
     } catch (err: any) {
       toast.error(`Erro ao excluir: ${err.message}`);
+    }
+  };
+
+  const handleRemoveLineup = async () => {
+    if (!selectedEvent || !confirm("Deseja realmente excluir COMPLETAMENTE esta lista (atletas, comissão e configurações)?")) return;
+    
+    const loadingToast = toast.loading('Excluindo lista...');
+    try {
+      await api.saveLineup(
+        selectedEvent.id, 
+        [], 
+        [], 
+        activeLineupIndex, 
+        '', 
+        '', 
+        activeMatchId || undefined
+      );
+      
+      setLineupAthletes([]);
+      setLineupStaff([]);
+      setLineupCategory('');
+      setLineupName('');
+      setSelectedAthletes([]);
+      setSelectedStaff([]);
+      
+      if (!activeMatchId) {
+        setLineupIndicesWithData(prev => {
+          const next = { ...prev };
+          delete next[activeLineupIndex];
+          return next;
+        });
+        setLineupIndicesWithNames(prev => {
+          const next = { ...prev };
+          delete next[activeLineupIndex];
+          return next;
+        });
+      }
+      
+      toast.success('Lista excluída com sucesso!', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(`Erro ao excluir lista: ${err.message}`, { id: loadingToast });
     }
   };
 
@@ -1275,7 +1321,15 @@ export default function EventsManagement({ athletes: athletesProp, events: event
               <div className="flex items-center gap-2">
                 <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
                 {isAdmin && (
-                  <div className="flex items-center gap-2">
+                  <>
+                    <button 
+                      onClick={handleRemoveLineup}
+                      className="p-2 bg-red-900/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all border border-red-500/20"
+                      title="Excluir TODOS os dados desta lista (Atletas e Comissão)"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                    <div className="flex items-center gap-2">
                         <button 
                           onClick={handleSyncWhatsAppGroup}
                           disabled={isWhatsAppGroupLoading}
@@ -1297,7 +1351,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                           </button>
                         )}
                       </div>
-                    )}
+                    </>
+                  )}
                   <button onClick={() => setIsLineupOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                     <X size={18} className="group-hover:rotate-90 transition-transform" />
                     <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>

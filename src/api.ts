@@ -1133,38 +1133,66 @@ export const api = {
         );
       }
       const querySnapshot = await getDocs(q);
-      querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      
+      // Store existing statuses to preserve them
+      const existingData: Record<string, any> = {};
+      querySnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.person_id) {
+          existingData[data.person_id] = {
+            confirmation: data.confirmation,
+            presence: data.presence,
+            lineup_status: data.lineup_status
+          };
+        }
+        batch.delete(doc.ref);
+      });
       
       // Add athletes
       athlete_ids.forEach(aid => {
         const id = match_id ? `${match_id}_athlete_${aid}` : `${event_id}_${lineup_index}_athlete_${aid}`;
-        batch.set(doc(db, "event_lineups", id), {
+        const existing = existingData[aid] || {};
+        
+        const docData: any = {
           event_id,
-          lineup_index: match_id ? undefined : lineup_index,
-          match_id,
           person_id: aid,
           type: 'athlete',
-          category,
-          lineup_name,
-          confirmation: "Pendente",
+          confirmation: existing.confirmation || "Pendente",
           updated_at: serverTimestamp()
-        });
+        };
+        
+        if (match_id) docData.match_id = match_id;
+        else docData.lineup_index = lineup_index;
+        
+        if (category) docData.category = category;
+        if (lineup_name) docData.lineup_name = lineup_name;
+        if (existing.presence) docData.presence = existing.presence;
+        if (existing.lineup_status) docData.lineup_status = existing.lineup_status;
+        
+        batch.set(doc(db, "event_lineups", id), docData);
       });
 
       // Add staff
       staff_ids.forEach(sid => {
         const id = match_id ? `${match_id}_staff_${sid}` : `${event_id}_${lineup_index}_staff_${sid}`;
-        batch.set(doc(db, "event_lineups", id), {
+        const existing = existingData[sid] || {};
+        
+        const docData: any = {
           event_id,
-          lineup_index: match_id ? undefined : lineup_index,
-          match_id,
           person_id: sid,
           type: 'staff',
-          category,
-          lineup_name,
-          confirmation: "Pendente",
+          confirmation: existing.confirmation || "Pendente",
           updated_at: serverTimestamp()
-        });
+        };
+        
+        if (match_id) docData.match_id = match_id;
+        else docData.lineup_index = lineup_index;
+        
+        if (category) docData.category = category;
+        if (lineup_name) docData.lineup_name = lineup_name;
+        if (existing.presence) docData.presence = existing.presence;
+        
+        batch.set(doc(db, "event_lineups", id), docData);
       });
       
       await batch.commit();
