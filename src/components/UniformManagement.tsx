@@ -437,6 +437,23 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     loadData();
   }, [user, athletes]);
 
+  useEffect(() => {
+    // If student, try to auto-select their athlete record as soon as athletes load
+    if (user?.role === 'student' && user?.athlete_id && athletes.length > 0) {
+        const studentAthlete = athletes.find(a => a.id === user.athlete_id);
+        if (studentAthlete && !selectedAthlete) {
+            setSelectedAthlete(studentAthlete);
+            setNewRequest(prev => ({
+                ...prev,
+                athlete_id: studentAthlete.id,
+                athlete_name: studentAthlete.name,
+                category: getSubCategory(studentAthlete.birth_date),
+                jersey_number: studentAthlete.jersey_number || ''
+            }));
+        }
+    }
+  }, [user, athletes, selectedAthlete]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -455,20 +472,6 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
       setSponsorBlocks(blocksData);
       setAllSponsors(sponsorsData);
       setUniformModels(modelsData);
-
-      if (user?.role === 'student' && user?.athlete_id) {
-          const studentAthlete = athletes.find(a => a.id === user.athlete_id);
-          if (studentAthlete) {
-              setSelectedAthlete(studentAthlete);
-              setNewRequest(prev => ({
-                  ...prev,
-                  athlete_id: studentAthlete.id,
-                  athlete_name: studentAthlete.name,
-                  category: getSubCategory(studentAthlete.birth_date),
-                  jersey_number: studentAthlete.jersey_number || ''
-              }));
-          }
-      }
     } catch (error) {
       console.error("Error loading uniform data:", error);
       toast.error("Erro ao carregar dados.");
@@ -529,22 +532,35 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     const finalAthleteName = athlete?.name || newRequest.athlete_name;
     const finalCategory = athlete ? getSubCategory(athlete.birth_date) : newRequest.category;
 
-    if (!finalAthleteId || !newRequest.jersey_number || !newRequest.size || !finalCategory) {
+    if (!finalAthleteId || !newRequest.jersey_number || !newRequest.size || !finalCategory || !finalAthleteName) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
 
     setLoading(true);
     try {
-      // Check number availability
-      const isAvailable = await api.checkNumberAvailability(
-        finalCategory, 
-        newRequest.jersey_number!, 
-        finalAthleteId
-      );
+      // Check number availability locally using loaded requests and athletes props
+      const isTakenByAthlete = athletes.some(a => {
+        if (a.id === finalAthleteId) return false;
+        const athleteCategory = getSubCategory(a.birth_date);
+        return athleteCategory === finalCategory && a.jersey_number === newRequest.jersey_number;
+      });
 
-      if (!isAvailable) {
-        toast.error(`O número ${newRequest.jersey_number} já está ocupado na categoria ${finalCategory}.`);
+      if (isTakenByAthlete) {
+        toast.error(`O número ${newRequest.jersey_number} já está registrado para outro atleta na categoria ${finalCategory}.`);
+        setLoading(false);
+        return;
+      }
+
+      const isTakenByRequest = requests.some(r => {
+        if (r.athlete_id === finalAthleteId) return false;
+        return r.category === finalCategory && 
+               r.jersey_number === newRequest.jersey_number && 
+               (r.status === 'Pendente' || r.status === 'Aprovado' || r.status === 'Entregue');
+      });
+
+      if (isTakenByRequest) {
+        toast.error(`O número ${newRequest.jersey_number} já está em um pedido pendente ou aprovado para a categoria ${finalCategory}.`);
         setLoading(false);
         return;
       }
@@ -560,9 +576,16 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
       toast.success(isAdmin ? "Solicitação criada com sucesso!" : "Solicitação enviada com sucesso!");
       setIsModalOpen(false);
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving request:", error);
-      toast.error("Erro ao enviar solicitação.");
+      const errorMessage = error?.message || "";
+      if (errorMessage.includes("permission-denied") || errorMessage.includes("insufficient permissions")) {
+        toast.error("Sem permissão. Verifique seu cadastro de atleta.");
+      } else if (errorMessage.includes("quota-exhausted") || errorMessage.includes("Quota limit exceeded")) {
+        toast.error("Cota do Firebase atingida. Tente novamente mais tarde.");
+      } else {
+        toast.error("Erro ao enviar solicitação.");
+      }
     } finally {
       setLoading(false);
     }
