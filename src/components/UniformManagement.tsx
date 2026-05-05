@@ -523,7 +523,13 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
   };
 
   const handleSaveRequest = async () => {
-    if (!newRequest.athlete_id || !newRequest.jersey_number || !newRequest.size) {
+    // Ensure we have an athlete selected and all required data
+    const athlete = selectedAthlete;
+    const finalAthleteId = athlete?.id || newRequest.athlete_id;
+    const finalAthleteName = athlete?.name || newRequest.athlete_name;
+    const finalCategory = athlete ? getSubCategory(athlete.birth_date) : newRequest.category;
+
+    if (!finalAthleteId || !newRequest.jersey_number || !newRequest.size || !finalCategory) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
@@ -532,21 +538,23 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     try {
       // Check number availability
       const isAvailable = await api.checkNumberAvailability(
-        newRequest.category!, 
+        finalCategory, 
         newRequest.jersey_number!, 
-        newRequest.athlete_id
+        finalAthleteId
       );
 
       if (!isAvailable) {
-        toast.error(`O número ${newRequest.jersey_number} já está ocupado na categoria ${newRequest.category}.`);
+        toast.error(`O número ${newRequest.jersey_number} já está ocupado na categoria ${finalCategory}.`);
         setLoading(false);
         return;
       }
 
       await api.saveUniformRequest({
           ...newRequest,
-          athlete_name: selectedAthlete?.name || newRequest.athlete_name,
-          status: isAdmin ? 'Aprovado' : 'Pendente'
+          athlete_id: finalAthleteId,
+          athlete_name: finalAthleteName,
+          category: finalCategory,
+          status: isAdmin ? (newRequest.status || 'Aprovado') : 'Pendente'
       } as UniformRequest);
       
       toast.success(isAdmin ? "Solicitação criada com sucesso!" : "Solicitação enviada com sucesso!");
@@ -829,9 +837,25 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                     if (isAdmin) {
                         setSelectedAthlete(null);
                         setNewRequest({
+                            type: 'Conjunto Completo',
+                            uniform_group: 'Viagem',
                             size: 'M',
                             jersey_number: '',
                             status: 'Aprovado',
+                            observations: '',
+                            sponsor_block_id: ''
+                        });
+                    } else if (selectedAthlete) {
+                        // For students, ensure we initialize with their data
+                        setNewRequest({
+                            athlete_id: selectedAthlete.id,
+                            athlete_name: selectedAthlete.name,
+                            category: getSubCategory(selectedAthlete.birth_date),
+                            type: 'Conjunto Completo',
+                            uniform_group: 'Viagem',
+                            size: 'M',
+                            jersey_number: selectedAthlete.jersey_number || '',
+                            status: 'Pendente',
                             observations: '',
                             sponsor_block_id: ''
                         });
