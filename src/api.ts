@@ -1912,11 +1912,29 @@ export const api = {
   },
 
   // Uniform Requests
-  getUniformRequests: async (): Promise<UniformRequest[]> => {
+  getUniformRequests: async (athleteId?: string): Promise<UniformRequest[]> => {
     try {
-      const q = query(collection(db, "uniform_requests"), orderBy("created_at", "desc"));
+      let q = query(collection(db, "uniform_requests"), orderBy("created_at", "desc"));
+      
+      if (athleteId) {
+        // Use a simpler query that doesn't require a composite index
+        q = query(collection(db, "uniform_requests"), where("athlete_id", "==", athleteId));
+      }
+      
       const querySnapshot = await getDocsWithCacheFallback(q);
-      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as UniformRequest));
+      const results = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as UniformRequest));
+      
+      // If we filtered by athleteId, we need to sort client-side because 
+      // we removed the orderBy from the query to avoid composite index requirement
+      if (athleteId) {
+        return results.sort((a, b) => {
+          const dateA = a.created_at?.seconds || 0;
+          const dateB = b.created_at?.seconds || 0;
+          return dateB - dateA;
+        });
+      }
+      
+      return results;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "uniform_requests");
       return [];

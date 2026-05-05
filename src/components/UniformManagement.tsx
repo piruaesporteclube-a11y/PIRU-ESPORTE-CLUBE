@@ -435,7 +435,7 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
 
   useEffect(() => {
     loadData();
-  }, [user, athletes]);
+  }, [user, user?.athlete_id]);
 
   useEffect(() => {
     // If student, try to auto-select their athlete record as soon as athletes load
@@ -443,13 +443,6 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
         const studentAthlete = athletes.find(a => a.id === user.athlete_id);
         if (studentAthlete && !selectedAthlete) {
             setSelectedAthlete(studentAthlete);
-            setNewRequest(prev => ({
-                ...prev,
-                athlete_id: studentAthlete.id,
-                athlete_name: studentAthlete.name,
-                category: getSubCategory(studentAthlete.birth_date),
-                jersey_number: studentAthlete.jersey_number || ''
-            }));
         }
     }
   }, [user, athletes, selectedAthlete]);
@@ -458,17 +451,13 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
     setLoading(true);
     try {
       const [requestsData, blocksData, sponsorsData, modelsData] = await Promise.all([
-          api.getUniformRequests(),
+          api.getUniformRequests(isAdmin ? undefined : user?.athlete_id),
           api.getSponsorBlocks(),
           api.getSponsors(),
           api.getUniformModels()
       ]);
       
-      let filteredRequests = requestsData;
-      if (!isAdmin && user?.athlete_id) {
-          filteredRequests = requestsData.filter(r => r.athlete_id === user.athlete_id);
-      }
-      setRequests(filteredRequests);
+      setRequests(requestsData);
       setSponsorBlocks(blocksData);
       setAllSponsors(sponsorsData);
       setUniformModels(modelsData);
@@ -868,20 +857,31 @@ export default function UniformManagement({ user, athletes }: UniformManagementP
                             observations: '',
                             sponsor_block_id: ''
                         });
-                    } else if (selectedAthlete) {
-                        // For students, ensure we initialize with their data
-                        setNewRequest({
-                            athlete_id: selectedAthlete.id,
-                            athlete_name: selectedAthlete.name,
-                            category: getSubCategory(selectedAthlete.birth_date),
-                            type: 'Conjunto Completo',
-                            uniform_group: 'Viagem',
-                            size: 'M',
-                            jersey_number: selectedAthlete.jersey_number || '',
-                            status: 'Pendente',
-                            observations: '',
-                            sponsor_block_id: ''
-                        });
+                    } else {
+                        // For students, find their athlete data if not already set
+                        let athlete = selectedAthlete;
+                        if (!athlete && user?.role === 'student' && user?.athlete_id && athletes.length > 0) {
+                            athlete = athletes.find(a => a.id === user.athlete_id) || null;
+                        }
+                        
+                        if (athlete) {
+                            setSelectedAthlete(athlete);
+                            setNewRequest({
+                                athlete_id: athlete.id,
+                                athlete_name: athlete.name,
+                                category: getSubCategory(athlete.birth_date),
+                                type: 'Conjunto Completo',
+                                uniform_group: 'Viagem',
+                                size: 'M',
+                                jersey_number: athlete.jersey_number || '',
+                                status: 'Pendente',
+                                observations: '',
+                                sponsor_block_id: ''
+                            });
+                        } else if (user?.role === 'student') {
+                            toast.error("Vínculo com atleta não encontrado. Verifique seu cadastro.");
+                            return;
+                        }
                     }
                     setIsModalOpen(true);
                 }}
