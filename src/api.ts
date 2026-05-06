@@ -1308,7 +1308,7 @@ export const api = {
       const existingData: Record<string, any> = {};
       querySnapshot.docs.forEach(doc => {
         const data = doc.data() as any;
-        if (data.person_id) {
+        if (data.person_id && data.person_id !== 'metadata') {
           existingData[data.person_id] = {
             confirmation: data.confirmation,
             presence: data.presence,
@@ -1317,6 +1317,20 @@ export const api = {
         }
         batch.delete(doc.ref);
       });
+      
+      // Add metadata document to preserve lineup name and category even if empty
+      const metadataId = match_id ? `${match_id}_metadata` : `${event_id}_${lineup_index}_metadata`;
+      const metadataDoc: any = {
+        event_id,
+        person_id: 'metadata',
+        type: 'metadata',
+        updated_at: serverTimestamp()
+      };
+      if (match_id) metadataDoc.match_id = match_id;
+      else metadataDoc.lineup_index = lineup_index;
+      if (category) metadataDoc.category = category;
+      if (lineup_name) metadataDoc.lineup_name = lineup_name;
+      batch.set(doc(db, "event_lineups", metadataId), metadataDoc);
       
       // Add athletes
       athlete_ids.forEach(aid => {
@@ -1490,7 +1504,7 @@ export const api = {
     }
   },
 
-  getAllEventLineups: async (event_id: string, allAthletes?: Athlete[], allProfessors?: Professor[]): Promise<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]> => {
+  getAllEventLineups: async (event_id: string, allAthletes?: Athlete[], allProfessors?: Professor[]): Promise<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string, lineup_name?: string }[]> => {
     try {
       const q = query(
         collection(db, "event_lineups"), 
@@ -1523,7 +1537,7 @@ export const api = {
             return { ...p, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
           });
 
-        return { athletes, staff, lineup_index: idx, category };
+        return { athletes, staff, lineup_index: idx, category, lineup_name: lineupData[0]?.lineup_name };
       });
     } catch (error) {
        console.error("Error fetching event lineups:", error);
