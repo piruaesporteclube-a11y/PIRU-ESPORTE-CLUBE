@@ -788,7 +788,7 @@ Contamos com sua presença!`;
       // Update indices data for UI (only for general lineups)
       if (!activeMatchId) {
         setLineupIndicesWithData(prev => {
-          const hasData = selectedAthletes.length > 0 || selectedStaff.length > 0 || lineupCategory;
+          const hasData = selectedAthletes.length > 0 || selectedStaff.length > 0 || lineupCategory || lineupName.trim() !== '';
           if (!hasData) {
             const next = { ...prev };
             delete next[activeLineupIndex];

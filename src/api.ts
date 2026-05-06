@@ -1254,10 +1254,10 @@ export const api = {
       const querySnapshot = await getDocsWithCacheFallback(q);
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
-      const category = lineupData.length > 0 ? lineupData[0].category : undefined;
-      const lineup_name = lineupData.length > 0 ? lineupData[0].lineup_name : undefined;
-      const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
-      const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
+      const category = lineupData.find(d => d.category)?.category;
+      const lineup_name = lineupData.find(d => d.lineup_name)?.lineup_name;
+      const athleteIds = lineupData.filter(d => (d.type === 'athlete' || !d.type) && d.person_id !== 'metadata').map(d => d.person_id || d.athlete_id);
+      const staffIds = lineupData.filter(d => d.type === 'staff' && d.person_id !== 'metadata').map(d => d.person_id);
       
       const athletesList = allAthletes || await api.getAthletes();
       const professorsList = allProfessors || await api.getProfessors();
@@ -1328,8 +1328,8 @@ export const api = {
       };
       if (match_id) metadataDoc.match_id = match_id;
       else metadataDoc.lineup_index = lineup_index;
-      if (category) metadataDoc.category = category;
-      if (lineup_name) metadataDoc.lineup_name = lineup_name;
+      metadataDoc.category = category || '';
+      metadataDoc.lineup_name = lineup_name || '';
       batch.set(doc(db, "event_lineups", metadataId), metadataDoc);
       
       // Add athletes
@@ -1342,14 +1342,14 @@ export const api = {
           person_id: aid,
           type: 'athlete',
           confirmation: existing.confirmation || "Pendente",
+          category: category || '',
+          lineup_name: lineup_name || '',
           updated_at: serverTimestamp()
         };
         
         if (match_id) docData.match_id = match_id;
         else docData.lineup_index = lineup_index;
         
-        if (category) docData.category = category;
-        if (lineup_name) docData.lineup_name = lineup_name;
         if (existing.presence) docData.presence = existing.presence;
         if (existing.lineup_status) docData.lineup_status = existing.lineup_status;
         
@@ -1366,14 +1366,14 @@ export const api = {
           person_id: sid,
           type: 'staff',
           confirmation: existing.confirmation || "Pendente",
+          category: category || '',
+          lineup_name: lineup_name || '',
           updated_at: serverTimestamp()
         };
         
         if (match_id) docData.match_id = match_id;
         else docData.lineup_index = lineup_index;
         
-        if (category) docData.category = category;
-        if (lineup_name) docData.lineup_name = lineup_name;
         if (existing.presence) docData.presence = existing.presence;
         
         batch.set(doc(db, "event_lineups", id), docData);
@@ -1519,9 +1519,14 @@ export const api = {
 
       return (indexes as number[]).map(idx => {
         const lineupData = allLineupData.filter(d => d.lineup_index === idx);
-        const category = lineupData.length > 0 ? lineupData[0].category : undefined;
-        const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
-        const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
+        const category = lineupData.find(d => d.category)?.category;
+        const lineup_name = lineupData.find(d => d.lineup_name)?.lineup_name;
+        const athleteIds = lineupData
+          .filter(d => (d.type === 'athlete' || !d.type) && d.person_id !== 'metadata')
+          .map(d => d.person_id || d.athlete_id);
+        const staffIds = lineupData
+          .filter(d => d.type === 'staff' && d.person_id !== 'metadata')
+          .map(d => d.person_id);
 
         const athletes = athletesList
           .filter(a => athleteIds.includes(a.id))
