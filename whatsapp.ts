@@ -24,6 +24,7 @@ export class WhatsAppService {
 
   private isInitializing = false;
   private reconnectAttempts = 0;
+  private restartRequiredCount = 0;
   private qrTimeoutCount = 0;
   private isHalted = false;
   private lastResetTime = 0;
@@ -155,15 +156,15 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '110.0.5481.177'], // More standard browser ID
+        browser: ['Ubuntu', 'Chrome', '110.0.5481.177'],
         syncFullHistory: false,
-        connectTimeoutMs: 90000, // 90s
+        connectTimeoutMs: 120000, // 120s
         defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 60000, // Less aggressive keepalives
+        keepAliveIntervalMs: 30000, // 30s is more standard
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true,
         generateHighQualityLinkPreview: false,
-        // Add robust reconnect options if available in this version
+        // Add robust reconnect options
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'historical message' };
         }
@@ -196,6 +197,12 @@ export class WhatsAppService {
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
+          
+          if (isRestartRequired) {
+            this.restartRequiredCount++;
+          } else {
+            this.restartRequiredCount = 0;
+          }
 
           // Crucial: Null the socket instance to allow fresh init
           const oldSocket = this.socket;
@@ -210,12 +217,13 @@ export class WhatsAppService {
             try {
               oldSocket.ev.removeAllListeners('connection.update');
               oldSocket.ev.removeAllListeners('creds.update');
+              oldSocket.end();
             } catch (e) {}
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          if (isLoggedOut || isDeviceRemoved) {
-            console.warn(`[WhatsApp] Session invalidated (${isLoggedOut ? 'Logged Out' : 'Device Removed'}). Clearing session...`);
+          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 10) {
+            console.warn(`[WhatsApp] Session invalidated (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Retry Loop'}). Clearing session...`);
             this.logout(false, true); 
             return;
           }
