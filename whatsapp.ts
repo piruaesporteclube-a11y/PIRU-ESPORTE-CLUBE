@@ -176,7 +176,6 @@ export class WhatsAppService {
         generateHighQualityLinkPreview: false,
         linkPreviewImageThumbnailWidth: 192,
         // Improved 515 stabilization
-        shouldSyncHistory: () => false,
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'Piruá PEC notification' };
         }
@@ -200,20 +199,20 @@ export class WhatsAppService {
           
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode}`);
 
-          const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+          const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
-          const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || 
-                                  ((errorMessage.toLowerCase().includes('device_removed') || 
-                                    errorMessage.toLowerCase().includes('device removed') ||
-                                    errorMessage.toLowerCase().includes('conflict') ||
-                                    errorMessage.toLowerCase().includes('unauthorized')) && statusCode !== 515);
+          const isDeviceRemoved = (statusCode === 401 || statusCode === 403 || 
+                                  errorMessage.toLowerCase().includes('device_removed') || 
+                                  errorMessage.toLowerCase().includes('device removed') ||
+                                  errorMessage.toLowerCase().includes('conflict') ||
+                                  errorMessage.toLowerCase().includes('unauthorized')) && statusCode !== 515;
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
           
           if (isRestartRequired) {
             this.restartRequiredCount++;
-            console.log(`[WhatsApp] Restart Required count: ${this.restartRequiredCount}`);
+            console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
           } else {
             this.restartRequiredCount = 0;
           }
@@ -233,9 +232,9 @@ export class WhatsAppService {
                 oldSocket.ev.removeAllListeners('connection.update');
                 oldSocket.ev.removeAllListeners('creds.update');
               }
-              if (isRestartRequired && oldSocket.end) {
-                // For 515, just end normally, sometimes aggressive cleanup causes more issues
-                oldSocket.end(undefined);
+              // Aggressive nuke for 515/401
+              if ((isRestartRequired || isLoggedOut || isDeviceRemoved) && oldSocket.end) {
+                oldSocket.end(new Error(`Session reset: ${statusCode || 515}`));
               } else if (oldSocket.end) {
                 oldSocket.end(undefined);
               }
@@ -243,8 +242,8 @@ export class WhatsAppService {
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 15) {
-            console.warn(`[WhatsApp] Session invalidated (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Retry Loop'}). Clearing session...`);
+          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 8) {
+            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Max Restarts'}). Clearing session...`);
             this.logout(false, true); 
             return;
           }
