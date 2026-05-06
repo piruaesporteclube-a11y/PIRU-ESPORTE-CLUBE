@@ -198,12 +198,13 @@ export class WhatsAppService {
           
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode}`);
 
-          const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+          const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
           
           const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || 
-                                  errorMessage.toLowerCase().includes('device_removed') || 
-                                  errorMessage.toLowerCase().includes('conflict') ||
-                                  errorMessage.toLowerCase().includes('unauthorized');
+                                  ((errorMessage.toLowerCase().includes('device_removed') || 
+                                    errorMessage.toLowerCase().includes('device removed') ||
+                                    errorMessage.toLowerCase().includes('conflict') ||
+                                    errorMessage.toLowerCase().includes('unauthorized')) && statusCode !== 515);
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
