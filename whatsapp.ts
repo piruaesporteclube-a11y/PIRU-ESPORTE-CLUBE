@@ -187,11 +187,6 @@ export class WhatsAppService {
           
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode}`);
 
-          const isQRExpired = statusCode === DisconnectReason.timedOut || 
-                              statusCode === 408 ||
-                              errorMessage.toLowerCase().includes('qr refs attempts ended') ||
-                              errorMessage.toLowerCase().includes('timed out');
-          
           const isLoggedOut = statusCode === DisconnectReason.loggedOut;
           
           const isDeviceRemoved = statusCode === 401 || statusCode === 403 || statusCode === 411 || 
@@ -200,54 +195,65 @@ export class WhatsAppService {
                                   errorMessage.toLowerCase().includes('unauthorized');
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+          const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
 
-          // Decide if we should try simple reconnect or full reset
+          // Crucial: Null the socket instance to allow fresh init
+          const oldSocket = this.socket;
+          const statusBeforeClose = this.connectionStatus;
+          
+          this.socket = null;
           this.connectionStatus = 'disconnected';
           this.qrCode = null;
           this.isInitializing = false;
 
-          // If session is invalidated, we must logout and clear files
+          if (oldSocket) {
+            try {
+              oldSocket.ev.removeAllListeners('connection.update');
+              oldSocket.ev.removeAllListeners('creds.update');
+            } catch (e) {}
+          }
+
+          // Case 1: Session invalidated - must logout and clear files
           if (isLoggedOut || isDeviceRemoved) {
             console.warn(`[WhatsApp] Session invalidated (${isLoggedOut ? 'Logged Out' : 'Device Removed'}). Clearing session...`);
-            this.socket = null;
-            this.logout(false, true); // Don't auto-reinit to avoid loops, wait for user
+            this.logout(false, true); 
             return;
           }
 
-          if (isQRExpired) {
+          // Case 2: QR Expired or Timeout during pairing
+          // If we weren't connected, treat timeout as pairing failure
+          if (isTimedOut && statusBeforeClose !== 'connected') {
             this.qrTimeoutCount++;
-            console.log(`[WhatsApp] QR Timeout count: ${this.qrTimeoutCount}`);
-            if (this.qrTimeoutCount >= 5) { // Increased from 2 to 5
+            console.log(`[WhatsApp] QR/Pairing timeout (Count: ${this.qrTimeoutCount})`);
+            if (this.qrTimeoutCount >= 10) { 
               console.warn('[WhatsApp] QR threshold reached. Halting auto-reinit.');
               this.isHalted = true;
+              return;
             }
-            this.socket = null;
-            // Short delay before re-init to get a new QR
+            
             setTimeout(() => {
               if (!this.isHalted) this.init();
             }, 5000);
             return;
           }
 
-          // Recovery for other errors (network, stream, etc)
+          // Case 3: Standard Reconnect (Network flickers, Stream errors, etc)
           this.reconnectAttempts++;
-          const shouldHalt = this.reconnectAttempts > 50; // Increased from 10 to 50
+          const shouldHalt = this.reconnectAttempts > 100; // Very generous limit
           
           if (shouldHalt) {
             console.error('[WhatsApp] Max reconnection attempts reached. Halting.');
             this.isHalted = true;
-            this.socket = null;
             return;
           }
 
-          const backoff = Math.min(this.reconnectAttempts * 2000, 20000); 
-          const delayTime = isRestartRequired ? 2000 : backoff + 3000;
+          // Immediate reconnect for restart required, otherwise backoff
+          const delayTime = isRestartRequired ? 1000 : Math.min(this.reconnectAttempts * 2000, 30000);
           
           console.log(`[WhatsApp] Attempting reconnect in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
           
           setTimeout(() => {
-            // Only re-init if still disconnected and not halted
-            if (this.connectionStatus === 'disconnected' && !this.isHalted && !this.socket) {
+            if (!this.isHalted && !this.socket) {
               this.init();
             }
           }, delayTime);
