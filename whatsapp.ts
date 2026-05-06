@@ -57,9 +57,14 @@ export class WhatsAppService {
           ]).catch(() => {});
         } catch (e) {}
         
-        this.socket.ev.removeAllListeners('connection.update');
-        this.socket.ev.removeAllListeners('creds.update');
-        this.socket.end();
+        if (this.socket?.ev) {
+          this.socket.ev.removeAllListeners('connection.update');
+          this.socket.ev.removeAllListeners('creds.update');
+        }
+        
+        if (this.socket?.end) {
+          this.socket.end();
+        }
       }
     } catch (e) {
       console.error('Error during socket cleanup:', e);
@@ -124,9 +129,13 @@ export class WhatsAppService {
     if (this.socket) {
       try {
         console.log('WhatsApp: Cleaning up existing socket before init');
-        this.socket.ev.removeAllListeners('connection.update');
-        this.socket.ev.removeAllListeners('creds.update');
-        this.socket.end(new Error('Re-initializing'));
+        if (this.socket.ev) {
+          this.socket.ev.removeAllListeners('connection.update');
+          this.socket.ev.removeAllListeners('creds.update');
+        }
+        if (this.socket.end) {
+          this.socket.end(new Error('Re-initializing'));
+        }
       } catch (e) {}
       this.socket = null;
     }
