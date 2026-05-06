@@ -229,6 +229,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         width: 360,
         height: 640,
         pixelRatio: 3, // 360 * 3 = 1080px, 640 * 3 = 1920px (Exact IG Story Size)
+        canvasWidth: 1080,
+        canvasHeight: 1920,
         backgroundColor: '#09090b',
         cacheBust: false
       });
@@ -620,20 +622,20 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
 
               {/* Dynamic Content Overlay - Centered Design - Higher Z-Index (z-20) */}
-              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between pt-8 pb-4 px-6">
+              <div className="relative flex-1 z-20 flex flex-col h-full pointer-events-none items-center justify-between pt-6 pb-2 px-6">
                 
                 {/* TOP: Parabéns & Crest */}
                 <div 
-                  className="w-full flex flex-col items-center gap-2 relative z-30 transform"
-                  style={{ scale: `${congratsScale}` }}
+                  className="w-full flex flex-col items-center gap-2 relative z-30"
+                  style={{ transform: `scale(${congratsScale})` }}
                 >
-                  <div className="bg-black/90 border-4 border-theme-primary px-10 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
-                    <h1 className="text-white font-black text-4xl md:text-5xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
+                  <div className="bg-black/90 border-4 border-theme-primary px-8 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
+                    <h1 className="text-white font-black text-3xl md:text-4xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
                       PARABÉNS
                     </h1>
                   </div>
                   
-                  <div className="w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center bg-transparent mt-2">
+                  <div className="w-20 h-20 md:w-28 md:h-28 relative flex items-center justify-center bg-transparent mt-1">
                     {settings.schoolCrest ? (
                       <img 
                         src={settings.schoolCrest} 
@@ -645,12 +647,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         }}
                       />
                     ) : (
-                      <div className="font-black text-theme-primary text-4xl md:text-5xl italic">P</div>
+                      <div className="font-black text-theme-primary text-3xl md:text-4xl italic">P</div>
                     )}
                   </div>
                   
-                  <div className="text-center bg-theme-primary text-black px-6 py-1 transform skew-x-[-12deg] shadow-[4px_4px_0_rgba(255,255,255,1)]">
-                    <h2 className="font-black text-xl md:text-2xl italic tracking-tighter uppercase skew-x-[12deg]">
+                  <div className="text-center bg-theme-primary text-black px-4 py-0.5 transform skew-x-[-12deg] shadow-[4px_4px_0_rgba(255,255,255,1)]">
+                    <h2 className="font-black text-lg md:text-xl italic tracking-tighter uppercase skew-x-[12deg]">
                       FELIZ ANIVERSÁRIO!
                     </h2>
                   </div>
@@ -658,10 +660,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
                   {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
                   <div 
-                    className="relative group z-20 mt-4 transition-transform"
+                    className="relative group z-20 transition-transform my-auto"
                     style={{ 
-                      scale: `${photoScale}`,
-                      transform: `translate(${photoXOffset}px, ${photoYOffset}px)`
+                      transform: `translate(${photoXOffset}px, ${photoYOffset}px) scale(${photoScale})`
                     }}
                   >
                     {/* Glowing background effect */}
@@ -729,14 +730,14 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
                 {/* BOTTOM: Message */}
                 <div 
-                  className="w-full flex flex-col items-center gap-4 mt-auto pb-6 relative z-30 transform"
+                  className="w-full flex flex-col items-center gap-3 mt-auto pb-4 relative z-30"
                   style={{
                     transform: `translate(${footerXOffset}px, ${footerYOffset}px)`
                   }}
                 >
-                  <div className="max-w-[300px] text-center bg-black/75 backdrop-blur-md p-4 border-l-4 border-theme-primary shadow-2xl relative">
+                  <div className="max-w-[280px] text-center bg-black/85 backdrop-blur-md p-3 border-l-4 border-theme-primary shadow-2xl relative">
                     <div className="absolute top-0 right-0 w-2 h-2 bg-theme-primary"></div>
-                    <p className="text-white font-black leading-tight text-[11px] md:text-[13px] drop-shadow-md uppercase tracking-[0.05em] italic">
+                    <p className="text-white font-black leading-tight text-[10px] md:text-[11px] drop-shadow-md uppercase tracking-[0.05em] italic">
                       {footerMessage}
                     </p>
                   </div>

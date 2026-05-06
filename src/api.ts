@@ -121,9 +121,11 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Simple cache to reduce read operations
 const cache: Record<string, { data: any, timestamp: number }> = {};
 const pendingRequests: { [key: string]: Promise<any> | null } = {};
-const CACHE_TTL = 3600000; // 60 minutes
+const CACHE_TTL = 300000; // 5 minutes for "fresh" data
 const PERSISTENT_CACHE_PREFIX = "pirua_cache_";
 const STALE_TTL = 86400000; // 24 hours (can use very stale data if quota is out)
+
+let quotaExceededToday = false;
 
 const getCachedData = (key: string) => {
   // Check memory cache first
@@ -209,12 +211,17 @@ const isQuotaError = (error: any): boolean => {
 const getDocsWithCacheFallback = async (q: any) => {
   const key = `docs_${getCacheKey(q)}`;
   const cached = getCachedData(key);
-  if (cached) return cached;
+  
+  // If quota was already exceeded today, or we have very fresh data, return cached
+  if (cached && (quotaExceededToday || (Date.now() - (cache[key]?.timestamp || 0) < CACHE_TTL))) {
+    return cached;
+  }
   
   if (pendingRequests[key]) return pendingRequests[key];
 
   const promise = (async () => {
     try {
+      // Try server first if not already known to be over quota
       const snapshot = await getDocs(q);
       setCachedData(key, snapshot);
       pendingRequests[key] = null;
@@ -222,13 +229,19 @@ const getDocsWithCacheFallback = async (q: any) => {
     } catch (error) {
       pendingRequests[key] = null;
       if (isQuotaError(error)) {
+        quotaExceededToday = true;
         console.warn("Quota exceeded, attempting to load from cache...");
         try {
-          return await getDocsFromCache(q);
+          const snapshot = await getDocsFromCache(q);
+          if (snapshot) return snapshot;
         } catch (cacheError) {
           console.error("Failed to load from cache:", cacheError);
-          return { docs: [], empty: true, size: 0, forEach: () => {} } as any;
         }
+        
+        // Final fallback to our manual storage cache from previous successful loads
+        if (cached) return cached;
+        
+        return { docs: [], empty: true, size: 0, forEach: () => {} } as any;
       }
       throw error;
     }

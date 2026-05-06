@@ -159,7 +159,7 @@ export class WhatsAppService {
         syncFullHistory: false,
         connectTimeoutMs: 90000, // 90s
         defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 15000, // Frequent keepalives
+        keepAliveIntervalMs: 60000, // Less aggressive keepalives
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true,
         generateHighQualityLinkPreview: false,
@@ -247,8 +247,9 @@ export class WhatsAppService {
             return;
           }
 
-          // Immediate reconnect for restart required, otherwise backoff
-          const delayTime = isRestartRequired ? 1000 : Math.min(this.reconnectAttempts * 2000, 30000);
+          // Reconnect with a slight delay for restart required to avoid session conflicts
+          // Backoff for others
+          const delayTime = isRestartRequired ? 3000 : Math.min(this.reconnectAttempts * 2000, 30000);
           
           console.log(`[WhatsApp] Attempting reconnect in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
           
