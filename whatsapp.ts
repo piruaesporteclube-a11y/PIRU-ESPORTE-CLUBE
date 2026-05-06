@@ -206,7 +206,7 @@ export class WhatsAppService {
           this.qrCode = null;
           this.isInitializing = false;
 
-          if (oldSocket) {
+          if (oldSocket && oldSocket.ev) {
             try {
               oldSocket.ev.removeAllListeners('connection.update');
               oldSocket.ev.removeAllListeners('creds.update');
