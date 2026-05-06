@@ -35,11 +35,14 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
   const handleReconnect = async () => {
     setIsRetrying(true);
+    const toastId = toast.loading("Resetando conexão...");
     try {
       await api.whatsapp.reset();
       await fetchStatus();
+      toast.success("Conexão resetada! Reiniciando em instantes...", { id: toastId });
     } catch (err) {
       console.error('Error resetting WhatsApp:', err);
+      toast.error("Falha ao resetar conexão.", { id: toastId });
     } finally {
       setTimeout(() => setIsRetrying(false), 2000);
     }
@@ -167,17 +170,15 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {status !== 'connecting' && (
-            <button 
-              onClick={handleReconnect}
-              disabled={isRetrying || isSyncing}
-              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-              title="Resetar Conexão"
-            >
-              <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
-              <span className="text-[10px] font-black uppercase">Resetar</span>
-            </button>
-          )}
+          <button 
+            onClick={handleReconnect}
+            disabled={isRetrying || isSyncing}
+            className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+            title="Resetar Conexão"
+          >
+            <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+            <span className="text-[10px] font-black uppercase">Resetar</span>
+          </button>
           <div className={cn(
             "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
             status === 'connected' ? "bg-green-500/10 text-green-500" :

@@ -35,11 +35,8 @@ export class WhatsAppService {
   }
 
   public async logout(autoReinit = true, resetQrTimeout = true) {
-    // If we are halting, we should not auto-reinit
-    const actualAutoReinit = autoReinit && !this.isHalted;
-
-    // Prevent overlapping logouts
-    if (this.lastResetTime && Date.now() - this.lastResetTime < 10000) {
+    // Prevent overlapping logouts - but allow if specifically requested via autoReinit=true after some delay
+    if (this.lastResetTime && Date.now() - this.lastResetTime < 5000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
       return;
     }
@@ -87,16 +84,20 @@ export class WhatsAppService {
       }
     }
     
-    this.isInitializing = false;
-    this.reconnectAttempts = 0;
     if (resetQrTimeout) {
       this.qrTimeoutCount = 0;
       this.isHalted = false; // Reset halt when explicitly resetting
     }
     
+    // Calculate reinit status AFTER flipping isHalted
+    const actualAutoReinit = autoReinit && !this.isHalted;
+    
+    this.isInitializing = false;
+    this.reconnectAttempts = 0;
+    
     if (actualAutoReinit) {
-      console.log('WhatsApp reset complete. Re-initializing in 10s...');
-      setTimeout(() => this.init(), 10000);
+      console.log('WhatsApp reset complete. Re-initializing in 5s...');
+      setTimeout(() => this.init(), 5000);
     } else {
       console.log(`WhatsApp reset complete. Auto-reinitialization disabled. (Halted: ${this.isHalted})`);
     }
