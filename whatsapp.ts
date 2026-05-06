@@ -166,15 +166,17 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá_PEC', 'Chrome', '110.0'],
+        browser: ['Piruá PEC', 'Chrome', '110.0'],
         syncFullHistory: false,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 30000,
-        keepAliveIntervalMs: 10000, 
-        retryRequestDelayMs: 2000,
-        markOnlineOnConnect: false,
+        keepAliveIntervalMs: 60000, // Reduced frequency to avoid 515
+        retryRequestDelayMs: 5000,
+        markOnlineOnConnect: true,
         generateHighQualityLinkPreview: false,
-        // Add robust reconnect options
+        linkPreviewImageThumbnailWidth: 192,
+        // Improved 515 stabilization
+        shouldSyncHistory: () => false,
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'Piruá PEC notification' };
         }
@@ -274,12 +276,11 @@ export class WhatsAppService {
             return;
           }
 
-          // Reconnect with a significant delay for restart required to avoid session conflicts
-          // Backoff for others
-          const baseDelay = isRestartRequired ? 15000 : 3000;
-          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 3000), 120000);
+          // Higher delay for 515 to let the previous stream die completely
+          const baseDelay = isRestartRequired ? 20000 : 5000;
+          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 5000), 180000);
           
-          console.log(`[WhatsApp] Attempting reconnect in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
+          console.log(`[WhatsApp] 515/Reconnect: Waiting ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
           
           setTimeout(() => {
             if (!this.isHalted && !this.socket) {
