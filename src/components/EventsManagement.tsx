@@ -18,9 +18,10 @@ interface EventsManagementProps {
   events?: Event[];
   role?: 'admin' | 'student' | 'professor';
   initialOpenLineupEvent?: Event;
+  loggedInUserId?: string;
 }
 
-export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin', initialOpenLineupEvent }: EventsManagementProps) {
+export default function EventsManagement({ athletes: athletesProp, events: eventsProp, role = 'admin', initialOpenLineupEvent, loggedInUserId }: EventsManagementProps) {
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const isAdmin = role === 'admin' || role === 'professor';
@@ -560,51 +561,58 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setActiveMatchId(matchId || null);
       setModalTab('lineup');
       
-      // Fetch matches for this event
-      const matches = await api.getEventMatches(event.id);
+      // Set initial loading state for the main lineup
+      setLineupAthletes([]);
+      setLineupStaff([]);
+
+      // Fetch matches and all lineups for this event in parallel to save quota and time
+      const [matches, allLineups] = await Promise.all([
+        api.getEventMatches(event.id),
+        api.getAllEventLineups(event.id, athletes, professors)
+      ]);
+      
       setEventMatches(matches);
       
-      // Check if event is finished based on date and time
+      // Set data for the specific index
+      const targetLineup = allLineups.find(l => l.lineup_index === index) || { athletes: [], staff: [], category: '', lineup_name: '' };
+      setLineupAthletes(targetLineup.athletes);
+      setLineupStaff(targetLineup.staff);
+      setLineupCategory(targetLineup.category || '');
+      setLineupName((targetLineup as any).lineup_name || '');
+      setSelectedAthletes(targetLineup.athletes.map(a => a.id));
+      setSelectedStaff(targetLineup.staff.map(s => s.id));
+
+      // Check if event is finished
       const now = new Date();
       const [year, month, day] = event.end_date.split('-').map(Number);
       const [hours, minutes] = event.end_time.split(':').map(Number);
       const eventEnd = new Date(year, month - 1, day, hours, minutes);
-      
       setIsEventFinished(eventEnd < now && !isAdmin);
 
-      const { athletes: lineup, staff, category, lineup_name } = await api.getLineup(event.id, index, matchId);
-      setLineupAthletes(lineup);
-      setLineupStaff(staff);
-      setLineupCategory(category || '');
-      setLineupName(lineup_name || '');
-      setSelectedAthletes(lineup.map(a => a.id));
-      setSelectedStaff(staff.map(s => s.id));
-      
       if (!matchId) {
-        // Also fetch which other indices have data to show in tabs (only for generic lineups)
+        // Distribute indices data from the single getAllEventLineups call
         const indices: Record<number, string> = {};
         const names: Record<number, string> = {};
         let currentMax = 9;
 
-        const checkRange = Math.max(10, index + 2);
+        allLineups.forEach(l => {
+          indices[l.lineup_index] = l.category || 'Com Dados';
+          names[l.lineup_index] = (l as any).lineup_name || '';
+          if (l.lineup_index > currentMax) currentMax = l.lineup_index;
+        });
         
-        await Promise.all(Array.from({ length: checkRange }).map(async (_, i) => {
-          if (i === index) {
-            indices[i] = category || '';
-            names[i] = lineup_name || '';
-          } else {
-            try {
-              const { athletes, category: cat, lineup_name: lName } = await api.getLineup(event.id, i);
-              if (athletes.length > 0 || lName || cat) {
-                indices[i] = cat || 'Com Dados';
-                names[i] = lName || '';
-                if (i > currentMax) currentMax = i;
-              }
-            } catch (e) {}
-          }
-        }));
+        setMaxLineupIndex(Math.max(9, currentMax + 1));
         setLineupIndicesWithData(indices);
         setLineupIndicesWithNames(names);
+      } else {
+        // For matches, we still need to load the specific match lineup if not covered by general indices
+        const matchLineup = await api.getLineup(event.id, index, matchId, athletes, professors);
+        setLineupAthletes(matchLineup.athletes);
+        setLineupStaff(matchLineup.staff);
+        setLineupCategory(matchLineup.category || '');
+        setLineupName(matchLineup.lineup_name || '');
+        setSelectedAthletes(matchLineup.athletes.map(a => a.id));
+        setSelectedStaff(matchLineup.staff.map(s => s.id));
       }
     } catch (err: any) {
       toast.error(`Erro ao carregar escalação: ${err.message}`);
@@ -702,6 +710,46 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const [isSavingLineup, setIsSavingLineup] = useState(false);
+  const [isNotifyingAll, setIsNotifyingAll] = useState(false);
+
+  const handleNotifyAllLineup = () => {
+    if (!selectedEvent) return;
+    
+    const message = `Olá! Você foi escalado para o evento *${selectedEvent.name}* em *${selectedEvent.start_date}* às *${selectedEvent.start_time}*.
+    
+Por favor, confirme sua participação acessando o portal: ${window.location.origin}
+
+Contamos com sua presença!`;
+    
+    // Create a encoded message
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Find all selected whose phone is available
+    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && (a as any).contact || (a as any).phone);
+    const staffWithPhone = professors.filter(p => selectedStaff.includes(p.id) && p.phone);
+    
+    if (athletesWithPhone.length === 0 && staffWithPhone.length === 0) {
+      toast.error("Nenhum atleta ou membro com telefone cadastrado para notificar.");
+      return;
+    }
+
+    toast.info(`Iniciando notificações para ${athletesWithPhone.length + staffWithPhone.length} pessoas...`);
+    
+    // We can't batch send WhatsApp, but we can provide links or open them one by one (browser might block popups)
+    // For now, let's open the first one and show a list or just open them in sequence with a delay if allowed
+    // Better: Open a small helper list/modal to click one by one efficiently
+    setNotificationBatch({
+      message: message,
+      recipients: [
+        ...athletesWithPhone.map(a => ({ id: a.id, name: a.name, phone: (a as any).contact || (a as any).phone || '', type: 'Atleta' })),
+        ...staffWithPhone.map(p => ({ id: p.id, name: p.name, phone: p.phone!, type: 'Comissão' }))
+      ]
+    });
+    setIsNotificationModalOpen(true);
+  };
+
+  const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, type: string }[] } | null>(null);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   const handleSaveLineup = async () => {
     if (isEventFinished) {
@@ -723,11 +771,17 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         activeMatchId || undefined
       );
       
-      // Delay slightly to ensure Firebase consistency if needed, though usually not required with the cache clear
+      // Delay slightly to ensure Firebase consistency
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Force refresh data
-      const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(selectedEvent.id, activeLineupIndex, activeMatchId || undefined);
+      // Force refresh data efficiently using current athletes and professors
+      const { athletes: updatedLineup, staff: updatedStaff } = await api.getLineup(
+        selectedEvent.id, 
+        activeLineupIndex, 
+        activeMatchId || undefined,
+        athletes,
+        professors
+      );
       setLineupAthletes(updatedLineup);
       setLineupStaff(updatedStaff);
       
@@ -836,6 +890,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           delete next[activeLineupIndex];
           return next;
         });
+        
+        // If we removed the current max, adjust maxLineupIndex
+        if (activeLineupIndex === maxLineupIndex && activeLineupIndex > 0) {
+          setMaxLineupIndex(prev => prev - 1);
+        }
       }
       
       toast.success('Lista excluída com sucesso!', { id: loadingToast });
@@ -1241,46 +1300,62 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                     JOGOS E ESCALAÇÕES
                   </button>
                 </div>
-                {modalTab === 'lineup' && (
+                {modalTab === 'lineup' && !activeMatchId && (
                   <div className="flex flex-wrap gap-1 items-end">
-                    {Array.from({ length: maxLineupIndex + 1 }).map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleOpenLineup(selectedEvent, i)}
-                        className={cn(
-                          "px-3 py-1 rounded-lg text-[10px] font-black transition-all border flex flex-col items-center min-w-[60px]",
-                          activeLineupIndex === i 
-                            ? "bg-theme-primary border-theme-primary text-black" 
-                            : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
-                        )}
-                      >
-                        <span className="truncate max-w-[80px]">{lineupIndicesWithNames[i] || `LISTA ${i + 1}`}</span>
-                        {lineupIndicesWithData[i] && (
-                          <span className={cn(
-                            "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[50px]",
-                            activeLineupIndex === i ? "text-black/60" : "text-theme-primary"
-                          )}>
-                            {lineupIndicesWithData[i]}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                    {/* Always show Index 0 or ones with data */}
+                    {Array.from({ length: 40 }).map((_, i) => {
+                       const hasData = lineupIndicesWithData[i] || i === 0 || i === activeLineupIndex;
+                       if (!hasData) return null;
+                       
+                       return (
+                        <button
+                          key={i}
+                          onClick={() => handleOpenLineup(selectedEvent, i)}
+                          className={cn(
+                            "px-3 py-1 rounded-lg text-[10px] font-black transition-all border flex flex-col items-center min-w-[70px] relative group",
+                            activeLineupIndex === i 
+                              ? "bg-theme-primary border-theme-primary text-black scale-105 z-10 shadow-lg shadow-theme-primary/20" 
+                              : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+                          )}
+                        >
+                          <span className="truncate max-w-[100px]">{lineupIndicesWithNames[i] || `LISTA ${i + 1}`}</span>
+                          {lineupIndicesWithData[i] && (
+                            <span className={cn(
+                              "text-[7px] uppercase mt-0.5 font-bold truncate max-w-[60px]",
+                              activeLineupIndex === i ? "text-black/60" : "text-theme-primary"
+                            )}>
+                              {lineupIndicesWithData[i]}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                     {isAdmin && !isEventFinished && (
                       <button
                         onClick={() => {
-                          const nextIdx = maxLineupIndex + 1;
-                          setMaxLineupIndex(nextIdx);
+                          // Find next available index that doesn't have data
+                          let nextIdx = 0;
+                          while(lineupIndicesWithData[nextIdx]) {
+                            nextIdx++;
+                          }
+                          // Also ensure it's not the current active if it was just cleared
+                          if (nextIdx === activeLineupIndex && !lineupIndicesWithData[activeLineupIndex]) {
+                             // This case is handled (staying on same index)
+                          }
+                          
+                          setMaxLineupIndex(Math.max(nextIdx, maxLineupIndex));
                           handleOpenLineup(selectedEvent, nextIdx);
                         }}
-                        className="px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white hover:bg-zinc-700 transition-all flex items-center gap-1"
+                        className="px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white hover:bg-zinc-700 hover:border-theme-primary transition-all flex items-center gap-1 shadow-lg"
                         title="Adicionar Nova Lista"
                       >
-                        <Plus size={14} />
+                        <Plus size={16} />
+                        <span className="text-[10px] font-black uppercase">Nova</span>
                       </button>
                     )}
                   </div>
                 )}
-                {isAdmin && !isEventFinished && modalTab === 'lineup' && (
+                {isAdmin && !isEventFinished && modalTab === 'lineup' && !activeMatchId && (
                   <div className="mt-4 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 space-y-1">
                       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Nome da Lista:</label>
@@ -1796,23 +1871,41 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
                       {/* Confirmation Area */}
                       <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
-                          <button 
-                            onClick={() => {
-                              setManualReceiptData({ 
-                                name: '', 
-                                event: selectedEvent?.name || '', 
-                                date: selectedEvent?.start_date || '' 
-                              });
-                              setIsManualReceiptModalOpen(true);
-                            }}
-                            className="p-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
-                            title="Gerar comprovante avulso"
-                          >
-                            <Plus size={10} />
-                            Avulso
-                          </button>
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={handleNotifyAllLineup}
+                                className="p-1 px-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
+                                title="Notificar todos por WhatsApp"
+                              >
+                                <MessageCircle size={10} />
+                                Notificar Todos
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setManualReceiptData({ 
+                                    name: '', 
+                                    event: selectedEvent?.name || '', 
+                                    date: selectedEvent?.start_date || '' 
+                                  });
+                                  setIsManualReceiptModalOpen(true);
+                                }}
+                                className="p-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
+                                title="Gerar comprovante avulso"
+                              >
+                                <Plus size={10} />
+                                Avulso
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Athlete Selection Counter Badge */}
+                          <div className="bg-theme-primary/10 border border-theme-primary/30 p-2 px-3 rounded-xl flex items-center justify-between">
+                            <span className="text-[10px] font-black text-theme-primary uppercase">Total Escalados:</span>
+                            <span className="text-sm font-black text-white">{selectedAthletes.length + selectedStaff.length}</span>
+                          </div>
                         </div>
                         <div className="space-y-4">
                           {(selectedAthletes.length === 0 && selectedStaff.length === 0) ? (
@@ -1924,7 +2017,18 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                                     <div className="flex items-center gap-1">
                                       {savedAthlete ? (
                                         <div className="flex-1 flex min-w-0">
-                                        <div className="flex-1 flex flex-col gap-1">
+                                          <button 
+                                            onClick={() => {
+                                              const phone = (a as any).contact || (a as any).phone || '';
+                                              const msg = encodeURIComponent(`Olá ${a.name}! Você foi escalado para o evento *${selectedEvent?.name}*. Por favor, confirme sua presença no portal: ${window.location.origin}`);
+                                              window.open(`https://wa.me/55${phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                                            }}
+                                            className="p-1.5 mr-1 rounded-lg bg-zinc-900 border border-zinc-800 text-green-500 hover:bg-green-500/10 transition-all flex items-center justify-center flex-shrink-0"
+                                            title="Notificar por WhatsApp"
+                                          >
+                                            <MessageCircle size={14} />
+                                          </button>
+                                          <div className="flex-1 flex flex-col gap-1">
                                           <div className="flex gap-1">
                                             <button 
                                               onClick={() => handleUpdateAthleteStatus(a.id, 'Titular')}
@@ -1994,40 +2098,112 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                   ) : (
                     <div className="space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {lineupStaff.map(s => (
-                          <div key={s.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
-                              {s.photo && s.photo.trim() !== "" ? (
-                                <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                  <User size={24} />
+                        {lineupStaff.map(s => {
+                          const isSelf = loggedInUserId === s.id;
+                          return (
+                            <div key={s.id} className={cn(
+                              "bg-zinc-800/50 border p-4 rounded-2xl flex flex-col gap-4",
+                              isSelf ? "border-theme-primary ring-1 ring-theme-primary/20" : "border-zinc-800"
+                            )}>
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
+                                  {s.photo && s.photo.trim() !== "" ? (
+                                    <img src={s.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                      <User size={24} />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-bold text-white uppercase">{s.name}</p>
-                              <p className="text-[10px] text-theme-primary font-bold uppercase tracking-widest">Comissão Técnica</p>
-                            </div>
-                          </div>
-                        ))}
-                        {lineupAthletes.map(a => (
-                          <div key={a.id} className="bg-zinc-800/50 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
-                              {a.photo && a.photo.trim() !== "" ? (
-                                <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                  <User size={24} />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white uppercase">{s.name}</p>
+                                    {isSelf && <span className="bg-theme-primary text-black text-[8px] font-black px-1.5 py-0.5 rounded uppercase">VOCÊ</span>}
+                                  </div>
+                                  <p className="text-[10px] text-theme-primary font-bold uppercase tracking-widest">Comissão Técnica</p>
                                 </div>
-                              )}
+                              </div>
+                              <div className="pt-3 border-t border-zinc-700 flex items-center justify-between">
+                                <span className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest",
+                                  s.confirmation === 'Confirmado' ? "text-green-500" : s.confirmation === 'Recusado' ? "text-red-500" : "text-zinc-500"
+                                )}>
+                                  Status: {s.confirmation || 'Pendente'}
+                                </span>
+                                {isSelf && s.confirmation === 'Pendente' && (
+                                   <div className="flex gap-2">
+                                     <button 
+                                       onClick={() => handleConfirmAthlete(s.id, 'staff', 'Confirmado')}
+                                       className="px-3 py-1 bg-green-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                     >Confirmar</button>
+                                     <button 
+                                       onClick={() => handleConfirmAthlete(s.id, 'staff', 'Recusado')}
+                                       className="px-3 py-1 bg-red-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                     >Recusar</button>
+                                   </div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-white uppercase">{a.name}</p>
-                              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">#{a.jersey_number} - {getSubCategory(a.birth_date)}</p>
+                          );
+                        })}
+                        {lineupAthletes.map(a => {
+                          const isSelf = loggedInUserId === a.id;
+                          return (
+                            <div key={a.id} className={cn(
+                              "bg-zinc-800/50 border p-4 rounded-2xl flex flex-col gap-4",
+                              isSelf ? "border-theme-primary ring-1 ring-theme-primary/20" : "border-zinc-800"
+                            )}>
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-zinc-700 rounded-full overflow-hidden">
+                                  {a.photo && a.photo.trim() !== "" ? (
+                                    <img src={a.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                      <User size={24} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white uppercase">{a.name}</p>
+                                    {isSelf && <span className="bg-theme-primary text-black text-[8px] font-black px-1.5 py-0.5 rounded uppercase">VOCÊ</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">#{a.jersey_number} - {getSubCategory(a.birth_date)}</p>
+                                    {(a as any).lineup_status && (
+                                      <span className={cn(
+                                        "text-[8px] font-black px-1.5 py-0.5 rounded uppercase",
+                                        (a as any).lineup_status === 'Titular' ? "bg-theme-primary/20 text-theme-primary" : "bg-zinc-700 text-zinc-400"
+                                      )}>
+                                        {(a as any).lineup_status}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-3 border-t border-zinc-700 flex items-center justify-between">
+                                <span className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest",
+                                  a.confirmation === 'Confirmado' ? "text-green-500" : a.confirmation === 'Recusado' ? "text-red-500" : "text-zinc-500"
+                                )}>
+                                  Status: {a.confirmation || 'Pendente'}
+                                </span>
+                                {isSelf && a.confirmation === 'Pendente' && (
+                                   <div className="flex gap-2">
+                                     <button 
+                                       onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                       className="px-3 py-1 bg-green-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                     >Confirmar</button>
+                                     <button 
+                                       onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                       className="px-3 py-1 bg-red-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                     >Recusar</button>
+                                   </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -2281,6 +2457,59 @@ export default function EventsManagement({ athletes: athletesProp, events: event
                 className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors"
               >
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Batch Modal */}
+      {isNotificationModalOpen && notificationBatch && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Enviar Notificações</h3>
+                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">Clique nos nomes para enviar via WhatsApp</p>
+              </div>
+              <button 
+                onClick={() => setIsNotificationModalOpen(false)}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-xl transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+              <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700 mb-6">
+                <p className="text-[10px] font-black text-theme-primary uppercase mb-2">Mensagem a ser enviada:</p>
+                <p className="text-xs text-zinc-300 italic whitespace-pre-wrap">{notificationBatch.message}</p>
+              </div>
+              
+              {notificationBatch.recipients.map((r, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const msg = encodeURIComponent(notificationBatch.message);
+                    window.open(`https://wa.me/55${r.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                  }}
+                  className="w-full p-4 bg-zinc-800 hover:bg-theme-primary/10 border border-zinc-700 hover:border-theme-primary/30 rounded-2xl flex items-center justify-between group transition-all"
+                >
+                  <div className="text-left">
+                    <p className="font-bold text-white group-hover:text-theme-primary transition-colors uppercase text-sm">{r.name}</p>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase">{r.type} • {r.phone}</p>
+                  </div>
+                  <MessageCircle className="text-green-500 group-hover:scale-125 transition-transform" />
+                </button>
+              ))}
+            </div>
+            
+            <div className="p-6 border-t border-zinc-800 bg-black/20">
+              <button 
+                onClick={() => setIsNotificationModalOpen(false)}
+                className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black rounded-2xl uppercase text-xs tracking-widest transition-all"
+              >
+                Concluir Notificações
               </button>
             </div>
           </div>

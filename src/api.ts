@@ -21,6 +21,7 @@ import {
   getDocFromServer,
   writeBatch,
   orderBy,
+  limit,
   getDocsFromCache,
   getDocFromCache,
   serverTimestamp,
@@ -86,10 +87,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Original Firestore Error Object:', error);
   const errorMessage = error instanceof Error ? error.message : String(error);
   
-  const isQuotaError = errorMessage.toLowerCase().includes("quota");
+  const quotaDetected = errorMessage.toLowerCase().includes("quota");
 
   const errInfo: FirestoreErrorInfo = {
-    error: isQuotaError 
+    error: quotaDetected 
       ? "Limite de uso diário do banco de dados atingido (Quota Exceeded). O sistema voltará ao normal em algumas horas ou no próximo dia. Por favor, tente novamente mais tarde."
       : errorMessage,
     authInfo: {
@@ -112,7 +113,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   
   // Only throw if it's NOT a quota error on a GET operation
   // This allows GET operations to fail silently and use cache fallbacks
-  if (!isQuotaError || operationType !== OperationType.GET) {
+  if (!isQuotaError(error) || operationType !== OperationType.GET) {
     throw new Error(errInfo.error);
   }
 }
@@ -120,18 +121,48 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Simple cache to reduce read operations
 const cache: Record<string, { data: any, timestamp: number }> = {};
 const pendingRequests: { [key: string]: Promise<any> | null } = {};
-const CACHE_TTL = 900000; // 15 minutes (increased from 5m to save quota)
+const CACHE_TTL = 3600000; // 60 minutes
+const PERSISTENT_CACHE_PREFIX = "pirua_cache_";
+const STALE_TTL = 86400000; // 24 hours (can use very stale data if quota is out)
 
 const getCachedData = (key: string) => {
-  const cached = cache[key];
-  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
-    return cached.data;
+  // Check memory cache first
+  const memoryCached = cache[key];
+  if (memoryCached && (Date.now() - memoryCached.timestamp) < CACHE_TTL) {
+    return memoryCached.data;
+  }
+
+  // Check localStorage
+  try {
+    const localCached = localStorage.getItem(PERSISTENT_CACHE_PREFIX + key);
+    if (localCached) {
+      const { data, timestamp } = JSON.parse(localCached);
+      // Even if stale (up to 24h), we might want to return it if we are in quota-saving mode
+      if ((Date.now() - timestamp) < STALE_TTL) {
+        // Update memory cache
+        cache[key] = { data, timestamp };
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn("Storage cache error:", e);
   }
   return null;
 };
 
 const setCachedData = (key: string, data: any) => {
-  cache[key] = { data, timestamp: Date.now() };
+  const timestamp = Date.now();
+  cache[key] = { data, timestamp };
+  
+  // Try to persist to localStorage if it's serializable
+  try {
+    // Only persist arrays or plain objects, not Firestore Snapshots directly
+    if (data && typeof data === 'object' && !(data.docs || data.exists)) {
+      localStorage.setItem(PERSISTENT_CACHE_PREFIX + key, JSON.stringify({ data, timestamp }));
+    }
+  } catch (e) {
+    // Storage might be full or data too large
+  }
 };
 
 export const clearCache = () => {
@@ -141,6 +172,21 @@ export const clearCache = () => {
   for (const key in pendingRequests) {
     pendingRequests[key] = null;
   }
+  // Clear persistent cache
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith(PERSISTENT_CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {}
+};
+
+const invalidateCache = (key: string) => {
+  delete cache[key];
+  try {
+    localStorage.removeItem(PERSISTENT_CACHE_PREFIX + key);
+  } catch (e) {}
 };
 
 // Test connection
@@ -153,7 +199,7 @@ async function testConnection() {
     }
   }
 }
-testConnection();
+// testConnection(); // Remove unnecessary read on load
 
 const isQuotaError = (error: any): boolean => {
   const message = String(error).toLowerCase();
@@ -161,12 +207,16 @@ const isQuotaError = (error: any): boolean => {
 };
 
 const getDocsWithCacheFallback = async (q: any) => {
-  const key = `docs_${q.path || (q._query && q._query.path && q._query.path.canonicalString()) || JSON.stringify(q)}`;
+  const key = `docs_${getCacheKey(q)}`;
+  const cached = getCachedData(key);
+  if (cached) return cached;
+  
   if (pendingRequests[key]) return pendingRequests[key];
 
   const promise = (async () => {
     try {
       const snapshot = await getDocs(q);
+      setCachedData(key, snapshot);
       pendingRequests[key] = null;
       return snapshot;
     } catch (error) {
@@ -177,8 +227,7 @@ const getDocsWithCacheFallback = async (q: any) => {
           return await getDocsFromCache(q);
         } catch (cacheError) {
           console.error("Failed to load from cache:", cacheError);
-          // If not in cache, return an empty snapshot instead of throwing to prevent app crash
-          return { docs: [], empty: true, size: 0 } as any;
+          return { docs: [], empty: true, size: 0, forEach: () => {} } as any;
         }
       }
       throw error;
@@ -191,11 +240,15 @@ const getDocsWithCacheFallback = async (q: any) => {
 
 const getDocWithCacheFallback = async (docRef: any) => {
   const key = `doc_${docRef.path}`;
+  const cached = getCachedData(key);
+  if (cached) return cached;
+  
   if (pendingRequests[key]) return pendingRequests[key];
 
   const promise = (async () => {
     try {
       const snapshot = await getDoc(docRef);
+      setCachedData(key, snapshot);
       pendingRequests[key] = null;
       return snapshot;
     } catch (error) {
@@ -206,7 +259,6 @@ const getDocWithCacheFallback = async (docRef: any) => {
           return await getDocFromCache(docRef);
         } catch (cacheError) {
           console.error("Failed to load document from cache:", cacheError);
-          // If not in cache, return a non-existent snapshot
           return { exists: () => false, data: () => undefined } as any;
         }
       }
@@ -216,6 +268,14 @@ const getDocWithCacheFallback = async (docRef: any) => {
 
   pendingRequests[key] = promise;
   return promise;
+};
+
+const getCacheKey = (q: any) => {
+  try {
+    return q.path || (q._query && q._query.path && q._query.path.canonicalString()) || JSON.stringify(q);
+  } catch (e) {
+    return Math.random().toString();
+  }
 };
 
 export const api = {
@@ -522,7 +582,7 @@ export const api = {
       
       // 1. Check if CPF already exists in athletes collection
       const q = query(collection(db, "athletes"), where("doc", "==", normalizedDoc));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsWithCacheFallback(q);
       if (!querySnapshot.empty) {
         throw new Error("Este CPF já está cadastrado no sistema.");
       }
@@ -628,7 +688,7 @@ export const api = {
 
   getUserDoc: async (uid: string): Promise<User | null> => {
     try {
-      const docSnap = await getDoc(doc(db, "users", uid));
+      const docSnap = await getDocWithCacheFallback(doc(db, "users", uid));
       if (docSnap.exists()) {
         return docSnap.data() as User;
       }
@@ -653,23 +713,41 @@ export const api = {
 
   // Athletes
   subscribeToAthletes: (callback: (athletes: Athlete[]) => void) => {
+    // Initial fetch from cache or server
+    api.getAthletes().then(callback);
+    
+    // Use a very limited snapshot or just don't use it if quota is low
+    // For now, we'll keep it but we'll monitor if this continues to be an issue
     return onSnapshot(collection(db, "athletes"), (snapshot) => {
       const athletes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
+      // Update cache manually when snapshot triggers
+      setCachedData("athletes", athletes);
       callback(athletes);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, "athletes/subscription");
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "athletes/subscription");
+      } else {
+        console.warn("Quota exceeded for athletes subscription, falling back to one-time fetch");
+      }
     });
   },
 
   subscribeToAthlete: (id: string, callback: (athlete: Athlete | null) => void) => {
+    // Initial fetch
+    api.getAthlete(id).then(callback);
+
     return onSnapshot(doc(db, "athletes", id), (snapshot) => {
       if (snapshot.exists()) {
-        callback({ ...snapshot.data(), id: snapshot.id } as Athlete);
+        const data = { ...snapshot.data(), id: snapshot.id } as Athlete;
+        setCachedData(`athlete_${id}`, data);
+        callback(data);
       } else {
         callback(null);
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `athletes/${id}/subscription`);
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, `athletes/${id}/subscription`);
+      }
     });
   },
 
@@ -692,17 +770,29 @@ export const api = {
   },
 
   getAthletes: async (): Promise<Athlete[]> => {
-    const cached = getCachedData("athletes");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete));
-      setCachedData("athletes", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "athletes");
-      return [];
+    const cacheKey = "athletes";
+    const cached = getCachedData(cacheKey);
+    
+    // Background refresh
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (e) {
+        return cached || [];
+      }
+    };
+
+    if (cached) {
+      // Return cached immediately, refresh in background
+      backgroundFetch().catch(() => {});
+      return cached;
     }
+    
+    return backgroundFetch();
   },
   saveAthlete: async (athlete: Partial<Athlete>) => {
     // Normalize CPF if present
@@ -739,7 +829,7 @@ export const api = {
       };
 
       await setDoc(doc(db, "athletes", athlete.id), sanitizeData(finalData), { merge: true });
-      delete cache["athletes"]; // Invalidate cache
+      invalidateCache("athletes"); // Invalidate cache
     } catch (error) {
       if (error instanceof Error && error.message.includes("cadastrado")) {
         throw error;
@@ -754,7 +844,7 @@ export const api = {
         confirmation: "Confirmado",
         updated_at: serverTimestamp()
       });
-      delete cache["athletes"];
+      invalidateCache("athletes");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
@@ -766,7 +856,7 @@ export const api = {
         confirmation: "Recusado",
         updated_at: serverTimestamp()
       });
-      delete cache["athletes"];
+      invalidateCache("athletes");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
@@ -778,7 +868,7 @@ export const api = {
         ...(confirmation ? { confirmation } : {}),
         updated_at: serverTimestamp()
       });
-      delete cache["athletes"];
+      invalidateCache("athletes");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
@@ -786,7 +876,7 @@ export const api = {
   deleteAthlete: async (id: string) => {
     try {
       await deleteDoc(doc(db, "athletes", id));
-      delete cache["athletes"]; // Invalidate cache
+      invalidateCache("athletes"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `athletes/${id}`);
     }
@@ -915,17 +1005,27 @@ export const api = {
   },
 
   getProfessors: async (): Promise<Professor[]> => {
-    const cached = getCachedData("professors");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "professors"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Professor));
-      setCachedData("professors", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "professors");
-      return [];
+    const cacheKey = "professors";
+    const cached = getCachedData(cacheKey);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "professors"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Professor))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (e) {
+        return cached || [];
+      }
+    };
+
+    if (cached) {
+      backgroundFetch().catch(() => {});
+      return cached;
     }
+    
+    return backgroundFetch();
   },
   saveProfessor: async (professor: Partial<Professor>) => {
     const sanitizedProfessor = { ...professor };
@@ -942,7 +1042,7 @@ export const api = {
           collection(db, "professors"), 
           where("doc", "==", sanitizedProfessor.doc)
         );
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocsWithCacheFallback(q);
         const duplicate = querySnapshot.docs.find(doc => doc.id !== sanitizedProfessor.id);
         if (duplicate) {
           throw new Error("Este CPF já está cadastrado para outro professor.");
@@ -951,7 +1051,7 @@ export const api = {
 
       const data = { ...sanitizedProfessor, updated_at: serverTimestamp() };
       await setDoc(doc(db, "professors", sanitizedProfessor.id!), sanitizeData(data), { merge: true });
-      delete cache["professors"]; // Invalidate cache
+      invalidateCache("professors"); // Invalidate cache
     } catch (error) {
       if (error instanceof Error && error.message.includes("cadastrado")) {
         throw error;
@@ -962,7 +1062,7 @@ export const api = {
   deleteProfessor: async (id: string) => {
     try {
       await deleteDoc(doc(db, "professors", id));
-      delete cache["professors"]; // Invalidate cache
+      invalidateCache("professors"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `professors/${id}`);
     }
@@ -988,26 +1088,35 @@ export const api = {
   },
 
   getEvents: async (): Promise<Event[]> => {
-    const cached = getCachedData("events");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "events"));
-      const data = querySnapshot.docs
-        .map(doc => ({ ...(doc.data() as any), id: doc.id } as Event))
-        .sort((a, b) => b.start_date.localeCompare(a.start_date));
-      setCachedData("events", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "events");
-      return [];
+    const cacheKey = "events";
+    const cached = getCachedData(cacheKey);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "events"));
+        const data = querySnapshot.docs
+          .map(doc => ({ ...(doc.data() as any), id: doc.id } as Event))
+          .sort((a, b) => b.start_date.localeCompare(a.start_date));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (e) {
+        return cached || [];
+      }
+    };
+
+    if (cached) {
+      backgroundFetch().catch(() => {});
+      return cached;
     }
+    
+    return backgroundFetch();
   },
   saveEvent: async (event: Partial<Event>) => {
     if (!event.id) event.id = doc(collection(db, "events")).id;
     try {
       const data = { ...event, updated_at: serverTimestamp() };
       await setDoc(doc(db, "events", event.id), sanitizeData(data), { merge: true });
-      delete cache["events"]; // Invalidate cache
+      invalidateCache("events"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `events/${event.id}`);
     }
@@ -1015,7 +1124,7 @@ export const api = {
   deleteEvent: async (id: string) => {
     try {
       await deleteDoc(doc(db, "events", id));
-      delete cache["events"]; // Invalidate cache
+      invalidateCache("events"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `events/${id}`);
     }
@@ -1023,33 +1132,43 @@ export const api = {
 
   // Attendance
   subscribeToAttendance: (callback: (attendance: Attendance[]) => void, date?: string, training_id?: string, event_id?: string) => {
+    // Initial fetch
+    api.getAttendance(date, undefined, training_id, event_id).then(callback);
+
     let q = query(collection(db, "attendance"));
     if (date) q = query(q, where("date", "==", date));
     if (training_id) q = query(q, where("training_id", "==", training_id));
     if (event_id) q = query(q, where("event_id", "==", event_id));
     
+    // Limit to 200 items to avoid quota exhaustion for very large groups
+    q = query(q, limit(200));
+    
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as Attendance);
       callback(data);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, "attendance/subscription");
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "attendance/subscription");
+      }
     });
   },
 
-  getAttendance: async (date?: string, athlete_id?: string, training_id?: string, event_id?: string): Promise<Attendance[]> => {
-    const cacheKey = `attendance_${date || 'all'}_${athlete_id || 'all'}_${training_id || 'all'}_${event_id || 'all'}`;
+  getAttendance: async (date?: string, athlete_id?: string, training_id?: string, event_id?: string, startDate?: string, endDate?: string): Promise<Attendance[]> => {
+    const cacheKey = `attendance_${date || 'all'}_${athlete_id || 'all'}_${training_id || 'all'}_${event_id || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
       let q = query(collection(db, "attendance"));
       if (date) q = query(q, where("date", "==", date));
+      if (startDate) q = query(q, where("date", ">=", startDate));
+      if (endDate) q = query(q, where("date", "<=", endDate));
       if (athlete_id) q = query(q, where("athlete_id", "==", athlete_id));
       if (training_id) q = query(q, where("training_id", "==", training_id));
       if (event_id) q = query(q, where("event_id", "==", event_id));
       
       const querySnapshot = await getDocsWithCacheFallback(q);
-      const data = querySnapshot.docs.map(doc => doc.data() as Attendance);
+      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Attendance));
       setCachedData(cacheKey, data);
       return data;
     } catch (error) {
@@ -1062,9 +1181,10 @@ export const api = {
     try {
       const data = { ...attendance, updated_at: serverTimestamp() };
       await setDoc(doc(db, "attendance", attendance.id), sanitizeData(data), { merge: true });
-      // Invalidate all attendance cache
+      
+      // Invalidate attendance related cache
       Object.keys(cache).forEach(key => {
-        if (key.startsWith('attendance_')) delete cache[key];
+        if (key.startsWith('attendance_')) invalidateCache(key);
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `attendance/${attendance.id}`);
@@ -1105,17 +1225,17 @@ export const api = {
     try {
       const data = { ...anamnesis, updated_at: serverTimestamp() };
       await setDoc(doc(db, "anamnesis", anamnesis.athlete_id), sanitizeData(data), { merge: true });
-      delete cache[`anamnesis_${anamnesis.athlete_id}`]; // Invalidate cache
+      invalidateCache(`anamnesis_${anamnesis.athlete_id}`); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `anamnesis/${anamnesis.athlete_id}`);
     }
   },
 
   // Lineups (using a subcollection or separate collection)
-  getLineup: async (event_id: string, lineup_index: number = 0, match_id?: string): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
+  getLineup: async (event_id: string, lineup_index: number = 0, match_id?: string, allAthletes?: Athlete[], allProfessors?: Professor[]): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
     const cacheKey = match_id ? `lineup_match_${match_id}` : `lineup_${event_id}_${lineup_index}`;
     const cached = getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached && !allAthletes && !allProfessors) return cached;
 
     try {
       let q;
@@ -1139,17 +1259,17 @@ export const api = {
       const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
       const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
       
-      const allAthletes = await api.getAthletes();
-      const allProfessors = await api.getProfessors();
+      const athletesList = allAthletes || await api.getAthletes();
+      const professorsList = allProfessors || await api.getProfessors();
 
-      const athletes = allAthletes
+      const athletes = athletesList
         .filter(a => athleteIds.includes(a.id))
         .map(a => {
           const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
           return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence, lineup_status: el?.lineup_status };
         });
 
-      const staff = allProfessors
+      const staff = professorsList
         .filter(p => staffIds.includes(p.id))
         .map(p => {
           const el = lineupData.find(d => d.person_id === p.id && d.type === 'staff');
@@ -1157,7 +1277,7 @@ export const api = {
         });
       
       const result = { athletes, staff, category, lineup_name };
-      setCachedData(cacheKey, result);
+      if (!allAthletes && !allProfessors) setCachedData(cacheKey, result);
       return result;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "event_lineups");
@@ -1182,7 +1302,7 @@ export const api = {
           where("lineup_index", "==", lineup_index)
         );
       }
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsWithCacheFallback(q);
       
       // Store existing statuses to preserve them
       const existingData: Record<string, any> = {};
@@ -1246,8 +1366,8 @@ export const api = {
       });
       
       await batch.commit();
-      if (match_id) delete cache[`lineup_match_${match_id}`];
-      else delete cache[`lineup_${event_id}_${lineup_index}`];
+      if (match_id) invalidateCache(`lineup_match_${match_id}`);
+      else invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
@@ -1322,7 +1442,7 @@ export const api = {
       const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
       // Check if doc exists with new ID format, fallback to old if needed for athletes
       const docRef = doc(db, "event_lineups", id);
-      const docSnap = await getDoc(docRef);
+      const docSnap = await getDocWithCacheFallback(docRef);
       
       if (docSnap.exists()) {
         await updateDoc(docRef, { 
@@ -1333,7 +1453,7 @@ export const api = {
         // Fallback for old athlete ID format (only for index 0)
         const oldId = `${event_id}_${person_id}`;
         const oldDocRef = doc(db, "event_lineups", oldId);
-        const oldDocSnap = await getDoc(oldDocRef);
+        const oldDocSnap = await getDocWithCacheFallback(oldDocRef);
         if (oldDocSnap.exists()) {
           await updateDoc(oldDocRef, { 
             confirmation,
@@ -1370,7 +1490,7 @@ export const api = {
     }
   },
 
-  getAllEventLineups: async (event_id: string): Promise<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]> => {
+  getAllEventLineups: async (event_id: string, allAthletes?: Athlete[], allProfessors?: Professor[]): Promise<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]> => {
     try {
       const q = query(
         collection(db, "event_lineups"), 
@@ -1380,8 +1500,8 @@ export const api = {
       const allLineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
       const indexes = [...new Set(allLineupData.map(d => d.lineup_index))];
-      const allAthletes = await api.getAthletes();
-      const allProfessors = await api.getProfessors();
+      const athletesList = allAthletes || await api.getAthletes();
+      const professorsList = allProfessors || await api.getProfessors();
 
       return (indexes as number[]).map(idx => {
         const lineupData = allLineupData.filter(d => d.lineup_index === idx);
@@ -1389,14 +1509,14 @@ export const api = {
         const athleteIds = lineupData.filter(d => d.type === 'athlete' || !d.type).map(d => d.person_id || d.athlete_id);
         const staffIds = lineupData.filter(d => d.type === 'staff').map(d => d.person_id);
 
-        const athletes = allAthletes
+        const athletes = athletesList
           .filter(a => athleteIds.includes(a.id))
           .map(a => {
             const el = lineupData.find(d => (d.person_id === a.id || d.athlete_id === a.id) && (d.type === 'athlete' || !d.type));
             return { ...a, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
           });
 
-        const staff = allProfessors
+        const staff = professorsList
           .filter(p => staffIds.includes(p.id))
           .map(p => {
             const el = lineupData.find(d => d.person_id === p.id && d.type === 'staff');
@@ -1412,6 +1532,9 @@ export const api = {
   },
 
   subscribeToAthleteLineups: (athlete_id: string, callback: (events: Event[]) => void) => {
+    // Initial fetch
+    api.checkAthleteLineups(athlete_id).then(callback);
+
     const q = query(
       collection(db, "event_lineups"), 
       where("person_id", "==", athlete_id),
@@ -1427,6 +1550,10 @@ export const api = {
       const allEvents = await api.getEvents();
       const athleteEvents = allEvents.filter(e => eventIds.includes(e.id));
       callback(athleteEvents);
+    }, (error) => {
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "athlete_lineups/subscription");
+      }
     });
   },
 
@@ -1437,7 +1564,7 @@ export const api = {
         where("person_id", "==", athlete_id),
         where("type", "==", "athlete")
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsWithCacheFallback(q);
       const eventIds = [...new Set(querySnapshot.docs.map(doc => doc.data().event_id))];
       
       if (eventIds.length === 0) return [];
@@ -1453,24 +1580,33 @@ export const api = {
 
   // Sponsors
   getSponsors: async (): Promise<Sponsor[]> => {
-    const cached = getCachedData("sponsors");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "sponsors"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Sponsor));
-      setCachedData("sponsors", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "sponsors");
-      return [];
+    const cacheKey = "sponsors";
+    const cached = getCachedData(cacheKey);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "sponsors"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Sponsor));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (e) {
+        return cached || [];
+      }
+    };
+
+    if (cached) {
+      backgroundFetch().catch(() => {});
+      return cached;
     }
+    
+    return backgroundFetch();
   },
   saveSponsor: async (sponsor: Partial<Sponsor>) => {
     if (!sponsor.id) sponsor.id = doc(collection(db, "sponsors")).id;
     try {
       const data = { ...sponsor, updated_at: serverTimestamp() };
       await setDoc(doc(db, "sponsors", sponsor.id), sanitizeData(data), { merge: true });
-      delete cache["sponsors"]; // Invalidate cache
+      invalidateCache("sponsors"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `sponsors/${sponsor.id}`);
     }
@@ -1478,7 +1614,7 @@ export const api = {
   deleteSponsor: async (id: string) => {
     try {
       await deleteDoc(doc(db, "sponsors", id));
-      delete cache["sponsors"]; // Invalidate cache
+      invalidateCache("sponsors"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `sponsors/${id}`);
     }
@@ -1503,7 +1639,7 @@ export const api = {
     try {
       const data = { ...championship, updated_at: serverTimestamp() };
       await setDoc(doc(db, "championships", championship.id), sanitizeData(data), { merge: true });
-      delete cache["championships"]; // Invalidate cache
+      invalidateCache("championships"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `championships/${championship.id}`);
     }
@@ -1511,7 +1647,7 @@ export const api = {
   deleteChampionship: async (id: string) => {
     try {
       await deleteDoc(doc(db, "championships", id));
-      delete cache["championships"]; // Invalidate cache
+      invalidateCache("championships"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `championships/${id}`);
     }
@@ -1901,7 +2037,7 @@ export const api = {
       
       // Delete the associated lineup
       const q = query(collection(db, "event_lineups"), where("match_id", "==", id));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsWithCacheFallback(q);
       querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
       
       await batch.commit();
@@ -2100,22 +2236,26 @@ export const api = {
   },
 
   subscribeToAccessLogs: (callback: (logs: any[]) => void) => {
-    const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"));
+    const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"), limit(50));
     return onSnapshot(q, (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       callback(logs);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, "access_logs/subscription");
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "access_logs/subscription");
+      }
     });
   },
 
   subscribeToLoginErrors: (callback: (errors: any[]) => void) => {
-    const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"));
+    const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"), limit(50));
     return onSnapshot(q, (snapshot) => {
       const errors = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       callback(errors);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, "login_errors/subscription");
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "login_errors/subscription");
+      }
     });
   },
 };

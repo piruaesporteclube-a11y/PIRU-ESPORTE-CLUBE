@@ -34,12 +34,16 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const data = await api.getAttendance(undefined, undefined, trainingId, eventId);
-      const filtered = data.filter(a => {
-        if (trainingId || eventId) return true;
-        return a.date >= dateRange.start && a.date <= dateRange.end;
-      });
-      setHistory(filtered.sort((a, b) => b.date.localeCompare(a.date)));
+      // Use server-side filtering with date range if not specific to a training/event
+      const data = await api.getAttendance(
+        undefined, 
+        undefined, 
+        trainingId, 
+        eventId, 
+        (trainingId || eventId) ? undefined : dateRange.start, 
+        (trainingId || eventId) ? undefined : dateRange.end
+      );
+      setHistory(data.sort((a, b) => b.date.localeCompare(a.date)));
     } catch (err) {
       console.error("Error loading attendance history:", err);
     } finally {

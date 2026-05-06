@@ -748,6 +748,8 @@ export default function App() {
             });
           }
         });
+      }, (error) => {
+        console.warn("Login errors subscription quota exceeded:", error);
       });
       
       return () => unsubscribe();
@@ -1078,7 +1080,7 @@ export default function App() {
         case 'lineups':
           return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} athleteName={myAthleteData?.name || ''} />;
         case 'events':
-          return <EventsManagement athletes={athletes} events={events} role={user?.role} />;
+          return <EventsManagement athletes={athletes} events={events} role={user?.role} loggedInUserId={user?.id} />;
         case 'birthdays':
           return <Birthdays athletes={athletes} professors={professors} />;
         case 'documents':

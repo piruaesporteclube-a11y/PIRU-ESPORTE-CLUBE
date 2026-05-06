@@ -85,6 +85,7 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
           role="student" 
           events={[selectedEvent]} 
           initialOpenLineupEvent={selectedEvent}
+          loggedInUserId={athleteId}
         />
       </div>
     );
