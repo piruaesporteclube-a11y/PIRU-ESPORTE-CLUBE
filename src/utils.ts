@@ -35,6 +35,38 @@ export function compressImage(base64Str: string, maxWidth = 1000, maxHeight = 10
   });
 }
 
+export function normalizePhone(phone: string): string {
+  let clean = phone.replace(/\D/g, '');
+  
+  // If it's a Brazilian number (10 digits: DDD + 8 digits), add the 9th digit
+  if (clean.length === 10) {
+    clean = clean.substring(0, 2) + '9' + clean.substring(2);
+  }
+  
+  // If it has country code + DDD + 8 digits (12 digits)
+  if (clean.length === 12 && clean.startsWith('55')) {
+    clean = clean.substring(0, 4) + '9' + clean.substring(4);
+  }
+
+  return clean;
+}
+
+export function formatPhone(phone: string): string {
+  const clean = normalizePhone(phone);
+  
+  if (clean.length === 11) { // DDD + 9 digits
+    return `(${clean.substring(0, 2)}) ${clean.substring(2, 7)}-${clean.substring(7)}`;
+  } else if (clean.length === 10) { // DDD + 8 digits
+    return `(${clean.substring(0, 2)}) ${clean.substring(2, 6)}-${clean.substring(6)}`;
+  } else if (clean.length === 13) { // 55 + DDD + 9 digits
+    return `+${clean.substring(0, 2)} (${clean.substring(2, 4)}) ${clean.substring(4, 9)}-${clean.substring(9)}`;
+  } else if (clean.length === 12) { // 55 + DDD + 8 digits
+    return `+${clean.substring(0, 2)} (${clean.substring(2, 4)}) ${clean.substring(4, 8)}-${clean.substring(8)}`;
+  }
+  
+  return phone;
+}
+
 export function fixHtml2CanvasColors(element: HTMLElement) {
   const elements = element.querySelectorAll('*');
   elements.forEach((el) => {

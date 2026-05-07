@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
-import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage, formatPhone, normalizePhone } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface AthleteFormProps {
@@ -156,8 +156,15 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
 
     setLoading(true);
     try {
+      // Normalize phone numbers before saving
+      const dataToSave = {
+        ...formData,
+        contact: normalizePhone(formData.contact || ''),
+        guardian_phone: normalizePhone(formData.guardian_phone || '')
+      };
+
       if (isRegistration) {
-        const { athlete } = await api.register(formData);
+        const { athlete } = await api.register(dataToSave);
         toast.success("Cadastro realizado com sucesso!");
             // Automatic WhatsApp Sync for New Registration
         if (athlete.contact || athlete.guardian_phone) {
@@ -178,17 +185,17 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         onRegisterSuccess?.(athlete);
       } else {
         if (userRole === 'professor') {
-          await api.saveProfessor(formData as any);
+          await api.saveProfessor(dataToSave as any);
           toast.success("Dados da comissão salvos com sucesso!");
         } else {
-          await api.saveAthlete(formData);
+          await api.saveAthlete(dataToSave as Athlete);
           toast.success("Atleta salvo com sucesso!");
 
           // Automatic WhatsApp Sync for New Athletes (or updates)
-          if (!athlete && (formData.contact || formData.guardian_phone)) {
+          if (!athlete && (dataToSave.contact || dataToSave.guardian_phone)) {
             const syncToast = toast.loading("Adicionando aos grupos do WhatsApp...");
             try {
-              const res = await api.whatsapp.syncAthlete(formData);
+              const res = await api.whatsapp.syncAthlete(dataToSave);
               const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
               if (allSuccess) {
                 toast.success("WhatsApp sincronizado!", { id: syncToast });
@@ -485,6 +492,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"
                         value={formData.contact || ''}
                         onChange={e => setFormData({...formData, contact: e.target.value.toUpperCase()})}
+                        onBlur={e => setFormData({...formData, contact: formatPhone(e.target.value)})}
                       />
                       {formData.contact && formData.contact.replace(/\D/g, '') && (
                         <a 
@@ -711,6 +719,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 pr-12 uppercase"
                       value={formData.guardian_phone || ''}
                       onChange={e => setFormData({...formData, guardian_phone: e.target.value.toUpperCase()})}
+                      onBlur={e => setFormData({...formData, guardian_phone: formatPhone(e.target.value)})}
                     />
                     {formData.guardian_phone && formData.guardian_phone.replace(/\D/g, '') && (
                       <a 

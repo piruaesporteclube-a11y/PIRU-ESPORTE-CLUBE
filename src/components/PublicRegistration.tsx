@@ -5,7 +5,7 @@ import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, U
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, compressImage as globalCompressImage } from '../utils';
+import { cn, compressImage as globalCompressImage, formatPhone, normalizePhone } from '../utils';
 
 interface PublicRegistrationProps {
   onCancel: () => void;
@@ -112,8 +112,15 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
 
     setLoading(true);
     try {
+      // Normalize phone numbers
+      const dataToSubmit = {
+        ...athleteData,
+        contact: normalizePhone(athleteData.contact || ''),
+        guardian_phone: normalizePhone(athleteData.guardian_phone || '')
+      };
+      
       // Register Athlete only
-      const { athlete, user } = await api.register(athleteData);
+      const { athlete, user } = await api.register(dataToSubmit);
       setNewAthlete(athlete);
       setNewUser(user);
 
@@ -326,7 +333,15 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
-                      <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.contact} onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})} />
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="(00) 00000-0000" 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
+                        value={athleteData.contact} 
+                        onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})}
+                        onBlur={e => setAthleteData({...athleteData, contact: formatPhone(e.target.value)})}
+                      />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">E-mail (Login/Notificações)</label>
@@ -473,7 +488,15 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Responsável</label>
-                      <input required type="text" placeholder="(00) 00000-0000" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.guardian_phone} onChange={e => setAthleteData({...athleteData, guardian_phone: e.target.value.toUpperCase()})} />
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="(00) 00000-0000" 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
+                        value={athleteData.guardian_phone} 
+                        onChange={e => setAthleteData({...athleteData, guardian_phone: e.target.value.toUpperCase()})}
+                        onBlur={e => setAthleteData({...athleteData, guardian_phone: formatPhone(e.target.value)})}
+                      />
                     </div>
                   </div>
                 </div>

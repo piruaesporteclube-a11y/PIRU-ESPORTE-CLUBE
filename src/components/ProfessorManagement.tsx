@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
-import { cn, compressImage } from '../utils';
+import { cn, compressImage, formatPhone, normalizePhone } from '../utils';
 import MembershipCard from './MembershipCard';
 
 interface ProfessorManagementProps {
@@ -223,7 +223,13 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
         toast.error("A foto é obrigatória para membros da comissão.");
         return;
       }
-      await api.saveProfessor(formData);
+      
+      const dataToSave = {
+        ...formData,
+        phone: normalizePhone(formData.phone || '')
+      };
+      
+      await api.saveProfessor(dataToSave as any);
       toast.success("Membro da comissão técnica salvo com sucesso!");
       setIsFormOpen(false);
       setEditingProfessor(null);
@@ -538,6 +544,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                       placeholder="(37) 99999-9999"
                       value={formData.phone}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
+                      onBlur={e => setFormData({...formData, phone: formatPhone(e.target.value)})}
                     />
                     {formData.phone && formData.phone.replace(/\D/g, '') && (
                       <a 

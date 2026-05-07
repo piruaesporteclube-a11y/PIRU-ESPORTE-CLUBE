@@ -425,40 +425,64 @@ export class WhatsAppService {
     }
   }
 
-  private async resolveJid(phoneNumber: string): Promise<string | null> {
-    let cleanNumber = phoneNumber.replace(/\D/g, '');
-    if (!cleanNumber.startsWith('55') && cleanNumber.length >= 10) {
-      cleanNumber = '55' + cleanNumber;
+  private normalizeBrazilianNumber(phoneNumber: string): string {
+    let clean = phoneNumber.replace(/\D/g, '');
+    
+    // If it doesn't have country code, add it
+    if (!clean.startsWith('55') && (clean.length === 10 || clean.length === 11)) {
+      clean = '55' + clean;
     }
 
+    // Brazilian normalization logic
+    // Format: 55 + DDD (2 digits) + NUMBER
+    if (clean.startsWith('55') && clean.length >= 12) {
+      const ddd = clean.substring(2, 4);
+      let number = clean.substring(4);
+
+      // If it's a mobile number (length 8) and missing the 9th digit
+      // In Brazil, mobile numbers are 9 digits starting with 9
+      // Fixed lines are 8 digits and don't necessarily start with 9
+      // However, for WhatsApp, almost everything is mobile or treated as such
+      if (number.length === 8) {
+        // Add the 9th digit
+        number = '9' + number;
+      }
+      
+      clean = '55' + ddd + number;
+    }
+
+    return clean;
+  }
+
+  private async resolveJid(phoneNumber: string): Promise<string | null> {
+    const cleanNumber = this.normalizeBrazilianNumber(phoneNumber);
+    
     if (cleanNumber.length < 10) return null;
     
     // Check cache
     if (this.jidCache[cleanNumber]) return this.jidCache[cleanNumber];
 
-    let onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
-    if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
-      this.jidCache[cleanNumber] = onWhatsApp[0].jid;
-      return onWhatsApp[0].jid;
-    }
-
-    // Try alternative with/without 9th digit
-    let alternative = '';
-    if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
-      alternative = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
-    } else if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
-      alternative = cleanNumber.slice(0, 4) + '9' + cleanNumber.slice(4);
-    }
-
-    if (alternative) {
-      if (this.jidCache[alternative]) return this.jidCache[alternative];
-      
-      const altOnWA = await this.socket.onWhatsApp(alternative);
-      if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
-        this.jidCache[cleanNumber] = altOnWA[0].jid;
-        this.jidCache[alternative] = altOnWA[0].jid;
-        return altOnWA[0].jid;
+    try {
+      let onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
+      if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
+        this.jidCache[cleanNumber] = onWhatsApp[0].jid;
+        return onWhatsApp[0].jid;
       }
+
+      // If normalized didn't work, try a "classic" fallback (removing 9 if it has 13 chars)
+      if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+        const fallback = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
+        if (this.jidCache[fallback]) return this.jidCache[fallback];
+        
+        const altOnWA = await this.socket.onWhatsApp(fallback);
+        if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
+          this.jidCache[cleanNumber] = altOnWA[0].jid;
+          this.jidCache[fallback] = altOnWA[0].jid;
+          return altOnWA[0].jid;
+        }
+      }
+    } catch (err) {
+      console.warn(`[WhatsApp] Error resolving JID for ${cleanNumber}:`, err);
     }
 
     return null;
@@ -478,6 +502,10 @@ export class WhatsAppService {
       jid = resolvedJid;
 
       console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
+      
+      // Delay to avoid rapid requests
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const response = await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
       
       // The response is an array of objects: { jid: string, status: string }
@@ -538,10 +566,7 @@ export class WhatsAppService {
     }
 
     try {
-      let cleanNumber = phoneNumber.replace(/\D/g, '');
-      if (!cleanNumber.startsWith('55') && cleanNumber.length >= 10) {
-        cleanNumber = '55' + cleanNumber;
-      }
+      const cleanNumber = this.normalizeBrazilianNumber(phoneNumber);
 
       if (cleanNumber.length < 10) {
         throw new Error('Número de telefone inválido.');
