@@ -189,6 +189,7 @@ export class WhatsAppService {
         printQRInTerminal: false,
         browser: ['Piruá Esporte Clube', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
+        qrTimeout: 90000,
         connectTimeoutMs: 60000, 
         defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 20000, 
@@ -220,8 +221,9 @@ export class WhatsAppService {
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
-          const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
-          const isNetworkError = statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428;
+          const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
+          const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
+          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
 
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError}`);
 
@@ -290,6 +292,17 @@ export class WhatsAppService {
           if (isTimedOut && statusBeforeClose !== 'connected') {
             this.qrTimeoutCount++;
             console.log(`[WhatsApp] QR/Pairing timeout (Count: ${this.qrTimeoutCount})`);
+            
+            // If we've timed out multiple times, try resetting the session files completely
+            if (this.qrTimeoutCount > 0 && this.qrTimeoutCount % 3 === 0) {
+              console.warn('[WhatsApp] Persistent QR timeouts. Resetting session to try recovery.');
+              this.logout(true, false, false); // autoReinit=true, resetQrTimeout=false
+              return;
+            }
+
+            // If we've timed out way too many times, increase the wait time significantly
+            const qrResetDelay = Math.min(15000 * this.qrTimeoutCount, 60000); 
+
             if (this.qrTimeoutCount >= 10) { 
               console.warn('[WhatsApp] QR threshold reached. Halting auto-reinit.');
               this.isHalted = true;
@@ -298,7 +311,7 @@ export class WhatsAppService {
             
             this.reconnectTimeout = setTimeout(() => {
               if (!this.isHalted) this.init();
-            }, 15000); // Increased delay after QR timeout
+            }, qrResetDelay); 
             return;
           }
 
@@ -351,11 +364,15 @@ export class WhatsAppService {
       
       if (isQRExpired) {
         this.qrTimeoutCount++;
-        if (this.qrTimeoutCount >= 5) {
+        const qrResetDelay = Math.min(10000 * this.qrTimeoutCount, 60000);
+        if (this.qrTimeoutCount >= 10) {
           this.isHalted = true;
           console.warn('[WhatsApp] Catch block: QR threshold reached. Halting.');
         } else {
-          setTimeout(() => this.init(), 5000);
+          console.log(`[WhatsApp] QR expired in catch block, retrying in ${qrResetDelay/1000}s...`);
+          setTimeout(() => {
+            if (!this.isHalted) this.init();
+          }, qrResetDelay);
         }
       } else {
         this.reconnectAttempts++;

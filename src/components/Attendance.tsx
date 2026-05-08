@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Athlete, getSubCategory, categories, Training, Event } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History } from 'lucide-react';
+import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -17,7 +17,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
-  const [attendance, setAttendance] = useState<Record<string, Attendance[]>>({});
+  const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   useEffect(() => {
     const unsubscribe = api.subscribeToAttendance((attendanceData) => {
-      const attMap: Record<string, Attendance[]> = {};
+      const attMap: Record<string, AttendanceRecord[]> = {};
       attendanceData.forEach(a => {
         if (!attMap[a.athlete_id]) attMap[a.athlete_id] = [];
         attMap[a.athlete_id].push(a);
@@ -243,7 +243,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
       const attendanceData = await api.getAttendance(date, undefined, activeTrainingId, eventId);
       
-      const attMap: Record<string, Attendance[]> = {};
+      const attMap: Record<string, AttendanceRecord[]> = {};
       attendanceData.forEach(a => {
         if (!attMap[a.athlete_id]) attMap[a.athlete_id] = [];
         attMap[a.athlete_id].push(a);
@@ -486,7 +486,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const records = newAttendance[athlete.id] || [];
       const existingIdx = records.findIndex(r => r.id === attendanceId);
 
-      const newRecord: Attendance = {
+      const newRecord: AttendanceRecord = {
         id: attendanceId,
         athlete_id: athlete.id,
         training_id: activeTrainingId,
@@ -507,7 +507,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       if (activeTrainingId && !records.some(r => !r.training_id && !r.event_id && r.status === 'Presente')) {
         const generalId = `${athlete.id}_${date}`;
         const existingGeneralIdx = records.findIndex(r => r.id === generalId);
-        const generalRecord: Attendance = {
+        const generalRecord: AttendanceRecord = {
           id: generalId,
           athlete_id: athlete.id,
           date,
@@ -547,7 +547,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     
     const finalArrivalTime = arrival_time || (existingIdx >= 0 ? records[existingIdx].arrival_time : now);
 
-    const newRecord: Attendance = {
+    const newRecord: AttendanceRecord = {
       id: attendanceId,
       athlete_id: athleteId,
       training_id: activeTrainingId,
@@ -569,7 +569,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     if (activeTrainingId && status === 'Presente' && !newRecords.some(r => !r.training_id && !r.event_id && r.status === 'Presente')) {
       const generalId = `${athleteId}_${date}`;
       const existingGeneralIdx = newRecords.findIndex(r => r.id === generalId);
-      const generalRecord: Attendance = {
+      const generalRecord: AttendanceRecord = {
         id: generalId,
         athlete_id: athleteId,
         date,
