@@ -25,10 +25,12 @@ export class WhatsAppService {
   private isInitializing = false;
   private reconnectAttempts = 0;
   private restartRequiredCount = 0;
+  private lastRestartTime = 0;
   private qrTimeoutCount = 0;
   private isHalted = false;
   private lastResetTime = 0;
   private connectionWatchdog: NodeJS.Timeout | null = null;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
     this.init();
@@ -44,14 +46,22 @@ export class WhatsAppService {
     this.lastResetTime = Date.now();
     this.isInitializing = true; 
     
+    // Clear any pending reconnect
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     try {
       if (this.socket) {
         // Attempt clean logout but don't hang
         try {
-          await Promise.race([
-            this.socket.logout(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 5000))
-          ]).catch(() => {});
+          if (this.connectionStatus === 'connected') {
+            await Promise.race([
+              this.socket.logout(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 5000))
+            ]).catch(() => {});
+          }
         } catch (e) {}
         
         if (this.socket?.ev) {
@@ -60,7 +70,7 @@ export class WhatsAppService {
         }
         
         if (this.socket?.end) {
-          this.socket.end();
+          this.socket.end(undefined);
         }
       }
     } catch (e) {
@@ -86,20 +96,21 @@ export class WhatsAppService {
     
     if (resetQrTimeout) {
       this.qrTimeoutCount = 0;
-      this.isHalted = stayHalted; // Set or reset halt state
-    } else if (stayHalted) {
-      this.isHalted = true;
     }
+    
+    // Explicitly set halt state
+    this.isHalted = stayHalted; 
     
     // Calculate reinit status AFTER flipping isHalted
     const actualAutoReinit = autoReinit && !this.isHalted;
     
     this.isInitializing = false;
     this.reconnectAttempts = 0;
+    this.restartRequiredCount = 0;
     
     if (actualAutoReinit) {
-      console.log('WhatsApp reset complete. Re-initializing in 5s...');
-      setTimeout(() => this.init(), 5000);
+      console.log('WhatsApp reset complete. Re-initializing in 10s...');
+      setTimeout(() => this.init(), 10000);
     } else {
       console.log(`WhatsApp reset complete. Auto-reinitialization disabled. (Halted: ${this.isHalted})`);
     }
@@ -110,9 +121,9 @@ export class WhatsAppService {
     this.connectionWatchdog = setTimeout(() => {
       if (this.connectionStatus === 'connecting' || (this.connectionStatus === 'disconnected' && !this.isInitializing)) {
         console.warn('WhatsApp: Watchdog triggered. Connection stuck. Resetting...');
-        this.logout();
+        this.logout(true, true, false);
       }
-    }, 300000); // 5 minutes timeout
+    }, 180000); // 3 minutes timeout is more reasonable
   }
 
   private stopWatchdog() {
@@ -128,6 +139,12 @@ export class WhatsAppService {
       return;
     }
     
+    // Clear any pending reconnect
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     // Ensure any previously existing socket is cleaned up
     if (this.socket) {
       try {
@@ -137,13 +154,14 @@ export class WhatsAppService {
           this.socket.ev.removeAllListeners('creds.update');
         }
         if (this.socket.end) {
-          this.socket.end(new Error('Re-initializing'));
+          this.socket.end(undefined);
         }
       } catch (e) {}
       this.socket = null;
     }
 
     this.isInitializing = true;
+    this.connectionStatus = 'connecting';
     this.startWatchdog();
     
     // Ensure cleanup of any previous session artifacts
@@ -156,9 +174,9 @@ export class WhatsAppService {
       }
 
       const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
-      const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1017531287] as [number, number, number], isLatest: false }));
+      const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1017531287] as [number, number, number], isLatest: false }));
 
-      console.log(`Initializing WhatsApp with Baileys v${version.join('.')} (Latest: ${isLatest})`);
+      console.log(`Initializing WhatsApp with Baileys v${version.join('.')}`);
 
       this.socket = makeWASocket({
         version,
@@ -168,16 +186,15 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '110.0'],
+        browser: ['Piruá PEC', 'Chrome', '110.0'],
         syncFullHistory: false,
-        connectTimeoutMs: 120000, // 2 minutes to be safe
+        connectTimeoutMs: 120000, 
         defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 60000, 
+        keepAliveIntervalMs: 30000, // 30s is a safe middle ground
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: true,
+        markOnlineOnConnect: false, // Setting to false can help with 515/reconnect stability
         generateHighQualityLinkPreview: false,
         linkPreviewImageThumbnailWidth: 192,
-        // Improved 515 stabilization
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'Piruá PEC notification' };
         }
@@ -214,9 +231,13 @@ export class WhatsAppService {
           
           if (isRestartRequired) {
             this.restartRequiredCount++;
+            this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
           } else {
-            this.restartRequiredCount = 0;
+            // Only reset if it was a "clean" connect before or some other non-515 error
+            if (this.connectionStatus === 'connected') {
+              this.restartRequiredCount = 0;
+            }
           }
 
           // Crucial: Null the socket instance to allow fresh init
@@ -234,24 +255,23 @@ export class WhatsAppService {
                 oldSocket.ev.removeAllListeners('connection.update');
                 oldSocket.ev.removeAllListeners('creds.update');
               }
-              // Aggressive nuke for 515/401
-              if ((isRestartRequired || isLoggedOut || isDeviceRemoved) && oldSocket.end) {
-                oldSocket.end(new Error(`Session reset: ${statusCode || 515}`));
-              } else if (oldSocket.end) {
-                oldSocket.end(undefined);
+              // Aggressive nuke for 515/401/403
+              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut) {
+                if (oldSocket.end) oldSocket.end(undefined);
               }
             } catch (e) {}
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 8) {
-            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Max Restarts'}). Halting connection.`);
-            this.logout(false, true, true); // NEW: autoReinit=false, resetQrTimeout=true, stayHalted=true
+          // Also halt if 515 loop detected (more than 10 times)
+          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 10) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : '515 Loop Detected');
+            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
+            this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true
             return;
           }
 
           // Case 2: QR Expired or Timeout during pairing
-          // If we weren't connected, treat timeout as pairing failure
           if (isTimedOut && statusBeforeClose !== 'connected') {
             this.qrTimeoutCount++;
             console.log(`[WhatsApp] QR/Pairing timeout (Count: ${this.qrTimeoutCount})`);
@@ -261,7 +281,7 @@ export class WhatsAppService {
               return;
             }
             
-            setTimeout(() => {
+            this.reconnectTimeout = setTimeout(() => {
               if (!this.isHalted) this.init();
             }, 5000);
             return;
@@ -269,21 +289,14 @@ export class WhatsAppService {
 
           // Case 3: Standard Reconnect (Network flickers, Stream errors, etc)
           this.reconnectAttempts++;
-          const shouldHalt = this.reconnectAttempts > 100; // Very generous limit
           
-          if (shouldHalt) {
-            console.error('[WhatsApp] Max reconnection attempts reached. Halting.');
-            this.isHalted = true;
-            return;
-          }
-
-          // Higher delay for 515 to let the previous stream die completely
-          const baseDelay = isRestartRequired ? 20000 : 5000;
-          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 5000), 180000);
+          // Exponential backoff or progressive delay
+          const baseDelay = isRestartRequired ? 30000 : 5000;
+          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 10000), 300000); // Max 5 mins
           
-          console.log(`[WhatsApp] 515/Reconnect: Waiting ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
+          console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
           
-          setTimeout(() => {
+          this.reconnectTimeout = setTimeout(() => {
             if (!this.isHalted && !this.socket) {
               this.init();
             }
@@ -300,6 +313,7 @@ export class WhatsAppService {
           this.reconnectAttempts = 0;
           this.qrTimeoutCount = 0; 
           this.isHalted = false;
+          this.restartRequiredCount = 0;
           // Initial setup of groups
           setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 5000);
         }

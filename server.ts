@@ -20,7 +20,16 @@ async function startServer() {
 
   app.post("/api/whatsapp/reset", async (req, res) => {
     try {
-      await whatsappService.logout();
+      await whatsappService.logout(true, true, false);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/logout", async (req, res) => {
+    try {
+      await whatsappService.logout(false, true, true);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
