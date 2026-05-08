@@ -17,7 +17,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
-  const [attendance, setAttendance] = useState<Record<string, { status: string, justification: string, arrival_time?: string }>>({});
+  const [attendance, setAttendance] = useState<Record<string, Attendance[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
 
   useEffect(() => {
@@ -152,13 +152,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   useEffect(() => {
     const unsubscribe = api.subscribeToAttendance((attendanceData) => {
-      const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
+      const attMap: Record<string, Attendance[]> = {};
       attendanceData.forEach(a => {
-        attMap[a.athlete_id] = { 
-          status: a.status, 
-          justification: a.justification || '',
-          arrival_time: a.arrival_time
-        };
+        if (!attMap[a.athlete_id]) attMap[a.athlete_id] = [];
+        attMap[a.athlete_id].push(a);
       });
       setAttendance(attMap);
       setHasChanges(false);
@@ -237,13 +234,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
       const attendanceData = await api.getAttendance(date, undefined, activeTrainingId, eventId);
       
-      const attMap: Record<string, { status: string, justification: string, arrival_time?: string }> = {};
+      const attMap: Record<string, Attendance[]> = {};
       attendanceData.forEach(a => {
-        attMap[a.athlete_id] = { 
-          status: a.status, 
-          justification: a.justification || '',
-          arrival_time: a.arrival_time
-        };
+        if (!attMap[a.athlete_id]) attMap[a.athlete_id] = [];
+        attMap[a.athlete_id].push(a);
       });
       setAttendance(attMap);
       setHasChanges(false);
@@ -382,7 +376,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         const scanTime = format(new Date(), 'HH:mm');
         
         // Update local state first
-        if (attendance[athleteId]?.status !== 'Presente') {
+        const records = attendance[athleteId] || [];
+        const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+        const currentAtt = records.find(r => 
+          (activeTrainingId && r.training_id === activeTrainingId) ||
+          (eventId && r.event_id === eventId) ||
+          (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+        );
+
+        if (currentAtt?.status !== 'Presente') {
           await markAttendance(athleteId, 'Presente', '', scanTime);
         }
         
@@ -465,8 +467,33 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     
     const now = format(new Date(), 'HH:mm');
     const newAttendance = { ...attendance };
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+
     filteredAthletes.forEach(athlete => {
-      newAttendance[athlete.id] = { status: 'Presente', justification: '', arrival_time: now };
+      let attendanceId = `${athlete.id}_${date}`;
+      if (activeTrainingId) attendanceId = `${athlete.id}_training_${activeTrainingId}`;
+      if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
+
+      const records = newAttendance[athlete.id] || [];
+      const existingIdx = records.findIndex(r => r.id === attendanceId);
+
+      const newRecord: Attendance = {
+        id: attendanceId,
+        athlete_id: athlete.id,
+        training_id: activeTrainingId,
+        event_id: eventId,
+        date,
+        status: 'Presente',
+        justification: '',
+        arrival_time: now
+      };
+
+      if (existingIdx >= 0) {
+        records[existingIdx] = newRecord;
+      } else {
+        records.push(newRecord);
+      }
+      newAttendance[athlete.id] = [...records];
     });
     setAttendance(newAttendance);
     setHasChanges(true);
@@ -480,11 +507,38 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       return;
     }
     
-    // Update local state first
-    const finalArrivalTime = arrival_time || attendance[athleteId]?.arrival_time || format(new Date(), 'HH:mm');
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    let attendanceId = `${athleteId}_${date}`;
+    if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
+    if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
+
+    const now = format(new Date(), 'HH:mm');
+    const records = attendance[athleteId] || [];
+    const existingIdx = records.findIndex(r => r.id === attendanceId);
+    
+    const finalArrivalTime = arrival_time || (existingIdx >= 0 ? records[existingIdx].arrival_time : now);
+
+    const newRecord: Attendance = {
+      id: attendanceId,
+      athlete_id: athleteId,
+      training_id: activeTrainingId,
+      event_id: eventId,
+      date,
+      status,
+      justification,
+      arrival_time: finalArrivalTime
+    };
+
+    const newRecords = [...records];
+    if (existingIdx >= 0) {
+      newRecords[existingIdx] = newRecord;
+    } else {
+      newRecords.push(newRecord);
+    }
+
     setAttendance(prev => ({ 
       ...prev, 
-      [athleteId]: { status, justification, arrival_time: finalArrivalTime } 
+      [athleteId]: newRecords 
     }));
     setHasChanges(true);
   };
@@ -522,21 +576,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     const loadingToast = toast.loading('Salvando chamada...');
     try {
-      const promises = Object.entries(attendance).map(([athleteId, data]) => {
-        let attendanceId = `${athleteId}_${date}`;
-        if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
-        if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
-
-        return api.saveAttendance({
-          id: attendanceId,
-          athlete_id: athleteId,
-          training_id: activeTrainingId,
-          event_id: eventId,
-          date,
-          status: data.status as any,
-          justification: data.justification,
-          arrival_time: data.arrival_time
-        });
+      const promises = Object.entries(attendance).flatMap(([athleteId, records]) => {
+        // Only save records that match the current scope of the component's editing
+        // or just save all if we want to sync everything.
+        // Usually safer to only save what's relevant to current view to avoid accidental overwrites of other trainings
+        return records
+          .filter(r => 
+            (activeTrainingId && r.training_id === activeTrainingId) ||
+            (eventId && r.event_id === eventId) ||
+            (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+          )
+          .map(r => api.saveAttendance(r));
       });
 
       await Promise.all(promises);
@@ -578,7 +628,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       }
 
       // Apply tab filter
-      const att = attendance[a.id];
+      const records = attendance[a.id] || [];
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      const att = records.find(r => 
+        (activeTrainingId && r.training_id === activeTrainingId) ||
+        (eventId && r.event_id === eventId) ||
+        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+      );
+
       if (tabFilter === 'present' && att?.status !== 'Presente') return false;
       if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
       if (tabFilter === 'observation' && att) return false;
@@ -729,9 +786,36 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const stats = {
     total: filteredAthletes.length,
-    present: filteredAthletes.filter(a => attendance[a.id]?.status === 'Presente').length,
-    absent: filteredAthletes.filter(a => attendance[a.id]?.status === 'Faltou').length,
-    notMarked: filteredAthletes.filter(a => !attendance[a.id]).length
+    present: filteredAthletes.filter(a => {
+      const records = attendance[a.id] || [];
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      const att = records.find(r => 
+        (activeTrainingId && r.training_id === activeTrainingId) ||
+        (eventId && r.event_id === eventId) ||
+        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+      );
+      return att?.status === 'Presente';
+    }).length,
+    absent: filteredAthletes.filter(a => {
+      const records = attendance[a.id] || [];
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      const att = records.find(r => 
+        (activeTrainingId && r.training_id === activeTrainingId) ||
+        (eventId && r.event_id === eventId) ||
+        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+      );
+      return att?.status === 'Faltou';
+    }).length,
+    notMarked: filteredAthletes.filter(a => {
+      const records = attendance[a.id] || [];
+      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      const att = records.find(r => 
+        (activeTrainingId && r.training_id === activeTrainingId) ||
+        (eventId && r.event_id === eventId) ||
+        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+      );
+      return !att;
+    }).length
   };
 
   return (
@@ -1031,26 +1115,56 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {filteredAthletes.map((athlete) => {
-                const att = attendance[athlete.id];
+                const records = attendance[athlete.id] || [];
+                const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                const att = records.find(r => 
+                  (activeTrainingId && r.training_id === activeTrainingId) ||
+                  (eventId && r.event_id === eventId) ||
+                  (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                );
+                
+                const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
+                const hasGeneralPresence = records.some(r => !r.training_id && !r.event_id && r.status === 'Presente');
+
                 return (
                   <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                          {athlete.photo && athlete.photo.trim() !== "" ? (
-                            <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <User size={16} />
-                          )}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
+                            {athlete.photo && athlete.photo.trim() !== "" ? (
+                              <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <User size={16} />
+                            )}
+                          </div>
+                          <span className="font-medium text-white">
+                            {athlete.name}
+                            {athlete.nickname && (
+                              <span className="ml-1 text-zinc-500 text-xs font-normal">
+                                ({athlete.nickname})
+                              </span>
+                            )}
+                          </span>
                         </div>
-                        <span className="font-medium text-white">
-                          {athlete.name}
-                          {athlete.nickname && (
-                            <span className="ml-1 text-zinc-500 text-xs font-normal">
-                              ({athlete.nickname})
-                            </span>
-                          )}
-                        </span>
+                        
+                        {(selectedTrainingId === 'geral' && !trainingId) && (
+                          <div className="flex items-center gap-1">
+                            {otherTrainingRecords.length > 0 && (
+                              <div className="flex -space-x-1">
+                                {otherTrainingRecords.map((r, i) => (
+                                  <div 
+                                    key={i} 
+                                    className="w-4 h-4 rounded-full bg-theme-primary/20 border border-theme-primary/40 flex items-center justify-center"
+                                    title={`Presente no treino: ${availableTrainings.find(t => t.id === r.training_id)?.category || 'Treino'}`}
+                                  >
+                                    <Trophy size={8} className="text-theme-primary" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -1150,7 +1264,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-zinc-800">
           {filteredAthletes.map((athlete) => {
-            const att = attendance[athlete.id];
+            const records = attendance[athlete.id] || [];
+            const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+            const att = records.find(r => 
+              (activeTrainingId && r.training_id === activeTrainingId) ||
+              (eventId && r.event_id === eventId) ||
+              (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+            );
+            
+            const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
+
             return (
               <div key={athlete.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1163,12 +1286,18 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       )}
                     </div>
                     <div>
-                      <div className="font-bold text-white text-sm">
+                      <div className="font-bold text-white text-sm flex items-center gap-2">
                         {athlete.name}
                         {athlete.nickname && (
-                          <span className="ml-1 text-zinc-500 text-[10px] font-normal">
+                          <span className="text-zinc-500 text-[10px] font-normal">
                             ({athlete.nickname})
                           </span>
+                        )}
+                        {(selectedTrainingId === 'geral' && !trainingId) && otherTrainingRecords.length > 0 && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-theme-primary/10 rounded-full border border-theme-primary/20">
+                             <Trophy size={8} className="text-theme-primary" />
+                             <span className="text-[8px] font-black text-theme-primary">{otherTrainingRecords.length}</span>
+                          </div>
                         )}
                       </div>
                       <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
@@ -1349,7 +1478,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     </thead>
                     <tbody>
                       {filteredAthletes.map((athlete, index) => {
-                        const att = attendance[athlete.id];
+                        const records = attendance[athlete.id] || [];
+                        const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                        const att = records.find(r => 
+                          (activeTrainingId && r.training_id === activeTrainingId) ||
+                          (eventId && r.event_id === eventId) ||
+                          (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                        );
                         return (
                           <tr key={athlete.id} className={cn(
                             att?.status === 'Faltou' ? "bg-red-50/30" : ""

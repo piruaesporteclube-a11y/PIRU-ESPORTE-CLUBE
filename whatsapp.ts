@@ -175,7 +175,7 @@ export class WhatsAppService {
       }
 
       const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
-      const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1017531287] as [number, number, number], isLatest: false }));
+      const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 2413, 51] as [number, number, number], isLatest: false }));
 
       console.log(`Initializing WhatsApp with Baileys v${version.join('.')}`);
 
@@ -187,13 +187,13 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá Esporte Clube', 'Chrome', '121.0.0.0'],
+        browser: ['Piruá Esporte Clube', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
-        connectTimeoutMs: 90000, 
-        defaultQueryTimeoutMs: 90000,
-        keepAliveIntervalMs: 30000, 
+        connectTimeoutMs: 60000, 
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 20000, 
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: false, 
+        markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
         maxMsgRetryCount: 15,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
@@ -242,6 +242,13 @@ export class WhatsAppService {
             this.restartRequiredCount++;
             this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
+            
+            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
+            if (this.restartRequiredCount > 5 && (Date.now() - this.lastRestartTime < 300000)) {
+              console.warn('[WhatsApp] Too many 515 restarts. Performing a full session reset.');
+              this.logout(true, true, false);
+              return;
+            }
           } else if (connection === 'close') {
             // If it closed for other reasons but we were connected, reset the counts
             if (statusBeforeClose === 'connected') {
@@ -299,8 +306,10 @@ export class WhatsAppService {
           this.reconnectAttempts++;
           
           // Exponential backoff or progressive delay
-          const baseDelay = isRestartRequired ? 15000 : 5000;
-          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); // Max 2 mins
+          const baseDelay = isRestartRequired ? 5000 : 5000;
+          const delayTime = isRestartRequired 
+            ? Math.min(2000 + (this.restartRequiredCount * 5000), 30000)
+            : Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); 
           
           console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts} | Restart Count: ${this.restartRequiredCount})`);
           

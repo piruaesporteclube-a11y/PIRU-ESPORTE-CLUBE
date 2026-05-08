@@ -217,76 +217,94 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {filteredAthletes.map(athlete => {
-                      const record = dateHistory.find(h => h.athlete_id === athlete.id);
+                      const records = dateHistory.filter(h => h.athlete_id === athlete.id);
+                      const record = records.find(r => 
+                        (trainingId && r.training_id === trainingId) ||
+                        (eventId && r.event_id === eventId) ||
+                        (!trainingId && !eventId) // In general mode, just take the first one or we'll list them
+                      );
                       
                       // Apply filter mode
-                      if (filterMode === 'present' && record?.status !== 'Presente') return null;
-                      if (filterMode === 'absent' && record?.status !== 'Faltou') return null;
-                      if (filterMode === 'observation' && record) return null; // Observation only shows UNMARKED
-                      if (filterMode === 'all' && !record && searchTerm === '') return null; // Default view only shows MARKED unless searching
+                      if (filterMode === 'present' && !records.some(r => r.status === 'Presente')) return null;
+                      if (filterMode === 'absent' && records.length > 0 && !records.some(r => r.status === 'Presente')) {
+                         // If all are absent or just one record is absent
+                      } else if (filterMode === 'absent' && (!record || record.status !== 'Faltou')) {
+                         if (filterMode === 'absent') return null;
+                      }
+                      
+                      if (filterMode === 'observation' && records.length > 0) return null; // Observation only shows UNMARKED
+                      if (filterMode === 'all' && records.length === 0 && searchTerm === '') return null; // Default view only shows MARKED unless searching
 
-                      const isUnmarked = !record;
+                      const isUnmarked = records.length === 0;
 
                       return (
                         <div key={athlete.id} className={cn(
-                          "p-3 rounded-2xl border transition-all flex items-center gap-3 group",
-                          record?.status === 'Presente' ? "bg-green-500/5 border-green-500/20" : 
-                          record?.status === 'Faltou' ? "bg-red-500/5 border-red-500/20" :
+                          "p-3 rounded-2xl border transition-all flex flex-col gap-2 group",
+                          records.some(r => r.status === 'Presente') ? "bg-green-500/5 border-green-500/20" : 
+                          records.some(r => r.status === 'Faltou') ? "bg-red-500/5 border-red-500/20" :
                           "bg-zinc-900/40 border-zinc-800"
                         )}>
-                          <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
-                            {athlete.photo ? (
-                              <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                <User size={14} />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold text-white truncate uppercase">{athlete.name}</p>
-                            <div className="flex items-center justify-between mt-1">
-                              <span className={cn(
-                                "text-[8px] font-black uppercase tracking-widest",
-                                record?.status === 'Presente' ? "text-green-500" : 
-                                record?.status === 'Faltou' ? "text-red-500" :
-                                "text-zinc-600"
-                              )}>
-                                {record?.status || 'Não Marcado'}
-                              </span>
-                              
-                              {isUnmarked || filterMode === 'observation' ? (
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Presente')}
-                                    className="p-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors"
-                                    title="Marcar Presente"
-                                  >
-                                    <CheckCircle2 size={10} />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Faltou')}
-                                    className="p-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
-                                    title="Marcar Falta"
-                                  >
-                                    <XCircle size={10} />
-                                  </button>
-                                </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+                              {athlete.photo ? (
+                                <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                               ) : (
-                                record?.arrival_time && (
-                                  <div className="flex items-center gap-1 text-zinc-500">
-                                    <Clock size={10} />
-                                    <span className="text-[9px] font-black">{record.arrival_time}</span>
-                                  </div>
-                                )
+                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                  <User size={14} />
+                                </div>
                               )}
                             </div>
-                            {record?.justification && (
-                              <p className="text-[8px] text-zinc-500 italic truncate mt-1 border-t border-zinc-800 pt-1">
-                                {record.justification}
-                              </p>
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold text-white truncate uppercase">{athlete.name}</p>
+                              <div className="flex items-center justify-between mt-0.5">
+                                <span className={cn(
+                                  "text-[8px] font-black uppercase tracking-widest",
+                                  records.some(r => r.status === 'Presente') ? "text-green-500" : 
+                                  records.some(r => r.status === 'Faltou') ? "text-red-500" :
+                                  "text-zinc-600"
+                                )}>
+                                  {records.length > 0 ? (records.some(r => r.status === 'Presente') ? 'Presente' : 'Faltou') : 'Não Marcado'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
+
+                          {records.length > 0 && (
+                            <div className="space-y-1 pt-1 border-t border-zinc-800/50">
+                              {records.map((r, i) => (
+                                <div key={i} className="flex items-center justify-between text-[8px] text-zinc-500 font-medium">
+                                  <span className="truncate flex-1 pr-2">
+                                    {r.training_id ? "Treino" : r.event_id ? "Evento" : "Geral"}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {r.arrival_time && <span>{r.arrival_time}</span>}
+                                    <span className={r.status === 'Presente' ? "text-green-500" : "text-red-500"}>
+                                      {r.status === 'Presente' ? "P" : "F"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {isUnmarked && (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-auto">
+                              <button 
+                                onClick={() => handleMarkAttendance(athlete.id, date, 'Presente')}
+                                className="flex-1 py-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center justify-center"
+                                title="Marcar Presente"
+                              >
+                                <CheckCircle2 size={10} />
+                              </button>
+                              <button 
+                                onClick={() => handleMarkAttendance(athlete.id, date, 'Faltou')}
+                                className="flex-1 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center"
+                                title="Marcar Falta"
+                              >
+                                <XCircle size={10} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
