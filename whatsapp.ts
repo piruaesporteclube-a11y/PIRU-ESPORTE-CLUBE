@@ -34,7 +34,7 @@ export class WhatsAppService {
     this.init();
   }
 
-  public async logout(autoReinit = true, resetQrTimeout = true) {
+  public async logout(autoReinit = true, resetQrTimeout = true, stayHalted = false) {
     // Prevent overlapping logouts - but allow if specifically requested via autoReinit=true after some delay
     if (this.lastResetTime && Date.now() - this.lastResetTime < 5000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
@@ -86,7 +86,9 @@ export class WhatsAppService {
     
     if (resetQrTimeout) {
       this.qrTimeoutCount = 0;
-      this.isHalted = false; // Reset halt when explicitly resetting
+      this.isHalted = stayHalted; // Set or reset halt state
+    } else if (stayHalted) {
+      this.isHalted = true;
     }
     
     // Calculate reinit status AFTER flipping isHalted
@@ -166,11 +168,11 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá PEC', 'Chrome', '110.0'],
+        browser: ['Ubuntu', 'Chrome', '110.0'],
         syncFullHistory: false,
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 30000,
-        keepAliveIntervalMs: 60000, // Reduced frequency to avoid 515
+        connectTimeoutMs: 120000, // 2 minutes to be safe
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 60000, 
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true,
         generateHighQualityLinkPreview: false,
@@ -243,8 +245,8 @@ export class WhatsAppService {
 
           // Case 1: Session invalidated - must logout and clear files
           if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 8) {
-            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Max Restarts'}). Clearing session...`);
-            this.logout(false, true); 
+            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${isLoggedOut ? 'Logged Out' : isDeviceRemoved ? 'Device Removed' : 'Max Restarts'}). Halting connection.`);
+            this.logout(false, true, true); // NEW: autoReinit=false, resetQrTimeout=true, stayHalted=true
             return;
           }
 
