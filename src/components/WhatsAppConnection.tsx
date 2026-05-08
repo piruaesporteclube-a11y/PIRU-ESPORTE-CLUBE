@@ -311,13 +311,14 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               )}
             </div>
           </div>
-        ) : (isHalted || qrTimeoutCount >= 2) ? (
+        ) : isHalted ? (
           <div className="space-y-4">
             <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
               <AlertCircle className="text-red-500 mx-auto mb-3" size={48} />
-              <h4 className="text-white font-black uppercase mb-1">Conexão Pausada</h4>
+              <h4 className="text-white font-black uppercase mb-1">Sessão Encerrada</h4>
               <p className="text-zinc-400 text-xs uppercase font-bold leading-relaxed mb-4">
-                Por segurança, a geração automática do QR Code foi pausada após várias tentativas sem escaneamento.
+                A conexão foi interrompida permanentemente (possível desconexão pelo celular ou conflito). <br />
+                Clique em reiniciar para gerar um novo QR Code.
               </p>
               <button
                 onClick={handleReconnect}
@@ -325,7 +326,25 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                 className="px-6 py-2 bg-theme-primary text-black font-black uppercase text-[10px] rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 mx-auto"
               >
                 {isRetrying ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                Tentar Novamente
+                Reiniciar Conexão
+              </button>
+            </div>
+          </div>
+        ) : qrTimeoutCount >= 2 ? (
+          <div className="space-y-4">
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 text-center">
+              <RefreshCw className="text-amber-500 mx-auto mb-3" size={48} />
+              <h4 className="text-white font-black uppercase mb-1">Aguardando Ação</h4>
+              <p className="text-zinc-400 text-xs uppercase font-bold leading-relaxed mb-4">
+                Muitas tentativas sem escaneamento. Clique para gerar um novo QR Code quando estiver pronto.
+              </p>
+              <button
+                onClick={handleReconnect}
+                disabled={isRetrying}
+                className="px-6 py-2 bg-theme-primary text-black font-black uppercase text-[10px] rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 mx-auto"
+              >
+                {isRetrying ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Gerar QR Code
               </button>
             </div>
           </div>

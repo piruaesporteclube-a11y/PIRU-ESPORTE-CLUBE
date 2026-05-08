@@ -38,7 +38,7 @@ export class WhatsAppService {
 
   public async logout(autoReinit = true, resetQrTimeout = true, stayHalted = false) {
     // Prevent overlapping logouts - but allow if specifically requested via autoReinit=true after some delay
-    if (this.lastResetTime && Date.now() - this.lastResetTime < 5000) {
+    if (!stayHalted && this.lastResetTime && Date.now() - this.lastResetTime < 5000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
       return;
     }
@@ -46,11 +46,12 @@ export class WhatsAppService {
     this.lastResetTime = Date.now();
     this.isInitializing = true; 
     
-    // Clear any pending reconnect
+    // Clear any pending reconnect or watchdog
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    this.stopWatchdog();
 
     try {
       if (this.socket) {
@@ -220,11 +221,16 @@ export class WhatsAppService {
 
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
-          const isDeviceRemoved = (statusCode === 401 || statusCode === 403 || 
+          // Enhanced device removed / conflict detection
+          const errorNode = (error as any)?.fullErrorNode;
+          const isConflict = errorNode?.content?.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed');
+          
+          const isDeviceRemoved = isConflict || 
+                                  statusCode === 401 || statusCode === 403 || 
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
                                   errorMessage.toLowerCase().includes('conflict') ||
-                                  errorMessage.toLowerCase().includes('unauthorized')) && statusCode !== 515;
+                                  errorMessage.toLowerCase().includes('unauthorized');
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
@@ -479,6 +485,7 @@ export class WhatsAppService {
     if (this.jidCache[cleanNumber]) return this.jidCache[cleanNumber];
 
     try {
+      if (!this.socket || this.connectionStatus !== 'connected') return null;
       let onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
       if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
         this.jidCache[cleanNumber] = onWhatsApp[0].jid;
@@ -528,15 +535,18 @@ export class WhatsAppService {
       const status = response?.[0]?.status;
 
       if (status === '200') {
-        if (welcomeMessage) {
+        if (welcomeMessage && this.socket && this.connectionStatus === 'connected') {
           try {
             await this.socket.sendMessage(jid, { text: welcomeMessage });
-          } catch (msgErr) {
-            console.warn('[WhatsApp] Erro ao enviar mensagem de boas-vindas:', msgErr);
+          } catch (msgErr: any) {
+            console.warn('[WhatsApp] Erro ao enviar mensagem de boas-vindas:', msgErr.message);
           }
         }
         return { success: true, method: 'direct', message: 'Adicionado diretamente' };
       } else if (status === '403') {
+        if (!this.socket || this.connectionStatus !== 'connected') {
+          return { success: true, method: 'direct', message: 'Adicionado (privacidade impediu PV)' };
+        }
         const inviteCode = await this.socket.groupInviteCode(groupId);
         const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
         
@@ -544,8 +554,12 @@ export class WhatsAppService {
           ? `${welcomeMessage}\n\nClique para entrar: ${inviteLink}`
           : `Olá! Identificamos que não foi possível te adicionar diretamente devido às suas configurações de privacidade. Por favor, entre pelo link: ${inviteLink}`;
 
-        await this.socket.sendMessage(jid, { text: message });
-        return { success: true, method: 'invite_link', message: 'Convite enviado via PV' };
+        try {
+          await this.socket.sendMessage(jid, { text: message });
+          return { success: true, method: 'invite_link', message: 'Convite enviado via PV' };
+        } catch (msgErr) {
+          return { success: true, method: 'invite_link', message: 'Convite necessário (falha ao enviar PV)' };
+        }
       } else if (status === '409') {
         return { success: true, method: 'already_in', message: 'Já está no grupo' };
       } else if (status === '429') {
