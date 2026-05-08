@@ -105,7 +105,10 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
       
       const [trainingsData, athletesData] = await Promise.all(promises);
       
-      const sortedTrainings = trainingsData.sort((a, b) => {
+      const sortedTrainings = trainingsData.map(t => ({
+        ...t,
+        schedules: t.schedules ? [...t.schedules].sort((a, b) => a.start_time.localeCompare(b.start_time)) : []
+      })).sort((a, b) => {
         if (a.date !== b.date) return b.date.localeCompare(a.date);
         return (a.order ?? 0) - (b.order ?? 0);
       });
@@ -122,7 +125,12 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.saveTraining(formData);
+      // Sort schedules before saving
+      const dataToSave = {
+        ...formData,
+        schedules: formData.schedules ? [...formData.schedules].sort((a, b) => a.start_time.localeCompare(b.start_time)) : []
+      };
+      await api.saveTraining(dataToSave);
       toast.success(formData.id ? "Treino atualizado!" : "Treino cadastrado!");
       setIsModalOpen(false);
       setFormData({
@@ -567,7 +575,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden"
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-black/50">
                 <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">
@@ -578,7 +586,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[85vh] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest text-[10px]">Data do Treino</label>
