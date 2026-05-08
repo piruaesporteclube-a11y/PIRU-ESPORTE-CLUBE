@@ -667,7 +667,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
             >
               {/* Main Border Overlay - Better for rendering than container border */}
-              <div className="absolute inset-x-0 inset-y-0 border-[8px] border-theme-primary/80 pointer-events-none z-[100] shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"></div>
+              <div 
+                className="absolute inset-0 border-[8px] pointer-events-none z-[100]"
+                style={{ borderColor: settings?.primaryColor || '#EAB308', opacity: 0.8 }}
+              >
+                <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"></div>
+              </div>
 
               {/* Layered Background System */}
               <div className="absolute inset-x-0 inset-y-0 pointer-events-none">

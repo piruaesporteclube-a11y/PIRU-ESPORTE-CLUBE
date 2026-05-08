@@ -502,6 +502,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
                            )} 
                            style={{ filter: `brightness(${logoBrightness}) contrast(${logoContrast})` }}
                            crossOrigin="anonymous" 
+                           referrerPolicy="no-referrer"
                          />
                        ) : (
                          <div className="text-white/10 font-black text-9xl uppercase italic tracking-tighter tracking-tighter leading-none select-none blur-[2px]">

@@ -404,7 +404,7 @@ export default function AnnouncementFlyer() {
           {/* Background Layer */}
           {bgImage ? (
             <div className="absolute inset-0 z-0">
-               <img src={bgImage} className="w-full h-full object-cover opacity-60" />
+               <img src={bgImage} className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
             </div>
           ) : (
@@ -423,10 +423,18 @@ export default function AnnouncementFlyer() {
           <div className="absolute inset-0 z-10 flex flex-col p-10 pt-16">
             {/* Border Overlay */}
             <div 
-              className="absolute inset-4 border-solid pointer-events-none z-[100] opacity-80"
-              style={{ borderColor: themeColor, borderWidth: `${borderWidth}px` }}
+              className="absolute inset-4 z-[100] border-solid"
+              style={{ 
+                borderColor: themeColor, 
+                borderWidth: `${borderWidth}px`,
+                pointerEvents: 'none',
+                opacity: 0.8
+              }}
             ></div>
-            <div className="absolute inset-[18px] border border-white/20 pointer-events-none z-[100]"></div>
+            <div 
+              className="absolute inset-[18px] z-[100] border border-white/20"
+              style={{ pointerEvents: 'none' }}
+            ></div>
 
             {/* Header */}
             <div 

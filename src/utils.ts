@@ -73,30 +73,51 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
     const htmlEl = el as HTMLElement;
     const style = window.getComputedStyle(htmlEl);
     
-    // Properties that might contain oklch/oklab
-    const properties = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke', 'background'];
+    // Properties that might contain oklch/oklab or variables
+    const properties = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke', 'background', 'backgroundImage'];
     
     properties.forEach((prop) => {
-      const value = htmlEl.style[prop as any] || style.getPropertyValue(prop.replace(/[A-Z]/g, m => "-" + m.toLowerCase()));
+      let value = htmlEl.style[prop as any] || style.getPropertyValue(prop.replace(/[A-Z]/g, m => "-" + m.toLowerCase()));
       
-      if (value && (value.includes('oklch') || value.includes('oklab'))) {
-        // Fallback to a safe color
-        // If it's a theme variable, we try to replace it with a hex fallback
+      if (!value) return;
+
+      // Handle oklch/oklab
+      if (value.includes('oklch') || value.includes('oklab')) {
+        // We try to get the actual computed RGB value
+        // Note: window.getComputedStyle usually returns rgb() or rgba() for colors in modern browsers
+        // even if they were specified as oklch in CSS. 
+        // If it still says oklch, it means the browser might not be resolving it correctly for the computed style
+        // OR html-to-image is picking up the CSS variable value instead.
+        
+        // Let's try to force a solid color fallback if it's a theme color
         if (value.includes('var(--theme-primary)') || htmlEl.classList.contains('text-theme-primary') || htmlEl.classList.contains('bg-theme-primary') || htmlEl.classList.contains('border-theme-primary')) {
           const fallback = '#EAB308';
           if (prop === 'color') htmlEl.style.color = fallback;
-          else if (prop === 'backgroundColor' || prop === 'background') htmlEl.style.backgroundColor = fallback;
+          else if (prop === 'backgroundColor') htmlEl.style.backgroundColor = fallback;
           else if (prop === 'borderColor') htmlEl.style.borderColor = fallback;
-          else htmlEl.style[prop as any] = fallback;
-        } else if (prop === 'backgroundColor' || prop === 'background') {
-          htmlEl.style[prop as any] = '#18181b'; // zinc-900 fallback
-        } else if (prop === 'color') {
-          htmlEl.style.color = '#ffffff';
-        } else if (prop === 'borderColor') {
-          htmlEl.style.borderColor = '#27272a'; // zinc-800 fallback
+          else if (prop === 'background' && !value.includes('gradient')) htmlEl.style.background = fallback;
         } else {
-          htmlEl.style[prop as any] = 'currentColor';
+          // General fallback for oklch -> rgb if browser supports it we try to "read" it back
+          // If the computed value is still oklch, we must provide a hard fallback
+          if (prop.toLowerCase().includes('background')) {
+             if (value.includes('gradient')) {
+               // Gradients are harder, but we can try to simplify them or just hope html-to-image handles them if we remove oklch
+               htmlEl.style[prop as any] = value.replace(/oklch\(.*?\)/g, '#3f3f46'); // zinc-700
+             } else {
+               htmlEl.style[prop as any] = '#18181b'; // zinc-900
+             }
+          } else if (prop === 'color') {
+            htmlEl.style.color = '#ffffff';
+          } else if (prop === 'borderColor') {
+            htmlEl.style.borderColor = '#3f3f46';
+          }
         }
+      }
+      
+      // Fix for background-image with variables or relative paths
+      if (prop === 'backgroundImage' && value.includes('var(')) {
+        // html-to-image sometimes struggles with variables in background images
+        // But if it's just a gradient it should be fine if colors are resolved.
       }
     });
   });

@@ -6,7 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, Activity, Clock, Calendar, FileText, Instagram } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import { cn } from '../utils';
+import { cn, fixHtml2CanvasColors } from '../utils';
 
 interface EventFlyerProps {
   event: Event;
@@ -142,6 +142,9 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
         opacity: '1',
       });
       document.body.appendChild(clone);
+
+      // Apply color fixes for oklch support
+      fixHtml2CanvasColors(clone);
 
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
@@ -485,8 +488,15 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
           <div 
             ref={flyerRef}
             style={{ width: '360px', height: '640px' }}
-            className="bg-black relative overflow-hidden flex flex-col select-none border-[8px] border-theme-primary/80 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"
+            className="bg-black relative overflow-hidden flex flex-col select-none"
           >
+            {/* Border Overlay - More reliable than container border */}
+            <div 
+              className="absolute inset-0 z-[100] pointer-events-none border-[8px]"
+              style={{ borderColor: settings.primaryColor || '#EAB308', opacity: 0.8 }}
+            >
+              <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]"></div>
+            </div>
             {/* Background Layers */}
             <div className="absolute inset-0">
               {selectedBackgrounds.includes('stadium') && (
