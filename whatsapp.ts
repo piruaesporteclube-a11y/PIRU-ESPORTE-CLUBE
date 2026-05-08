@@ -192,7 +192,7 @@ export class WhatsAppService {
         qrTimeout: 90000,
         connectTimeoutMs: 60000, 
         defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 20000, 
+        keepAliveIntervalMs: 10000, 
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
@@ -320,6 +320,14 @@ export class WhatsAppService {
           
           // Exponential backoff or progressive delay
           const baseDelay = isRestartRequired ? 5000 : 5000;
+          
+          // If we get 428 repeatedly, we might have a bad session
+          if (statusCode === 428 && this.reconnectAttempts > 5) {
+             console.warn('[WhatsApp] Repeated 428 errors. Resetting session.');
+             this.logout(true, true, false);
+             return;
+          }
+
           const delayTime = isRestartRequired 
             ? Math.min(2000 + (this.restartRequiredCount * 5000), 30000)
             : Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); 

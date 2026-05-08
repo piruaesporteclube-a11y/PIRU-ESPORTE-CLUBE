@@ -294,21 +294,28 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           await html5QrCode!.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
         } catch (err: any) {
           if (!isMounted) return;
-          console.warn("Erro ao iniciar com facingMode: environment, tentando fallback...", err);
+          console.warn("Erro ao iniciar com facingMode: environment, tentando facingMode: user...", err);
           try {
-            // Try any available camera
+            // Try front camera second
             await html5QrCode!.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure);
           } catch (err2: any) {
             if (!isMounted) return;
-            console.error("Erro ao iniciar scanner em todos os modos:", err2);
-            if (err2?.message?.includes("Permission denied")) {
-              toast.error("Permissão de câmera negada. Por favor, autorize o acesso nas configurações do navegador.");
-            } else if (err2?.name === "NotFoundError" || err2?.message?.includes("Requested device not found")) {
-              toast.error("Nenhuma câmera encontrada neste dispositivo.");
-            } else {
-              toast.error("Não foi possível abrir a câmera. Verifique se ela está sendo usada por outro app.");
+            console.warn("Erro ao iniciar com facingMode: user, tentando sem restrições...", err2);
+            try {
+              // Try any available camera (empty constraints)
+              await html5QrCode!.start({} as any, config, onScanSuccess, onScanFailure);
+            } catch (err3: any) {
+              if (!isMounted) return;
+              console.error("Erro ao iniciar scanner em todos os modos:", err3);
+              if (err3?.message?.includes("Permission denied")) {
+                toast.error("Permissão de câmera negada. Por favor, autorize o acesso nas configurações do navegador.");
+              } else if (err3?.name === "NotFoundError" || err3?.message?.includes("Requested device not found")) {
+                toast.error("Nenhuma câmera encontrada neste dispositivo.");
+              } else {
+                toast.error("Não foi possível abrir a câmera. Verifique se ela está sendo usada por outro app.");
+              }
+              setIsScanning(false);
             }
-            setIsScanning(false);
           }
         }
       };
