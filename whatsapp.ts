@@ -187,17 +187,18 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá PEC', 'Chrome', '110.0'],
+        browser: ['Piruá Esporte Clube', 'Chrome', '110.0.0.0'],
         syncFullHistory: false,
-        connectTimeoutMs: 120000, 
+        connectTimeoutMs: 30000, 
         defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 30000, // 30s is a safe middle ground
+        keepAliveIntervalMs: 60000, // 1 minute keep alive
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: false, // Setting to false can help with 515/reconnect stability
+        markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
-        linkPreviewImageThumbnailWidth: 192,
+        maxMsgRetryCount: 10, // More retries for messages
+        shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
         getMessage: async (key: WAMessageKey) => {
-          return { conversation: 'Piruá PEC notification' };
+          return { conversation: 'Piruá Esporte Clube' };
         }
       });
 
@@ -213,11 +214,16 @@ export class WhatsAppService {
 
         if (connection === 'close') {
           this.stopWatchdog();
+          const statusBeforeClose = this.connectionStatus;
           const error = lastDisconnect?.error as Boom;
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
           
-          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode}`);
+          const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+          const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
+          const isNetworkError = statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440;
+
+          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError}`);
 
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
@@ -232,23 +238,19 @@ export class WhatsAppService {
                                   errorMessage.toLowerCase().includes('conflict') ||
                                   errorMessage.toLowerCase().includes('unauthorized');
           
-          const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
-          const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
-          
           if (isRestartRequired) {
             this.restartRequiredCount++;
             this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
-          } else {
-            // Only reset if it was a "clean" connect before or some other non-515 error
-            if (this.connectionStatus === 'connected') {
+          } else if (connection === 'close') {
+            // If it closed for other reasons but we were connected, reset the counts
+            if (statusBeforeClose === 'connected') {
               this.restartRequiredCount = 0;
             }
           }
 
           // Crucial: Null the socket instance to allow fresh init
           const oldSocket = this.socket;
-          const statusBeforeClose = this.connectionStatus;
           
           this.socket = null;
           this.connectionStatus = 'disconnected';
@@ -261,17 +263,17 @@ export class WhatsAppService {
                 oldSocket.ev.removeAllListeners('connection.update');
                 oldSocket.ev.removeAllListeners('creds.update');
               }
-              // Aggressive nuke for 515/401/403
-              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut) {
+              // Aggressive nuke for these codes
+              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || isConflict) {
                 if (oldSocket.end) oldSocket.end(undefined);
               }
             } catch (e) {}
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          // Also halt if 515 loop detected (more than 10 times)
-          if (isLoggedOut || isDeviceRemoved || this.restartRequiredCount > 10) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : '515 Loop Detected');
+          // Also halt if 515 loop detected (more than 25 times)
+          if (isLoggedOut || isDeviceRemoved || (isConflict && statusCode === 401) || this.restartRequiredCount > 25) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (isConflict ? 'Conflict' : '515 Loop Detected'));
             console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
             this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true
             return;
@@ -297,10 +299,10 @@ export class WhatsAppService {
           this.reconnectAttempts++;
           
           // Exponential backoff or progressive delay
-          const baseDelay = isRestartRequired ? 30000 : 5000;
-          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 10000), 300000); // Max 5 mins
+          const baseDelay = isRestartRequired ? 15000 : 5000;
+          const delayTime = Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); // Max 2 mins
           
-          console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts})`);
+          console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts} | Restart Count: ${this.restartRequiredCount})`);
           
           this.reconnectTimeout = setTimeout(() => {
             if (!this.isHalted && !this.socket) {
@@ -312,7 +314,8 @@ export class WhatsAppService {
           this.connectionStatus = 'connecting';
         } else if (connection === 'open') {
           this.stopWatchdog();
-          console.log('[WhatsApp] Connection established successfully!');
+          const user = this.socket?.user;
+          console.log(`[WhatsApp] Conexão estabelecida com sucesso! (${user?.id || 'ID desconhecido'})`);
           this.connectionStatus = 'connected';
           this.qrCode = null;
           this.isInitializing = false;
@@ -325,7 +328,10 @@ export class WhatsAppService {
         }
       });
 
-      this.socket.ev.on('creds.update', saveCreds);
+      this.socket.ev.on('creds.update', () => {
+        console.log('[WhatsApp] Sessão sincronizada/salva.');
+        saveCreds();
+      });
     } catch (err: any) {
       const errorMessage = err?.message || err?.toString() || '';
       console.error('[WhatsApp] Initialization error:', errorMessage);
