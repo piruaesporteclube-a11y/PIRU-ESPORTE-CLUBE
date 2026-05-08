@@ -172,6 +172,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   }, [date, trainingId, eventId, selectedTrainingId]);
 
   useEffect(() => {
+    if (selectedTrainingId !== 'geral') {
+      const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
+      if (selTraining && selTraining.category !== 'Todos') {
+        setFilterSub(selTraining.category);
+      }
+    }
+  }, [selectedTrainingId, availableTrainings]);
+
+  useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
       if (!url) {
         callback(null);
@@ -493,6 +502,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       } else {
         records.push(newRecord);
       }
+
+      // AUTO-SYNC: If marking training as present, also ensure general is marked present
+      if (activeTrainingId && !records.some(r => !r.training_id && !r.event_id && r.status === 'Presente')) {
+        const generalId = `${athlete.id}_${date}`;
+        const existingGeneralIdx = records.findIndex(r => r.id === generalId);
+        const generalRecord: Attendance = {
+          id: generalId,
+          athlete_id: athlete.id,
+          date,
+          status: 'Presente',
+          justification: 'Sincronizado via Treino',
+          arrival_time: now
+        };
+        if (existingGeneralIdx >= 0) {
+          records[existingGeneralIdx] = generalRecord;
+        } else {
+          records.push(generalRecord);
+        }
+      }
+
       newAttendance[athlete.id] = [...records];
     });
     setAttendance(newAttendance);
@@ -534,6 +563,25 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       newRecords[existingIdx] = newRecord;
     } else {
       newRecords.push(newRecord);
+    }
+
+    // AUTO-SYNC: If marking training as present, also sync to general
+    if (activeTrainingId && status === 'Presente' && !newRecords.some(r => !r.training_id && !r.event_id && r.status === 'Presente')) {
+      const generalId = `${athleteId}_${date}`;
+      const existingGeneralIdx = newRecords.findIndex(r => r.id === generalId);
+      const generalRecord: Attendance = {
+        id: generalId,
+        athlete_id: athleteId,
+        date,
+        status: 'Presente',
+        justification: 'Sincronizado via Treino',
+        arrival_time: finalArrivalTime
+      };
+      if (existingGeneralIdx >= 0) {
+        newRecords[existingGeneralIdx] = generalRecord;
+      } else {
+        newRecords.push(generalRecord);
+      }
     }
 
     setAttendance(prev => ({ 
@@ -630,11 +678,18 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       // Apply tab filter
       const records = attendance[a.id] || [];
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-      const att = records.find(r => 
-        (activeTrainingId && r.training_id === activeTrainingId) ||
-        (eventId && r.event_id === eventId) ||
-        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-      );
+      
+      // For "geral" view, consider it present if marked present in ANY training OR general
+      let att;
+      if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+        att = records.find(r => r.status === 'Presente') || records[0];
+      } else {
+        att = records.find(r => 
+          (activeTrainingId && r.training_id === activeTrainingId) ||
+          (eventId && r.event_id === eventId) ||
+          (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+        );
+      }
 
       if (tabFilter === 'present' && att?.status !== 'Presente') return false;
       if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
@@ -789,6 +844,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     present: filteredAthletes.filter(a => {
       const records = attendance[a.id] || [];
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      
+      if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+        return records.some(r => r.status === 'Presente');
+      }
+
       const att = records.find(r => 
         (activeTrainingId && r.training_id === activeTrainingId) ||
         (eventId && r.event_id === eventId) ||
@@ -799,6 +859,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     absent: filteredAthletes.filter(a => {
       const records = attendance[a.id] || [];
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+
+      if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+        // Only count as absent if definitely marked as absent and NO present record exists
+        return records.some(r => r.status === 'Faltou') && !records.some(r => r.status === 'Presente');
+      }
+
       const att = records.find(r => 
         (activeTrainingId && r.training_id === activeTrainingId) ||
         (eventId && r.event_id === eventId) ||
@@ -809,6 +875,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     notMarked: filteredAthletes.filter(a => {
       const records = attendance[a.id] || [];
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+      
+      if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+        return records.length === 0;
+      }
+
       const att = records.find(r => 
         (activeTrainingId && r.training_id === activeTrainingId) ||
         (eventId && r.event_id === eventId) ||
@@ -1117,14 +1188,20 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
               {filteredAthletes.map((athlete) => {
                 const records = attendance[athlete.id] || [];
                 const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-                const att = records.find(r => 
-                  (activeTrainingId && r.training_id === activeTrainingId) ||
-                  (eventId && r.event_id === eventId) ||
-                  (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-                );
                 
+                let att;
+                if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+                  att = records.find(r => !r.training_id && !r.event_id);
+                } else {
+                  att = records.find(r => 
+                    (activeTrainingId && r.training_id === activeTrainingId) ||
+                    (eventId && r.event_id === eventId) ||
+                    (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                  );
+                }
+                
+                const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
                 const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
-                const hasGeneralPresence = records.some(r => !r.training_id && !r.event_id && r.status === 'Presente');
 
                 return (
                   <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
@@ -1218,12 +1295,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           disabled={isAthleteLocked(athlete)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-                            att?.status === 'Presente' ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                            (att?.status === 'Presente' || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
                             isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                           )}
                         >
                           <CheckCircle2 size={18} />
-                          <span className="text-[10px] uppercase font-black">Presente</span>
+                          <span className="text-[10px] uppercase font-black">
+                            {att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                          </span>
                         </button>
                         <button 
                           onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
@@ -1261,17 +1340,23 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </table>
         </div>
 
-        {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-zinc-800">
           {filteredAthletes.map((athlete) => {
             const records = attendance[athlete.id] || [];
             const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-            const att = records.find(r => 
-              (activeTrainingId && r.training_id === activeTrainingId) ||
-              (eventId && r.event_id === eventId) ||
-              (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-            );
             
+            let att;
+            if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+              att = records.find(r => !r.training_id && !r.event_id);
+            } else {
+              att = records.find(r => 
+                (activeTrainingId && r.training_id === activeTrainingId) ||
+                (eventId && r.event_id === eventId) ||
+                (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+              );
+            }
+            
+            const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
             const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
 
             return (
@@ -1340,12 +1425,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       disabled={isAthleteLocked(athlete)}
                       className={cn(
                         "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
-                        att?.status === 'Presente' ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
+                        (att?.status === 'Presente' || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
                         isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <CheckCircle2 size={18} />
-                      <span className="text-[10px] uppercase font-black">Presente</span>
+                      <span className="text-[10px] uppercase font-black">
+                        {att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                      </span>
                     </button>
                     <button 
                       onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
