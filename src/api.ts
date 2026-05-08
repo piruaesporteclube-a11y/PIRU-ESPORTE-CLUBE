@@ -1789,7 +1789,7 @@ export const api = {
     try {
       const data = { ...model, updated_at: serverTimestamp() };
       await setDoc(doc(db, "uniform_models", model.id), sanitizeData(data), { merge: true });
-      delete cache["uniform_models"]; // Invalidate cache
+      invalidateCache("uniform_models"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `uniform_models/${model.id}`);
     }
@@ -1797,7 +1797,7 @@ export const api = {
   deleteUniformModel: async (id: string) => {
     try {
       await deleteDoc(doc(db, "uniform_models", id));
-      delete cache["uniform_models"]; // Invalidate cache
+      invalidateCache("uniform_models"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `uniform_models/${id}`);
     }
@@ -1840,7 +1840,7 @@ export const api = {
     try {
       const data = { ...training, updated_at: serverTimestamp() };
       await setDoc(doc(db, "trainings", training.id), sanitizeData(data), { merge: true });
-      delete cache["trainings"]; // Invalidate cache
+      invalidateCache("trainings"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `trainings/${training.id}`);
     }
@@ -1848,7 +1848,7 @@ export const api = {
   deleteTraining: async (id: string) => {
     try {
       await deleteDoc(doc(db, "trainings", id));
-      delete cache["trainings"]; // Invalidate cache
+      invalidateCache("trainings"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `trainings/${id}`);
     }
@@ -1863,7 +1863,7 @@ export const api = {
         });
       });
       await batch.commit();
-      delete cache["trainings"];
+      invalidateCache("trainings");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "trainings/reorder");
     }
@@ -1888,7 +1888,7 @@ export const api = {
     try {
       const data = { ...activity, updated_at: serverTimestamp() };
       await setDoc(doc(db, "training_activities", activity.id), sanitizeData(data), { merge: true });
-      delete cache["training_activities"]; // Invalidate cache
+      invalidateCache("training_activities"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `training_activities/${activity.id}`);
     }
@@ -1896,7 +1896,7 @@ export const api = {
   deleteActivity: async (id: string) => {
     try {
       await deleteDoc(doc(db, "training_activities", id));
-      delete cache["training_activities"]; // Invalidate cache
+      invalidateCache("training_activities"); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `training_activities/${id}`);
     }

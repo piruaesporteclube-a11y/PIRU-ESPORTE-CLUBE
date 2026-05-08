@@ -148,11 +148,16 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este treino?")) return;
+    
+    const previousTrainings = [...trainings];
+    setTrainings(current => current.filter(t => t.id !== id));
+    
     try {
       await api.deleteTraining(id);
       toast.success("Treino excluído!");
       loadData(true);
     } catch (err) {
+      setTrainings(previousTrainings);
       toast.error("Erro ao excluir treino");
     }
   };
