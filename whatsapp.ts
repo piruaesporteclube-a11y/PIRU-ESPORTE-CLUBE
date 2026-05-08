@@ -187,15 +187,15 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá Esporte Clube', 'Chrome', '110.0.0.0'],
+        browser: ['Piruá Esporte Clube', 'Chrome', '121.0.0.0'],
         syncFullHistory: false,
-        connectTimeoutMs: 30000, 
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 60000, // 1 minute keep alive
+        connectTimeoutMs: 90000, 
+        defaultQueryTimeoutMs: 90000,
+        keepAliveIntervalMs: 30000, 
         retryRequestDelayMs: 5000,
-        markOnlineOnConnect: true, 
+        markOnlineOnConnect: false, 
         generateHighQualityLinkPreview: false,
-        maxMsgRetryCount: 10, // More retries for messages
+        maxMsgRetryCount: 15,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'Piruá Esporte Clube' };
@@ -221,7 +221,7 @@ export class WhatsAppService {
           
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408;
-          const isNetworkError = statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440;
+          const isNetworkError = statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428;
 
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError}`);
 
@@ -291,7 +291,7 @@ export class WhatsAppService {
             
             this.reconnectTimeout = setTimeout(() => {
               if (!this.isHalted) this.init();
-            }, 5000);
+            }, 15000); // Increased delay after QR timeout
             return;
           }
 
