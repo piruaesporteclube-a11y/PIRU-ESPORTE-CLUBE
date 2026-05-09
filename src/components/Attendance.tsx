@@ -529,6 +529,33 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         }
       }
 
+      // AUTO-SYNC: If marking general as present, also sync to matching day trainings
+      if (!activeTrainingId && !eventId && availableTrainings.length > 0) {
+        const athleteSub = getSubCategory(athlete.birth_date);
+        const matchingTrainings = availableTrainings.filter(t => t.category === 'Todos' || t.category === athleteSub);
+        
+        matchingTrainings.forEach(t => {
+          const trainingAttId = `${athlete.id}_training_${t.id}`;
+          if (!records.some(r => r.id === trainingAttId && r.status === 'Presente')) {
+            const existingTrainingIdx = records.findIndex(r => r.id === trainingAttId);
+            const trainingRecord: AttendanceRecord = {
+              id: trainingAttId,
+              athlete_id: athlete.id,
+              training_id: t.id,
+              date,
+              status: 'Presente',
+              justification: 'Sincronizado via Geral',
+              arrival_time: now
+            };
+            if (existingTrainingIdx >= 0) {
+              records[existingTrainingIdx] = trainingRecord;
+            } else {
+              records.push(trainingRecord);
+            }
+          }
+        });
+      }
+
       newAttendance[athlete.id] = [...records];
     });
     setAttendance(newAttendance);
@@ -589,6 +616,33 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       } else {
         newRecords.push(generalRecord);
       }
+    }
+
+    // AUTO-SYNC: If marking general as present, sync to trainings
+    if (!activeTrainingId && !eventId && status === 'Presente' && availableTrainings.length > 0 && athlete) {
+      const athleteSub = getSubCategory(athlete.birth_date);
+      const matchingTrainings = availableTrainings.filter(t => t.category === 'Todos' || t.category === athleteSub);
+      
+      matchingTrainings.forEach(t => {
+        const trainingAttId = `${athleteId}_training_${t.id}`;
+        if (!newRecords.some(r => r.id === trainingAttId && r.status === 'Presente')) {
+          const existingTrainingIdx = newRecords.findIndex(r => r.id === trainingAttId);
+          const trainingRecord: AttendanceRecord = {
+            id: trainingAttId,
+            athlete_id: athleteId,
+            training_id: t.id,
+            date,
+            status: 'Presente',
+            justification: 'Sincronizado via Geral',
+            arrival_time: finalArrivalTime
+          };
+          if (existingTrainingIdx >= 0) {
+            newRecords[existingTrainingIdx] = trainingRecord;
+          } else {
+            newRecords.push(trainingRecord);
+          }
+        }
+      });
     }
 
     setAttendance(prev => ({ 

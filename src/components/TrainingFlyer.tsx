@@ -716,7 +716,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100"
                     )}
                     style={{ 
-                      backgroundColor: carbonColor
+                      backgroundColor: carbonColor,
+                      backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')`
                     }}
                     >
                       {!customBackgrounds['carbon'] && (
@@ -733,13 +734,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           crossOrigin="anonymous"
                         />
                       )}
-                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60 mix-blend-overlay" />
+                      <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       {/* Scanline Effect for Personalization */}
                       <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
                       <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-2/3 animate-scan-slow-delayed blur-[1px]" />
                       
                       {/* Tech Grid Overlay for Carbon personalization */}
-                      <div className="absolute inset-0 z-[1] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-80 mix-blend-overlay" />
+                      <div className="absolute inset-0 z-[1] opacity-80 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
                       
                       {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/40" />}
