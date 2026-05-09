@@ -190,9 +190,9 @@ export class WhatsAppService {
         browser: ['Piruá Esporte Clube', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
         qrTimeout: 90000,
-        connectTimeoutMs: 60000, 
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000, 
+        connectTimeoutMs: 120000, 
+        defaultQueryTimeoutMs: 90000,
+        keepAliveIntervalMs: 30000, 
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
@@ -322,7 +322,7 @@ export class WhatsAppService {
           const baseDelay = isRestartRequired ? 5000 : 5000;
           
           // If we get 428 repeatedly, we might have a bad session
-          if (statusCode === 428 && this.reconnectAttempts > 5) {
+          if (statusCode === 428 && this.reconnectAttempts > 3) {
              console.warn('[WhatsApp] Repeated 428 errors. Resetting session.');
              this.logout(true, true, false);
              return;

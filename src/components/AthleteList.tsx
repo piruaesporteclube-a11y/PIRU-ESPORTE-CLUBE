@@ -129,6 +129,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
 
   const filteredAthletes = currentAthletes
     .filter(a => {
+      const isSearching = search.trim().length > 0;
       const normalizedSearch = search.replace(/\D/g, "");
       const normalizedDoc = a.doc.replace(/\D/g, "");
       
@@ -138,8 +139,8 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         a.doc.includes(search) ||
         (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase()));
         
-      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-      const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
+      const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const matchesStatus = isSearching || filterStatus === 'Todos' || a.status === filterStatus;
       return matchesSearch && matchesSub && matchesStatus;
     })
     .sort((a, b) => {

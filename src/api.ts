@@ -188,6 +188,21 @@ const invalidateCache = (key: string) => {
   delete cache[key];
   try {
     localStorage.removeItem(PERSISTENT_CACHE_PREFIX + key);
+    
+    // Also invalidate any query cache that might contain this data
+    // For simplicity, if we invalidate "trainings", we should clear any query containing "trainings"
+    Object.keys(cache).forEach(k => {
+      if (k.includes(key) || k.includes(`docs_`) && k.toLowerCase().includes(key.toLowerCase())) {
+        delete cache[k];
+      }
+    });
+    
+    // Clear localStorage query caches too
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(PERSISTENT_CACHE_PREFIX) && (k.includes(key) || k.toLowerCase().includes(key.toLowerCase()))) {
+        localStorage.removeItem(k);
+      }
+    });
   } catch (e) {}
 };
 
@@ -231,15 +246,19 @@ const getDocsWithCacheFallback = async (q: any) => {
       if (isQuotaError(error)) {
         quotaExceededToday = true;
         console.warn("Quota exceeded, attempting to load from cache...");
+        
+        // Return stale cache if available
+        if (cached) return cached;
+
         try {
           const snapshot = await getDocsFromCache(q);
-          if (snapshot) return snapshot;
+          if (snapshot) {
+            setCachedData(key, snapshot);
+            return snapshot;
+          }
         } catch (cacheError) {
           console.error("Failed to load from cache:", cacheError);
         }
-        
-        // Final fallback to our manual storage cache from previous successful loads
-        if (cached) return cached;
         
         return { docs: [], empty: true, size: 0, forEach: () => {} } as any;
       }

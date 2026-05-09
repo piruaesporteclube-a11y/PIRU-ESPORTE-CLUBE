@@ -719,24 +719,25 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const activeAthletes = athletes.filter(a => a.status === 'Ativo' && a.confirmation !== 'Pendente');
   const filteredAthletes = activeAthletes
     .filter(a => {
-      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const isSearching = search.trim().length > 0;
+      
+      const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
       const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
                           (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
                           a.doc.includes(search);
       
       // Filter by selected training category if not "geral" and not explicit trainingId prop
-      if (selectedTrainingId !== 'geral') {
+      // Relax this if we are searching for someone specific
+      if (selectedTrainingId !== 'geral' && !isSearching) {
         const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
         if (selTraining) {
-           // We might want to filter strictly by training's category or just show all but link it
-           // For "chamada via treino", we usually only show eligible athletes
            const athleteSub = getSubCategory(a.birth_date);
            const isEligible = selTraining.category === 'Todos' || selTraining.category === athleteSub;
            if (!isEligible) return false;
         }
       }
 
-      // Apply tab filter
+      // Apply tab filter - also relax if searching to allow finding them quickly
       const records = attendance[a.id] || [];
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
       
@@ -752,9 +753,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         );
       }
 
-      if (tabFilter === 'present' && att?.status !== 'Presente') return false;
-      if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
-      if (tabFilter === 'observation' && att) return false;
+      if (!isSearching) {
+        if (tabFilter === 'present' && att?.status !== 'Presente') return false;
+        if (tabFilter === 'absent' && att?.status !== 'Faltou') return false;
+        if (tabFilter === 'observation' && att) return false;
+      }
 
       return matchesSub && matchesSearch;
     })
@@ -1068,11 +1071,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 disabled={!!trainingId}
               >
                 {!trainingId && <option value="geral">CHAMADA GERAL</option>}
-                {availableTrainings.map(t => (
-                  <option key={t.id} value={t.id}>
-                    TREINO: {t.category} ({t.start_time})
-                  </option>
-                ))}
+                {availableTrainings.map(t => {
+                  const displayCategory = t.category || (t.schedules && t.schedules.length > 0 ? t.schedules[0].categories.join('/') : 'S/ Categoria');
+                  const displayTime = t.start_time || (t.schedules && t.schedules.length > 0 ? t.schedules[0].start_time : '--:--');
+                  return (
+                    <option key={t.id} value={t.id}>
+                      TREINO: {displayCategory} ({displayTime})
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-theme-primary/40">
                 <Filter size={14} />
