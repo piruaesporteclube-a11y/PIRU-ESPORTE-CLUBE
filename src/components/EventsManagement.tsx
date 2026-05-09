@@ -578,6 +578,22 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       setSelectedAthletes(targetLineup.athletes.map(a => a.id));
       setSelectedStaff(targetLineup.staff.map(s => s.id));
 
+      // Auto-focus the correct index for students
+      if (role === 'student' && loggedInUserId && index === 0) {
+        const studentIndex = allLineups.findIndex(l => l.athletes.some(a => a.id === loggedInUserId));
+        if (studentIndex !== -1 && allLineups[studentIndex].lineup_index !== index) {
+          const actualIndex = allLineups[studentIndex].lineup_index;
+          setActiveLineupIndex(actualIndex);
+          const studentLineup = allLineups[studentIndex];
+          setLineupAthletes(studentLineup.athletes);
+          setLineupStaff(studentLineup.staff);
+          setLineupCategory(studentLineup.category || '');
+          setLineupName((studentLineup as any).lineup_name || '');
+          setSelectedAthletes(studentLineup.athletes.map(a => a.id));
+          setSelectedStaff(studentLineup.staff.map(s => s.id));
+        }
+      }
+
       // Check if event is finished
       const now = new Date();
       const [year, month, day] = event.end_date.split('-').map(Number);

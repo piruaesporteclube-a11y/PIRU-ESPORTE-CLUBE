@@ -1371,7 +1371,7 @@ export const api = {
           where("lineup_index", "==", lineup_index)
         );
       }
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocs(q);
       
       // Store existing statuses to preserve them
       const existingData: Record<string, any> = {};
@@ -1451,6 +1451,7 @@ export const api = {
       await batch.commit();
       if (match_id) invalidateCache(`lineup_match_${match_id}`);
       else invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(event_id); // Invalidate general summaries and queries for this event
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
