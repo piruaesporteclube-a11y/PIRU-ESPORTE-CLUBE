@@ -207,13 +207,19 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         }
       });
 
-      // 4. Convert all images to Base64
+      // 4. Convert all images to Base64 with proxy fallback
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
         const currentSrc = img.getAttribute('src');
         if (currentSrc) {
-          const b64 = await toBase64(currentSrc);
-          img.setAttribute('src', b64);
+          // Increase resilience for Vercel/CORS
+          try {
+            const b64 = await toBase64(currentSrc);
+            img.setAttribute('src', b64);
+            img.setAttribute('crossorigin', 'anonymous');
+          } catch (e) {
+            console.warn('Failed to convert image to base64, sticking with original', currentSrc);
+          }
         }
       }));
 
@@ -223,8 +229,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         const bg = (el as HTMLElement).style.backgroundImage;
         const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
         if (match && match[1]) {
-          const b64 = await toBase64(match[1]);
-          (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
+          try {
+            const b64 = await toBase64(match[1]);
+            (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
+          } catch (e) {
+             console.warn('Failed to convert bg to base64', match[1]);
+          }
         }
       }));
 

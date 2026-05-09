@@ -621,7 +621,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     // AUTO-SYNC: If marking general as present, sync to trainings
     if (!activeTrainingId && !eventId && status === 'Presente' && availableTrainings.length > 0 && athlete) {
       const athleteSub = getSubCategory(athlete.birth_date);
-      const matchingTrainings = availableTrainings.filter(t => t.category === 'Todos' || t.category === athleteSub);
+      const matchingTrainings = availableTrainings.filter(t => {
+        // Check main category
+        if (t.category === 'Todos' || t.category === athleteSub) return true;
+        
+        // Check categories in schedules if main category is empty or "Todos"
+        if (t.schedules && t.schedules.length > 0) {
+          return t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
+        }
+        
+        return false;
+      });
       
       matchingTrainings.forEach(t => {
         const trainingAttId = `${athleteId}_training_${t.id}`;
@@ -685,22 +695,22 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     const loadingToast = toast.loading('Salvando chamada...');
     try {
-      const promises = Object.entries(attendance).flatMap(([athleteId, records]) => {
-        // Only save records that match the current scope of the component's editing
-        // or just save all if we want to sync everything.
-        // Usually safer to only save what's relevant to current view to avoid accidental overwrites of other trainings
+      // Salva TODOS os registros presentes no estado local para esta data
+      // Isso garante que presenças sincronizadas (Geral <=> Treinos) sejam persistidas
+      const promises = Object.values(attendance).flatMap(records => {
         return records
-          .filter(r => 
-            (activeTrainingId && r.training_id === activeTrainingId) ||
-            (eventId && r.event_id === eventId) ||
-            (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-          )
+          .filter(r => r.date === date)
           .map(r => api.saveAttendance(r));
       });
 
+      if (promises.length === 0) {
+        toast.info("Nenhuma presença para salvar.", { id: loadingToast });
+        return;
+      }
+
       await Promise.all(promises);
       setHasChanges(false);
-      toast.success('Chamada salva com sucesso!', { id: loadingToast });
+      toast.success('Chamada salva com sucesso para todos os âmbitos do dia!', { id: loadingToast });
     } catch (err: any) {
       toast.error(`Erro ao salvar chamada: ${err.message}`, { id: loadingToast });
     }
@@ -1182,12 +1192,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative md:col-span-2 lg:col-span-1">
+        <div className="relative md:col-span-2 lg:col-span-1 border-2 border-theme-primary/30 rounded-xl overflow-hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
             type="text" 
-            placeholder="Buscar atleta..." 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none"
+            placeholder="Digite o nome do atleta para buscar..." 
+            className="w-full pl-10 pr-4 py-3 bg-black text-white focus:outline-none placeholder:text-zinc-600"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

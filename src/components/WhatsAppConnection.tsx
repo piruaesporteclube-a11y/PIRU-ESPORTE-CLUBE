@@ -19,6 +19,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
 
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const fetchStatus = async () => {
     try {
       const data = await api.whatsapp.getStatus();
@@ -26,8 +28,13 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       setQrCode(data.qrCode);
       setQrTimeoutCount(data.qrTimeoutCount || 0);
       setIsHalted(data.isHalted || false);
-    } catch (err) {
+      setApiError(null);
+    } catch (err: any) {
       console.error('Error fetching WhatsApp status:', err);
+      // If we get a 403 or 404, it might be due to running on Vercel without a backend
+      if (err.message?.includes('403') || err.message?.includes('404')) {
+        setApiError('O servidor de WhatsApp não está respondendo. Certifique-se de que o backend está rodando no servidor correto.');
+      }
     } finally {
       setLoading(false);
     }
@@ -221,6 +228,15 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="text-red-500 shrink-0" size={24} />
+          <p className="text-red-200 text-xs font-bold uppercase leading-relaxed">
+            {apiError}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {status === 'connected' ? (
