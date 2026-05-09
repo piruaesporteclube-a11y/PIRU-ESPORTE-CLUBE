@@ -17,6 +17,15 @@ async function startServer() {
   app.get("/api/whatsapp/status", (req, res) => {
     res.json(whatsappService.getStatus());
   });
+  
+  app.post("/api/whatsapp/connect", async (req, res) => {
+    try {
+      await whatsappService.connect();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
 
   app.post("/api/whatsapp/reset", async (req, res) => {
     try {

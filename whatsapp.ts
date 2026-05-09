@@ -33,7 +33,13 @@ export class WhatsAppService {
   private reconnectTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.init();
+    // We removed this.init() from here to prevent automatic connection on startup
+    // Based on user request to not connect automatically.
+  }
+
+  public async connect() {
+    this.isHalted = false;
+    await this.init();
   }
 
   public async logout(autoReinit = true, resetQrTimeout = true, stayHalted = false) {
@@ -315,7 +321,15 @@ export class WhatsAppService {
             return;
           }
 
-          // Case 3: Standard Reconnect (Network flickers, Stream errors, etc)
+          // Standard Reconnect (Network flickers, Stream errors, etc)
+          // USER REQUEST: Do not try to connect automatically when disconnected.
+          // We will only auto-reconnect for internal restarts (515) or if we are already in "connected" state before.
+          if (!isRestartRequired && !isNetworkError) {
+            console.log('[WhatsApp] Non-critical disconnect. Halting auto-reconnect as requested.');
+            this.isHalted = true;
+            return;
+          }
+
           this.reconnectAttempts++;
           
           // Exponential backoff or progressive delay

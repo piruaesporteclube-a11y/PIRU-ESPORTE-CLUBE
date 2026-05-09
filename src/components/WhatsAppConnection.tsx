@@ -40,6 +40,21 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     }
   };
 
+  const handleConnect = async () => {
+    setIsRetrying(true);
+    const toastId = toast.loading("Iniciando conexão...");
+    try {
+      await api.whatsapp.connect();
+      await fetchStatus();
+      toast.success("Iniciando em instantes...", { id: toastId });
+    } catch (err) {
+      console.error('Error connecting WhatsApp:', err);
+      toast.error("Falha ao conectar.", { id: toastId });
+    } finally {
+      setTimeout(() => setIsRetrying(false), 2000);
+    }
+  };
+
   const handleReconnect = async () => {
     setIsRetrying(true);
     const toastId = toast.loading("Reiniciando conexão...");
@@ -327,26 +342,28 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               )}
             </div>
           </div>
-        ) : isHalted ? (
+        ) : (isHalted || status === 'disconnected') && !qrCode ? (
           <div className="space-y-4">
-            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
-              <AlertCircle className="text-red-500 mx-auto mb-3" size={48} />
-              <h4 className="text-white font-black uppercase mb-1">Sessão Encerrada</h4>
-              <p className="text-zinc-400 text-xs uppercase font-bold leading-relaxed mb-4">
-                A conexão foi interrompida permanentemente (possível desconexão pelo celular ou conflito). <br />
-                Clique em reiniciar para gerar um novo QR Code.
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center">
+              <div className="p-4 bg-zinc-900 rounded-full w-fit mx-auto mb-4 border border-zinc-700/50">
+                <MessageCircle className="text-zinc-500" size={32} />
+              </div>
+              <h4 className="text-white font-black uppercase mb-1">WhatsApp Desconectado</h4>
+              <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
+                A conexão automática foi desativada. <br />
+                Clique no botão abaixo para gerar um QR Code e conectar seu celular.
               </p>
               <button
-                onClick={handleReconnect}
+                onClick={handleConnect}
                 disabled={isRetrying}
-                className="px-6 py-2 bg-theme-primary text-black font-black uppercase text-[10px] rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 mx-auto"
+                className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
               >
-                {isRetrying ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                Reiniciar Conexão
+                {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                Conectar WhatsApp
               </button>
             </div>
           </div>
-        ) : qrTimeoutCount >= 2 ? (
+        ) : qrTimeoutCount >= 2 && !qrCode ? (
           <div className="space-y-4">
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 text-center">
               <RefreshCw className="text-amber-500 mx-auto mb-3" size={48} />

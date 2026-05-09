@@ -924,6 +924,15 @@ export const api = {
         return { status: "disconnected", error: true };
       }
     },
+    connect: async () => {
+      try {
+        const response = await fetch("/api/whatsapp/connect", { method: "POST" });
+        return await response.json();
+      } catch (err) {
+        console.error("WhatsApp connect error:", err);
+        return { success: false, error: "Falha ao conectar" };
+      }
+    },
     reset: async () => {
       try {
         const response = await fetch("/api/whatsapp/reset", { method: "POST" });
