@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Event, Athlete, Professor, Companion } from '../types';
+import { Event, Athlete, Professor, Companion, getSubCategory } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   Users, 
@@ -27,12 +27,12 @@ import autoTable from 'jspdf-autotable';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
-export default function TravelList({ role = 'admin', athletes: athletesProp, professors: professorsProp }: { role?: 'admin' | 'student' | 'professor', athletes?: Athlete[], professors?: Professor[] }) {
+export default function TravelList({ role = 'admin', athletes: athletesProp, professors: professorsProp, initialEventId }: { role?: 'admin' | 'student' | 'professor', athletes?: Athlete[], professors?: Professor[], initialEventId?: string | null }) {
   const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
-  const [lineups, setLineups] = useState<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string }[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>(initialEventId || '');
+  const [lineups, setLineups] = useState<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string, lineup_name?: string }[]>([]);
   const [selectedLineupIndexes, setSelectedLineupIndexes] = useState<number[]>([0]);
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
@@ -124,6 +124,12 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   }, []);
 
   useEffect(() => {
+    if (initialEventId) {
+      setSelectedEventId(initialEventId);
+    }
+  }, [initialEventId]);
+
+  useEffect(() => {
     if (selectedEventId) {
       loadEventData(selectedEventId);
     }
@@ -160,7 +166,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     try {
       const data = await api.getEvents();
       setEvents(data);
-      if (data.length > 0) {
+      if (data.length > 0 && !selectedEventId) {
         setSelectedEventId(data[0].id);
       }
     } catch (error) {
@@ -350,11 +356,12 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     
     autoTable(doc, {
       startY: 57,
-      head: [['#', 'NOME COMPLETO', 'RG / CPF', 'RESPONSÁVEL', 'TELEFONE']],
+      head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CATEGORIA', 'RESPONSÁVEL', 'TELEFONE']],
       body: lineup.athletes.map((a, idx) => [
         idx + 1,
         a.name.toUpperCase(),
-        a.doc,
+        a.doc || '---',
+        getSubCategory(a.birth_date),
         (a.guardian_name || '---').toUpperCase().split(' ').slice(0, 2).join(' '),
         a.guardian_phone || '---'
       ]),
@@ -530,7 +537,9 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                       }
                     }}
                   />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{l.category || `SUB ${l.lineup_index}`}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {l.lineup_name || l.category || `SUB ${l.lineup_index}`}
+                  </span>
                 </label>
               ))}
               {lineups.length === 0 && (

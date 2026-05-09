@@ -5,6 +5,7 @@ import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRi
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useRef } from 'react';
 import { cn, fixHtml2CanvasColors } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -375,129 +376,124 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleDownloadPDF = async () => {
-    if (!lineupRef.current || !selectedEvent) return;
+    if (!selectedEvent) return;
     
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF da escalação...');
     
-    let container: HTMLDivElement | null = null;
     try {
-      // Ensure images are loaded before capturing
-      const images = lineupRef.current.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
-          img.onload = () => { clearTimeout(timeout); resolve(null); };
-          img.onerror = () => { clearTimeout(timeout); resolve(null); };
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const { settings } = useTheme();
+      
+      // Header
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(15, 23, pageWidth - 15, 23);
+      
+      // Event Banner Style
+      const currentLineupLabel = lineupName ? `${lineupName.toUpperCase()} - ${lineupCategory.toUpperCase()}` : `CONVOCATÓRIA: ${selectedEvent.name.toUpperCase()}`;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(15, 26, pageWidth - 30, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(currentLineupLabel, pageWidth / 2, 31, { align: 'center' });
+      
+      // Event Details
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
+      doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
+      doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
+      doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40, { align: 'right' });
+      doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
+      
+      // Display current Match if applicable
+      if (activeMatchId) {
+        const match = eventMatches.find(m => m.id === activeMatchId);
+        if (match) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(`PARTIDA: ${match.team_a_name} X ${match.team_b_name} (${match.date} ${match.time})`.toUpperCase(), 15, 54);
+        }
+      }
+
+      // Table - Staff
+      let startY = activeMatchId ? 58 : 55;
+      if (lineupStaff.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`COMISSÃO TÉCNICA (${lineupStaff.length})`, 15, startY);
+        
+        autoTable(doc, {
+          startY: startY + 2,
+          head: [['#', 'NOME COMPLETO', 'IDENTIDADE', 'CARGO', 'CONFIRMAÇÃO']],
+          body: lineupStaff.map((s, idx) => [
+            idx + 1,
+            s.name.toUpperCase(),
+            s.doc || '---',
+            (s.role || 'COMISSÃO').toUpperCase(),
+            (s.confirmation || 'PENDENTE').toUpperCase()
+          ]),
+          headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
+          styles: { fontSize: 7, cellPadding: 1 },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          margin: { left: 15, right: 15 }
         });
-      }));
-
-      // Create a temporary container for capture
-      container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '1200px';
-      container.style.height = '2000px';
-      container.style.zIndex = '-9999';
-      container.style.opacity = '0';
-      container.style.pointerEvents = 'none';
-      document.body.appendChild(container);
-
-      const clone = lineupRef.current.cloneNode(true) as HTMLElement;
-      
-      // Reset styles for capture to ensure proportionality
-      clone.style.transform = 'none';
-      clone.style.margin = '0';
-      clone.style.padding = '40px';
-      clone.style.width = '800px';
-      clone.style.height = 'auto';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.color = '#000000';
-      clone.style.visibility = 'visible';
-      clone.style.display = 'block';
-      clone.style.boxSizing = 'border-box';
-      clone.classList.remove('hidden'); // Ensure it's visible for capture
-
-      // Force explicit font sizes and dimensions in the clone
-      const originalElements = lineupRef.current.querySelectorAll('*');
-      const cloneElements = clone.querySelectorAll('*');
-      for (let i = 0; i < originalElements.length; i++) {
-        const orig = originalElements[i] as HTMLElement;
-        const cln = cloneElements[i] as HTMLElement;
-        const style = window.getComputedStyle(orig);
-        cln.style.fontSize = style.fontSize;
-        cln.style.lineHeight = style.lineHeight;
-        cln.style.fontFamily = style.fontFamily;
-        cln.style.fontWeight = style.fontWeight;
-        cln.style.letterSpacing = style.letterSpacing;
-        cln.style.textTransform = style.textTransform;
-        cln.style.color = style.color;
+        startY = (doc as any).lastAutoTable.finalY + 8;
       }
 
-      // Replace images in clone with data URLs if available
-      const clonedImages = clone.querySelectorAll('img');
-      clonedImages.forEach(img => {
-        const src = img.getAttribute('src');
-        if (src === settings?.schoolCrest && crestDataUrl) {
-          img.setAttribute('src', crestDataUrl);
-        }
-        img.style.visibility = 'visible';
-        img.style.opacity = '1';
-        img.style.display = 'block';
-        img.setAttribute('crossOrigin', 'anonymous');
-      });
-
-      container.appendChild(clone);
-
-      // Wait for clone to be ready
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const canvas = await html2canvas(clone, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 800,
-        onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
-        }
+      // Table - Athletes
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`ATLETAS CONVOCADOS (${lineupAthletes.length})`, 15, startY);
+      
+      autoTable(doc, {
+        startY: startY + 2,
+        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'NASC.', 'CATEGORIA', 'STATUS', 'CONFIRMAÇÃO']],
+        body: lineupAthletes.sort((a, b) => a.name.localeCompare(b.name)).map((a, idx) => [
+          idx + 1,
+          a.name.toUpperCase(),
+          a.doc || '---',
+          a.birth_date ? new Date(a.birth_date).toLocaleDateString('pt-BR') : '---',
+          getSubCategory(a.birth_date),
+          ((a as any).lineup_status || '---').toUpperCase(),
+          (a.confirmation || 'PENDENTE').toUpperCase()
+        ]),
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
+        styles: { fontSize: 7, cellPadding: 1 },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        margin: { left: 15, right: 15 }
       });
       
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      const imgProps = pdf.getImageProperties(imgData);
-      const margin = 10;
-      const contentWidth = pdfWidth - (margin * 2);
-      const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
-
-      let finalWidth = contentWidth;
-      let finalHeight = contentHeight;
-
-      if (finalHeight > (pdfHeight - margin * 2)) {
-        finalHeight = pdfHeight - margin * 2;
-        finalWidth = (imgProps.width * finalHeight) / imgProps.height;
+      const finalY = (doc as any).lastAutoTable.finalY + 30;
+      if (finalY + 20 > doc.internal.pageSize.getHeight()) {
+        doc.addPage();
       }
-
-      const x = (pdfWidth - finalWidth) / 2;
-
-      pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
-      const fileName = `escalacao_${selectedEvent.name.replace(/\s+/g, '_')}_${(lineupName || `sub_${activeLineupIndex + 1}`).replace(/\s+/g, '_')}.pdf`;
-      pdf.save(fileName);
       
+      const signatureY = finalY;
+      doc.setLineWidth(0.5);
+      doc.line( pageWidth / 2 - 40, signatureY, pageWidth / 2 + 40, signatureY);
+      doc.setFontSize(8);
+      doc.text('ASSINATURA DO RESPONSÁVEL', pageWidth / 2, signatureY + 5, { align: 'center' });
+      doc.setFontSize(6);
+      doc.setTextColor(150);
+      doc.text('Este documento é uma convocatória oficial para atividades do Piruá Esporte Clube.', pageWidth / 2, signatureY + 12, { align: 'center' });
+
+      doc.save(`convocatoria-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
       toast.success('PDF gerado com sucesso!', { id: loadingToast });
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
+      console.error('PDF Generation Error:', error);
+      toast.error('Erro ao gerar PDF', { id: loadingToast });
     } finally {
-      if (container && container.parentNode) {
-        document.body.removeChild(container);
-      }
       setIsGeneratingPDF(false);
     }
   };

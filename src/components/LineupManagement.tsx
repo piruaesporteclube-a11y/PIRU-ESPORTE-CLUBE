@@ -6,7 +6,7 @@ import { cn } from '../utils';
 import { toast } from 'sonner';
 import EventsManagement from './EventsManagement';
 
-export default function LineupManagement() {
+export default function LineupManagement({ setActiveTab, setSelectedEventIdForTravel }: { setActiveTab?: (tab: string) => void, setSelectedEventIdForTravel?: (id: string | null) => void }) {
   const [activeSubTab, setActiveSubTab] = useState<'history' | 'templates'>('history');
   const [events, setEvents] = useState<Event[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -216,13 +216,27 @@ export default function LineupManagement() {
                       +
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setSelectedEvent(event)}
-                    className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 text-theme-primary rounded-xl hover:bg-theme-primary hover:text-black transition-all text-[10px] font-black uppercase tracking-widest"
-                  >
-                    <Users size={14} />
-                    Gerenciar Escalação
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setSelectedEvent(event)}
+                      className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 text-theme-primary rounded-xl hover:bg-theme-primary hover:text-black transition-all text-[10px] font-black uppercase tracking-widest"
+                    >
+                      <Users size={14} />
+                      Escalação
+                    </button>
+                    {setActiveTab && setSelectedEventIdForTravel && (
+                      <button 
+                        onClick={() => {
+                          setSelectedEventIdForTravel(event.id);
+                          setActiveTab('travel-list');
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
+                      >
+                        <MapPin size={14} />
+                        Viagem
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

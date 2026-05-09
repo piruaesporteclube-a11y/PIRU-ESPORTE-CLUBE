@@ -28,27 +28,18 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
       
       setLineupEvents(recentEvents.sort((a, b) => b.start_date.localeCompare(a.start_date)));
       
-      // Fetch summaries for ALL lineups and matches of each event
+      // Fetch summaries for ALL lineups of each event efficiently
+      const athletesList = await api.getAthletes();
+      const professorsList = await api.getProfessors();
+
       recentEvents.forEach(async (event) => {
         try {
+          const allLineups = await api.getAllEventLineups(event.id, athletesList, professorsList);
           const summaries: string[] = [];
           
-          // Check generic lineups (indices 0 to 9)
-          for (let i = 0; i <= 9; i++) {
-            const { athletes } = await api.getLineup(event.id, i);
-            if (athletes.length > 0) {
-              summaries.push(...athletes.map(a => a.name));
-            }
-          }
-          
-          // Check match specific lineups
-          const matches = await api.getEventMatches(event.id);
-          for (const match of matches) {
-            const { athletes } = await api.getLineup(event.id, 0, match.id);
-            if (athletes.length > 0) {
-              summaries.push(...athletes.map(a => a.name));
-            }
-          }
+          allLineups.forEach(l => {
+            summaries.push(...l.athletes.map(a => a.name));
+          });
           
           // Unique names
           const uniqueNames = Array.from(new Set(summaries));
@@ -95,8 +86,8 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Agenda & Resultados</h2>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Confira os eventos, escalações e resultados dos jogos</p>
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Minhas Escalações</h2>
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Confira os eventos, convocações e resultados dos jogos</p>
         </div>
       </div>
 

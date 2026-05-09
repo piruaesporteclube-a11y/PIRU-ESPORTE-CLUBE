@@ -610,6 +610,7 @@ export default function App() {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
+  const [selectedEventIdForTravel, setSelectedEventIdForTravel] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -1078,7 +1079,9 @@ export default function App() {
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
-          return user.role === 'admin' ? <LineupManagement /> : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} athleteName={myAthleteData?.name || ''} />;
+          return user.role === 'admin' 
+            ? <LineupManagement setActiveTab={setActiveTab} setSelectedEventIdForTravel={setSelectedEventIdForTravel} /> 
+            : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} athleteName={myAthleteData?.name || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} loggedInUserId={user?.id} />;
         case 'birthdays':
@@ -1101,7 +1104,7 @@ export default function App() {
         case 'uniform-request':
           return <UniformManagement user={user} athletes={athletes} />;
         case 'travel-list':
-          return <TravelList athletes={athletes} professors={professors} role={user?.role} />;
+          return <TravelList athletes={athletes} professors={professors} role={user?.role} initialEventId={selectedEventIdForTravel} />;
         case 'announcements':
           return <AnnouncementFlyer />;
         case 'school-reports':
