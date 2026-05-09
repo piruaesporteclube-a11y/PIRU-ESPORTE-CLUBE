@@ -28,13 +28,19 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       setQrCode(data.qrCode);
       setQrTimeoutCount(data.qrTimeoutCount || 0);
       setIsHalted(data.isHalted || false);
-      setApiError(null);
+      
+      if (data.error) {
+        let msg = data.message || 'Erro ao conectar ao servidor de WhatsApp.';
+        if (msg.includes('Failed to fetch')) {
+          msg = 'O servidor de WhatsApp não está respondendo. Verifique se o backend está ativo.';
+        }
+        setApiError(msg);
+      } else {
+        setApiError(null);
+      }
     } catch (err: any) {
       console.error('Error fetching WhatsApp status:', err);
-      // If we get a 403 or 404, it might be due to running on Vercel without a backend
-      if (err.message?.includes('403') || err.message?.includes('404')) {
-        setApiError('O servidor de WhatsApp não está respondendo. Certifique-se de que o backend está rodando no servidor correto.');
-      }
+      setApiError('Falha crítica na conexão com o servidor de APIs.');
     } finally {
       setLoading(false);
     }
@@ -212,10 +218,10 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               onClick={handleLogout}
               disabled={isRetrying || isSyncing}
               className="px-3 py-1 bg-zinc-800 hover:bg-red-500/10 text-zinc-400 hover:text-red-500 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-              title="Desconectar e Parar"
+              title="Desconectar WhatsApp"
             >
               <AlertCircle className="w-3 h-3" />
-              <span className="text-[10px] font-black uppercase">Parar</span>
+              <span className="text-[10px] font-black uppercase">Desconectar</span>
             </button>
           )}
           <button 
@@ -422,14 +428,24 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
         </div>
 
         {status === 'connected' && (
-          <button
-            onClick={handleSyncGroups}
-            disabled={isSyncingGroups || isSyncing}
-            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-black uppercase text-[10px] rounded-lg transition-all border border-zinc-700 flex items-center justify-center gap-2"
-          >
-            {isSyncingGroups ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            Verificar/Criar Grupos no WhatsApp
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleSyncGroups}
+              disabled={isSyncingGroups || isSyncing}
+              className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-black uppercase text-[10px] rounded-lg transition-all border border-zinc-700 flex items-center justify-center gap-2"
+            >
+              {isSyncingGroups ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              Verificar/Criar Grupos no WhatsApp
+            </button>
+            <button
+              onClick={handleLogout}
+              disabled={isRetrying || isSyncing}
+              className="w-full py-2 bg-red-500/5 hover:bg-red-500/10 text-red-500/50 hover:text-red-500 font-black uppercase text-[10px] rounded-lg transition-all border border-red-500/10 flex items-center justify-center gap-2"
+            >
+              <AlertCircle size={14} />
+              Desconectar WhatsApp Manualmente
+            </button>
+          </div>
         )}
       </div>
     </div>

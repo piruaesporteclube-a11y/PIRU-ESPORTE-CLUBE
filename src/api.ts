@@ -918,37 +918,53 @@ export const api = {
     getStatus: async () => {
       try {
         const response = await fetch("/api/whatsapp/status");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         return await response.json();
-      } catch (err) {
+      } catch (err: any) {
         console.error("WhatsApp status error:", err);
-        return { status: "disconnected", error: true };
+        return { 
+          status: "disconnected", 
+          error: true, 
+          message: err.message || "Failed to fetch status"
+        };
       }
     },
     connect: async () => {
       try {
         const response = await fetch("/api/whatsapp/connect", { method: "POST" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         return await response.json();
-      } catch (err) {
+      } catch (err: any) {
         console.error("WhatsApp connect error:", err);
-        return { success: false, error: "Falha ao conectar" };
+        return { success: false, error: err.message || "Failed to connect" };
       }
     },
     reset: async () => {
       try {
         const response = await fetch("/api/whatsapp/reset", { method: "POST" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         return await response.json();
-      } catch (err) {
+      } catch (err: any) {
         console.error("WhatsApp reset error:", err);
-        return { success: false, error: "Falha ao resetar" };
+        return { success: false, error: err.message || "Failed to reset" };
       }
     },
     logout: async () => {
       try {
         const response = await fetch("/api/whatsapp/logout", { method: "POST" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         return await response.json();
-      } catch (err) {
+      } catch (err: any) {
         console.error("WhatsApp logout error:", err);
-        return { success: false, error: "Falha ao desconectar" };
+        return { success: false, error: err.message || "Falha ao desconectar" };
       }
     },
     addToGroup: async (groupName: "Piruá Esporte Clube Responsáveis" | "Piruá Esporte Clube Atletas", phoneNumber: string) => {
@@ -958,10 +974,13 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ groupName, phoneNumber }),
         });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         return await response.json();
-      } catch (err) {
+      } catch (err: any) {
         console.error("WhatsApp add error:", err);
-        return { success: false, error: "Conexão falhou" };
+        return { success: false, error: err.message || "Conexão falhou" };
       }
     },
     syncAthlete: async (athlete: { contact?: string, guardian_phone?: string }) => {

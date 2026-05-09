@@ -229,9 +229,9 @@ export class WhatsAppService {
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
-          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
+          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
 
-          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError}`);
+          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError} | Restart Required: ${isRestartRequired}`);
 
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
