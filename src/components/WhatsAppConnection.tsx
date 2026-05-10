@@ -442,7 +442,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                 </div>
                 <ul className="text-[9px] font-bold uppercase opacity-70 leading-tight list-disc pl-4 space-y-1">
                   <li>Evite usar o mesmo WhatsApp Web em outras abas ou computadores simultaneamente.</li>
-                  <li>O erro "515" é comum e o sistema tenta reconectar automaticamente.</li>
+                  <li>O erro "515" é comum. O sistema tenta 5 reconexões rápidas e, se falhar, limpa a sessão para garantir segurança.</li>
                   <li>Se a conexão cair repetidamente, tente "Reiniciar" ou "Desconectar" e escanear novamente.</li>
                   <li>Esta integração é 100% gratuita e não requer pagamento de APIs externas.</li>
                 </ul>

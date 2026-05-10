@@ -241,8 +241,7 @@ export class WhatsAppService {
           const error = lastDisconnect?.error as Boom;
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
-          
-          const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+                   const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515 || (error as any)?.fullErrorNode?.attrs?.code === '515';
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
           const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
@@ -258,8 +257,8 @@ export class WhatsAppService {
           const content = errorNode?.content || [];
           
           const hasConflictTag = errorNode?.tag === 'conflict' || 
-                                reasonNode?.tag === 'conflict' ||
-                                (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
+                                 reasonNode?.tag === 'conflict' ||
+                                 (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
           
           const isDeviceRemoved = hasConflictTag || 
                                   statusCode === 401 || statusCode === 403 || 
@@ -270,16 +269,17 @@ export class WhatsAppService {
           
           if (isRestartRequired) {
             this.restartRequiredCount++;
-            this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 20 times), let's clear the session and start fresh
-            // Increased to 20 for even more breathing room
-            if (this.restartRequiredCount > 20 && (Date.now() - this.lastRestartTime < 600000)) {
-              console.warn('[WhatsApp] Too many 515 restarts (20+). Performing a full session reset.');
+            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
+            // 5 is a better threshold than 20 for a better user experience
+            if (this.restartRequiredCount >= 5) {
+              console.warn('[WhatsApp] Too many 515 restarts (5+). Performing a full session reset.');
+              this.restartRequiredCount = 0; // Reset count before logout
               this.logout(true, true, false);
               return;
             }
+            this.lastRestartTime = Date.now();
           } else if (connection === 'close') {
             // If it closed for other reasons but we were connected, reset the counts
             if (statusBeforeClose === 'connected') {
