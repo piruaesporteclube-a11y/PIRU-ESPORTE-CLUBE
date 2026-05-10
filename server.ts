@@ -23,7 +23,7 @@ async function startServer() {
       await whatsappService.connect();
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[WhatsApp] Connect Error:", error);
+      console.error(`[WhatsApp] Connect Error:`, error);
       const message = error.message || error.toString() || "Erro ao conectar";
       res.status(500).json({ success: false, error: message });
     }
@@ -34,7 +34,7 @@ async function startServer() {
       await whatsappService.logout(true, true, false);
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[WhatsApp] Reset Error:", error);
+      console.error(`[WhatsApp] Reset Error:`, error);
       const message = error.message || error.toString() || "Erro ao reiniciar";
       res.status(500).json({ success: false, error: message });
     }
@@ -45,7 +45,7 @@ async function startServer() {
       await whatsappService.logout(false, true, true);
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[WhatsApp] Logout Error:", error);
+      console.error(`[WhatsApp] Logout Error:`, error);
       const message = error.message || error.toString() || "Erro ao desconectar";
       res.status(500).json({ success: false, error: message });
     }
@@ -54,12 +54,22 @@ async function startServer() {
   app.post("/api/whatsapp/add", async (req, res) => {
     const { groupName, phoneNumber } = req.body;
     try {
+      console.log(`[WhatsApp] API Request: Add ${phoneNumber} to ${groupName}`);
       const result = await whatsappService.addToGroup(groupName, phoneNumber);
       res.json({ success: true, result });
     } catch (error: any) {
       console.error(`[WhatsApp] Add to Group Error for ${phoneNumber}:`, error);
+      
+      // Extract as much info as possible
       const message = error.message || error.toString() || "Erro desconhecido ao adicionar contato";
-      res.status(500).json({ success: false, error: message });
+      const statusCode = error.output?.statusCode || error.status || 500;
+      
+      res.status(500).json({ 
+        success: false, 
+        error: message,
+        details: error.data || error.output?.payload || null,
+        code: statusCode
+      });
     }
   });
 

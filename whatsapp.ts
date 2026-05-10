@@ -236,11 +236,16 @@ export class WhatsAppService {
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
           // Enhanced device removed / conflict detection
-          const errorNode = (error as any)?.fullErrorNode || (error as any)?.reasonNode;
+          const fullErrorNode = (error as any)?.fullErrorNode;
+          const reasonNode = (error as any)?.reasonNode;
+          const errorNode = fullErrorNode || reasonNode;
           const content = errorNode?.content || [];
-          const isConflictNode = errorNode?.tag === 'conflict' || (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
           
-          const isDeviceRemoved = isConflictNode || 
+          const hasConflictTag = errorNode?.tag === 'conflict' || 
+                                reasonNode?.tag === 'conflict' ||
+                                (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
+          
+          const isDeviceRemoved = hasConflictTag || 
                                   statusCode === 401 || statusCode === 403 || 
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
@@ -252,10 +257,10 @@ export class WhatsAppService {
             this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 15 times), let's clear the session and start fresh
-            // Increased from 8 to 15 to give more breathing room to unstable connections
-            if (this.restartRequiredCount > 15 && (Date.now() - this.lastRestartTime < 600000)) {
-              console.warn('[WhatsApp] Too many 515 restarts (15+). Performing a full session reset.');
+            // If we hit too many 515s in a row (e.g. 20 times), let's clear the session and start fresh
+            // Increased to 20 for even more breathing room
+            if (this.restartRequiredCount > 20 && (Date.now() - this.lastRestartTime < 600000)) {
+              console.warn('[WhatsApp] Too many 515 restarts (20+). Performing a full session reset.');
               this.logout(true, true, false);
               return;
             }
@@ -281,7 +286,7 @@ export class WhatsAppService {
                 oldSocket.ev.removeAllListeners('creds.update');
               }
               // Aggressive nuke for these codes
-              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || isConflictNode) {
+              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || hasConflictTag) {
                 if (oldSocket.end) oldSocket.end(undefined);
               }
             } catch (e) {}
@@ -289,8 +294,8 @@ export class WhatsAppService {
 
           // Case 1: Session invalidated - must logout and clear files
           // Also halt if 515 loop detected (more than 50 times)
-          if (isLoggedOut || isDeviceRemoved || (isConflictNode && statusCode === 401) || this.restartRequiredCount > 50) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (isConflictNode ? 'Conflict' : '515 Loop Detected'));
+          if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401) || this.restartRequiredCount > 50) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (hasConflictTag ? 'Conflict' : '515 Loop Detected'));
             console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
             this.connectionStatus = 'disconnected';
             this.isHalted = true;
@@ -543,8 +548,12 @@ export class WhatsAppService {
     if (this.jidCache[cleanNumber]) return this.jidCache[cleanNumber];
 
     try {
-      if (!this.socket || this.connectionStatus !== 'connected') return null;
-      let onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
+      if (!this.socket || this.connectionStatus !== 'connected') {
+        console.warn(`[WhatsApp] Cannot resolve JID for ${cleanNumber}: socket not connected`);
+        return null;
+      }
+      
+      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
       if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
         this.jidCache[cleanNumber] = onWhatsApp[0].jid;
         return onWhatsApp[0].jid;
@@ -562,8 +571,12 @@ export class WhatsAppService {
           return altOnWA[0].jid;
         }
       }
-    } catch (err) {
-      console.warn(`[WhatsApp] Error resolving JID for ${cleanNumber}:`, err);
+    } catch (err: any) {
+      console.warn(`[WhatsApp] Error resolving JID for ${cleanNumber}:`, err.message || err);
+      // If we got a 428 or 515 here, it might be a transient connection issue
+      if (err.message?.includes('515') || err.message?.includes('socket hang up')) {
+        return null;
+      }
     }
 
     return null;
