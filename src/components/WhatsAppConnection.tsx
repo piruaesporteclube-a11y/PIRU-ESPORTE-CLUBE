@@ -314,19 +314,29 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                   </>
                 ) : (
                   <>
-                    A conexão automática foi desativada. <br />
-                    Clique no botão abaixo para gerar um QR Code e conectar seu celular.
+                    A conexão automática foi desativada ou falhou. <br />
+                    Clique no botão abaixo para LIMPAR A SESSÃO e gerar um novo QR Code.
                   </>
                 )}
               </p>
-              <button
-                onClick={handleConnect}
-                disabled={isRetrying || (!isHalted && !qrCode && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0))}
-                className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
-              >
-                {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
-                {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? 'Aguardando Automático' : 'Conectar WhatsApp'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleConnect}
+                  disabled={isRetrying || (!isHalted && !qrCode && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0))}
+                  className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto w-full max-w-xs"
+                >
+                  {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                  {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? 'Aguardando Automático' : 'Conectar WhatsApp'}
+                </button>
+                <button
+                  onClick={handleReconnect}
+                  disabled={isRetrying}
+                  className="px-8 py-2 bg-zinc-800 hover:bg-red-500/10 text-zinc-400 hover:text-red-500 font-bold uppercase text-[10px] rounded-xl transition-all flex items-center justify-center gap-2 mx-auto w-full max-w-xs border border-transparent hover:border-red-500/20"
+                >
+                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                  Limpar e Tentar Outro QR Code
+                </button>
+              </div>
             </div>
           </div>
         ) : (qrTimeoutCount >= 2 || status === 'disconnected') && !qrCode ? (

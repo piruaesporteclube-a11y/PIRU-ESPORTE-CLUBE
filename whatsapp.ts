@@ -265,14 +265,14 @@ export class WhatsAppService {
         printQRInTerminal: false,
         browser: ['Ubuntu', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
-        qrTimeout: 60000, 
-        connectTimeoutMs: 45000, 
-        defaultQueryTimeoutMs: 45000,
+        qrTimeout: 90000, 
+        connectTimeoutMs: 60000, 
+        defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 30000, 
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
-        maxMsgRetryCount: 10,
+        maxMsgRetryCount: 5,
         fireInitQueries: false,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
         getMessage: async (key: WAMessageKey) => {
@@ -305,7 +305,7 @@ export class WhatsAppService {
                    const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515 || (error as any)?.fullErrorNode?.attrs?.code === '515';
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
-          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
+          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 429 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
 
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError} | Restart Required: ${isRestartRequired}`);
 
