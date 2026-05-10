@@ -28,6 +28,7 @@ export class WhatsAppService {
   private lastRestartTime = 0;
   private qrTimeoutCount = 0;
   private isHalted = false;
+  private haltReason: string | null = null;
   private lastResetTime = 0;
   private connectionWatchdog: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -40,6 +41,7 @@ export class WhatsAppService {
   public async connect() {
     console.log('[WhatsApp] Manual connect requested.');
     this.isHalted = false;
+    this.haltReason = null;
     this.isInitializing = false; // Force clear any stuck state
     await this.init();
   }
@@ -99,6 +101,7 @@ export class WhatsAppService {
     
     // Explicitly set halt state
     this.isHalted = stayHalted; 
+    if (!stayHalted) this.haltReason = null;
 
     // Safety delay to ensure file handles are closed
     await new Promise(r => setTimeout(r, 1500));
@@ -216,7 +219,7 @@ export class WhatsAppService {
       const { version } = await fetchLatestBaileysVersion().catch((err) => {
         console.warn('[WhatsApp] fetchLatestBaileysVersion failed, using fallback:', err.message || err);
         return { 
-          version: [2, 3000, 1015901307] as [number, number, number], 
+          version: [2, 2413, 51] as [number, number, number], 
           isLatest: false 
         };
       });
@@ -231,7 +234,7 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '121.0.6167.184'],
+        browser: ['Mac OS', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
         qrTimeout: 60000, // Shorter timeout for faster cycling if stuck
         connectTimeoutMs: 60000, 
@@ -299,9 +302,9 @@ export class WhatsAppService {
             this.restartRequiredCount++;
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 8 times), let's clear the session and start fresh
-            // 8 is a good balance between noisy 515s and actual session corruption
-            if (this.restartRequiredCount >= 8) {
+            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
+            // 5 is a better threshold than 8 for better responsiveness to stream errors
+            if (this.restartRequiredCount >= 5) {
               console.warn(`[WhatsApp] Too many 515 restarts (${this.restartRequiredCount}). Performing a full session reset.`);
               this.restartRequiredCount = 0; // Reset count before logout
               this.logout(true, true, false);
@@ -339,10 +342,11 @@ export class WhatsAppService {
           // Case 1: Session invalidated - must logout and clear files
           // Also halt if 515 loop detected (more than 50 times)
           if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401) || this.restartRequiredCount > 50) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (hasConflictTag ? 'Conflict' : '515 Loop Detected'));
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed / Session Expired' : (hasConflictTag ? 'Connection Conflict' : '515 Loop Detected'));
             console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
             this.connectionStatus = 'disconnected';
             this.isHalted = true;
+            this.haltReason = reason;
             this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true
             return;
           }
@@ -375,9 +379,8 @@ export class WhatsAppService {
           }
 
           // Standard Reconnect (Network flickers, Stream errors, etc)
-          // USER REQUEST: Do not try to connect automatically when disconnected.
-          // We will only auto-reconnect for internal restarts (515) or if we are already in "connected" state before.
-          if (!isRestartRequired && !isNetworkError) {
+          // Only halt if it was disconnected already and not a restart/network error
+          if (!isRestartRequired && !isNetworkError && statusBeforeClose !== 'connecting') {
             console.log('[WhatsApp] Non-critical disconnect. Halting auto-reconnect as requested.');
             this.isHalted = true;
             return;
@@ -532,6 +535,7 @@ export class WhatsAppService {
       qrCode: this.qrCode,
       qrTimeoutCount: this.qrTimeoutCount,
       isHalted: this.isHalted,
+      haltReason: this.haltReason,
       reconnectAttempts: this.reconnectAttempts,
       restartRequiredCount: this.restartRequiredCount,
       isInitializing: this.isInitializing

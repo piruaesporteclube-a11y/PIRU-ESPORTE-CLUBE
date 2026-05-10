@@ -915,7 +915,7 @@ export const api = {
   },
 
   whatsapp: {
-    getStatus: async () => {
+    getStatus: async (retryCount = 0): Promise<any> => {
       try {
         const response = await fetch("/api/whatsapp/status");
         if (!response.ok) {
@@ -935,6 +935,14 @@ export const api = {
           throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
+        // If it's a "Failed to fetch" (network error), it might be the server restarting
+        // We try once more after a short delay
+        if (err.message === 'Failed to fetch' && retryCount < 2) {
+          console.warn(`[WhatsApp] Status fetch failed (Failed to fetch). Retrying in 2s... (Attempt ${retryCount + 1})`);
+          await new Promise(r => setTimeout(r, 2000));
+          return api.whatsapp.getStatus(retryCount + 1);
+        }
+
         console.error("WhatsApp status error:", err);
         return { 
           status: "disconnected", 

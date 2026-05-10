@@ -14,6 +14,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrTimeoutCount, setQrTimeoutCount] = useState(0);
   const [isHalted, setIsHalted] = useState(false);
+  const [haltReason, setHaltReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -30,6 +31,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       setQrCode(data.qrCode);
       setQrTimeoutCount(data.qrTimeoutCount || 0);
       setIsHalted(data.isHalted || false);
+      setHaltReason(data.haltReason || null);
       setReconnectInfo({
         attempts: data.reconnectAttempts || 0,
         restarts: data.restartRequiredCount || 0,
@@ -386,7 +388,29 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               )}
             </div>
           </div>
-        ) : (isHalted || status === 'disconnected') && !qrCode ? (
+        ) : isHalted && !qrCode ? (
+          <div className="space-y-4">
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center">
+              <div className="p-4 bg-zinc-900 rounded-full w-fit mx-auto mb-4 border border-zinc-700/50">
+                <MessageCircle className="text-zinc-500" size={32} />
+              </div>
+              <h4 className="text-white font-black uppercase mb-1">Conexão Interrompida</h4>
+              <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
+                <span className="text-red-500 block mb-2">{haltReason || 'Ação necessária'}</span>
+                A conexão automática foi pausada. <br />
+                Pode ser necessário limpar os arquivos da sessão ou escanear novamente.
+              </p>
+              <button
+                onClick={handleConnect}
+                disabled={isRetrying}
+                className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
+              >
+                {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                Tentar Reconectar
+              </button>
+            </div>
+          </div>
+        ) : status === 'disconnected' && !qrCode ? (
           <div className="space-y-4">
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center">
               <div className="p-4 bg-zinc-900 rounded-full w-fit mx-auto mb-4 border border-zinc-700/50">
@@ -402,12 +426,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                   : 'WhatsApp Desconectado'}
               </h4>
               <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
-                {isHalted ? (
-                  <>
-                    A conexão automática foi desativada devido a múltiplos erros ou desconexão manual. <br />
-                    Clique abaixo para reconectar.
-                  </>
-                ) : (!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
+                {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
                   <>
                     O sistema detectou uma oscilação e está tentando reconectar automaticamente. <br />
                     Aguarde alguns segundos... (Tentativa {reconnectInfo.restarts || reconnectInfo.attempts})
@@ -429,7 +448,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               </button>
             </div>
           </div>
-        ) : qrTimeoutCount >= 2 && !qrCode ? (
+        ) : (qrTimeoutCount >= 2 || status === 'disconnected') && !qrCode ? (
           <div className="space-y-4">
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 text-center">
               <RefreshCw className="text-amber-500 mx-auto mb-3" size={48} />
