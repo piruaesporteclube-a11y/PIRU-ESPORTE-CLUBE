@@ -32,7 +32,7 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
       const athletesList = await api.getAthletes();
       const professorsList = await api.getProfessors();
 
-      recentEvents.forEach(async (event) => {
+      await Promise.all(recentEvents.map(async (event) => {
         try {
           const allLineups = await api.getAllEventLineups(event.id, athletesList, professorsList);
           const summaries: string[] = [];
@@ -47,7 +47,7 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
         } catch (err) {
           console.error(`Error fetching summary for event ${event.id}:`, err);
         }
-      });
+      }));
     } catch (error) {
       console.error('Error loading student lineups:', error);
     } finally {

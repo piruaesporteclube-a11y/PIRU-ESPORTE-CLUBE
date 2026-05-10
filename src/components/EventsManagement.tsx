@@ -103,18 +103,28 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
   useEffect(() => {
     if (events.length > 0) {
-      events.forEach(async (event) => {
-        try {
-          const { athletes } = await api.getLineup(event.id, 0);
-          setLineupCounts(prev => ({ ...prev, [event.id]: athletes.length }));
-          setLineupSummaries(prev => ({ ...prev, [event.id]: athletes.map(a => a.name) }));
-          
-          const matches = await api.getEventMatches(event.id);
-          setEventScoresSummary(prev => ({ ...prev, [event.id]: matches }));
-        } catch (err) {
-          console.error(`Error fetching data for event ${event.id}:`, err);
-        }
-      });
+      const loadAllSummaries = async () => {
+        const athletesList = athletes.length > 0 ? athletes : await api.getAthletes();
+        const professorsList = professors.length > 0 ? professors : await api.getProfessors();
+
+        await Promise.all(events.map(async (event) => {
+          try {
+            const matches = await api.getEventMatches(event.id);
+            setEventScoresSummary(prev => ({ ...prev, [event.id]: matches }));
+
+            const allLineups = await api.getAllEventLineups(event.id, athletesList, professorsList);
+            const summaries: string[] = [];
+            allLineups.forEach(l => summaries.push(...l.athletes.map(a => a.name)));
+            const uniqueNames = Array.from(new Set(summaries));
+
+            setLineupCounts(prev => ({ ...prev, [event.id]: uniqueNames.length }));
+            setLineupSummaries(prev => ({ ...prev, [event.id]: uniqueNames }));
+          } catch (err) {
+            console.error(`Error fetching data for event ${event.id}:`, err);
+          }
+        }));
+      };
+      loadAllSummaries();
     }
   }, [events]);
 
@@ -816,16 +826,22 @@ Contamos com sua presença!`;
           ...prev,
           [activeLineupIndex]: lineupName
         }));
-
-        // Update total counts for the main list
-        setLineupCounts(prev => ({
-          ...prev,
-          [selectedEvent.id]: selectedAthletes.length
-        }));
-      } else {
-        // For matches, we might want to refresh the match list counts or something, 
-        // but for now refreshes on event list are usually enough
       }
+
+      // Update total counts and summaries for the main list
+      const allLineups = await api.getAllEventLineups(selectedEvent.id, athletes, professors);
+      const summaries: string[] = [];
+      allLineups.forEach(l => summaries.push(...l.athletes.map(a => a.name)));
+      const uniqueNames = Array.from(new Set(summaries));
+
+      setLineupCounts(prev => ({
+        ...prev,
+        [selectedEvent.id]: uniqueNames.length
+      }));
+      setLineupSummaries(prev => ({
+        ...prev,
+        [selectedEvent.id]: uniqueNames
+      }));
       
       toast.success('Escalação salva com sucesso!', { id: loadingToast });
     } catch (err: any) {

@@ -175,8 +175,18 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       }
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
-      // Increased delay to 12 seconds to significantly reduce rate-limit risk from WhatsApp platform
-      await new Promise(r => setTimeout(r, 12000));
+      
+      // INCREASED RANDOMIZED DELAYS (45s to 75s) TO MIMIC HUMAN BEHAVIOR (~1 minute)
+      // High delays significantly reduce the risk of detection by WhatsApp.
+      const delay = Math.floor(Math.random() * (75000 - 45000) + 45000);
+      
+      // Every 10 contacts, take a "breath" of 10 minutes
+      if ((i + 1) % 10 === 0 && i < activeAthletes.length - 1) {
+        toast.info("Pausa de segurança de 10 minutos para evitar bloqueio...");
+        await new Promise(r => setTimeout(r, 600000));
+      } else {
+        await new Promise(r => setTimeout(r, delay));
+      }
     }
 
     setIsSyncing(false);
@@ -405,8 +415,15 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex gap-3 text-amber-500">
               <AlertCircle size={20} className="shrink-0" />
-              <div className="text-[10px] font-black uppercase leading-relaxed">
-                Importante: Mantenha esta conexão ativa para que novos alunos sejam adicionados aos grupos automaticamente no momento da aprovação.
+              <div className="space-y-1">
+                <div className="text-[10px] font-black uppercase leading-relaxed">
+                  Importante: Mantenha esta conexão ativa para automação.
+                </div>
+                <p className="text-[9px] font-bold uppercase opacity-70 leading-tight">
+                  Dica de Segurança: Use um número com histórico de uso (não use chips novos). 
+                  A sincronização usa intervalos de ~1min (45s-75s) e pausas longas (10min) para evitar bloqueios.
+                  Para segurança total (100%), prefira enviar o link do grupo individualmente.
+                </p>
               </div>
             </div>
           </div>
