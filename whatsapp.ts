@@ -263,7 +263,7 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '125.0.0.0'],
+        browser: ['Piruá Esporte Clube', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
         qrTimeout: 90000, 
         connectTimeoutMs: 60000, 
@@ -306,8 +306,9 @@ export class WhatsAppService {
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
           const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 429 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
+          const isRateLimited = statusCode === 429 || errorMessage.toLowerCase().includes('wait') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('try later');
 
-          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError} | Restart Required: ${isRestartRequired}`);
+          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError} | Restart Required: ${isRestartRequired} | Rate Limited: ${isRateLimited}`);
 
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 411;
           
@@ -321,8 +322,12 @@ export class WhatsAppService {
                                  reasonNode?.tag === 'conflict' ||
                                  (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed' || c?.attrs?.type === 'conflict'));
           
+          if (hasConflictTag) {
+            console.warn('[WhatsApp] Conflict detected via errorNode:', JSON.stringify(errorNode, null, 2));
+          }
+
           const isDeviceRemoved = hasConflictTag || 
-                                  statusCode === 401 || statusCode === 403 || 
+                                  statusCode === 401 || statusCode === 403 || statusCode === 409 ||
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
                                   errorMessage.toLowerCase().includes('conflict') ||
@@ -676,7 +681,10 @@ export class WhatsAppService {
       // Brazilian specific: Try without the 9th digit if it has it
       // Format: 55 + DDD + 9 + NUMBER (13 chars total)
       if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+        const ddd = cleanNumber.slice(2, 4);
         const withoutNine = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
+        
+        // JIDs are sometimes strict. 
         if (this.jidCache[withoutNine]) return this.jidCache[withoutNine];
         
         const altOnWA = await this.withLock(() => this.socket.onWhatsApp(withoutNine));
@@ -714,7 +722,7 @@ export class WhatsAppService {
     return null;
   }
 
-  public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0): Promise<any> {
+  public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0, groupName?: string): Promise<any> {
     // If we're not connected, wait up to 15 seconds if we are "connecting"
     if (this.connectionStatus === 'connecting' && retryCount === 0) {
       console.log(`[WhatsApp] Status is connecting... waiting up to 15s for ${phoneNumber}`);
@@ -746,7 +754,27 @@ export class WhatsAppService {
       // Increased delay before group action
       await new Promise(resolve => setTimeout(resolve, 5000));
       
-      const response = await this.withLock(() => this.socket.groupParticipantsUpdate(groupId, [jid], 'add'));
+      const response = await this.withLock(() => this.socket.groupParticipantsUpdate(groupId, [jid], 'add')).catch(async (err: any) => {
+        const errMsg = (err.message || String(err) || '').toLowerCase();
+        if (errMsg.includes('item-not-found') || errMsg.includes('404')) {
+          console.warn(`[WhatsApp] Group ${groupId} or JID ${jid} not found (item-not-found). Re-syncing groups...`);
+          await this.syncGroups();
+          // Try one more time if we found a new group ID
+          if (groupName) {
+            const newGroupId = this.groupIds[groupName];
+            if (newGroupId && newGroupId !== groupId) {
+              console.log(`[WhatsApp] Retrying with new group ID: ${newGroupId}`);
+              return this.socket.groupParticipantsUpdate(newGroupId, [jid], 'add');
+            }
+          }
+        }
+        
+        if (errMsg.includes('limit') || errMsg.includes('rate') || errMsg.includes('wait') || errMsg.includes('try later')) {
+          throw new Error('Ação limitada pelo WhatsApp. Por favor, aguarde alguns minutos e tente novamente de forma individual.');
+        }
+        
+        throw err;
+      });
       
       // The response is an array of objects: { jid: string, status: string }
       const status = response?.[0]?.status;
@@ -800,7 +828,7 @@ export class WhatsAppService {
         const delayMs = isTimeout ? 5000 : (retryCount + 1) * 10000;
         console.log(`[WhatsApp] ${isTimeout ? 'Timeout' : 'Rate limit'} for ${jid || phoneNumber}, retry ${retryCount + 1} in ${delayMs/1000}s...`);
         await new Promise(r => setTimeout(r, delayMs));
-        return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1);
+        return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1, groupName);
       }
 
       console.error(`[WhatsApp] Erro fatal ao adicionar ${phoneNumber}:`, err);
@@ -853,7 +881,7 @@ export class WhatsAppService {
       const finalGroupId = this.groupIds[groupName];
       const welcomeMessage = `Olá! Bem-vindo ao *Piruá Esporte Clube*! ⚽ Você foi adicionado ao grupo de ${groupName === 'Piruá Esporte Clube Atletas' ? 'Atletas' : 'Responsáveis'}.`;
       
-      return await this.addParticipant(finalGroupId, phoneNumber, welcomeMessage);
+      return await this.addParticipant(finalGroupId, phoneNumber, welcomeMessage, 0, groupName);
     } catch (err: any) {
       console.error(`[WhatsApp] Erro em addToGroup para ${phoneNumber}:`, err.message);
       throw err;
