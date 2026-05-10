@@ -236,10 +236,11 @@ export class WhatsAppService {
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
           
           // Enhanced device removed / conflict detection
-          const errorNode = (error as any)?.fullErrorNode;
-          const isConflict = errorNode?.tag === 'conflict' || (errorNode?.content?.some && errorNode?.content?.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
+          const errorNode = (error as any)?.fullErrorNode || (error as any)?.reasonNode;
+          const content = errorNode?.content || [];
+          const isConflictNode = errorNode?.tag === 'conflict' || (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
           
-          const isDeviceRemoved = isConflict || 
+          const isDeviceRemoved = isConflictNode || 
                                   statusCode === 401 || statusCode === 403 || 
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
@@ -251,10 +252,10 @@ export class WhatsAppService {
             this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 8 times), let's clear the session and start fresh
-            // 5 times might be too low for some unstable connections
-            if (this.restartRequiredCount > 8 && (Date.now() - this.lastRestartTime < 300000)) {
-              console.warn('[WhatsApp] Too many 515 restarts. Performing a full session reset.');
+            // If we hit too many 515s in a row (e.g. 15 times), let's clear the session and start fresh
+            // Increased from 8 to 15 to give more breathing room to unstable connections
+            if (this.restartRequiredCount > 15 && (Date.now() - this.lastRestartTime < 600000)) {
+              console.warn('[WhatsApp] Too many 515 restarts (15+). Performing a full session reset.');
               this.logout(true, true, false);
               return;
             }
@@ -280,16 +281,16 @@ export class WhatsAppService {
                 oldSocket.ev.removeAllListeners('creds.update');
               }
               // Aggressive nuke for these codes
-              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || isConflict) {
+              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || isConflictNode) {
                 if (oldSocket.end) oldSocket.end(undefined);
               }
             } catch (e) {}
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          // Also halt if 515 loop detected (more than 30 times)
-          if (isLoggedOut || isDeviceRemoved || (isConflict && statusCode === 401) || this.restartRequiredCount > 30) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (isConflict ? 'Conflict' : '515 Loop Detected'));
+          // Also halt if 515 loop detected (more than 50 times)
+          if (isLoggedOut || isDeviceRemoved || (isConflictNode && statusCode === 401) || this.restartRequiredCount > 50) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (isConflictNode ? 'Conflict' : '515 Loop Detected'));
             console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
             this.connectionStatus = 'disconnected';
             this.isHalted = true;

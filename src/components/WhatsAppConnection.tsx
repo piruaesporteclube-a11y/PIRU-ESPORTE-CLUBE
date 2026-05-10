@@ -132,46 +132,68 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     let errors = 0;
 
     for (let i = 0; i < activeAthletes.length; i++) {
-      // Check for connection status change mid-sync
-      const currentStatusData = await api.whatsapp.getStatus();
-      if (currentStatusData.status !== 'connected') {
-        setIsSyncing(false);
-        toast.error("Conexão com WhatsApp interrompida durante a sincronização.");
-        return;
-      }
-
-      if (errors > 5) {
-        setIsSyncing(false);
-        toast.error("Muitos erros detectados. Sincronização interrompida para evitar bloqueios.");
-        return;
-      }
-
       const athlete = activeAthletes[i];
       const name = athlete.name || "Atleta";
       let lastMessage = 'Sucesso';
-      
-      try {
-        const res = await api.whatsapp.syncAthlete(athlete);
-        
-        if (res.athlete && !res.athlete.success) throw new Error(res.athlete.error || "Erro no atleta");
-        if (res.guardian && !res.guardian.success) throw new Error(res.guardian.error || "Erro no responsável");
-        
-        lastMessage = res.guardian?.message || res.athlete?.message || 'Sucesso';
-        
-        successes++;
-        setSyncLogs(prev => {
-          const newLogs = [...prev];
-          newLogs[i] = { name, status: 'success', message: lastMessage };
-          return newLogs;
-        });
-      } catch (err: any) {
-        console.error(`Erro ao sincronizar ${name}:`, err);
-        errors++;
-        setSyncLogs(prev => {
-          const newLogs = [...prev];
-          newLogs[i] = { name, status: 'error', message: err.message };
-          return newLogs;
-        });
+      let success = false;
+      let retryCount = 0;
+
+      while (retryCount < 3 && !success) {
+        // Check for connection status change mid-sync
+        const currentStatusData = await api.whatsapp.getStatus();
+        if (currentStatusData.status !== 'connected') {
+          // If it's connecting, wait a bit
+          if (currentStatusData.status === 'connecting' && retryCount < 2) {
+            toast.info(`Aguardando reconexão para ${name}...`);
+            await new Promise(r => setTimeout(r, 10000));
+            retryCount++;
+            continue;
+          }
+          setIsSyncing(false);
+          toast.error("Conexão com WhatsApp interrompida durante a sincronização.");
+          return;
+        }
+
+        try {
+          const res = await api.whatsapp.syncAthlete(athlete);
+          
+          if (res.athlete && !res.athlete.success) throw new Error(res.athlete.error || "Erro no atleta");
+          if (res.guardian && !res.guardian.success) throw new Error(res.guardian.error || "Erro no responsável");
+          
+          lastMessage = res.guardian?.message || res.athlete?.message || 'Sucesso';
+          
+          successes++;
+          success = true;
+          setSyncLogs(prev => {
+            const newLogs = [...prev];
+            newLogs[i] = { name, status: 'success', message: lastMessage };
+            return newLogs;
+          });
+        } catch (err: any) {
+          const isTemporary = err.message.includes('500') || err.message.includes('não conectado') || err.message.includes('Restart Required');
+          
+          if (isTemporary && retryCount < 2) {
+            retryCount++;
+            toast.info(`Ajustando conexão para ${name}, tentando novamente em 15s...`);
+            await new Promise(r => setTimeout(r, 15000));
+            continue;
+          }
+
+          console.error(`Erro ao sincronizar ${name}:`, err);
+          errors++;
+          success = true; // Stop retrying this one
+          setSyncLogs(prev => {
+            const newLogs = [...prev];
+            newLogs[i] = { name, status: 'error', message: err.message };
+            return newLogs;
+          });
+          
+          if (errors > 5) {
+            setIsSyncing(false);
+            toast.error("Muitos erros detectados. Sincronização interrompida para evitar bloqueios.");
+            return;
+          }
+        }
       }
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
