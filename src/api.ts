@@ -926,8 +926,13 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          console.error("[WhatsApp] Status response is not valid JSON:", bodyText.substring(0, 100));
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          console.error(`[WhatsApp] Status API Error: Response is not valid JSON. Content-Type: ${response.headers.get("Content-Type")}. Preview: ${bodyText.substring(0, 100)}`);
+          
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde alguns segundos e tente novamente.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp status error:", err);
@@ -959,7 +964,12 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          console.error(`[WhatsApp] Connect API Error: Response is not valid JSON. Preview: ${bodyText.substring(0, 100)}`);
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde e tente novamente.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp connect error:", err);
@@ -987,7 +997,12 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          console.error(`[WhatsApp] Reset API Error: Response is not valid JSON. Preview: ${bodyText.substring(0, 100)}`);
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde e tente novamente.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp reset error:", err);
@@ -1015,7 +1030,12 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          console.error(`[WhatsApp] Logout API Error: Response is not valid JSON. Preview: ${bodyText.substring(0, 100)}`);
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde e tente novamente.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp logout error:", err);
@@ -1047,7 +1067,12 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          console.error(`[WhatsApp] Add API Error: Response is not valid JSON. Preview: ${bodyText.substring(0, 100)}`);
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde e tente novamente.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp add error:", err);
@@ -1084,7 +1109,11 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp group create error:", err);
@@ -1103,7 +1132,11 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp participant add error:", err);
@@ -1122,7 +1155,11 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp participant remove error:", err);
@@ -1140,7 +1177,11 @@ export const api = {
         try {
           return JSON.parse(bodyText);
         } catch (e) {
-          throw new Error("Resposta do servidor inválida (não JSON)");
+          const isHTML = bodyText.trim().toLowerCase().startsWith("<!doctype") || bodyText.trim().toLowerCase().startsWith("<html");
+          if (isHTML) {
+            throw new Error("O servidor está indisponível ou reiniciando. Por favor, aguarde.");
+          }
+          throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
         console.error("WhatsApp group sync error:", err);

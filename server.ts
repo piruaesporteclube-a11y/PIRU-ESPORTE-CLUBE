@@ -13,6 +13,13 @@ async function startServer() {
 
   const PORT = 3000;
 
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+       console.log(`[Server] ${req.method} ${req.path}`);
+    }
+    next();
+  });
+
   // WhatsApp API Routes
   app.get("/api/whatsapp/status", (req, res) => {
     res.json(whatsappService.getStatus());
@@ -118,6 +125,11 @@ async function startServer() {
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // API 404 handler
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ success: false, error: `Rota da API não encontrada: ${req.path}` });
   });
 
   // Vite middleware
