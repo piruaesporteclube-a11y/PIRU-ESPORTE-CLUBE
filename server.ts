@@ -27,6 +27,7 @@ async function startServer() {
   
   app.post("/api/whatsapp/connect", async (req, res) => {
     try {
+      console.log(`[Server] POST /api/whatsapp/connect requested`);
       await whatsappService.connect();
       res.json({ success: true });
     } catch (error: any) {
@@ -38,6 +39,7 @@ async function startServer() {
 
   app.post("/api/whatsapp/reset", async (req, res) => {
     try {
+      console.log(`[Server] POST /api/whatsapp/reset requested`);
       await whatsappService.logout(true, true, false);
       res.json({ success: true });
     } catch (error: any) {

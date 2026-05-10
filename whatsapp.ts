@@ -38,19 +38,25 @@ export class WhatsAppService {
   }
 
   public async connect() {
+    console.log('[WhatsApp] Manual connect requested.');
     this.isHalted = false;
+    this.isInitializing = false; // Force clear any stuck state
     await this.init();
   }
 
   public async logout(autoReinit = true, resetQrTimeout = true, stayHalted = false) {
     // Prevent overlapping logouts - but allow if specifically requested via autoReinit=true after some delay
-    if (!stayHalted && this.lastResetTime && Date.now() - this.lastResetTime < 5000) {
+    if (!stayHalted && this.lastResetTime && Date.now() - this.lastResetTime < 2000) {
       console.log('WhatsApp: Ignoring redundant logout/reset request');
       return;
     }
     
     this.lastResetTime = Date.now();
     this.isInitializing = true; 
+    
+    const wasConnected = this.connectionStatus === 'connected';
+    this.connectionStatus = 'disconnected'; // Immediately show disconnected in UI
+    this.qrCode = null; // Clear QR code
     
     // Clear any pending reconnect or watchdog
     if (this.reconnectTimeout) {
@@ -59,54 +65,62 @@ export class WhatsAppService {
     }
     this.stopWatchdog();
 
+    console.log(`[WhatsApp] Starting logout/reset. stayHalted: ${stayHalted}, autoReinit: ${autoReinit}`);
+
     try {
       if (this.socket) {
         // Attempt clean logout but don't hang
         try {
-          if (this.connectionStatus === 'connected') {
+          if (wasConnected) {
             await Promise.race([
               this.socket.logout(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 5000))
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 3000))
             ]).catch(() => {});
           }
         } catch (e) {}
         
-        if (this.socket?.ev) {
-          this.socket.ev.removeAllListeners('connection.update');
-          this.socket.ev.removeAllListeners('creds.update');
-        }
-        
-        if (this.socket?.end) {
-          this.socket.end(undefined);
-        }
+        try {
+          if (this.socket?.ev) {
+            this.socket.ev.removeAllListeners('connection.update');
+            this.socket.ev.removeAllListeners('creds.update');
+          }
+          
+          if (this.socket?.end) {
+            this.socket.end(undefined);
+          }
+        } catch (e) {}
       }
     } catch (e) {
       console.error('Error during socket cleanup:', e);
     }
     
     this.socket = null;
-    this.qrCode = null;
-    this.connectionStatus = 'disconnected';
     this.jidCache = {};
     
+    // Explicitly set halt state
+    this.isHalted = stayHalted; 
+
     // Safety delay to ensure file handles are closed
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1500));
 
     if (fs.existsSync(this.authStatePath)) {
       try {
         fs.rmSync(this.authStatePath, { recursive: true, force: true });
         console.log('WhatsApp auth session cleared successfully');
-      } catch (err) {
-        console.error('Failed to delete auth session files:', err);
+      } catch (err: any) {
+        console.error('Failed to delete auth session files:', err.message || err);
+        // If it fails, maybe try to rename it as a fallback?
+        try {
+          const oldPath = `${this.authStatePath}_old_${Date.now()}`;
+          fs.renameSync(this.authStatePath, oldPath);
+          console.log(`Renamed locked auth folder to ${oldPath}`);
+        } catch (e) {}
       }
     }
     
     if (resetQrTimeout) {
       this.qrTimeoutCount = 0;
     }
-    
-    // Explicitly set halt state
-    this.isHalted = stayHalted; 
     
     // Calculate reinit status AFTER flipping isHalted
     const actualAutoReinit = autoReinit && !this.isHalted;
@@ -116,8 +130,10 @@ export class WhatsAppService {
     this.restartRequiredCount = 0;
     
     if (actualAutoReinit) {
-      console.log('WhatsApp reset complete. Re-initializing in 10s...');
-      setTimeout(() => this.init(), 10000);
+      console.log('WhatsApp reset complete. Re-initializing in 8s...');
+      setTimeout(() => {
+        if (!this.isHalted) this.init();
+      }, 8000);
     } else {
       console.log(`WhatsApp reset complete. Auto-reinitialization disabled. (Halted: ${this.isHalted})`);
     }
