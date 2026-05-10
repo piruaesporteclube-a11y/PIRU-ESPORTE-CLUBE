@@ -190,7 +190,10 @@ export class WhatsAppService {
 
     this.isInitializing = true;
     this.connectionStatus = 'connecting';
+    this.qrCode = null; // Clear old QR code when starting new init
     this.startWatchdog();
+    
+    console.log(`[WhatsApp] Starting initialization... (Halted: ${this.isHalted})`);
     
     // Ensure cleanup of any previous session artifacts
     await new Promise(r => setTimeout(r, 1000));
@@ -199,12 +202,26 @@ export class WhatsAppService {
       // Ensure path exists
       if (!fs.existsSync(this.authStatePath)) {
         fs.mkdirSync(this.authStatePath, { recursive: true });
+        console.log(`[WhatsApp] Created auth state directory: ${this.authStatePath}`);
       }
 
-      const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
-      const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 2413, 51] as [number, number, number], isLatest: false }));
+      console.log(`[WhatsApp] Loading auth state...`);
+      const authState = await useMultiFileAuthState(this.authStatePath).catch(err => {
+        console.error('[WhatsApp] Failed to load auth state:', err);
+        throw err;
+      });
+      const { state, saveCreds } = authState;
+      
+      console.log(`[WhatsApp] Fetching latest Baileys version...`);
+      const { version } = await fetchLatestBaileysVersion().catch((err) => {
+        console.warn('[WhatsApp] fetchLatestBaileysVersion failed, using fallback:', err.message || err);
+        return { 
+          version: [2, 3000, 1015901307] as [number, number, number], 
+          isLatest: false 
+        };
+      });
 
-      console.log(`Initializing WhatsApp with Baileys v${version.join('.')}`);
+      console.log(`[WhatsApp] Using Baileys v${version.join('.')}`);
 
       this.socket = makeWASocket({
         version,
@@ -214,11 +231,11 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá Esporte Clube', 'Chrome', '121.0.6167.184'],
+        browser: ['Ubuntu', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
-        qrTimeout: 90000,
-        connectTimeoutMs: 120000, 
-        defaultQueryTimeoutMs: 90000,
+        qrTimeout: 60000, // Shorter timeout for faster cycling if stuck
+        connectTimeoutMs: 60000, 
+        defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 30000, 
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
@@ -229,15 +246,21 @@ export class WhatsAppService {
           return { conversation: 'Piruá Esporte Clube' };
         }
       });
+      
+      console.log(`[WhatsApp] Socket instance created. Attaching listeners...`);
 
       this.socket.ev.on('connection.update', async (update: any) => {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-          this.qrCode = await QRCode.toDataURL(qr);
-          this.connectionStatus = 'connecting';
-          console.log(`[WhatsApp] QR Code Ready (Attempt ${this.qrTimeoutCount + 1})`);
-          this.startWatchdog();
+          try {
+            this.qrCode = await QRCode.toDataURL(qr);
+            this.connectionStatus = 'connecting';
+            console.log(`[WhatsApp] QR Code Ready (Attempt ${this.qrTimeoutCount + 1})`);
+            this.startWatchdog();
+          } catch (qrErr) {
+            console.error('[WhatsApp] Error generating QR Data URL:', qrErr);
+          }
         }
 
         if (connection === 'close') {
@@ -409,6 +432,9 @@ export class WhatsAppService {
     } catch (err: any) {
       const errorMessage = err?.message || err?.toString() || '';
       console.error('[WhatsApp] Initialization error:', errorMessage);
+      this.isInitializing = false;
+      this.connectionStatus = 'disconnected';
+      this.qrCode = null;
       
       const isQRExpired = errorMessage.toLowerCase().includes('qr refs attempts ended') || errorMessage.toLowerCase().includes('timed out');
       

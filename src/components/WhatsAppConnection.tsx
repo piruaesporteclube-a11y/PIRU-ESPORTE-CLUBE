@@ -467,17 +467,14 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               <AlertCircle size={20} className="shrink-0" />
               <div className="space-y-1">
                 <div className="text-[10px] font-black uppercase leading-relaxed">
-                  Dicas de Estabilidade:
+                  Importante para o QR Code:
                 </div>
                 <ul className="text-[9px] font-bold uppercase opacity-70 leading-tight list-disc pl-4 space-y-1">
-                  <li>Evite usar o mesmo WhatsApp Web em outras abas ou computadores simultaneamente.</li>
-                  <li>O erro "515" é comum. O sistema tenta 5 reconexões rápidas e, se falhar, limpa a sessão para garantir segurança.</li>
-                  <li>Se a conexão cair repetidamente, tente "Reiniciar" ou "Desconectar" e escanear novamente.</li>
-                  <li>Esta integração é 100% gratuita e não requer pagamento de APIs externas.</li>
+                  <li>O QR Code expira rápido. Tente escanear assim que ele aparecer.</li>
+                  <li>Se o QR Code demorar para carregar, aguarde alguns segundos ou clique em "Reiniciar".</li>
+                  <li>Certifique-se que seu celular tem conexão estável com a internet.</li>
+                  <li>Abra o WhatsApp {'>'} Configurações {'>'} Aparelhos Conetados {'>'} Conectar um Aparelho.</li>
                 </ul>
-                <p className="text-[9px] font-bold uppercase opacity-70 leading-tight mt-2 italic">
-                  A sincronização em massa possui intervalos de segurança para evitar bloqueios da sua conta pela Meta.
-                </p>
               </div>
             </div>
           </div>
