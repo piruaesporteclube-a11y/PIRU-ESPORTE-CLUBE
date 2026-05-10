@@ -49,26 +49,6 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     const toastId = toast.loading("Aprovando atleta...");
     try {
       await api.approveAthlete(id);
-      
-      // WhatsApp Integration - Independent processing
-      const athlete = athletes.find(a => a.id === id);
-      if (athlete) {
-        // Run WhatsApp additions in background but handle errors specifically
-        const processWhatsApp = async () => {
-          const res = await api.whatsapp.syncAthlete(athlete);
-          
-          if (res.athlete && !res.athlete.success) {
-            toast.error(`Atleta: ${res.athlete.error || "Erro no WhatsApp"}`, { duration: 5000 });
-          }
-          if (res.guardian && !res.guardian.success) {
-            toast.error(`Responsável: ${res.guardian.error || "Erro no WhatsApp"}`, { duration: 5000 });
-          }
-        };
-
-        // Don't await here to not block the main success toast
-        processWhatsApp();
-      }
-
       toast.success("Atleta aprovado com sucesso!", { id: toastId });
       if (onRefresh) onRefresh();
     } catch (err: any) {
@@ -460,26 +440,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right no-print">
-                    <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      {viewMode === 'pending' ? (
-                        <>
-                          <button 
-                            onClick={() => handleApprove(athlete.id)}
-                            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
-                            title="Aprovar Cadastro"
-                          >
-                            <Check size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleReject(athlete.id)}
-                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                            title="Recusar"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      ) : (
-                        <>
+                    <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={async () => {
                               const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
@@ -499,27 +460,48 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                                 toast.error(`Erro ao sincronizar: ${err.message}`, { id: toastId });
                               }
                             }}
-                            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
-                            title="Sincronizar com WhatsApp"
+                            className="p-2 bg-green-500/5 hover:bg-green-500/20 text-green-500 rounded-lg transition-colors border border-green-500/20"
+                            title="Adicionar aos Grupos WhatsApp"
                           >
                             <MessageCircle size={18} />
                           </button>
-                          <button 
-                            onClick={() => onEdit(athlete)}
-                            className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(athlete.id)}
-                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </>
-                      )}
+                      <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        {viewMode === 'pending' ? (
+                          <>
+                            <button 
+                              onClick={() => handleApprove(athlete.id)}
+                              className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
+                              title="Aprovar Cadastro"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleReject(athlete.id)}
+                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                              title="Recusar"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => onEdit(athlete)}
+                              className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(athlete.id)}
+                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

@@ -120,118 +120,6 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
     }
   };
 
-  const handleSyncAll = async () => {
-    if (status !== 'connected') {
-      toast.error("WhatsApp não está conectado");
-      return;
-    }
-
-    // Incluir todos os atletas que estão no sistema e não estão pendentes (mesma lógica da aba 'Ativos')
-    const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
-    if (activeAthletes.length === 0) {
-      toast.info("Nenhum atleta ativo para sincronizar");
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncProgress({ current: 0, total: activeAthletes.length });
-    setSyncLogs(activeAthletes.map(a => ({ name: a.name || 'Sem nome', status: 'pending' })));
-    
-    let successes = 0;
-    let errors = 0;
-
-    for (let i = 0; i < activeAthletes.length; i++) {
-      const athlete = activeAthletes[i];
-      const name = athlete.name || "Atleta";
-      let lastMessage = 'Sucesso';
-      let success = false;
-      let retryCount = 0;
-
-      while (retryCount < 3 && !success) {
-        // Check for connection status change mid-sync
-        const currentStatusData = await api.whatsapp.getStatus();
-        if (currentStatusData.status !== 'connected') {
-          // If it's connecting, wait a bit
-          if (currentStatusData.status === 'connecting' && retryCount < 2) {
-            toast.info(`Aguardando reconexão para ${name}...`);
-            await new Promise(r => setTimeout(r, 10000));
-            retryCount++;
-            continue;
-          }
-          setIsSyncing(false);
-          toast.error("Conexão com WhatsApp interrompida durante a sincronização.");
-          return;
-        }
-
-        try {
-          const res = await api.whatsapp.syncAthlete(athlete);
-          
-          if (res.athlete && !res.athlete.success) throw new Error(res.athlete.error || "Erro no atleta");
-          if (res.guardian && !res.guardian.success) throw new Error(res.guardian.error || "Erro no responsável");
-          
-          lastMessage = res.guardian?.message || res.athlete?.message || 'Sucesso';
-          
-          successes++;
-          success = true;
-          setSyncLogs(prev => {
-            const newLogs = [...prev];
-            newLogs[i] = { name, status: 'success', message: lastMessage };
-            return newLogs;
-          });
-        } catch (err: any) {
-          const isTemporary = err.message.includes('500') || err.message.includes('não conectado') || err.message.includes('Restart Required');
-          
-          if (isTemporary && retryCount < 2) {
-            retryCount++;
-            toast.info(`Ajustando conexão para ${name}, tentando novamente em 15s...`);
-            await new Promise(r => setTimeout(r, 15000));
-            continue;
-          }
-
-          console.error(`Erro ao sincronizar ${name}:`, err);
-          errors++;
-          success = true; // Stop retrying this one
-          setSyncLogs(prev => {
-            const newLogs = [...prev];
-            newLogs[i] = { name, status: 'error', message: err.message };
-            return newLogs;
-          });
-          
-          if (errors > 5) {
-            setIsSyncing(false);
-            toast.error("Muitos erros detectados. Sincronização interrompida para evitar bloqueios.");
-            return;
-          }
-        }
-      }
-      
-      setSyncProgress(prev => ({ ...prev, current: i + 1 }));
-      
-      // INTERVALO DE 10 SEGUNDOS ENTRE CONTATOS (Reduzido de 60s para melhor UX, ainda seguro)
-      const delay = 10000;
-      
-      // PAUSA DE 2 MINUTOS A CADA 10 CONTATOS PARA SEGURANÇA (Otimizado)
-      if ((i + 1) % 10 === 0 && i < activeAthletes.length - 1) {
-        toast.info("Pausa de segurança de 2 minutos (após 10 contatos)...");
-        await new Promise(r => setTimeout(r, 120000));
-      } else if (i < activeAthletes.length - 1) {
-        await new Promise(r => setTimeout(r, delay));
-      }
-    }
-
-    setIsSyncing(false);
-    toast.success(`Sincronização concluída! ${successes} processados.`);
-    if (errors > 0) {
-      toast.warning(`${errors} contatos tiveram erros. Verifique a lista.`);
-    }
-  };
-
-  // ... inside return ...
-  
-  // Replace the progress bar area with something that can show logs
-  // (later in the JSX)
-
-
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
@@ -315,98 +203,91 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               <div className="flex items-start gap-4 mb-4">
                 <Users className="text-theme-primary shrink-0" size={24} />
                 <div>
-                  <h4 className="text-white font-black uppercase text-sm">Sincronização em Massa</h4>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold">Adicione todos os {activeCount} atletas já ativos aos grupos</p>
+                  <h4 className="text-white font-black uppercase text-sm">Controle de Sincronização</h4>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold">Adição individual para segurança máxima</p>
                 </div>
               </div>
 
-              {isSyncing || syncLogs.length > 0 ? (
-                <div className="space-y-4">
-                  {isSyncing && (
-                    <div className="space-y-3">
-                      <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-theme-primary transition-all duration-300"
-                          style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500">
-                        <span>Sincronizando contatos...</span>
-                        <span>{syncProgress.current} / {syncProgress.total}</span>
-                      </div>
-                    </div>
-                  )}
+              <div className="space-y-4">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex gap-3 text-blue-400">
+                  <AlertCircle size={18} className="shrink-0" />
+                  <p className="text-[10px] font-bold uppercase leading-relaxed">
+                    Sincronização manual ativada. Vá para a aba <span className="text-white underline tracking-widest">ALUNOS</span> e clique no ícone do <span className="text-green-500">WhatsApp</span> ao lado de cada atleta para adicioná-lo aos grupos. Isso evita que o WhatsApp bloqueie sua conta por atividade automatizada em massa.
+                  </p>
+                </div>
 
-                  <div className="bg-black/20 rounded-xl p-3 border border-zinc-700/30">
-                    <div className="flex justify-between items-center mb-2 px-1">
-                      <h5 className="text-[10px] font-black uppercase text-zinc-400">Log de Sincronização</h5>
-                      {!isSyncing && (
-                        <button 
-                          onClick={() => setSyncLogs([])}
-                          className="text-[9px] font-black uppercase text-theme-primary hover:underline"
-                        >
-                          Limpar
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-40 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
-                      {syncLogs.length === 0 && (
-                        <p className="text-[9px] text-zinc-600 uppercase font-bold text-center py-4">Nenhum log disponível</p>
-                      )}
-                      {[...syncLogs].reverse().map((log, i) => (
-                        <div key={i} className="flex justify-between items-center text-[9px] font-bold uppercase py-1.5 border-b border-zinc-800/50 last:border-0">
-                          <span className="text-zinc-300 truncate max-w-[180px]">{log.name}</span>
-                          <span className={cn(
-                            "px-1.5 py-0.5 rounded",
-                            log.status === 'success' ? "bg-green-500/10 text-green-500" : 
-                            log.status === 'error' ? "bg-red-500/10 text-red-500" : 
-                            "bg-zinc-800 text-zinc-500"
-                          )}>
-                            {log.status === 'success' ? 'Sucesso' : log.status === 'error' ? (log.message || 'Erro') : 'Pendente'}
-                          </span>
+                {isSyncing || syncLogs.length > 0 ? (
+                  <div className="space-y-4">
+                    {isSyncing && (
+                      <div className="space-y-3">
+                        <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-theme-primary transition-all duration-300"
+                            style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+                          />
                         </div>
-                      ))}
+                        <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500">
+                          <span>Sincronizando contatos...</span>
+                          <span>{syncProgress.current} / {syncProgress.total}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-black/20 rounded-xl p-3 border border-zinc-700/30">
+                      <div className="flex justify-between items-center mb-2 px-1">
+                        <h5 className="text-[10px] font-black uppercase text-zinc-400">Log de Sincronização</h5>
+                        {!isSyncing && (
+                          <button 
+                            onClick={() => setSyncLogs([])}
+                            className="text-[9px] font-black uppercase text-theme-primary hover:underline"
+                          >
+                            Limpar
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-40 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                        {syncLogs.length === 0 && (
+                          <p className="text-[9px] text-zinc-600 uppercase font-bold text-center py-4">Nenhum log disponível</p>
+                        )}
+                        {[...syncLogs].reverse().map((log, i) => (
+                          <div key={i} className="flex justify-between items-center text-[9px] font-bold uppercase py-1.5 border-b border-zinc-800/50 last:border-0">
+                            <span className="text-zinc-300 truncate max-w-[180px]">{log.name}</span>
+                            <span className={cn(
+                              "px-1.5 py-0.5 rounded",
+                              log.status === 'success' ? "bg-green-500/10 text-green-500" : 
+                              log.status === 'error' ? "bg-red-500/10 text-red-500" : 
+                              "bg-zinc-800 text-zinc-500"
+                            )}>
+                              {log.status === 'success' ? 'Sucesso' : log.status === 'error' ? (log.message || 'Erro') : 'Pendente'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
-                  {!isSyncing && (
-                    <button
-                      onClick={handleSyncAll}
-                      className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase text-[10px] rounded-lg transition-all border border-zinc-700"
-                    >
-                      Reiniciar Sincronização
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={handleSyncAll}
-                  className="w-full py-3 bg-theme-primary hover:bg-theme-primary/90 text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98]"
-                >
-                  Sincronizar {activeCount} Contatos Existentes
-                </button>
-              )}
+                ) : null}
+              </div>
             </div>
           </div>
         ) : isHalted && !qrCode ? (
           <div className="space-y-4">
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center">
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center shadow-2xl">
               <div className="p-4 bg-zinc-900 rounded-full w-fit mx-auto mb-4 border border-zinc-700/50">
-                <MessageCircle className="text-zinc-500" size={32} />
+                <AlertCircle className="text-red-500" size={32} />
               </div>
-              <h4 className="text-white font-black uppercase mb-1">Conexão Interrompida</h4>
+              <h4 className="text-white font-black uppercase mb-1 underline decoration-red-500 decoration-2 underline-offset-4">Conexão Interrompida</h4>
               <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
-                <span className="text-red-500 block mb-2">{haltReason || 'Ação necessária'}</span>
-                A conexão automática foi pausada. <br />
-                Pode ser necessário limpar os arquivos da sessão ou escanear novamente.
+                <span className="text-red-400 block mb-2 px-4 py-2 bg-red-500/10 rounded-lg border border-red-500/20">{haltReason || 'Ação necessária'}</span>
+                O WhatsApp encerrou a sessão ou houve um conflito. <br />
+                Para resolver, clique abaixo para limpar a sessão atual e gerar um novo QR Code.
               </p>
               <button
-                onClick={handleConnect}
+                onClick={handleReconnect}
                 disabled={isRetrying}
                 className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
               >
-                {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
-                Tentar Reconectar
+                {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Resetar e Gerar Novo QR Code
               </button>
             </div>
           </div>

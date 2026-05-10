@@ -166,22 +166,6 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       if (isRegistration) {
         const { athlete } = await api.register(dataToSave);
         toast.success("Cadastro realizado com sucesso!");
-            // Automatic WhatsApp Sync for New Registration
-        if (athlete.contact || athlete.guardian_phone) {
-          const syncToast = toast.loading("Sincronizando com WhatsApp...");
-          try {
-            const res = await api.whatsapp.syncAthlete(athlete);
-            const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
-            if (allSuccess) {
-              toast.success("Sincronizado com WhatsApp!", { id: syncToast });
-            } else {
-              toast.warning("Sincronização parcial com WhatsApp.", { id: syncToast });
-            }
-          } catch (wsErr) {
-            toast.error("Atleta salvo, mas erro ao sincronizar WhatsApp. Tente manualmente depois.", { id: syncToast });
-          }
-        }
-        
         onRegisterSuccess?.(athlete);
       } else {
         if (userRole === 'professor') {
@@ -190,23 +174,6 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         } else {
           await api.saveAthlete(dataToSave as Athlete);
           toast.success("Atleta salvo com sucesso!");
-
-          // Automatic WhatsApp Sync for New Athletes (or updates)
-          if (!athlete && (dataToSave.contact || dataToSave.guardian_phone)) {
-            const syncToast = toast.loading("Adicionando aos grupos do WhatsApp...");
-            try {
-              const res = await api.whatsapp.syncAthlete(dataToSave);
-              const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
-              if (allSuccess) {
-                toast.success("WhatsApp sincronizado!", { id: syncToast });
-              } else {
-                toast.warning("Sincronização parcial com WhatsApp.", { id: syncToast });
-              }
-            } catch (wsErr) {
-              console.error("WhatsApp auto-sync error:", wsErr);
-              toast.info("Atleta salvo. Use o botão WhatsApp na lista para sincronizar manualmente se necessário.");
-            }
-          }
         }
         onSave(formData as Athlete);
       }

@@ -32,6 +32,21 @@ export class WhatsAppService {
   private lastResetTime = 0;
   private connectionWatchdog: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private operationLock = false;
+
+  private async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    let waitCount = 0;
+    while (this.operationLock && waitCount < 30) { 
+      await new Promise(r => setTimeout(r, 500));
+      waitCount++;
+    }
+    this.operationLock = true;
+    try {
+      return await fn();
+    } finally {
+      this.operationLock = false;
+    }
+  }
 
   constructor() {
     // We removed this.init() from here to prevent automatic connection on startup
@@ -108,16 +123,25 @@ export class WhatsAppService {
 
     if (fs.existsSync(this.authStatePath)) {
       try {
+        // Try deleting files individually if rmSync fails or as a way to be more thorough
+        const files = fs.readdirSync(this.authStatePath);
+        for (const file of files) {
+          try {
+            fs.rmSync(path.join(this.authStatePath, file), { recursive: true, force: true });
+          } catch (e) {}
+        }
         fs.rmSync(this.authStatePath, { recursive: true, force: true });
         console.log('WhatsApp auth session cleared successfully');
       } catch (err: any) {
-        console.error('Failed to delete auth session files:', err.message || err);
-        // If it fails, maybe try to rename it as a fallback?
+        console.error('Failed to delete auth session files folder:', err.message || err);
+        // If it fails, try to rename it with multiple attempts
         try {
-          const oldPath = `${this.authStatePath}_old_${Date.now()}`;
+          const oldPath = `${this.authStatePath}_old_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
           fs.renameSync(this.authStatePath, oldPath);
           console.log(`Renamed locked auth folder to ${oldPath}`);
-        } catch (e) {}
+        } catch (e) {
+          console.error('Final fallback rename failed likewise');
+        }
       }
     }
     
@@ -162,6 +186,11 @@ export class WhatsAppService {
   private async init() {
     if (this.isInitializing) {
       console.log('WhatsApp: Initialization already in progress...');
+      return;
+    }
+
+    if (this.connectionStatus === 'connected' && this.socket) {
+      console.log('WhatsApp: Already connected, skipping init.');
       return;
     }
     
@@ -219,7 +248,7 @@ export class WhatsAppService {
       const { version } = await fetchLatestBaileysVersion().catch((err) => {
         console.warn('[WhatsApp] fetchLatestBaileysVersion failed, using fallback:', err.message || err);
         return { 
-          version: [2, 2413, 51] as [number, number, number], 
+          version: [2, 3000, 1015901307] as [number, number, number], 
           isLatest: false 
         };
       });
@@ -234,16 +263,16 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Mac OS', 'Chrome', '121.0.6167.184'],
+        browser: ['Ubuntu', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
-        qrTimeout: 45000, 
-        connectTimeoutMs: 30000, 
-        defaultQueryTimeoutMs: 30000,
-        keepAliveIntervalMs: 15000, 
-        retryRequestDelayMs: 2000,
+        qrTimeout: 60000, 
+        connectTimeoutMs: 45000, 
+        defaultQueryTimeoutMs: 45000,
+        keepAliveIntervalMs: 30000, 
+        retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
-        maxMsgRetryCount: 5,
+        maxMsgRetryCount: 10,
         fireInitQueries: false,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
         getMessage: async (key: WAMessageKey) => {
@@ -280,7 +309,7 @@ export class WhatsAppService {
 
           console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Network Error: ${isNetworkError} | Restart Required: ${isRestartRequired}`);
 
-          const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 411;
+          const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 411;
           
           // Enhanced device removed / conflict detection
           const fullErrorNode = (error as any)?.fullErrorNode;
@@ -290,7 +319,7 @@ export class WhatsAppService {
           
           const hasConflictTag = errorNode?.tag === 'conflict' || 
                                  reasonNode?.tag === 'conflict' ||
-                                 (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
+                                 (Array.isArray(content) && content.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed' || c?.attrs?.type === 'conflict'));
           
           const isDeviceRemoved = hasConflictTag || 
                                   statusCode === 401 || statusCode === 403 || 
@@ -304,10 +333,9 @@ export class WhatsAppService {
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
             // If we hit too many 515s within a short window, clear session. 
-            // Otherwise, just let it reconnect normally.
             const now = Date.now();
-            if (this.restartRequiredCount >= 5 && (now - this.lastRestartTime < 60000)) {
-              console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <1min). Resetting session.`);
+            if (this.restartRequiredCount >= 10 && (now - this.lastRestartTime < 120000)) {
+              console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <2min). Resetting session.`);
               this.restartRequiredCount = 0;
               this.logout(true, true, false);
               return;
@@ -342,14 +370,13 @@ export class WhatsAppService {
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          // Also halt if 515 loop detected (more than 50 times)
-          if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401) || this.restartRequiredCount > 50) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed / Session Expired' : (hasConflictTag ? 'Connection Conflict' : '515 Loop Detected'));
-            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
+          if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401)) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed / Session Expired' : (hasConflictTag ? 'Connection Conflict' : 'Session Invalidated'));
+            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Resetting and halting connection.`);
             this.connectionStatus = 'disconnected';
             this.isHalted = true;
-            this.haltReason = reason;
-            this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true
+            this.haltReason = "Sessão encerrada pelo WhatsApp (Conflito ou Logout). É necessário escanear o QR Code novamente.";
+            this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true (manual reset required)
             return;
           }
 
@@ -391,7 +418,7 @@ export class WhatsAppService {
           this.reconnectAttempts++;
           
           // Exponential backoff or progressive delay
-          const baseDelay = isRestartRequired ? 5000 : 5000;
+          const baseDelay = isRestartRequired ? 3000 : 5000;
           
           // If we get 428 repeatedly, we might have a bad session
           if (statusCode === 428 && this.reconnectAttempts > 3) {
@@ -401,7 +428,7 @@ export class WhatsAppService {
           }
 
           const delayTime = isRestartRequired 
-            ? Math.min(2000 + (this.restartRequiredCount * 5000), 30000)
+            ? Math.min(baseDelay + (this.restartRequiredCount * 2000), 15000)
             : Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); 
           
           console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempt ${this.reconnectAttempts} | Restart Count: ${this.restartRequiredCount})`);
@@ -482,8 +509,8 @@ export class WhatsAppService {
 
     try {
       console.log(`[WhatsApp] Sincronizando grupos (Tentativa ${retryCount + 1})...`);
-      // Fetch all groups we are part of
-      const groups = await this.socket.groupFetchAllParticipating();
+      // Fetch all groups we are part of with lock
+      const groups = await this.withLock(() => this.socket.groupFetchAllParticipating());
       this.groupIds = {}; // Reset local cache
 
       const targetGroupNames = [
@@ -629,7 +656,7 @@ export class WhatsAppService {
         return null;
       }
       
-      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber).catch((err: any) => {
+      const onWhatsApp = await this.withLock(() => this.socket.onWhatsApp(cleanNumber)).catch((err: any) => {
         this.onWhatsAppFailCount++;
         console.warn(`[WhatsApp] onWhatsApp failed (${this.onWhatsAppFailCount}):`, err.message);
         if (this.onWhatsAppFailCount > 10) {
@@ -652,7 +679,7 @@ export class WhatsAppService {
         const withoutNine = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
         if (this.jidCache[withoutNine]) return this.jidCache[withoutNine];
         
-        const altOnWA = await this.socket.onWhatsApp(withoutNine);
+        const altOnWA = await this.withLock(() => this.socket.onWhatsApp(withoutNine));
         if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
           const jid = altOnWA[0].jid;
           this.jidCache[cleanNumber] = jid;
@@ -666,7 +693,7 @@ export class WhatsAppService {
         const withNine = cleanNumber.slice(0, 4) + '9' + cleanNumber.slice(4);
         if (this.jidCache[withNine]) return this.jidCache[withNine];
         
-        const altOnWAData = await this.socket.onWhatsApp(withNine);
+        const altOnWAData = await this.withLock(() => this.socket.onWhatsApp(withNine));
         if (altOnWAData && altOnWAData[0] && altOnWAData[0].exists) {
           const jid = altOnWAData[0].jid;
           this.jidCache[cleanNumber] = jid;
@@ -716,10 +743,10 @@ export class WhatsAppService {
 
       console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
       
-      // Delay to avoid rapid requests - increased for safety
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Increased delay before group action
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
-      const response = await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
+      const response = await this.withLock(() => this.socket.groupParticipantsUpdate(groupId, [jid], 'add'));
       
       // The response is an array of objects: { jid: string, status: string }
       const status = response?.[0]?.status;
