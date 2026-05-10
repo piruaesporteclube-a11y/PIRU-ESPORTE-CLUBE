@@ -176,15 +176,14 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
       
-      // INCREASED RANDOMIZED DELAYS (45s to 75s) TO MIMIC HUMAN BEHAVIOR (~1 minute)
-      // High delays significantly reduce the risk of detection by WhatsApp.
-      const delay = Math.floor(Math.random() * (75000 - 45000) + 45000);
+      // INTERVALO DE 1 MINUTO (60s) ENTRE CONTATOS
+      const delay = 60000;
       
-      // Every 10 contacts, take a "breath" of 10 minutes
-      if ((i + 1) % 10 === 0 && i < activeAthletes.length - 1) {
-        toast.info("Pausa de segurança de 10 minutos para evitar bloqueio...");
+      // PAUSA DE 10 MINUTOS A CADA 4 CONTATOS PARA SEGURANÇA MÁXIMA
+      if ((i + 1) % 4 === 0 && i < activeAthletes.length - 1) {
+        toast.info("Pausa de segurança de 10 minutos (após 4 contatos)...");
         await new Promise(r => setTimeout(r, 600000));
-      } else {
+      } else if (i < activeAthletes.length - 1) {
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -421,7 +420,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
                 </div>
                 <p className="text-[9px] font-bold uppercase opacity-70 leading-tight">
                   Dica de Segurança: Use um número com histórico de uso (não use chips novos). 
-                  A sincronização usa intervalos de ~1min (45s-75s) e pausas longas (10min) para evitar bloqueios.
+                  A sincronização usa intervalos de 1 minuto e pausas de 10 minutos a cada 4 contatos para evitar bloqueios.
                   Para segurança total (100%), prefira enviar o link do grupo individualmente.
                 </p>
               </div>
