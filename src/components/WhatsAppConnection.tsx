@@ -21,6 +21,8 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
   const [apiError, setApiError] = useState<string | null>(null);
 
+  const [reconnectInfo, setReconnectInfo] = useState<{attempts: number, restarts: number, isInitializing: boolean}>({attempts: 0, restarts: 0, isInitializing: false});
+
   const fetchStatus = async () => {
     try {
       const data = await api.whatsapp.getStatus();
@@ -28,6 +30,11 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       setQrCode(data.qrCode);
       setQrTimeoutCount(data.qrTimeoutCount || 0);
       setIsHalted(data.isHalted || false);
+      setReconnectInfo({
+        attempts: data.reconnectAttempts || 0,
+        restarts: data.restartRequiredCount || 0,
+        isInitializing: data.isInitializing || false
+      });
       
       if (data.error) {
         let msg = data.message || 'Erro ao conectar ao servidor de WhatsApp.';
@@ -383,20 +390,42 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
           <div className="space-y-4">
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-8 text-center">
               <div className="p-4 bg-zinc-900 rounded-full w-fit mx-auto mb-4 border border-zinc-700/50">
-                <MessageCircle className="text-zinc-500" size={32} />
+                {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
+                  <RefreshCw className="text-amber-500 animate-spin" size={32} />
+                ) : (
+                  <MessageCircle className="text-zinc-500" size={32} />
+                )}
               </div>
-              <h4 className="text-white font-black uppercase mb-1">WhatsApp Desconectado</h4>
+              <h4 className="text-white font-black uppercase mb-1">
+                {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) 
+                  ? 'Recuperando Conexão...' 
+                  : 'WhatsApp Desconectado'}
+              </h4>
               <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
-                A conexão automática foi desativada. <br />
-                Clique no botão abaixo para gerar um QR Code e conectar seu celular.
+                {isHalted ? (
+                  <>
+                    A conexão automática foi desativada devido a múltiplos erros ou desconexão manual. <br />
+                    Clique abaixo para reconectar.
+                  </>
+                ) : (!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
+                  <>
+                    O sistema detectou uma oscilação e está tentando reconectar automaticamente. <br />
+                    Aguarde alguns segundos... (Tentativa {reconnectInfo.restarts || reconnectInfo.attempts})
+                  </>
+                ) : (
+                  <>
+                    A conexão automática foi desativada. <br />
+                    Clique no botão abaixo para gerar um QR Code e conectar seu celular.
+                  </>
+                )}
               </p>
               <button
                 onClick={handleConnect}
-                disabled={isRetrying}
+                disabled={isRetrying || (!isHalted && !qrCode && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0))}
                 className="px-8 py-3 bg-theme-primary text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
               >
                 {isRetrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
-                Conectar WhatsApp
+                {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? 'Aguardando Automático' : 'Conectar WhatsApp'}
               </button>
             </div>
           </div>

@@ -157,8 +157,13 @@ export class WhatsAppService {
   }
 
   private async init() {
-    if (this.isInitializing || (this.isHalted && this.connectionStatus !== 'connected')) {
-      if (this.isHalted) console.log('WhatsApp: Initialization blocked - Halted state (manual reset required)');
+    if (this.isInitializing) {
+      console.log('WhatsApp: Initialization already in progress...');
+      return;
+    }
+    
+    if (this.isHalted && this.connectionStatus !== 'connected') {
+      console.log('WhatsApp: Initialization blocked - Halted state (manual reset required)');
       return;
     }
     
@@ -267,14 +272,14 @@ export class WhatsAppService {
                                   errorMessage.toLowerCase().includes('conflict') ||
                                   errorMessage.toLowerCase().includes('unauthorized');
           
-          if (isRestartRequired) {
+          if (isRestartRequired && connection === 'close') {
             this.restartRequiredCount++;
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
-            // 5 is a better threshold than 20 for a better user experience
-            if (this.restartRequiredCount >= 5) {
-              console.warn('[WhatsApp] Too many 515 restarts (5+). Performing a full session reset.');
+            // If we hit too many 515s in a row (e.g. 8 times), let's clear the session and start fresh
+            // 8 is a good balance between noisy 515s and actual session corruption
+            if (this.restartRequiredCount >= 8) {
+              console.warn(`[WhatsApp] Too many 515 restarts (${this.restartRequiredCount}). Performing a full session reset.`);
               this.restartRequiredCount = 0; // Reset count before logout
               this.logout(true, true, false);
               return;
@@ -404,8 +409,6 @@ export class WhatsAppService {
     } catch (err: any) {
       const errorMessage = err?.message || err?.toString() || '';
       console.error('[WhatsApp] Initialization error:', errorMessage);
-      this.isInitializing = false;
-      this.connectionStatus = 'disconnected';
       
       const isQRExpired = errorMessage.toLowerCase().includes('qr refs attempts ended') || errorMessage.toLowerCase().includes('timed out');
       
@@ -429,6 +432,16 @@ export class WhatsAppService {
           if (!this.isHalted) this.init();
         }, delay);
       }
+    } finally {
+      // We only clear isInitializing if we didn't successfully set up connection.update listeners
+      // Actually, it's safer to clear it after a short delay here if the socket creation itself took too long
+      // But we usually clear it in connection.update (open) or local catch.
+      // Let's ensure it's not stuck.
+      setTimeout(() => {
+        if (this.connectionStatus === 'disconnected' && this.isInitializing) {
+          this.isInitializing = false;
+        }
+      }, 5000);
     }
   }
 
@@ -493,6 +506,9 @@ export class WhatsAppService {
       qrCode: this.qrCode,
       qrTimeoutCount: this.qrTimeoutCount,
       isHalted: this.isHalted,
+      reconnectAttempts: this.reconnectAttempts,
+      restartRequiredCount: this.restartRequiredCount,
+      isInitializing: this.isInitializing
     };
   }
 
@@ -701,16 +717,23 @@ export class WhatsAppService {
   public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string, retryAttempt = 0): Promise<any> {
     if (this.connectionStatus !== 'connected' || !this.socket) {
       const currentStatus = this.connectionStatus;
-      // If we are connecting, we can try to wait
-      if (currentStatus === 'connecting' && retryAttempt < 2) {
-        console.log(`[WhatsApp] addToGroup: Waiting for connection (Attempt ${retryAttempt + 1})...`);
-        await new Promise(r => setTimeout(r, 5000));
+      
+      // If we are connecting, or disconnected but NOT halted (meaning reconnection is pending)
+      const isRecovering = currentStatus === 'connecting' || (currentStatus === 'disconnected' && !this.isHalted);
+      
+      if (isRecovering && retryAttempt < 4) {
+        console.log(`[WhatsApp] addToGroup: Waiting for connection recovery (Attempt ${retryAttempt + 1}, Status: ${currentStatus})...`);
+        
+        // Wait longer on each attempt
+        const waitMs = 5000 + (retryAttempt * 2000);
+        await new Promise(r => setTimeout(r, waitMs));
         return this.addToGroup(groupName, phoneNumber, retryAttempt + 1);
       }
       
       if (this.connectionStatus !== 'connected' || !this.socket) {
         const error = new Error(`WhatsApp não está conectado (Estado: ${this.connectionStatus}). Por favor, aguarde a reconexão automática ou escaneie o QR Code novamente.`);
         (error as any).noConnection = true;
+        (error as any).status = this.connectionStatus;
         throw error;
       }
     }
