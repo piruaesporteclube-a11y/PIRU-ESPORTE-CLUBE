@@ -935,6 +935,14 @@ export const api = {
       try {
         const response = await fetch("/api/whatsapp/connect", { method: "POST" });
         if (!response.ok) {
+          if (response.status === 500) {
+            try {
+              const errorData = await response.json();
+              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+            } catch (e) {
+              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+            }
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -947,6 +955,14 @@ export const api = {
       try {
         const response = await fetch("/api/whatsapp/reset", { method: "POST" });
         if (!response.ok) {
+          if (response.status === 500) {
+            try {
+              const errorData = await response.json();
+              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+            } catch (e) {
+              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+            }
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -959,6 +975,14 @@ export const api = {
       try {
         const response = await fetch("/api/whatsapp/logout", { method: "POST" });
         if (!response.ok) {
+          if (response.status === 500) {
+            try {
+              const errorData = await response.json();
+              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+            } catch (e) {
+              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+            }
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();
@@ -975,6 +999,14 @@ export const api = {
           body: JSON.stringify({ groupName, phoneNumber }),
         });
         if (!response.ok) {
+          if (response.status === 500) {
+            try {
+              const errorData = await response.json();
+              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+            } catch (e) {
+              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+            }
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return await response.json();

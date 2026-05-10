@@ -237,7 +237,7 @@ export class WhatsAppService {
           
           // Enhanced device removed / conflict detection
           const errorNode = (error as any)?.fullErrorNode;
-          const isConflict = errorNode?.content?.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed');
+          const isConflict = errorNode?.tag === 'conflict' || (errorNode?.content?.some && errorNode?.content?.some((c: any) => c?.tag === 'conflict' || c?.attrs?.type === 'device_removed'));
           
           const isDeviceRemoved = isConflict || 
                                   statusCode === 401 || statusCode === 403 || 
@@ -251,8 +251,9 @@ export class WhatsAppService {
             this.lastRestartTime = Date.now();
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
-            if (this.restartRequiredCount > 5 && (Date.now() - this.lastRestartTime < 300000)) {
+            // If we hit too many 515s in a row (e.g. 8 times), let's clear the session and start fresh
+            // 5 times might be too low for some unstable connections
+            if (this.restartRequiredCount > 8 && (Date.now() - this.lastRestartTime < 300000)) {
               console.warn('[WhatsApp] Too many 515 restarts. Performing a full session reset.');
               this.logout(true, true, false);
               return;
@@ -286,10 +287,12 @@ export class WhatsAppService {
           }
 
           // Case 1: Session invalidated - must logout and clear files
-          // Also halt if 515 loop detected (more than 25 times)
-          if (isLoggedOut || isDeviceRemoved || (isConflict && statusCode === 401) || this.restartRequiredCount > 25) {
+          // Also halt if 515 loop detected (more than 30 times)
+          if (isLoggedOut || isDeviceRemoved || (isConflict && statusCode === 401) || this.restartRequiredCount > 30) {
             const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed' : (isConflict ? 'Conflict' : '515 Loop Detected'));
             console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Halting connection.`);
+            this.connectionStatus = 'disconnected';
+            this.isHalted = true;
             this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true
             return;
           }
@@ -566,8 +569,20 @@ export class WhatsAppService {
   }
 
   public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0): Promise<any> {
+    // If we're not connected, wait up to 10 seconds if we are "connecting"
+    if (this.connectionStatus === 'connecting' && retryCount === 0) {
+      console.log(`[WhatsApp] Status is connecting... waiting up to 10s for ${phoneNumber}`);
+      let waitTime = 0;
+      while (this.connectionStatus === 'connecting' && waitTime < 10000) {
+        await new Promise(r => setTimeout(r, 1000));
+        waitTime += 1000;
+      }
+    }
+
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      throw new Error('WhatsApp não conectado');
+      const error = new Error('WhatsApp não está conectado. Por favor, verifique o QR Code.');
+      (error as any).noConnection = true;
+      throw error;
     }
 
     let jid = '';
@@ -580,8 +595,8 @@ export class WhatsAppService {
 
       console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
       
-      // Delay to avoid rapid requests
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Delay to avoid rapid requests - increased for safety
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const response = await this.socket.groupParticipantsUpdate(groupId, [jid], 'add');
       
@@ -617,7 +632,9 @@ export class WhatsAppService {
       } else if (status === '409') {
         return { success: true, method: 'already_in', message: 'Já está no grupo' };
       } else if (status === '429') {
-        throw new Error('Muitas tentativas em pouco tempo. Aguarde alguns minutos.');
+        throw new Error('Muitas tentativas em pouco tempo (Rate Limit). Aguarde alguns minutos.');
+      } else if (status === '500') {
+        throw new Error('Erro interno do servidor da Meta/WhatsApp (500). Tente novamente mais tarde.');
       } else {
         throw new Error(`Erro do WhatsApp (Status ${status})`);
       }
@@ -625,19 +642,20 @@ export class WhatsAppService {
       const errorMessage = err.message || '';
       const isRateLimit = errorMessage.includes('rate-overlimit') || err.output?.payload?.error === 'Rate Overlimit' || errorMessage.includes('429');
       const isIntegrityBlocked = errorMessage.includes('integrity-enforcement');
+      const isTimeout = errorMessage.toLowerCase().includes('timed out') || errorMessage.toLowerCase().includes('timeout');
       
       if (isIntegrityBlocked) {
         throw new Error('Sincronização pausada preventivamente pelo WhatsApp por segurança. Tente novamente em 20 minutos.');
       }
       
-      if (isRateLimit && retryCount < 3) {
-        const delayMs = (retryCount + 1) * 10000;
-        console.log(`[WhatsApp] Rate limit for ${jid}, retry ${retryCount + 1} in ${delayMs/1000}s...`);
+      if ((isRateLimit || isTimeout) && retryCount < 3) {
+        const delayMs = isTimeout ? 5000 : (retryCount + 1) * 10000;
+        console.log(`[WhatsApp] ${isTimeout ? 'Timeout' : 'Rate limit'} for ${jid || phoneNumber}, retry ${retryCount + 1} in ${delayMs/1000}s...`);
         await new Promise(r => setTimeout(r, delayMs));
-        return this.addParticipant(groupId, jid, welcomeMessage, retryCount + 1);
+        return this.addParticipant(groupId, phoneNumber, welcomeMessage, retryCount + 1);
       }
 
-      console.error(`[WhatsApp] Erro ao adicionar ${phoneNumber}:`, err);
+      console.error(`[WhatsApp] Erro fatal ao adicionar ${phoneNumber}:`, err);
       throw err;
     }
   }

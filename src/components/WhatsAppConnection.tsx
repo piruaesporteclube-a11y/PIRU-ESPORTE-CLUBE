@@ -203,7 +203,7 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 

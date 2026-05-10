@@ -23,7 +23,8 @@ async function startServer() {
       await whatsappService.connect();
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const message = error.message || error.toString() || "Erro ao conectar";
+      res.status(500).json({ success: false, error: message });
     }
   });
 
@@ -32,7 +33,8 @@ async function startServer() {
       await whatsappService.logout(true, true, false);
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const message = error.message || error.toString() || "Erro ao reiniciar";
+      res.status(500).json({ success: false, error: message });
     }
   });
 
@@ -41,7 +43,8 @@ async function startServer() {
       await whatsappService.logout(false, true, true);
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const message = error.message || error.toString() || "Erro ao desconectar";
+      res.status(500).json({ success: false, error: message });
     }
   });
 
@@ -51,7 +54,8 @@ async function startServer() {
       const result = await whatsappService.addToGroup(groupName, phoneNumber);
       res.json({ success: true, result });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const message = error.message || error.toString() || "Erro desconhecido ao adicionar contato";
+      res.status(500).json({ success: false, error: message });
     }
   });
 
