@@ -919,9 +919,16 @@ export const api = {
       try {
         const response = await fetch("/api/whatsapp/status");
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText || 'Erro ao buscar status'}`);
         }
-        return await response.json();
+        
+        const bodyText = await response.text();
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          console.error("[WhatsApp] Status response is not valid JSON:", bodyText.substring(0, 100));
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
       } catch (err: any) {
         console.error("WhatsApp status error:", err);
         return { 
@@ -934,18 +941,26 @@ export const api = {
     connect: async () => {
       try {
         const response = await fetch("/api/whatsapp/connect", { method: "POST" });
+        const bodyText = await response.text();
+        
         if (!response.ok) {
+          let errorMessage = response.statusText || 'Erro interno no servidor';
           if (response.status === 500) {
             try {
-              const errorData = await response.json();
-              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+              const errorData = JSON.parse(bodyText);
+              errorMessage = errorData.error || errorMessage;
             } catch (e) {
-              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+              console.error(`[WhatsApp] Connect API Error 500:`, bodyText);
             }
           }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${errorMessage}`);
         }
-        return await response.json();
+
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
       } catch (err: any) {
         console.error("WhatsApp connect error:", err);
         return { success: false, error: err.message || "Failed to connect" };
@@ -954,18 +969,26 @@ export const api = {
     reset: async () => {
       try {
         const response = await fetch("/api/whatsapp/reset", { method: "POST" });
+        const bodyText = await response.text();
+
         if (!response.ok) {
+          let errorMessage = response.statusText || 'Erro interno no servidor';
           if (response.status === 500) {
             try {
-              const errorData = await response.json();
-              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+              const errorData = JSON.parse(bodyText);
+              errorMessage = errorData.error || errorMessage;
             } catch (e) {
-              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+              console.error(`[WhatsApp] Reset API Error 500:`, bodyText);
             }
           }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${errorMessage}`);
         }
-        return await response.json();
+
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
       } catch (err: any) {
         console.error("WhatsApp reset error:", err);
         return { success: false, error: err.message || "Failed to reset" };
@@ -974,18 +997,26 @@ export const api = {
     logout: async () => {
       try {
         const response = await fetch("/api/whatsapp/logout", { method: "POST" });
+        const bodyText = await response.text();
+
         if (!response.ok) {
+          let errorMessage = response.statusText || 'Erro interno no servidor';
           if (response.status === 500) {
             try {
-              const errorData = await response.json();
-              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+              const errorData = JSON.parse(bodyText);
+              errorMessage = errorData.error || errorMessage;
             } catch (e) {
-              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+              console.error(`[WhatsApp] Logout API Error 500:`, bodyText);
             }
           }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${errorMessage}`);
         }
-        return await response.json();
+
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
       } catch (err: any) {
         console.error("WhatsApp logout error:", err);
         return { success: false, error: err.message || "Falha ao desconectar" };
@@ -998,18 +1029,26 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ groupName, phoneNumber }),
         });
+        const bodyText = await response.text();
+
         if (!response.ok) {
+          let errorMessage = response.statusText || 'Erro interno no servidor';
           if (response.status === 500) {
             try {
-              const errorData = await response.json();
-              throw new Error(`HTTP 500: ${errorData.error || response.statusText || 'Erro interno no servidor'}`);
+              const errorData = JSON.parse(bodyText);
+              errorMessage = errorData.error || errorMessage;
             } catch (e) {
-              throw new Error(`HTTP 500: ${response.statusText || 'Erro interno no servidor'}`);
+              console.error(`[WhatsApp] API Error 500:`, bodyText);
             }
           }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${errorMessage}`);
         }
-        return await response.json();
+
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
       } catch (err: any) {
         console.error("WhatsApp add error:", err);
         return { success: false, error: err.message || "Conexão falhou" };
@@ -1040,10 +1079,16 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name }),
         });
-        return await response.json();
-      } catch (err) {
+        const bodyText = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
+      } catch (err: any) {
         console.error("WhatsApp group create error:", err);
-        return { success: false, error: "Falha ao criar grupo" };
+        return { success: false, error: err.message || "Falha ao criar grupo" };
       }
     },
     addParticipant: async (groupId: string, phoneNumber: string, welcomeMessage?: string) => {
@@ -1053,10 +1098,16 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ groupId, phoneNumber, welcomeMessage }),
         });
-        return await response.json();
-      } catch (err) {
+        const bodyText = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
+      } catch (err: any) {
         console.error("WhatsApp participant add error:", err);
-        return { success: false, error: "Falha ao adicionar participante" };
+        return { success: false, error: err.message || "Falha ao adicionar participante" };
       }
     },
     removeParticipant: async (groupId: string, phoneNumber: string) => {
@@ -1066,10 +1117,16 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ groupId, phoneNumber }),
         });
-        return await response.json();
-      } catch (err) {
+        const bodyText = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
+      } catch (err: any) {
         console.error("WhatsApp participant remove error:", err);
-        return { success: false, error: "Falha ao remover participante" };
+        return { success: false, error: err.message || "Falha ao remover participante" };
       }
     },
     syncGroups: async () => {
@@ -1078,10 +1135,16 @@ export const api = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
-        return await response.json();
-      } catch (err) {
+        const bodyText = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        try {
+          return JSON.parse(bodyText);
+        } catch (e) {
+          throw new Error("Resposta do servidor inválida (não JSON)");
+        }
+      } catch (err: any) {
         console.error("WhatsApp group sync error:", err);
-        return { success: false, error: "Falha ao sincronizar grupos" };
+        return { success: false, error: err.message || "Falha ao sincronizar grupos" };
       }
     }
   },

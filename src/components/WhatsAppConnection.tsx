@@ -438,12 +438,16 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               <AlertCircle size={20} className="shrink-0" />
               <div className="space-y-1">
                 <div className="text-[10px] font-black uppercase leading-relaxed">
-                  Importante: Mantenha esta conexão ativa para automação.
+                  Dicas de Estabilidade:
                 </div>
-                <p className="text-[9px] font-bold uppercase opacity-70 leading-tight">
-                  Dica de Segurança: Use um número com histórico de uso (não use chips novos). 
-                  A sincronização usa intervalos de 1 minuto e pausas de 10 minutos a cada 4 contatos para evitar bloqueios.
-                  Para segurança total (100%), prefira enviar o link do grupo individualmente.
+                <ul className="text-[9px] font-bold uppercase opacity-70 leading-tight list-disc pl-4 space-y-1">
+                  <li>Evite usar o mesmo WhatsApp Web em outras abas ou computadores simultaneamente.</li>
+                  <li>O erro "515" é comum e o sistema tenta reconectar automaticamente.</li>
+                  <li>Se a conexão cair repetidamente, tente "Reiniciar" ou "Desconectar" e escanear novamente.</li>
+                  <li>Esta integração é 100% gratuita e não requer pagamento de APIs externas.</li>
+                </ul>
+                <p className="text-[9px] font-bold uppercase opacity-70 leading-tight mt-2 italic">
+                  A sincronização em massa possui intervalos de segurança para evitar bloqueios da sua conta pela Meta.
                 </p>
               </div>
             </div>

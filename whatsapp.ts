@@ -539,7 +539,7 @@ export class WhatsAppService {
     return clean;
   }
 
-  private async resolveJid(phoneNumber: string): Promise<string | null> {
+  private async resolveJid(phoneNumber: string, retryCount = 0): Promise<string | null> {
     const cleanNumber = this.normalizeBrazilianNumber(phoneNumber);
     
     if (cleanNumber.length < 10) return null;
@@ -549,6 +549,10 @@ export class WhatsAppService {
 
     try {
       if (!this.socket || this.connectionStatus !== 'connected') {
+        if (this.connectionStatus === 'connecting' && retryCount < 2) {
+           await new Promise(r => setTimeout(r, 3000));
+           return this.resolveJid(phoneNumber, retryCount + 1);
+        }
         console.warn(`[WhatsApp] Cannot resolve JID for ${cleanNumber}: socket not connected`);
         return null;
       }
@@ -572,10 +576,12 @@ export class WhatsAppService {
         }
       }
     } catch (err: any) {
-      console.warn(`[WhatsApp] Error resolving JID for ${cleanNumber}:`, err.message || err);
-      // If we got a 428 or 515 here, it might be a transient connection issue
-      if (err.message?.includes('515') || err.message?.includes('socket hang up')) {
-        return null;
+      console.warn(`[WhatsApp] Error resolving JID for ${cleanNumber} (Attempt ${retryCount + 1}):`, err.message || err);
+      // If we got a transient error, retry
+      const isTransient = err.message?.includes('515') || err.message?.includes('socket hang up') || err.message?.includes('timed out');
+      if (isTransient && retryCount < 2) {
+        await new Promise(r => setTimeout(r, 2000));
+        return this.resolveJid(phoneNumber, retryCount + 1);
       }
     }
 
@@ -583,19 +589,21 @@ export class WhatsAppService {
   }
 
   public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0): Promise<any> {
-    // If we're not connected, wait up to 10 seconds if we are "connecting"
+    // If we're not connected, wait up to 15 seconds if we are "connecting"
     if (this.connectionStatus === 'connecting' && retryCount === 0) {
-      console.log(`[WhatsApp] Status is connecting... waiting up to 10s for ${phoneNumber}`);
+      console.log(`[WhatsApp] Status is connecting... waiting up to 15s for ${phoneNumber}`);
       let waitTime = 0;
-      while (this.connectionStatus === 'connecting' && waitTime < 10000) {
+      while (this.connectionStatus === 'connecting' && waitTime < 15000) {
         await new Promise(r => setTimeout(r, 1000));
         waitTime += 1000;
       }
     }
 
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      const error = new Error('WhatsApp não está conectado. Por favor, verifique o QR Code.');
+      const currentStatus = this.connectionStatus;
+      const error = new Error(`WhatsApp não está conectado (Estado atual: ${currentStatus}). Por favor, verifique o QR Code ou aguarde a reconexão.`);
       (error as any).noConnection = true;
+      (error as any).status = currentStatus;
       throw error;
     }
 
@@ -674,11 +682,21 @@ export class WhatsAppService {
     }
   }
 
-  public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string) {
+  public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string, retryAttempt = 0): Promise<any> {
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      const error = new Error('WhatsApp não conectado. Por favor, verifique o QR Code.');
-      (error as any).noConnection = true;
-      throw error;
+      const currentStatus = this.connectionStatus;
+      // If we are connecting, we can try to wait
+      if (currentStatus === 'connecting' && retryAttempt < 2) {
+        console.log(`[WhatsApp] addToGroup: Waiting for connection (Attempt ${retryAttempt + 1})...`);
+        await new Promise(r => setTimeout(r, 5000));
+        return this.addToGroup(groupName, phoneNumber, retryAttempt + 1);
+      }
+      
+      if (this.connectionStatus !== 'connected' || !this.socket) {
+        const error = new Error(`WhatsApp não está conectado (Estado: ${this.connectionStatus}). Por favor, aguarde a reconexão automática ou escaneie o QR Code novamente.`);
+        (error as any).noConnection = true;
+        throw error;
+      }
     }
 
     try {

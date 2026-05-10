@@ -59,12 +59,15 @@ async function startServer() {
       res.json({ success: true, result });
     } catch (error: any) {
       console.error(`[WhatsApp] Add to Group Error for ${phoneNumber}:`, error);
+      if (error.stack) console.error(error.stack);
       
-      // Extract as much info as possible
       const message = error.message || error.toString() || "Erro desconhecido ao adicionar contato";
       const statusCode = error.output?.statusCode || error.status || 500;
       
-      res.status(500).json({ 
+      // Use the actual status code if it's a client error (4xx), otherwise 500
+      const finalStatus = (statusCode >= 400 && statusCode < 500) ? statusCode : 500;
+      
+      res.status(finalStatus).json({ 
         success: false, 
         error: message,
         details: error.data || error.output?.payload || null,
