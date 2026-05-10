@@ -1094,13 +1094,21 @@ export const api = {
       } = { athlete: null, guardian: null };
 
       if (athlete.contact) {
-        results.athlete = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+        try {
+          results.athlete = await api.whatsapp.addToGroup("Piruá Esporte Clube Atletas", athlete.contact);
+        } catch (err: any) {
+          results.athlete = { success: false, error: err.message || "Erro desconhecido" };
+        }
         // Small delay between calls to avoid WhatsApp rate limiting or Baileys conflicts
-        if (athlete.guardian_phone) await new Promise(r => setTimeout(r, 3000));
+        if (athlete.guardian_phone) await new Promise(r => setTimeout(r, 4000));
       }
 
       if (athlete.guardian_phone) {
-        results.guardian = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+        try {
+          results.guardian = await api.whatsapp.addToGroup("Piruá Esporte Clube Responsáveis", athlete.guardian_phone);
+        } catch (err: any) {
+          results.guardian = { success: false, error: err.message || "Erro desconhecido" };
+        }
       }
 
       return results;

@@ -236,14 +236,15 @@ export class WhatsAppService {
         printQRInTerminal: false,
         browser: ['Mac OS', 'Chrome', '121.0.6167.184'],
         syncFullHistory: false,
-        qrTimeout: 60000, // Shorter timeout for faster cycling if stuck
-        connectTimeoutMs: 60000, 
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 30000, 
-        retryRequestDelayMs: 5000,
+        qrTimeout: 45000, 
+        connectTimeoutMs: 30000, 
+        defaultQueryTimeoutMs: 30000,
+        keepAliveIntervalMs: 15000, 
+        retryRequestDelayMs: 2000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
-        maxMsgRetryCount: 15,
+        maxMsgRetryCount: 5,
+        fireInitQueries: false,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast'),
         getMessage: async (key: WAMessageKey) => {
           return { conversation: 'Piruá Esporte Clube' };
@@ -302,15 +303,16 @@ export class WhatsAppService {
             this.restartRequiredCount++;
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
             
-            // If we hit too many 515s in a row (e.g. 5 times), let's clear the session and start fresh
-            // 5 is a better threshold than 8 for better responsiveness to stream errors
-            if (this.restartRequiredCount >= 5) {
-              console.warn(`[WhatsApp] Too many 515 restarts (${this.restartRequiredCount}). Performing a full session reset.`);
-              this.restartRequiredCount = 0; // Reset count before logout
+            // If we hit too many 515s within a short window, clear session. 
+            // Otherwise, just let it reconnect normally.
+            const now = Date.now();
+            if (this.restartRequiredCount >= 5 && (now - this.lastRestartTime < 60000)) {
+              console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <1min). Resetting session.`);
+              this.restartRequiredCount = 0;
               this.logout(true, true, false);
               return;
             }
-            this.lastRestartTime = Date.now();
+            this.lastRestartTime = now;
           } else if (connection === 'close') {
             // If it closed for other reasons but we were connected, reset the counts
             if (statusBeforeClose === 'connected') {
@@ -414,6 +416,7 @@ export class WhatsAppService {
           this.connectionStatus = 'connecting';
         } else if (connection === 'open') {
           this.stopWatchdog();
+          this.onWhatsAppFailCount = 0;
           const user = this.socket?.user;
           console.log(`[WhatsApp] Conexão estabelecida com sucesso! (${user?.id || 'ID desconhecido'})`);
           this.connectionStatus = 'connected';
@@ -474,8 +477,8 @@ export class WhatsAppService {
     }
   }
 
-  private async setupGroups(retryCount = 0) {
-    if (!this.socket || this.connectionStatus !== 'connected') return;
+  public async syncGroups(retryCount = 0) {
+    if (!this.socket || this.connectionStatus !== 'connected') return {};
 
     try {
       console.log(`[WhatsApp] Sincronizando grupos (Tentativa ${retryCount + 1})...`);
@@ -492,7 +495,7 @@ export class WhatsAppService {
       if (Object.keys(groups).length === 0 && retryCount < 2) {
         console.log('[WhatsApp] Nenhum grupo retornado, tentando novamente em 5s...');
         await new Promise(r => setTimeout(r, 5000));
-        return this.setupGroups(retryCount + 1);
+        return this.syncGroups(retryCount + 1);
       }
 
       for (const name of targetGroupNames) {
@@ -524,9 +527,15 @@ export class WhatsAppService {
           }
         }
       }
+      return this.groupIds;
     } catch (err) {
-      console.error('[WhatsApp] Erro em setupGroups:', err);
+      console.error('[WhatsApp] Erro em syncGroups:', err);
+      return this.groupIds;
     }
+  }
+
+  private async setupGroups() {
+    return this.syncGroups();
   }
 
   public getStatus() {
@@ -601,6 +610,8 @@ export class WhatsAppService {
     return clean;
   }
 
+  private onWhatsAppFailCount = 0;
+
   private async resolveJid(phoneNumber: string, retryCount = 0): Promise<string | null> {
     const cleanNumber = this.normalizeBrazilianNumber(phoneNumber);
     
@@ -611,30 +622,56 @@ export class WhatsAppService {
 
     try {
       if (!this.socket || this.connectionStatus !== 'connected') {
-        if (this.connectionStatus === 'connecting' && retryCount < 2) {
+        if (this.connectionStatus === 'connecting' && retryCount < 3) {
            await new Promise(r => setTimeout(r, 3000));
            return this.resolveJid(phoneNumber, retryCount + 1);
         }
-        console.warn(`[WhatsApp] Cannot resolve JID for ${cleanNumber}: socket not connected`);
         return null;
       }
       
-      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber);
+      const onWhatsApp = await this.socket.onWhatsApp(cleanNumber).catch((err: any) => {
+        this.onWhatsAppFailCount++;
+        console.warn(`[WhatsApp] onWhatsApp failed (${this.onWhatsAppFailCount}):`, err.message);
+        if (this.onWhatsAppFailCount > 10) {
+          console.error('[WhatsApp] Excessive onWhatsApp failures. Zombie session suspected. Forcing reset.');
+          this.logout(true, true, false);
+        }
+        throw err;
+      });
+
+      this.onWhatsAppFailCount = 0; // Reset on success
+      
       if (onWhatsApp && onWhatsApp[0] && onWhatsApp[0].exists) {
         this.jidCache[cleanNumber] = onWhatsApp[0].jid;
         return onWhatsApp[0].jid;
       }
 
-      // If normalized didn't work, try a "classic" fallback (removing 9 if it has 13 chars)
+      // Brazilian specific: Try without the 9th digit if it has it
+      // Format: 55 + DDD + 9 + NUMBER (13 chars total)
       if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
-        const fallback = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
-        if (this.jidCache[fallback]) return this.jidCache[fallback];
+        const withoutNine = cleanNumber.slice(0, 4) + cleanNumber.slice(5);
+        if (this.jidCache[withoutNine]) return this.jidCache[withoutNine];
         
-        const altOnWA = await this.socket.onWhatsApp(fallback);
+        const altOnWA = await this.socket.onWhatsApp(withoutNine);
         if (altOnWA && altOnWA[0] && altOnWA[0].exists) {
-          this.jidCache[cleanNumber] = altOnWA[0].jid;
-          this.jidCache[fallback] = altOnWA[0].jid;
-          return altOnWA[0].jid;
+          const jid = altOnWA[0].jid;
+          this.jidCache[cleanNumber] = jid;
+          this.jidCache[withoutNine] = jid;
+          return jid;
+        }
+      }
+      
+      // Also try ADDING the 9th digit if it has 12 chars
+      if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
+        const withNine = cleanNumber.slice(0, 4) + '9' + cleanNumber.slice(4);
+        if (this.jidCache[withNine]) return this.jidCache[withNine];
+        
+        const altOnWAData = await this.socket.onWhatsApp(withNine);
+        if (altOnWAData && altOnWAData[0] && altOnWAData[0].exists) {
+          const jid = altOnWAData[0].jid;
+          this.jidCache[cleanNumber] = jid;
+          this.jidCache[withNine] = jid;
+          return jid;
         }
       }
     } catch (err: any) {
@@ -745,27 +782,23 @@ export class WhatsAppService {
   }
 
   public async addToGroup(groupName: 'Piruá Esporte Clube Responsáveis' | 'Piruá Esporte Clube Atletas', phoneNumber: string, retryAttempt = 0): Promise<any> {
+    // If we are connecting, or disconnected but NOT halted (meaning reconnection is pending)
+    const isRecovering = this.connectionStatus === 'connecting' || (this.connectionStatus === 'disconnected' && !this.isHalted);
+    
+    if (isRecovering && retryAttempt < 5) {
+      console.log(`[WhatsApp] addToGroup: Waiting for connection recovery (Attempt ${retryAttempt + 1}, Status: ${this.connectionStatus})...`);
+      
+      // Wait progressively longer on each attempt: 5s, 10s, 15s, 20s, 25s
+      const waitMs = (retryAttempt + 1) * 5000;
+      await new Promise(r => setTimeout(r, waitMs));
+      return this.addToGroup(groupName, phoneNumber, retryAttempt + 1);
+    }
+
     if (this.connectionStatus !== 'connected' || !this.socket) {
-      const currentStatus = this.connectionStatus;
-      
-      // If we are connecting, or disconnected but NOT halted (meaning reconnection is pending)
-      const isRecovering = currentStatus === 'connecting' || (currentStatus === 'disconnected' && !this.isHalted);
-      
-      if (isRecovering && retryAttempt < 4) {
-        console.log(`[WhatsApp] addToGroup: Waiting for connection recovery (Attempt ${retryAttempt + 1}, Status: ${currentStatus})...`);
-        
-        // Wait longer on each attempt
-        const waitMs = 5000 + (retryAttempt * 2000);
-        await new Promise(r => setTimeout(r, waitMs));
-        return this.addToGroup(groupName, phoneNumber, retryAttempt + 1);
-      }
-      
-      if (this.connectionStatus !== 'connected' || !this.socket) {
-        const error = new Error(`WhatsApp não está conectado (Estado: ${this.connectionStatus}). Por favor, aguarde a reconexão automática ou escaneie o QR Code novamente.`);
-        (error as any).noConnection = true;
-        (error as any).status = this.connectionStatus;
-        throw error;
-      }
+      const error = new Error(`WhatsApp não está conectado (Estado: ${this.connectionStatus}). Por favor, aguarde a reconexão automática ou escaneie o QR Code novamente.`);
+      (error as any).noConnection = true;
+      (error as any).status = this.connectionStatus;
+      throw error;
     }
 
     try {
@@ -798,10 +831,6 @@ export class WhatsAppService {
       console.error(`[WhatsApp] Erro em addToGroup para ${phoneNumber}:`, err.message);
       throw err;
     }
-  }
-  public async syncGroups() {
-    await this.setupGroups();
-    return this.groupIds;
   }
 }
 

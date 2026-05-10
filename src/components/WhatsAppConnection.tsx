@@ -207,13 +207,13 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
       
       setSyncProgress(prev => ({ ...prev, current: i + 1 }));
       
-      // INTERVALO DE 1 MINUTO (60s) ENTRE CONTATOS
-      const delay = 60000;
+      // INTERVALO DE 10 SEGUNDOS ENTRE CONTATOS (Reduzido de 60s para melhor UX, ainda seguro)
+      const delay = 10000;
       
-      // PAUSA DE 10 MINUTOS A CADA 4 CONTATOS PARA SEGURANÇA MÁXIMA
-      if ((i + 1) % 4 === 0 && i < activeAthletes.length - 1) {
-        toast.info("Pausa de segurança de 10 minutos (após 4 contatos)...");
-        await new Promise(r => setTimeout(r, 600000));
+      // PAUSA DE 2 MINUTOS A CADA 10 CONTATOS PARA SEGURANÇA (Otimizado)
+      if ((i + 1) % 10 === 0 && i < activeAthletes.length - 1) {
+        toast.info("Pausa de segurança de 2 minutos (após 10 contatos)...");
+        await new Promise(r => setTimeout(r, 120000));
       } else if (i < activeAthletes.length - 1) {
         await new Promise(r => setTimeout(r, delay));
       }
