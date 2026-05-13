@@ -309,12 +309,13 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
                 {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
                   <>
-                    O sistema detectou uma oscilação e está tentando reconectar automaticamente. <br />
-                    Aguarde alguns segundos... (Tentativa {reconnectInfo.restarts || reconnectInfo.attempts})
+                    O sistema detectou uma instabilidade (Erro 515 ou similar) e está aguardando para reconectar com segurança. <br />
+                    Isso evita que o WhatsApp bloqueie sua conta por excesso de tentativas. <br />
+                    <span className="text-amber-500 mt-2 block">Aguarde... (Tentativa {reconnectInfo.restarts || reconnectInfo.attempts})</span>
                   </>
                 ) : (
                   <>
-                    A conexão automática foi desativada ou falhou. <br />
+                    A conexão automática foi desativada ou falhou repetidamente. <br />
                     Clique no botão abaixo para LIMPAR A SESSÃO e gerar um novo QR Code.
                   </>
                 )}
