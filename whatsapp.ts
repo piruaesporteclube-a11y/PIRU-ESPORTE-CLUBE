@@ -302,7 +302,11 @@ export class WhatsAppService {
           const error = lastDisconnect?.error as Boom;
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
-                   const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515 || (error as any)?.fullErrorNode?.attrs?.code === '515';
+          const isRestartRequired = statusCode === DisconnectReason.restartRequired || 
+                                     statusCode === 515 || 
+                                     statusCode === 409 ||
+                                     (error as any)?.fullErrorNode?.attrs?.code === '515' || 
+                                     (error as any)?.fullErrorNode?.attrs?.code === '409';
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
           const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 429 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
@@ -327,10 +331,9 @@ export class WhatsAppService {
           }
 
           const isDeviceRemoved = hasConflictTag || 
-                                  statusCode === 401 || statusCode === 403 || statusCode === 409 ||
+                                  statusCode === 401 || statusCode === 403 || 
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
-                                  errorMessage.toLowerCase().includes('conflict') ||
                                   errorMessage.toLowerCase().includes('unauthorized');
           
           if (isRestartRequired && connection === 'close') {
@@ -751,26 +754,34 @@ export class WhatsAppService {
 
       console.log(`[WhatsApp] Adicionando ${jid} ao grupo ${groupId}...`);
       
-      // Increased delay before group action
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Human-like random delay before group action (between 3 to 7 seconds)
+      const randomDelay = Math.floor(Math.random() * (7000 - 3000 + 1) + 3000);
+      console.log(`[WhatsApp] Human-like delay of ${randomDelay/1000}s before adding ${jid}...`);
+      await new Promise(resolve => setTimeout(resolve, randomDelay));
       
       const response = await this.withLock(() => this.socket.groupParticipantsUpdate(groupId, [jid], 'add')).catch(async (err: any) => {
         const errMsg = (err.message || String(err) || '').toLowerCase();
-        if (errMsg.includes('item-not-found') || errMsg.includes('404')) {
-          console.warn(`[WhatsApp] Group ${groupId} or JID ${jid} not found (item-not-found). Re-syncing groups...`);
+        
+        if (errMsg.includes('item-not-found') || errMsg.includes('404') || errMsg.includes('not found')) {
+          console.warn(`[WhatsApp] Group ${groupId} or JID ${jid} not found. Re-syncing groups...`);
           await this.syncGroups();
           // Try one more time if we found a new group ID
           if (groupName) {
             const newGroupId = this.groupIds[groupName];
             if (newGroupId && newGroupId !== groupId) {
-              console.log(`[WhatsApp] Retrying with new group ID: ${newGroupId}`);
+              console.log(`[WhatsApp] Retrying with updated group ID: ${newGroupId}`);
               return this.socket.groupParticipantsUpdate(newGroupId, [jid], 'add');
             }
           }
+          throw new Error('Grupo ou contato não identificado. Verifique se o grupo ainda existe ou se o número é válido.');
+        }
+
+        if (errMsg.includes('forbidden') || errMsg.includes('403')) {
+          throw new Error('Sem permissão para adicionar este contato. Verifique se você é administrador do grupo.');
         }
         
-        if (errMsg.includes('limit') || errMsg.includes('rate') || errMsg.includes('wait') || errMsg.includes('try later')) {
-          throw new Error('Ação limitada pelo WhatsApp. Por favor, aguarde alguns minutos e tente novamente de forma individual.');
+        if (errMsg.includes('limit') || errMsg.includes('rate') || errMsg.includes('wait') || errMsg.includes('try later') || errMsg.includes('429')) {
+          throw new Error('O WhatsApp está limitando ações temporariamente para sua segurança. Por favor, aguarde alguns minutos antes de tentar novamente.');
         }
         
         throw err;
@@ -782,7 +793,7 @@ export class WhatsAppService {
       if (status === '200') {
         if (welcomeMessage && this.socket && this.connectionStatus === 'connected') {
           try {
-            await this.socket.sendMessage(jid, { text: welcomeMessage });
+            await this.withLock(() => this.socket.sendMessage(jid, { text: welcomeMessage }));
           } catch (msgErr: any) {
             console.warn('[WhatsApp] Erro ao enviar mensagem de boas-vindas:', msgErr.message);
           }
@@ -792,7 +803,7 @@ export class WhatsAppService {
         if (!this.socket || this.connectionStatus !== 'connected') {
           return { success: true, method: 'direct', message: 'Adicionado (privacidade impediu PV)' };
         }
-        const inviteCode = await this.socket.groupInviteCode(groupId);
+        const inviteCode = await this.withLock(() => this.socket.groupInviteCode(groupId));
         const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
         
         const message = welcomeMessage 
