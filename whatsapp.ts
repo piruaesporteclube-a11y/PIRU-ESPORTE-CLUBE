@@ -263,16 +263,16 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Piruá Esporte Clube', 'Chrome', '125.0.0.0'],
+        browser: ['Ubuntu', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
         qrTimeout: 90000, 
-        connectTimeoutMs: 60000, 
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 30000, 
-        retryRequestDelayMs: 5000,
+        connectTimeoutMs: 90000, 
+        defaultQueryTimeoutMs: 90000,
+        keepAliveIntervalMs: 60000, 
+        retryRequestDelayMs: 10000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
-        maxMsgRetryCount: 5,
+        maxMsgRetryCount: 3,
         fireInitQueries: false,
         shouldIgnoreJid: (jid) => jid?.includes('broadcast') || jid?.includes('newsletter'),
         getMessage: async (key: WAMessageKey) => {
@@ -302,17 +302,20 @@ export class WhatsAppService {
           const error = lastDisconnect?.error as Boom;
           const statusCode = error?.output?.statusCode;
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
+          const fullErrorNode = (error as any)?.fullErrorNode;
+          const reasonNode = (error as any)?.reasonNode;
+          
           const isRestartRequired = statusCode === DisconnectReason.restartRequired || 
                                      statusCode === 515 || 
-                                     (error as any)?.fullErrorNode?.attrs?.code === '515' ||
-                                     (error as any)?.reasonNode?.attrs?.code === '515';
+                                     fullErrorNode?.attrs?.code === '515' ||
+                                     reasonNode?.attrs?.code === '515';
           
           const isConflict = statusCode === 409 || 
-                             (error as any)?.fullErrorNode?.attrs?.code === '409' ||
-                             (error as any)?.reasonNode?.attrs?.code === '409' ||
-                             errorMessage.toLowerCase().includes('conflict') ||
+                             fullErrorNode?.attrs?.code === '409' ||
+                             reasonNode?.attrs?.code === '409' ||
                              errorMessage.toLowerCase().includes('already connected') ||
-                             errorMessage.toLowerCase().includes('multidevice');
+                             errorMessage.toLowerCase().includes('multidevice') ||
+                             errorMessage.toLowerCase().includes('conflict');
 
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
@@ -324,8 +327,6 @@ export class WhatsAppService {
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 411;
           
           // Enhanced device removed / conflict detection
-          const fullErrorNode = (error as any)?.fullErrorNode;
-          const reasonNode = (error as any)?.reasonNode;
           const errorNode = fullErrorNode || reasonNode;
           const content = errorNode?.content || [];
           
@@ -350,8 +351,8 @@ export class WhatsAppService {
             
             // If we hit too many 515s within a short window, clear session. 
             const now = Date.now();
-            if (this.restartRequiredCount >= 5 && (now - this.lastRestartTime < 60000)) {
-              console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <1min). Resetting session to recover.`);
+            if (this.restartRequiredCount >= 8 && (now - this.lastRestartTime < 180000)) {
+              console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <3min). Resetting session to recover.`);
               this.restartRequiredCount = 0;
               this.logout(true, true, false);
               return;
@@ -735,19 +736,40 @@ export class WhatsAppService {
   }
 
   public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0, groupName?: string): Promise<any> {
-    // If we're not connected, wait up to 15 seconds if we are "connecting"
-    if (this.connectionStatus === 'connecting' && retryCount === 0) {
-      console.log(`[WhatsApp] Status is connecting... waiting up to 15s for ${phoneNumber}`);
+    // If we're not connected, wait if we are "connecting" OR if a reconnection is scheduled
+    if ((this.connectionStatus === 'connecting' || (this.connectionStatus === 'disconnected' && this.reconnectTimeout)) && retryCount === 0) {
+      console.log(`[WhatsApp] Reconnection in progress or connecting... waiting up to 60s for ${phoneNumber}`);
       let waitTime = 0;
-      while (this.connectionStatus === 'connecting' && waitTime < 15000) {
-        await new Promise(r => setTimeout(r, 1000));
-        waitTime += 1000;
+      const maxWait = 60000;
+      const checkInterval = 2000;
+      
+      while (this.connectionStatus !== 'connected' && waitTime < maxWait) {
+        if (this.isHalted) break;
+        await new Promise(r => setTimeout(r, checkInterval));
+        waitTime += checkInterval;
+        
+        // If it's disconnected but no timeout anymore (timer fired), we continue waiting for 'connecting' or 'connected'
+        if (this.connectionStatus === 'connected') break;
+        
+        // Log status every 10s while waiting
+        if (waitTime % 10000 === 0) {
+           console.log(`[WhatsApp] Still waiting for connection... (${this.connectionStatus}, time: ${waitTime/1000}s)`);
+        }
+      }
+      
+      if (this.connectionStatus === 'connected') {
+        console.log(`[WhatsApp] Successfully waited for connection for ${phoneNumber}`);
       }
     }
 
     if (this.connectionStatus !== 'connected' || !this.socket) {
       const currentStatus = this.connectionStatus;
-      const error = new Error(`WhatsApp não está conectado (Estado atual: ${currentStatus}). Por favor, verifique o QR Code ou aguarde a reconexão.`);
+      const isReconnecting = !!this.reconnectTimeout;
+      const msg = isReconnecting 
+        ? `WhatsApp está se reconectando automaticamente após uma oscilação. Por favor, tente novamente em alguns segundos.`
+        : `WhatsApp não está conectado (Estado atual: ${currentStatus}). Por favor, verifique o QR Code ou aguarde a reconexão automática.`;
+      
+      const error = new Error(msg);
       (error as any).noConnection = true;
       (error as any).status = currentStatus;
       throw error;
