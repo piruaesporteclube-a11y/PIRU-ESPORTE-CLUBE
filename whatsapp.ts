@@ -263,12 +263,12 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '125.0.0.0'],
+        browser: ['Windows', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
         qrTimeout: 90000, 
         connectTimeoutMs: 90000, 
         defaultQueryTimeoutMs: 90000,
-        keepAliveIntervalMs: 60000, 
+        keepAliveIntervalMs: 30000, 
         retryRequestDelayMs: 10000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
@@ -383,7 +383,7 @@ export class WhatsAppService {
             
             // If we hit too many 515s within a short window, clear session. 
             const now = Date.now();
-            if (this.restartRequiredCount >= 8 && (now - this.lastRestartTime < 180000)) {
+            if (this.restartRequiredCount >= 5 && (now - this.lastRestartTime < 180000)) {
               console.warn(`[WhatsApp] 515 loop detected (${this.restartRequiredCount} in <3min). Resetting session to recover.`);
               this.restartRequiredCount = 0;
               this.logout(true, true, false);
@@ -391,11 +391,12 @@ export class WhatsAppService {
             }
             this.lastRestartTime = now;
           } else if (isConflict && connection === 'close') {
-            console.warn('[WhatsApp] Conflict detected. Waiting longer before retry to avoid loop...');
+            console.warn('[WhatsApp] Conflict (409) detected. Waiting longer before retry to avoid loop...');
             this.reconnectAttempts++;
+            if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = setTimeout(() => {
               if (!this.isHalted && !this.socket) this.init();
-            }, 15000); // 15s fixed delay for conflicts
+            }, 20000); // 20s delay for conflicts
             return;
           } else if (connection === 'close') {
             // If it closed for other reasons but we were connected, reset the counts
@@ -433,7 +434,7 @@ export class WhatsAppService {
 
           // Standard Reconnect (Network flickers, Stream errors, etc)
           // For 515 / Restart Required, use a longer delay to avoid spamming the server
-          const baseDelay = isRestartRequired ? 10000 : 5000;
+          const baseDelay = isRestartRequired ? 15000 : 5000;
           
           if (!isRestartRequired && !isNetworkError && statusBeforeClose !== 'connecting' && statusBeforeClose !== 'connected') {
             console.log('[WhatsApp] Non-critical disconnect and not previously connected. Halting auto-reconnect.');
@@ -445,11 +446,12 @@ export class WhatsAppService {
           
           // Exponential backoff combined with restart count
           const delayTime = isRestartRequired 
-            ? Math.min(baseDelay + (this.restartRequiredCount * 5000), 60000)
-            : Math.min(baseDelay + (this.reconnectAttempts * 5000), 120000); 
+            ? Math.min(baseDelay + (this.restartRequiredCount * 5000), 120000)
+            : Math.min(baseDelay + (this.reconnectAttempts * 5000), 180000); 
           
           console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempts: ${this.reconnectAttempts}, Restart/515 count: ${this.restartRequiredCount})`);
           
+          if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
           this.reconnectTimeout = setTimeout(() => {
             if (!this.isHalted && !this.socket) {
               console.log('[WhatsApp] Reconnection timer fired. Initializing...');
