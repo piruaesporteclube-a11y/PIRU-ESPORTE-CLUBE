@@ -345,6 +345,38 @@ export class WhatsAppService {
                                   errorMessage.toLowerCase().includes('device removed') ||
                                   errorMessage.toLowerCase().includes('unauthorized');
           
+          // Case 1: Session invalidated - must logout and clear files
+          if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401)) {
+            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed / Session Expired' : (hasConflictTag ? 'Connection Conflict' : 'Session Invalidated'));
+            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Resetting and halting connection.`);
+            this.connectionStatus = 'disconnected';
+            this.isHalted = true;
+            this.haltReason = "Sessão encerrada pelo WhatsApp (Conflito ou Logout). É necessário escanear o QR Code novamente.";
+            this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true (manual reset required)
+            return;
+          }
+
+          // Crucial: Null the socket instance to allow fresh init
+          const oldSocket = this.socket;
+          
+          this.socket = null;
+          this.connectionStatus = 'disconnected';
+          this.qrCode = null;
+          this.isInitializing = false;
+
+          if (oldSocket) {
+            try {
+              if (oldSocket.ev) {
+                oldSocket.ev.removeAllListeners('connection.update');
+                oldSocket.ev.removeAllListeners('creds.update');
+              }
+              // Aggressive nuke for these codes
+              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || hasConflictTag) {
+                if (oldSocket.end) oldSocket.end(undefined);
+              }
+            } catch (e) {}
+          }
+
           if (isRestartRequired && connection === 'close') {
             this.restartRequiredCount++;
             console.log(`[WhatsApp] Restart Required (515) count: ${this.restartRequiredCount}`);
@@ -370,38 +402,6 @@ export class WhatsAppService {
             if (statusBeforeClose === 'connected') {
               this.restartRequiredCount = 0;
             }
-          }
-
-          // Crucial: Null the socket instance to allow fresh init
-          const oldSocket = this.socket;
-          
-          this.socket = null;
-          this.connectionStatus = 'disconnected';
-          this.qrCode = null;
-          this.isInitializing = false;
-
-          if (oldSocket) {
-            try {
-              if (oldSocket.ev) {
-                oldSocket.ev.removeAllListeners('connection.update');
-                oldSocket.ev.removeAllListeners('creds.update');
-              }
-              // Aggressive nuke for these codes
-              if (isRestartRequired || isLoggedOut || isDeviceRemoved || isTimedOut || hasConflictTag) {
-                if (oldSocket.end) oldSocket.end(undefined);
-              }
-            } catch (e) {}
-          }
-
-          // Case 1: Session invalidated - must logout and clear files
-          if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401)) {
-            const reason = isLoggedOut ? 'Logged Out' : (isDeviceRemoved ? 'Device Removed / Session Expired' : (hasConflictTag ? 'Connection Conflict' : 'Session Invalidated'));
-            console.warn(`[WhatsApp] TERMINAL SESSION ERROR (${reason}). Resetting and halting connection.`);
-            this.connectionStatus = 'disconnected';
-            this.isHalted = true;
-            this.haltReason = "Sessão encerrada pelo WhatsApp (Conflito ou Logout). É necessário escanear o QR Code novamente.";
-            this.logout(false, true, true); // autoReinit=false, resetQrTimeout=true, stayHalted=true (manual reset required)
-            return;
           }
 
           // Case 2: QR Expired or Timeout during pairing
@@ -738,9 +738,9 @@ export class WhatsAppService {
   public async addParticipant(groupId: string, phoneNumber: string, welcomeMessage?: string, retryCount = 0, groupName?: string): Promise<any> {
     // If we're not connected, wait if we are "connecting" OR if a reconnection is scheduled
     if ((this.connectionStatus === 'connecting' || (this.connectionStatus === 'disconnected' && this.reconnectTimeout)) && retryCount === 0) {
-      console.log(`[WhatsApp] Reconnection in progress or connecting... waiting up to 60s for ${phoneNumber}`);
+      console.log(`[WhatsApp] Reconnection in progress or connecting... waiting up to 25s for ${phoneNumber}`);
       let waitTime = 0;
-      const maxWait = 60000;
+      const maxWait = 25000; // Reduced from 60s to stay within safe HTTP limits
       const checkInterval = 2000;
       
       while (this.connectionStatus !== 'connected' && waitTime < maxWait) {
@@ -882,11 +882,11 @@ export class WhatsAppService {
     // If we are connecting, or disconnected but NOT halted (meaning reconnection is pending)
     const isRecovering = this.connectionStatus === 'connecting' || (this.connectionStatus === 'disconnected' && !this.isHalted);
     
-    if (isRecovering && retryAttempt < 5) {
+    if (isRecovering && retryAttempt < 3) {
       console.log(`[WhatsApp] addToGroup: Waiting for connection recovery (Attempt ${retryAttempt + 1}, Status: ${this.connectionStatus})...`);
       
-      // Wait progressively longer on each attempt: 5s, 10s, 15s, 20s, 25s
-      const waitMs = (retryAttempt + 1) * 5000;
+      // Wait progressively but keep it short to avoid HTTP timeout
+      const waitMs = (retryAttempt + 1) * 3000; 
       await new Promise(r => setTimeout(r, waitMs));
       return this.addToGroup(groupName, phoneNumber, retryAttempt + 1);
     }

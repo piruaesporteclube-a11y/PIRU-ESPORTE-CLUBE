@@ -1050,7 +1050,7 @@ export const api = {
         return { success: false, error: err.message || "Falha ao desconectar" };
       }
     },
-    addToGroup: async (groupName: "Piruá Esporte Clube Responsáveis" | "Piruá Esporte Clube Atletas", phoneNumber: string) => {
+    addToGroup: async (groupName: "Piruá Esporte Clube Responsáveis" | "Piruá Esporte Clube Atletas", phoneNumber: string, retryCount = 0): Promise<any> => {
       try {
         const response = await fetch("/api/whatsapp/add", {
           method: "POST",
@@ -1083,6 +1083,13 @@ export const api = {
           throw new Error("Resposta do servidor inválida (formato inesperado)");
         }
       } catch (err: any) {
+        // If it's a "Failed to fetch" (network error), it might be the server restarting
+        if (err.message === 'Failed to fetch' && retryCount < 2) {
+          console.warn(`[WhatsApp] Add to Group failed (Failed to fetch). Retrying in 3s... (Attempt ${retryCount + 1})`);
+          await new Promise(r => setTimeout(r, 3000));
+          return api.whatsapp.addToGroup(groupName, phoneNumber, retryCount + 1);
+        }
+
         console.error("WhatsApp add error:", err);
         return { success: false, error: err.message || "Conexão falhou" };
       }
