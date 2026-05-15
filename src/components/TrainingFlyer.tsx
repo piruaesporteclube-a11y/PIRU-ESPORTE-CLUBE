@@ -41,12 +41,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
-      // Carbon is exclusive if we want but user said "combine"
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev; // Keep at least one
-        return prev.filter(bg => bg !== id);
+      // If none is selected, everything else is cleared
+      if (id === 'none') return ['none'];
+      
+      // If we are selecting something else but 'none' was active, remove 'none'
+      const withoutNone = prev.filter(bg => bg !== 'none');
+      
+      if (withoutNone.includes(id)) {
+        if (withoutNone.length === 1) return ['none']; // Fallback to none if last one removed
+        return withoutNone.filter(bg => bg !== id);
       }
-      return [...prev, id];
+      return [...withoutNone, id];
     });
   };
 
@@ -89,18 +94,24 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       reader.onload = async (event) => {
         const base64 = event.target?.result as string;
         try {
-          const compressed = await compressImage(base64, 1200, 1200, 0.6);
-          const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
+          const compressed = await compressImage(base64, 1200, 1200, 0.8);
           setCustomBackgrounds(prev => ({
             ...prev,
-            [activeId]: compressed
+            custom: compressed
           }));
+          // Automatically select 'custom' if a photo is uploaded
+          if (!selectedBackgrounds.includes('custom')) {
+            toggleBackground('custom');
+          }
+          toast.success('Foto de fundo carregada!');
         } catch (err) {
-          const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
           setCustomBackgrounds(prev => ({
             ...prev,
-            [activeId]: base64
+            custom: base64
           }));
+          if (!selectedBackgrounds.includes('custom')) {
+            toggleBackground('custom');
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -238,15 +249,26 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         }
       }));
 
+      // 6. Ensure all images are loaded
+      const images = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800)); // Short wait for rendering engine
 
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
         pixelRatio: 2,
         backgroundColor: '#000000',
-        cacheBust: false
+        cacheBust: true, // Changed to true
+        skipFonts: false
       });
 
       document.body.removeChild(clone);
@@ -313,8 +335,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 className="hidden" 
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {[
+                { id: 'none', label: 'Nenhum', icon: X },
+                { id: 'custom', label: 'Foto', icon: Camera },
                 { id: 'carbon', label: 'Carbono', icon: Trophy },
                 { id: 'stadium', label: 'Estádio', icon: MapPin },
                 { id: 'grass', label: 'Campo', icon: Activity }
@@ -325,14 +349,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     key={bg.id}
                     onClick={() => toggleBackground(bg.id)}
                     className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all",
+                      "flex flex-col items-center gap-2 p-2 rounded-xl border transition-all",
                       isActive 
                         ? "bg-theme-primary border-theme-primary text-black" 
                         : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700"
                     )}
                   >
-                     <bg.icon size={18} />
-                     <span className="text-[10px] font-black uppercase tracking-widest">{bg.label}</span>
+                     <bg.icon size={14} />
+                     <span className="text-[8px] font-black uppercase tracking-tight">{bg.label}</span>
                   </button>
                 );
               })}
@@ -688,32 +712,47 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="absolute inset-x-0 inset-y-0 pointer-events-none">
                 {/* Backgrounds now start after the border */}
                 <div className="absolute inset-0">
-                  {/* Layer 1: Stadium */}
-                  {selectedBackgrounds.includes('stadium') && (
+                  {/* Layer 0: Custom Photo */}
+                  {selectedBackgrounds.includes('custom') && customBackgrounds['custom'] && (
                     <div className="absolute inset-0 z-0">
                       <img 
-                        src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
+                        src={customBackgrounds['custom']} 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
-                      <div className="absolute inset-0 bg-black/40" />
+                    </div>
+                  )}
+
+                  {/* Layer 1: Stadium */}
+                  {selectedBackgrounds.includes('stadium') && (
+                    <div className={cn(
+                      "absolute inset-0 z-[1]",
+                      selectedBackgrounds.includes('custom') ? "mix-blend-overlay opacity-80" : "opacity-100"
+                    )}>
+                      <img 
+                        src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200" 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                        crossOrigin="anonymous"
+                      />
+                      {(!selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
                   {/* Layer 2: Grass */}
                   {selectedBackgrounds.includes('grass') && (
                     <div className={cn(
-                      "absolute inset-0 z-[1]",
-                      selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100"
+                      "absolute inset-0 z-[2]",
+                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('custom')) ? "mix-blend-overlay opacity-80" : "opacity-100"
                     )}>
                       <img 
-                        src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
+                        src="https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200" 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
-                      {!selectedBackgrounds.includes('stadium') && <div className="absolute inset-0 bg-black/40" />}
+                      {(!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
@@ -722,28 +761,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div 
                       data-bg-layer="carbon"
                       className={cn(
-                      "absolute inset-0 z-[2]",
-                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100"
+                      "absolute inset-0 z-[3]",
+                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass') || selectedBackgrounds.includes('custom')) ? "mix-blend-multiply opacity-80" : "opacity-100"
                     )}
                     style={{ 
                       backgroundColor: carbonColor,
                       backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')`
                     }}
                     >
-                      {!customBackgrounds['carbon'] && (
-                        <div 
-                          className="absolute inset-0 opacity-40"
-                          style={{ backgroundImage: `radial-gradient(circle at center, ${carbonColor} 0%, #000000 100%)` }}
-                        />
-                      )}
-                      {customBackgrounds['carbon'] && (
-                        <img 
-                          src={customBackgrounds['carbon']} 
-                          className="w-full h-full object-cover" 
-                          referrerPolicy="no-referrer" 
-                          crossOrigin="anonymous"
-                        />
-                      )}
                       <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       {/* Scanline Effect for Personalization */}
                       <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
@@ -753,7 +778,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       <div className="absolute inset-0 z-[1] opacity-80 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
                       
-                      {!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && <div className="absolute inset-0 bg-black/40" />}
+                      {(!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && !selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 

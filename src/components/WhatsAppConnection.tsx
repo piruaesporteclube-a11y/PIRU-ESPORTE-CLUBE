@@ -309,9 +309,10 @@ export default function WhatsAppConnection({ athletes }: WhatsAppConnectionProps
               <p className="text-zinc-500 text-[10px] uppercase font-bold leading-relaxed mb-6 max-w-xs mx-auto">
                 {(!isHalted && (reconnectInfo.attempts > 0 || reconnectInfo.restarts > 0)) ? (
                   <>
-                    O sistema detectou uma instabilidade (Erro 515 ou similar) e está aguardando para reconectar com segurança. <br />
-                    Isso evita que o WhatsApp bloqueie sua conta por excesso de tentativas. <br />
+                    O sistema detectou uma instabilidade (Oscilação da Meta ou Erro Protocolo) e está aguardando para reconectar com segurança. <br />
+                    Isso evita que o WhatsApp bloqueie sua conta por excesso de tentativas rápidas. <br />
                     <span className="text-amber-500 mt-2 block">Aguarde... (Tentativa {reconnectInfo.restarts || reconnectInfo.attempts})</span>
+                    <span className="text-zinc-600 mt-1 block lowercase italic">O WhatsApp costuma resolver essas oscilações em alguns minutos.</span>
                   </>
                 ) : (
                   <>

@@ -36,10 +36,18 @@ export class WhatsAppService {
 
   private async withLock<T>(fn: () => Promise<T>): Promise<T> {
     let waitCount = 0;
-    while (this.operationLock && waitCount < 30) { 
+    while (this.operationLock && waitCount < 60) { // Increased wait time
+      if (waitCount % 10 === 0 && waitCount > 0) {
+        console.log(`[WhatsApp] withLock: Still waiting for lock... (${waitCount/2}s)`);
+      }
       await new Promise(r => setTimeout(r, 500));
       waitCount++;
     }
+    
+    if (this.operationLock) {
+      console.warn('[WhatsApp] withLock: LOCK TIMEOUT. Force breaking lock.');
+    }
+    
     this.operationLock = true;
     try {
       return await fn();
@@ -263,13 +271,13 @@ export class WhatsAppService {
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: false,
-        browser: ['Windows', 'Chrome', '125.0.0.0'],
+        browser: ['Mac OS', 'Chrome', '125.0.0.0'],
         syncFullHistory: false,
         qrTimeout: 90000, 
-        connectTimeoutMs: 90000, 
-        defaultQueryTimeoutMs: 90000,
-        keepAliveIntervalMs: 30000, 
-        retryRequestDelayMs: 10000,
+        connectTimeoutMs: 60000, 
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000, 
+        retryRequestDelayMs: 5000,
         markOnlineOnConnect: true, 
         generateHighQualityLinkPreview: false,
         maxMsgRetryCount: 3,
@@ -319,10 +327,14 @@ export class WhatsAppService {
 
           const isTimedOut = statusCode === DisconnectReason.timedOut || statusCode === 408 || errorMessage.toLowerCase().includes('qr refs attempts ended');
           const isConnectionLost = (statusCode === DisconnectReason.connectionLost || statusCode === 408) && statusBeforeClose === 'connected';
-          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 428 || statusCode === 429 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
+          const isNetworkError = (isConnectionLost || statusCode === DisconnectReason.connectionClosed || statusCode === 440 || statusCode === 429 || statusCode === 503 || statusCode === 500) && !errorMessage.toLowerCase().includes('qr refs attempts ended');
+          
+          // Error 428 (Precondition Required) often means the session is out of sync or connection was dropped during an operation
+          const isProtocolError = statusCode === 428 || errorMessage.includes('428') || errorMessage.toLowerCase().includes('precondition');
+          
           const isRateLimited = statusCode === 429 || errorMessage.toLowerCase().includes('wait') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('try later');
 
-          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Conflict: ${isConflict} | Restart Required: ${isRestartRequired} | Rate Limited: ${isRateLimited}`);
+          console.log(`[WhatsApp] Connection closed: ${errorMessage} | Status: ${statusCode} | Conflict: ${isConflict} | Restart Required: ${isRestartRequired} | Protocol Error: ${isProtocolError}`);
 
           const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 411;
           
@@ -343,7 +355,8 @@ export class WhatsAppService {
                                   statusCode === 401 || statusCode === 403 || 
                                   errorMessage.toLowerCase().includes('device_removed') || 
                                   errorMessage.toLowerCase().includes('device removed') ||
-                                  errorMessage.toLowerCase().includes('unauthorized');
+                                  errorMessage.toLowerCase().includes('unauthorized') ||
+                                  (isProtocolError && statusBeforeClose !== 'connected'); // If 428 happens before we're even connected properly
           
           // Case 1: Session invalidated - must logout and clear files
           if (isLoggedOut || isDeviceRemoved || (hasConflictTag && statusCode === 401)) {
@@ -433,10 +446,10 @@ export class WhatsAppService {
           }
 
           // Standard Reconnect (Network flickers, Stream errors, etc)
-          // For 515 / Restart Required, use a longer delay to avoid spamming the server
-          const baseDelay = isRestartRequired ? 15000 : 5000;
+          // For 515 / Restart Required or 428 Protocol Errors, use a longer delay to avoid spamming the server
+          const baseDelay = (isRestartRequired || isProtocolError) ? 15000 : 5000;
           
-          if (!isRestartRequired && !isNetworkError && statusBeforeClose !== 'connecting' && statusBeforeClose !== 'connected') {
+          if (!isRestartRequired && !isProtocolError && !isNetworkError && statusBeforeClose !== 'connecting' && statusBeforeClose !== 'connected') {
             console.log('[WhatsApp] Non-critical disconnect and not previously connected. Halting auto-reconnect.');
             this.isHalted = true;
             return;
@@ -445,11 +458,11 @@ export class WhatsAppService {
           this.reconnectAttempts++;
           
           // Exponential backoff combined with restart count
-          const delayTime = isRestartRequired 
+          const delayTime = (isRestartRequired || isProtocolError)
             ? Math.min(baseDelay + (this.restartRequiredCount * 5000), 120000)
             : Math.min(baseDelay + (this.reconnectAttempts * 5000), 180000); 
           
-          console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempts: ${this.reconnectAttempts}, Restart/515 count: ${this.restartRequiredCount})`);
+          console.log(`[WhatsApp] Reconnecting in ${delayTime/1000}s... (Attempts: ${this.reconnectAttempts}, Restart/515/428 count: ${this.restartRequiredCount})`);
           
           if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
           this.reconnectTimeout = setTimeout(() => {
@@ -473,8 +486,8 @@ export class WhatsAppService {
           this.qrTimeoutCount = 0; 
           this.isHalted = false;
           this.restartRequiredCount = 0;
-          // Initial setup of groups
-          setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 5000);
+          // Initial setup of groups - wait longer to ensure connection is fully settled
+          setTimeout(() => this.setupGroups().catch(err => console.error('Delayed group setup failed:', err)), 15000);
         }
       });
 
@@ -525,12 +538,22 @@ export class WhatsAppService {
   }
 
   public async syncGroups(retryCount = 0) {
-    if (!this.socket || this.connectionStatus !== 'connected') return {};
+    if (!this.socket || this.connectionStatus !== 'connected') {
+      console.log('[WhatsApp] Group sync skipped: Not connected.');
+      return {};
+    }
 
     try {
       console.log(`[WhatsApp] Sincronizando grupos (Tentativa ${retryCount + 1})...`);
       // Fetch all groups we are part of with lock
-      const groups = await this.withLock(() => this.socket.groupFetchAllParticipating());
+      const groups = await this.withLock(() => this.socket.groupFetchAllParticipating()).catch(err => {
+        const msg = err.message || '';
+        if (msg.includes('428') || msg.includes('515') || msg.includes('connection closed')) {
+           throw new Error('RETRY_READ');
+        }
+        throw err;
+      });
+      
       this.groupIds = {}; // Reset local cache
 
       const targetGroupNames = [
@@ -540,8 +563,8 @@ export class WhatsAppService {
 
       // If we got an empty object but we expect to be in groups, maybe wait and retry
       if (Object.keys(groups).length === 0 && retryCount < 2) {
-        console.log('[WhatsApp] Nenhum grupo retornado, tentando novamente em 5s...');
-        await new Promise(r => setTimeout(r, 5000));
+        console.log('[WhatsApp] Nenhum grupo retornado, tentando novamente em 8s...');
+        await new Promise(r => setTimeout(r, 8000));
         return this.syncGroups(retryCount + 1);
       }
 
@@ -557,16 +580,16 @@ export class WhatsAppService {
           try {
             console.log(`[WhatsApp] Criando grupo: "${name}"...`);
             // Standard group creation. Participants list is mandatory, can be empty []
-            const group = await this.socket.groupCreate(name, []);
+            const group = await this.withLock(() => this.socket.groupCreate(name, [])) as any;
             this.groupIds[name] = group.id;
             console.log(`[WhatsApp] Grupo criado: ${name} (ID: ${group.id})`);
             // Wait between actions to minimize rate limit risks
-            await new Promise(r => setTimeout(r, 8000));
+            await new Promise(r => setTimeout(r, 10000));
           } catch (err: any) {
-            const errorMsg = err.message || '';
+            const errorMsg = (err.message || '').toLowerCase();
             console.error(`[WhatsApp] Falha ao criar "${name}":`, err);
             
-            if (errorMsg.includes('rate-overlimit')) {
+            if (errorMsg.includes('limit') || errorMsg.includes('429')) {
               console.warn(`[WhatsApp] Bloqueio temporário (rate-limit) ao criar "${name}".`);
             } else if (errorMsg.includes('not-authorized')) {
               console.error(`[WhatsApp] Sem permissão para criar grupos nesta conta.`);
@@ -575,7 +598,12 @@ export class WhatsAppService {
         }
       }
       return this.groupIds;
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message === 'RETRY_READ' && retryCount < 2 && this.connectionStatus === 'connected') {
+        console.log('[WhatsApp] Protocol error during sync, retrying in 10s...');
+        await new Promise(r => setTimeout(r, 10000));
+        return this.syncGroups(retryCount + 1);
+      }
       console.error('[WhatsApp] Erro em syncGroups:', err);
       return this.groupIds;
     }
@@ -594,7 +622,8 @@ export class WhatsAppService {
       haltReason: this.haltReason,
       reconnectAttempts: this.reconnectAttempts,
       restartRequiredCount: this.restartRequiredCount,
-      isInitializing: this.isInitializing
+      isInitializing: this.isInitializing,
+      lastResetTime: this.lastResetTime
     };
   }
 
@@ -745,13 +774,13 @@ export class WhatsAppService {
       const maxWait = 25000; // Reduced from 60s to stay within safe HTTP limits
       const checkInterval = 2000;
       
-      while (this.connectionStatus !== 'connected' && waitTime < maxWait) {
+      while ((this.connectionStatus as string) !== 'connected' && waitTime < maxWait) {
         if (this.isHalted) break;
         await new Promise(r => setTimeout(r, checkInterval));
         waitTime += checkInterval;
         
         // If it's disconnected but no timeout anymore (timer fired), we continue waiting for 'connecting' or 'connected'
-        if (this.connectionStatus === 'connected') break;
+        if ((this.connectionStatus as string) === 'connected') break;
         
         // Log status every 10s while waiting
         if (waitTime % 10000 === 0) {
@@ -759,7 +788,7 @@ export class WhatsAppService {
         }
       }
       
-      if (this.connectionStatus === 'connected') {
+      if ((this.connectionStatus as string) === 'connected') {
         console.log(`[WhatsApp] Successfully waited for connection for ${phoneNumber}`);
       }
     }
