@@ -30,7 +30,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   // Positioning State
   const [pos1, setPos1] = useState({ scale: 1, x: 0, y: 0 });
   const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
-  const [infoPos, setInfoPos] = useState({ y: 0 });
+  const [infoPos, setInfoPos] = useState({ x: 0, y: 0 });
   const [photoPos, setPhotoPos] = useState({ y: 0 });
   const [infoAlign, setInfoAlign] = useState<'left' | 'right'>('left');
   const [showVS, setShowVS] = useState(false);
@@ -549,14 +549,28 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
               <div>
                 <div className="flex justify-between mb-1">
-                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição Treinos (Vertical)</label>
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição dos Treinos (V/H)</label>
                 </div>
-                <input 
-                  type="range" min="-300" max="300" step="1"
-                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                  value={infoPos.y}
-                  onChange={e => setInfoPos({y: parseInt(e.target.value)})}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
+                    <input 
+                      type="range" min="-300" max="300" step="1"
+                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={infoPos.y}
+                      onChange={e => setInfoPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
+                    <input 
+                      type="range" min="-200" max="200" step="1"
+                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={infoPos.x}
+                      onChange={e => setInfoPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -912,7 +926,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   "absolute bottom-32 w-[114px] z-40 flex flex-col gap-3 py-4 transition-all duration-300",
                   infoAlign === 'left' ? "left-2" : "right-2"
                 )}
-                style={{ top: `${96 + infoPos.y}px` }}
+                style={{ 
+                  top: `${96 + infoPos.y}px`,
+                  transform: `translateX(${infoPos.x}px)`
+                }}
               >
                 {trainings.map((t, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
