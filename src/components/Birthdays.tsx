@@ -6,7 +6,7 @@ import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-import { cn } from '../utils';
+import { cn, compressImage } from '../utils';
 import * as htmlToImage from 'html-to-image';
 
 interface BirthdaysProps {
@@ -234,22 +234,25 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
-        pixelRatio: 3, // 360 * 3 = 1080px, 640 * 3 = 1920px (Exact IG Story Size)
+        pixelRatio: 3, // 1080x1920 (Exact IG Story Size)
         canvasWidth: 1080,
         canvasHeight: 1920,
         backgroundColor: '#09090b',
         cacheBust: false
       });
 
+      // Compress even further for WhatsApp/Instagram efficiency
+      const compressedDataUrl = await compressImage(dataUrl, 1080, 1920, 0.85);
+
       document.body.removeChild(clone);
       toast.dismiss(loadingToast);
 
-      const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      const fileName = `parabens-${selectedPerson?.name.toLowerCase().replace(/\s+/g, '-')}.jpg`;
       
       if (share && navigator.share) {
         // Share flow
-        const blob = await (await fetch(dataUrl)).blob();
-        const file = new File([blob], fileName, { type: 'image/png' });
+        const blob = await (await fetch(compressedDataUrl)).blob();
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
         
         if (navigator.canShare({ files: [file] })) {
           try {
@@ -263,21 +266,21 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
             if ((err as Error).name !== 'AbortError') {
               const link = document.createElement('a');
               link.download = fileName;
-              link.href = dataUrl;
+              link.href = compressedDataUrl;
               link.click();
             }
           }
         } else {
           const link = document.createElement('a');
           link.download = fileName;
-          link.href = dataUrl;
+          link.href = compressedDataUrl;
           link.click();
           toast.success("Imagem baixada! Agora você pode postar.");
         }
       } else {
         const link = document.createElement('a');
         link.download = fileName;
-        link.href = dataUrl;
+        link.href = compressedDataUrl;
         link.click();
         toast.success("Imagem baixada com sucesso!");
       }
@@ -297,9 +300,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         return;
       }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setBgImage(reader.result as string);
-        toast.success("Plano de fundo personalizado carregado!");
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        try {
+          const compressed = await compressImage(base64, 1200, 1920, 0.8);
+          setBgImage(compressed);
+          toast.success("Plano de fundo personalizado carregado!");
+        } catch (e) {
+          setBgImage(base64);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -321,9 +330,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setOverlayImages(prev => [...prev, reader.result as string].slice(0, 4));
-      toast.success("Foto adicionada!");
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      try {
+        const compressed = await compressImage(base64, 800, 800, 0.7);
+        setOverlayImages(prev => [...prev, compressed].slice(0, 4));
+        toast.success("Foto adicionada!");
+      } catch (e) {
+        setOverlayImages(prev => [...prev, base64].slice(0, 4));
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -336,9 +351,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         return;
       }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCustomMainPhoto(reader.result as string);
-        toast.success("Foto principal personalizada carregada!");
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        try {
+          const compressed = await compressImage(base64, 800, 1000, 0.8);
+          setCustomMainPhoto(compressed);
+          toast.success("Foto principal personalizada carregada!");
+        } catch (e) {
+          setCustomMainPhoto(base64);
+        }
       };
       reader.readAsDataURL(file);
     }
