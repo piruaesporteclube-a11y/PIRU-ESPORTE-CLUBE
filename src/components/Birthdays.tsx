@@ -365,6 +365,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
     }
   };
 
+  const [activeControlTab, setActiveControlTab] = useState<'photos' | 'banner' | 'main_photo' | 'layout'>('photos');
+
   const removeOverlay = (index: number) => {
     setOverlayImages(prev => prev.filter((_, i) => i !== index));
   };
@@ -791,343 +793,316 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-6 bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 border-dashed">
-              <div className="w-full text-center mb-2">
-                <p className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em]">Personalizar Encarte</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Imagens</p>
-                  <div className="flex flex-wrap gap-2">
-                    <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
-                      <Upload size={14} />
-                      Principal
-                      <input type="file" accept="image/*" className="hidden" onChange={handleMainPhotoUpload} />
-                    </label>
-
-                    <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
-                      <Upload size={14} />
-                      Fundo
-                      <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
-                    </label>
-
-                    {overlayImages.length < 4 && (
-                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors uppercase text-[9px] tracking-widest cursor-pointer">
-                        <Plus size={14} />
-                        Adicionar Foto ({overlayImages.length}/4)
-                        <input type="file" accept="image/*" className="hidden" onChange={handleOverlayUpload} />
-                      </label>
+            <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+              {/* Tabs Header */}
+              <div className="flex bg-black p-1 gap-1">
+                {[
+                  { id: 'photos', label: 'Fotos', icon: Plus },
+                  { id: 'main_photo', label: 'Perfil', icon: UserCircle },
+                  { id: 'banner', label: 'Banner', icon: Instagram },
+                  { id: 'layout', label: 'Layout', icon: Cake },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveControlTab(tab.id as any)}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      activeControlTab === tab.id 
+                        ? "bg-theme-primary text-black" 
+                        : "text-zinc-500 hover:text-white hover:bg-zinc-800"
                     )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Estilo do Banner</p>
-                  <div className="grid grid-cols-5 gap-2">
-                    {[
-                      { id: 'yellow', color: 'bg-theme-primary' },
-                      { id: 'white', color: 'bg-white' },
-                      { id: 'black', color: 'bg-black' },
-                      { id: 'red', color: 'bg-red-600' },
-                      { id: 'outline', color: 'bg-transparent border border-zinc-700' }
-                    ].map(style => (
-                      <button
-                        key={style.id}
-                        onClick={() => setBannerStyle(style.id as any)}
-                        className={cn(
-                          "h-8 rounded-lg border-2 transition-all",
-                          style.color,
-                          bannerStyle === style.id ? "border-white scale-110" : "border-transparent opacity-60 hover:opacity-100"
-                        )}
-                        title={style.id}
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-3 mt-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12">INCLINA</span>
-                      <input 
-                        type="range" 
-                        min="-45" 
-                        max="45" 
-                        value={bannerSkew} 
-                        onChange={(e) => setBannerSkew(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 md:col-span-2 lg:col-span-1">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ajustes de Posição & Escala</p>
-                  <div className="space-y-3 bg-zinc-950/50 p-4 rounded-2xl border border-zinc-800">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
-                      <input 
-                        type="range" 
-                        min="-400" 
-                        max="500" 
-                        value={nameYOffset} 
-                        onChange={(e) => setNameYOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">LATERA</span>
-                      <input 
-                        type="range" 
-                        min="-200" 
-                        max="200" 
-                        value={nameXOffset} 
-                        onChange={(e) => setNameXOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO</span>
-                      <input 
-                        type="range" 
-                        min="0.5" 
-                        max="2.5" 
-                        step="0.05"
-                        value={photoScale} 
-                        onChange={(e) => setPhotoScale(parseFloat(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                      <span className="text-[10px] font-bold text-white w-8">{Math.round(photoScale * 100)}%</span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO Y</span>
-                      <input 
-                        type="range" 
-                        min="-200" 
-                        max="200" 
-                        value={photoYOffset} 
-                        onChange={(e) => setPhotoYOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">FOTO X</span>
-                      <input 
-                        type="range" 
-                        min="-200" 
-                        max="200" 
-                        value={photoXOffset} 
-                        onChange={(e) => setPhotoXOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">PARABÉNS</span>
-                      <input 
-                        type="range" 
-                        min="0.5" 
-                        max="1.5" 
-                        step="0.05"
-                        value={congratsScale} 
-                        onChange={(e) => setCongratsScale(parseFloat(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                      <span className="text-[10px] font-bold text-white w-8">{Math.round(congratsScale * 100)}%</span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">TEXTO Y</span>
-                      <input 
-                        type="range" 
-                        min="-200" 
-                        max="300" 
-                        value={congratsYOffset} 
-                        onChange={(e) => setCongratsYOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">TEXTO X</span>
-                      <input 
-                        type="range" 
-                        min="-200" 
-                        max="200" 
-                        value={congratsXOffset} 
-                        onChange={(e) => setCongratsXOffset(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-
-                    <div className="pt-2 border-t border-zinc-800">
-                      <p className="text-[9px] font-black text-theme-primary uppercase tracking-widest mb-2">Ajustes do Escudo</p>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-zinc-400 w-12 text-right">ESC. Y</span>
-                        <input 
-                          type="range" 
-                          min="-200" 
-                          max="200" 
-                          value={crestYOffset} 
-                          onChange={(e) => setCrestYOffset(parseInt(e.target.value))}
-                          className="flex-1 accent-theme-primary h-1.5"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-zinc-400 w-12 text-right">ESC. X</span>
-                        <input 
-                          type="range" 
-                          min="-200" 
-                          max="200" 
-                          value={crestXOffset} 
-                          onChange={(e) => setCrestXOffset(parseInt(e.target.value))}
-                          className="flex-1 accent-theme-primary h-1.5"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-zinc-400 w-12 text-right">TAM. ESC</span>
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="3" 
-                          step="0.05"
-                          value={crestScale} 
-                          onChange={(e) => setCrestScale(parseFloat(e.target.value))}
-                          className="flex-1 accent-theme-primary h-1.5"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">ESCALA</span>
-                      <input 
-                        type="range" 
-                        min="5" 
-                        max="30" 
-                        step="1"
-                        value={bannerScale * 10} 
-                        onChange={(e) => setBannerScale(parseInt(e.target.value) / 10)}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-400 w-12 text-right">FONTE</span>
-                      <input 
-                        type="range" 
-                        min="12" 
-                        max="100" 
-                        value={nameFontSize} 
-                        onChange={(e) => setNameFontSize(parseInt(e.target.value))}
-                        className="flex-1 accent-theme-primary h-1.5"
-                      />
-                      <span className="text-[10px] font-bold text-white w-8">{nameFontSize}</span>
-                    </div>
-
-                    <div className="pt-2 border-t border-zinc-800">
-                      <p className="text-[9px] font-black text-theme-primary uppercase tracking-widest mb-2">Posição do Rodapé</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-zinc-400 w-12 text-right">ALTURA</span>
-                          <input 
-                            type="range" 
-                            min="-100" 
-                            max="100" 
-                            value={footerYOffset} 
-                            onChange={(e) => setFooterYOffset(parseInt(e.target.value))}
-                            className="flex-1 accent-theme-primary h-1.5"
-                          />
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-zinc-400 w-12 text-right">LATERA</span>
-                          <input 
-                            type="range" 
-                            min="-100" 
-                            max="100" 
-                            value={footerXOffset} 
-                            onChange={(e) => setFooterXOffset(parseInt(e.target.value))}
-                            className="flex-1 accent-theme-primary h-1.5"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-zinc-400 w-full text-left inline-block mt-2">MENSAGEM RODAPÉ</span>
-                      <textarea 
-                        rows={2}
-                        value={footerMessage} 
-                        onChange={(e) => setFooterMessage(e.target.value)}
-                        placeholder="Mensagem do rodapé..."
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-[10px] focus:ring-1 focus:ring-theme-primary resize-none"
-                      />
-                    </div>
-
-                    <button 
-                      onClick={() => {
-                        setNameXOffset(0);
-                        setNameYOffset(0);
-                        setBannerScale(1);
-                        setNameFontSize(32);
-                        setBannerSkew(-15);
-                        setFooterYOffset(0);
-                        setFooterXOffset(0);
-                        setPhotoScale(1);
-                        setPhotoYOffset(0);
-                        setPhotoXOffset(0);
-                        setCongratsScale(1);
-                        setCongratsXOffset(0);
-                        setCongratsYOffset(0);
-                        setCrestXOffset(0);
-                        setCrestYOffset(0);
-                        setCrestScale(1);
-                        setShowMainPhoto(true);
-                        setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
-                      }}
-                      className="w-full py-2 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors mt-2"
-                    >
-                      Resetar Tudo
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full flex flex-wrap justify-center gap-2 mt-2 pt-4 border-t border-zinc-800/50">
-                <button 
-                  onClick={() => setShowMainPhoto(!showMainPhoto)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
-                    showMainPhoto ? "bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white" : "bg-theme-primary text-black border-theme-primary"
-                  )}
-                >
-                  {showMainPhoto ? <X size={12} /> : <Plus size={12} />} 
-                  {showMainPhoto ? "Ocultar Foto Principal" : "Mostrar Foto Principal"}
-                </button>
-                {customMainPhoto && (
-                  <button 
-                    onClick={() => setCustomMainPhoto(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all"
                   >
-                    <X size={12} /> Remover Foto Principal
-                  </button>
-                )}
-                {bgImage && (
-                  <button 
-                    onClick={() => setBgImage(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all"
-                  >
-                    <X size={12} /> Remover Fundo
-                  </button>
-                )}
-                {overlayImages.map((_, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => removeOverlay(i)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-400 rounded-lg text-[9px] font-black uppercase hover:text-red-500 transition-all border border-zinc-700"
-                  >
-                    <X size={12} /> Foto {i + 1}
+                    <tab.icon size={14} />
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 ))}
               </div>
+
+              <div className="p-6">
+                {activeControlTab === 'photos' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Fotos de Apoio (Até 4)</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {overlayImages.map((img, i) => (
+                          <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-zinc-800 bg-black">
+                            <img src={img} className="w-full h-full object-cover" />
+                            <button 
+                              onClick={() => removeOverlay(i)}
+                              className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        {overlayImages.length < 4 && (
+                          <label className="flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-800/20 hover:border-theme-primary hover:bg-theme-primary/5 cursor-pointer transition-all">
+                            <Plus size={24} className="text-zinc-600 mb-1" />
+                            <span className="text-[8px] font-black text-zinc-500 uppercase">Adicionar</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleOverlayUpload} />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-zinc-800">
+                      <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Plano de Fundo</p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-28 rounded-lg overflow-hidden border border-zinc-700 bg-black">
+                          {bgImage ? (
+                            <img src={bgImage} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Calendar size={20} className="text-zinc-800" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <label className="block w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white text-center rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors">
+                            <Upload size={14} className="inline mr-2" />
+                            Mudar Fundo
+                            <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+                          </label>
+                          {bgImage && (
+                            <button 
+                              onClick={() => setBgImage(null)}
+                              className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            >
+                              Resetar Fundo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeControlTab === 'main_photo' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex flex-col sm:flex-row gap-6">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className={cn(
+                          "w-32 aspect-[3/4] rounded-xl overflow-hidden border-4 border-black shadow-xl bg-zinc-800 relative",
+                          !showMainPhoto && "opacity-20 grayscale"
+                        )}>
+                          {customMainPhoto ? (
+                            <img src={customMainPhoto} className="w-full h-full object-cover" />
+                          ) : selectedPerson.photo ? (
+                            <img src={selectedPerson.photo} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                              <UserCircle size={40} />
+                            </div>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => setShowMainPhoto(!showMainPhoto)}
+                          className={cn(
+                            "w-full py-2 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                            showMainPhoto ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-theme-primary border-theme-primary text-black"
+                          )}
+                        >
+                          {showMainPhoto ? 'Ocultar Foto' : 'Mostrar Foto'}
+                        </button>
+                      </div>
+
+                      <div className="flex-1 space-y-4">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Controles da Foto Principal</p>
+                        
+                        <div className="space-y-4">
+                          <label className="block bg-black border border-zinc-800 hover:border-theme-primary/50 p-4 rounded-2xl transition-all cursor-pointer text-center">
+                            <Upload size={20} className="mx-auto mb-2 text-theme-primary" />
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Mudar Foto Principal</p>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleMainPhotoUpload} />
+                          </label>
+
+                          <div className="grid grid-cols-1 gap-4 pt-2">
+                             <div className="space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Tamanho</span>
+                                <span className="text-[9px] font-bold text-theme-primary">{Math.round(photoScale * 100)}%</span>
+                              </div>
+                              <input type="range" min="0.5" max="2.5" step="0.05" value={photoScale} onChange={e => setPhotoScale(parseFloat(e.target.value))} className="w-full accent-theme-primary" />
+                            </div>
+                            <div className="flex gap-4">
+                              <div className="flex-1 space-y-1">
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Vertical</span>
+                                <input type="range" min="-300" max="300" value={photoYOffset} onChange={e => setPhotoYOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Horizontal</span>
+                                <input type="range" min="-200" max="200" value={photoXOffset} onChange={e => setPhotoXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeControlTab === 'banner' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Estilo do Nome</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { id: 'yellow', label: 'Amarelo' },
+                            { id: 'white', label: 'Branco' },
+                            { id: 'black', label: 'Preto' },
+                            { id: 'red', label: 'Vermelho' },
+                            { id: 'outline', label: 'Linha' },
+                          ].map(style => (
+                            <button
+                              key={style.id}
+                              onClick={() => setBannerStyle(style.id as any)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+                                bannerStyle === style.id 
+                                  ? "bg-theme-primary border-theme-primary text-black" 
+                                  : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:text-white"
+                              )}
+                            >
+                              {style.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-zinc-800">
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Tamanho da Fonte</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{nameFontSize}px</span>
+                            </div>
+                            <input type="range" min="12" max="100" value={nameFontSize} onChange={e => setNameFontSize(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Inclinação</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{bannerSkew}°</span>
+                            </div>
+                            <input type="range" min="-45" max="45" value={bannerSkew} onChange={e => setBannerSkew(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Posicionamento</p>
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Escala Banner</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{Math.round(bannerScale * 100)}%</span>
+                            </div>
+                            <input type="range" min="0.5" max="3" step="0.1" value={bannerScale} onChange={e => setBannerScale(parseFloat(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Posição Vertical</span>
+                            <input type="range" min="-400" max="500" value={nameYOffset} onChange={e => setNameYOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Posição Horizontal</span>
+                            <input type="range" min="-200" max="200" value={nameXOffset} onChange={e => setNameXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeControlTab === 'layout' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                       <div className="space-y-4">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Cabeçalho (Parabéns/Escudo)</p>
+                        <div className="space-y-3 p-4 bg-black/50 rounded-2xl border border-zinc-800">
+                           <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Tamanho Texto</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{Math.round(congratsScale * 100)}%</span>
+                            </div>
+                            <input type="range" min="0.5" max="1.5" step="0.05" value={congratsScale} onChange={e => setCongratsScale(parseFloat(e.target.value))} className="w-full accent-theme-primary" />
+                          </div>
+                          <div className="flex gap-4">
+                            <div className="flex-1 space-y-1">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Texto V</span>
+                              <input type="range" min="-200" max="300" value={congratsYOffset} onChange={e => setCongratsYOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Texto H</span>
+                              <input type="range" min="-200" max="200" value={congratsXOffset} onChange={e => setCongratsXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-zinc-800">
+                            <div className="flex justify-between mb-1">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Escudo V/H/T</span>
+                            </div>
+                            <div className="space-y-2">
+                              <input type="range" min="-200" max="200" value={crestYOffset} onChange={e => setCrestYOffset(parseInt(e.target.value))} className="w-full accent-theme-primary mb-1" title="Vertical" />
+                              <input type="range" min="-200" max="200" value={crestXOffset} onChange={e => setCrestXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary mb-1" title="Horizontal" />
+                              <input type="range" min="0.2" max="3" step="0.05" value={crestScale} onChange={e => setCrestScale(parseFloat(e.target.value))} className="w-full accent-theme-primary" title="Tamanho" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Rodapé (Mensagem)</p>
+                        <div className="space-y-4">
+                          <textarea 
+                            rows={3}
+                            value={footerMessage} 
+                            onChange={(e) => setFooterMessage(e.target.value)}
+                            placeholder="Mensagem do rodapé..."
+                            className="w-full px-4 py-3 bg-black border border-zinc-800 rounded-2xl text-white text-[11px] font-medium focus:ring-2 focus:ring-theme-primary focus:border-theme-primary transition-all resize-none shadow-inner"
+                          />
+                          <div className="flex gap-4">
+                            <div className="flex-1 space-y-1">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Mensagem V</span>
+                              <input type="range" min="-100" max="100" value={footerYOffset} onChange={e => setFooterYOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Mensagem H</span>
+                              <input type="range" min="-100" max="100" value={footerXOffset} onChange={e => setFooterXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-zinc-800 flex justify-center">
+                      <button 
+                        onClick={() => {
+                          setNameXOffset(0);
+                          setNameYOffset(0);
+                          setBannerScale(1);
+                          setNameFontSize(32);
+                          setBannerSkew(-15);
+                          setFooterYOffset(0);
+                          setFooterXOffset(0);
+                          setPhotoScale(1);
+                          setPhotoYOffset(0);
+                          setPhotoXOffset(0);
+                          setCongratsScale(1);
+                          setCongratsXOffset(0);
+                          setCongratsYOffset(0);
+                          setCrestXOffset(0);
+                          setCrestYOffset(0);
+                          setCrestScale(1);
+                          setShowMainPhoto(true);
+                          setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
+                        }}
+                        className="py-2 px-6 bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        Resetar Todos Ajustes
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
 
             <div className="mt-6 flex flex-wrap justify-center gap-4">
               <button 
