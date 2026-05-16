@@ -88,6 +88,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   const errorMessage = error instanceof Error ? error.message : String(error);
   
   const quotaDetected = errorMessage.toLowerCase().includes("quota");
+  if (quotaDetected) {
+    quotaExceededToday = true;
+    try {
+      localStorage.setItem('quota_exceeded_today', new Date().toDateString());
+    } catch (e) {}
+  }
 
   const errInfo: FirestoreErrorInfo = {
     error: quotaDetected 
@@ -121,16 +127,21 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Simple cache to reduce read operations
 const cache: Record<string, { data: any, timestamp: number }> = {};
 const pendingRequests: { [key: string]: Promise<any> | null } = {};
-const CACHE_TTL = 300000; // 5 minutes for "fresh" data
+const CACHE_TTL = 900000; // 15 minutes for "fresh" data
 const PERSISTENT_CACHE_PREFIX = "pirua_cache_";
-const STALE_TTL = 86400000; // 24 hours (can use very stale data if quota is out)
+const STALE_TTL = 172800000; // 48 hours (can use very stale data if quota is out)
 
-let quotaExceededToday = false;
+let quotaExceededToday = localStorage.getItem('quota_exceeded_today') === new Date().toDateString();
+
+export const isQuotaExceeded = () => quotaExceededToday;
 
 const getCachedData = (key: string) => {
+  // If we know quota is exceeded, be very aggressive with memory cache
+  const effectiveTTL = quotaExceededToday ? STALE_TTL : CACHE_TTL;
+  
   // Check memory cache first
   const memoryCached = cache[key];
-  if (memoryCached && (Date.now() - memoryCached.timestamp) < CACHE_TTL) {
+  if (memoryCached && (Date.now() - memoryCached.timestamp) < effectiveTTL) {
     return memoryCached.data;
   }
 
@@ -139,7 +150,7 @@ const getCachedData = (key: string) => {
     const localCached = localStorage.getItem(PERSISTENT_CACHE_PREFIX + key);
     if (localCached) {
       const { data, timestamp } = JSON.parse(localCached);
-      // Even if stale (up to 24h), we might want to return it if we are in quota-saving mode
+      // If quota is exceeded, we use any data we have up to STALE_TTL
       if ((Date.now() - timestamp) < STALE_TTL) {
         // Update memory cache
         cache[key] = { data, timestamp };
@@ -159,8 +170,15 @@ const setCachedData = (key: string, data: any) => {
   // Try to persist to localStorage if it's serializable
   try {
     // Only persist arrays or plain objects, not Firestore Snapshots directly
-    if (data && typeof data === 'object' && !(data.docs || data.exists)) {
-      localStorage.setItem(PERSISTENT_CACHE_PREFIX + key, JSON.stringify({ data, timestamp }));
+    if (data && typeof data === 'object' && !Array.isArray(data) && (data.docs || data.exists || data._delegate)) {
+      // Don't persist snapshots directly
+      return;
+    }
+    
+    // Safely stringify
+    const serialized = JSON.stringify({ data, timestamp });
+    if (serialized.length < 500000) { // Don't cache huge chunks to avoid quota on localStorage
+       localStorage.setItem(PERSISTENT_CACHE_PREFIX + key, serialized);
     }
   } catch (e) {
     // Storage might be full or data too large
@@ -244,8 +262,11 @@ const getDocsWithCacheFallback = async (q: any) => {
     } catch (error) {
       pendingRequests[key] = null;
       if (isQuotaError(error)) {
-        quotaExceededToday = true;
-        console.warn("Quota exceeded, attempting to load from cache...");
+      quotaExceededToday = true;
+      try {
+        localStorage.setItem('quota_exceeded_today', new Date().toDateString());
+      } catch (e) {}
+      console.warn("Quota exceeded, attempting to load from cache...");
         
         // Return stale cache if available
         if (cached) return cached;
@@ -748,8 +769,12 @@ export const api = {
     // Initial fetch from cache or server
     api.getAthletes().then(callback);
     
-    // Use a very limited snapshot or just don't use it if quota is low
-    // For now, we'll keep it but we'll monitor if this continues to be an issue
+    // If quota was already exceeded, don't even try to subscribe as it will just error out
+    if (quotaExceededToday) {
+      console.warn("[Quota Mode] Skipping onSnapshot for athletes");
+      return () => {};
+    }
+
     return onSnapshot(collection(db, "athletes"), (snapshot) => {
       const athletes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
       // Update cache manually when snapshot triggers
@@ -805,8 +830,9 @@ export const api = {
     const cacheKey = "athletes";
     const cached = getCachedData(cacheKey);
     
-    // Background refresh
+    // Background refresh - only if quota is NOT exceeded
     const backgroundFetch = async () => {
+      if (quotaExceededToday) return cached || [];
       try {
         const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
         const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete))

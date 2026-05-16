@@ -30,26 +30,27 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   // Positioning State
   const [pos1, setPos1] = useState({ scale: 1, x: 0, y: 0 });
   const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
-  const [infoPos, setInfoPos] = useState({ x: 0, y: 0 });
+  const [infoPos, setInfoPos] = useState({ x: 0, y: 30 });
   const [photoPos, setPhotoPos] = useState({ y: 0 });
   const [infoAlign, setInfoAlign] = useState<'left' | 'right'>('left');
   const [showVS, setShowVS] = useState(false);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
+  const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [playerMode, setPlayerMode] = useState<'foreground' | 'background'>('foreground');
   const [playerOpacity, setPlayerOpacity] = useState(0.4);
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
-      // If none is selected, everything else is cleared
+      // If choosing 'none', clear all others
       if (id === 'none') return ['none'];
       
       // If we are selecting something else but 'none' was active, remove 'none'
       const withoutNone = prev.filter(bg => bg !== 'none');
       
       if (withoutNone.includes(id)) {
-        if (withoutNone.length === 1) return ['none']; // Fallback to none if last one removed
+        if (withoutNone.length === 1 && id !== 'custom') return ['none']; // Fallback to none if last one removed
         return withoutNone.filter(bg => bg !== id);
       }
       return [...withoutNone, id];
@@ -261,8 +262,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       }));
 
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 800)); // Short wait for rendering engine
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait for rendering engine and images
 
+      console.log('Capturing flyer with backgrounds:', selectedBackgrounds);
+      
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
@@ -538,6 +541,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
               <div>
                 <div className="flex justify-between mb-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Intensidade do Fundo (Escurecer)</label>
+                  <span className="text-[9px] text-theme-primary font-bold">{(overlayOpacity * 100).toFixed(0)}%</span>
+                </div>
+                <input 
+                  type="range" min="0" max="1" step="0.05"
+                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                  value={overlayOpacity}
+                  onChange={e => setOverlayOpacity(parseFloat(e.target.value))}
+                />
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
                   <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição das Fotos (Vertical)</label>
                 </div>
                 <input 
@@ -552,24 +567,24 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição dos Treinos (V/H)</label>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
-                    <input 
-                      type="range" min="-300" max="300" step="1"
-                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                      value={infoPos.y}
-                      onChange={e => setInfoPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
-                    <input 
-                      type="range" min="-200" max="200" step="1"
-                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                      value={infoPos.x}
-                      onChange={e => setInfoPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
-                    />
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
+                        <input 
+                          type="range" min="-500" max="500" step="1"
+                          className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                          value={infoPos.y}
+                          onChange={e => setInfoPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
+                        <input 
+                          type="range" min="-300" max="300" step="1"
+                          className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                          value={infoPos.x}
+                          onChange={e => setInfoPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
+                        />
+                      </div>
                 </div>
               </div>
             </div>
@@ -821,7 +836,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   )}
 
                   {/* Global Gradients */}
-                  <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
+                  <div 
+                    className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/40 to-black/80" 
+                    style={{ opacity: overlayOpacity }}
+                  />
                   
                   {/* Athlete Image Layer */}
                   {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
@@ -894,16 +912,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="absolute inset-0 z-[6] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
               
               {/* Tech Header - Centered Orientation */}
-              <div className="relative z-30 pt-8 flex flex-col items-center">
-                <div className="w-14 h-14 mb-1 filter drop-shadow-[0_0_15px_rgba(255,255,0,0.3)]">
+              <div className="relative z-30 pt-10 flex flex-col items-center">
+                <div className="w-20 h-20 mb-3 filter drop-shadow-[0_0_20px_rgba(234,179,8,0.4)]">
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
                     <Trophy size={40} className="text-theme-primary" />
                   )}
                 </div>
-                <div className="text-center">
-                  <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                <div className="text-center px-4">
+                  <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] border-b-2 border-theme-primary/50 pb-1">
                     {settings.schoolName || 'Piruá Esporte Clube'}
                   </h1>
                 </div>

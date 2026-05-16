@@ -525,6 +525,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   }
 }
 
+import QuotaBanner from './components/QuotaBanner';
+
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -1318,6 +1320,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <QuotaBanner />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
         {renderContent()}
         {isAthleteFormOpen && (
