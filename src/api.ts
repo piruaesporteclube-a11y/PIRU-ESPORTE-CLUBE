@@ -771,7 +771,7 @@ export const api = {
     
     // If quota was already exceeded, don't even try to subscribe as it will just error out
     if (quotaExceededToday) {
-      console.warn("[Quota Mode] Skipping onSnapshot for athletes");
+      console.warn("[Quota Mode] Athletes subscription disabled");
       return () => {};
     }
 
@@ -832,21 +832,25 @@ export const api = {
     
     // Background refresh - only if quota is NOT exceeded
     const backgroundFetch = async () => {
-      if (quotaExceededToday) return cached || [];
+      if (quotaExceededToday) {
+        return cached || [];
+      }
       try {
         const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
         const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete))
           .sort((a, b) => a.name.localeCompare(b.name));
-        setCachedData(cacheKey, data);
+        
+        if (data.length > 0) {
+          setCachedData(cacheKey, data);
+        }
         return data;
       } catch (e) {
         return cached || [];
       }
     };
 
-    if (cached) {
-      // Return cached immediately, refresh in background
-      backgroundFetch().catch(() => {});
+    if (cached && cached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), 2000 + Math.random() * 5000);
       return cached;
     }
     

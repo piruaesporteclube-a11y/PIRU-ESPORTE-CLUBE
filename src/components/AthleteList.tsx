@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, isQuotaExceeded } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
 import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -645,8 +645,19 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         </div>
 
         {filteredAthletes.length === 0 && (
-          <div className="px-6 py-12 text-center text-zinc-500">
-            Nenhum atleta encontrado com os filtros selecionados.
+          <div className="px-6 py-12 text-center text-zinc-500 space-y-4">
+            <div className="flex flex-col items-center gap-3">
+              <Search size={32} className="opacity-20" />
+              <p>Nenhum atleta encontrado com os filtros selecionados.</p>
+              {isQuotaExceeded() && (
+                <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl max-w-sm mx-auto">
+                  <p className="text-amber-500 text-xs font-bold uppercase tracking-wider">Modo de Economia Ativo</p>
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    Como o limite diário do banco de dados foi atingido, novos atletas cadastrados ou alterações feitas em outros aparelhos podem não aparecer até que o limite seja reiniciado.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
