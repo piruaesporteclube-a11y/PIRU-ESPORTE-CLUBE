@@ -855,121 +855,145 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* Elements */}
               <div className="absolute inset-0 z-[6] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
               
-              {/* Header Info */}
-              <div className="relative z-30 pt-6 px-6 flex flex-col items-center">
-                <div className="w-16 h-16 mb-2 filter drop-shadow-[0_0_20px_rgba(255,255,0,0.4)] transform hover:scale-110 transition-transform duration-700">
+              {/* Tech Header - Top Right Orientation */}
+              <div className="relative z-30 pt-8 pr-6 flex flex-col items-end">
+                <div className="w-14 h-14 mb-1 filter drop-shadow-[0_0_15px_rgba(255,255,0,0.3)]">
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
-                    <Trophy size={48} className="text-theme-primary" />
+                    <Trophy size={40} className="text-theme-primary" />
                   )}
                 </div>
-                <div className="relative">
-                  <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                <div className="text-right">
+                  <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
                     {settings.schoolName || 'Piruá Esporte Clube'}
                   </h1>
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-theme-primary rounded-full shadow-[0_0_10px_rgba(255,255,0,0.5)]"></div>
                 </div>
               </div>
 
-              {/* Date Section - Minimal Glass Style */}
-              <div className="relative z-30 mt-2 px-6">
-                <div className="flex items-center justify-center">
-                  <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 flex items-center gap-3 shadow-xl ring-1 ring-white/5">
-                    <div className="bg-theme-primary p-1.5 rounded-full">
-                      <Calendar size={12} className="text-black" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col leading-none">
-                        <span className="text-[7px] font-black text-theme-primary uppercase tracking-widest leading-none mb-0.5">
-                          {dayOfWeek.split('-')[0]}
-                        </span>
-                        <span className="text-[14px] font-black text-white leading-none tracking-tight">
-                          {formattedDate.split(' de ')[0]}
-                        </span>
-                      </div>
-                      <div className="w-px h-6 bg-white/10" />
-                      <div className="flex flex-col leading-none">
-                        <span className="text-[9px] font-black text-zinc-300 uppercase tracking-tight">
-                          {formattedDate.split(' de ').slice(1).join(' ')}
-                        </span>
-                        <span className="text-[6px] font-black text-theme-primary uppercase tracking-[0.2em] italic">
-                          Agenda
-                        </span>
-                      </div>
-                    </div>
+              {/* Date Section - Top Center/Right Corner */}
+              <div className="relative z-30 mt-4 pr-6 flex justify-end">
+                <div className="bg-black/30 backdrop-blur-md border border-white/5 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-xl">
+                  <Calendar size={10} className="text-theme-primary" />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[6px] font-black text-theme-primary uppercase tracking-widest">{dayOfWeek}</span>
+                    <span className="text-[11px] font-black text-white uppercase tracking-tight">{formattedDate}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Trainings List */}
-              <div 
-                className="relative z-30 flex-1 px-6 py-4 flex flex-col min-h-0 transition-transform"
-                style={{ transform: `translateY(${infoPos.y}px)` }}
-              >
-                <div className={cn(
-                  "flyer-scrollable space-y-3 custom-scrollbar pr-1 flex-1 transition-all duration-700",
-                  playerMode === 'background' ? "scale-95 translate-y-4" : "scale-100"
-                )}>
-                  {trainings.map((t, idx) => (
-                    <div key={idx} className={cn(
-                      "backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl transition-all duration-700",
-                      playerMode === 'background' ? "bg-black/40" : "bg-black/70"
-                    )}>
-                      <div className="bg-gradient-to-r from-white/10 to-transparent px-3 py-1.5 flex items-center justify-between border-b border-white/10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1 h-3 bg-theme-primary rounded-full"></div>
-                          <h3 className="text-[12px] font-black text-white uppercase italic tracking-widest">
-                            {t.modality}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-1 text-zinc-400">
-                          <MapPin size={9} className="text-theme-primary" />
-                          <span className="text-[8px] font-bold uppercase truncate max-w-[80px]">{t.location}</span>
-                        </div>
-                      </div>
-                      <div className="p-2 space-y-2">
-                        {t.schedules?.map((s, si) => (
-                          <div key={si} className={cn(
-                            "rounded-lg p-2 border border-white/5 space-y-1.5 relative overflow-hidden transition-all duration-700",
-                            playerMode === 'background' ? "bg-zinc-900/40" : "bg-zinc-900/80"
-                          )}>
-                            <div className="relative flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-black/60 rounded border border-theme-primary/20">
-                                <Clock size={9} className="text-theme-primary" />
-                                <span className="text-theme-primary font-mono text-[10px] font-black tracking-tighter">{s.start_time} — {s.end_time}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {s.categories.map((c, ci) => (
-                                  <span key={ci} className="text-[7px] bg-theme-primary text-black px-1.5 py-0.5 rounded font-black uppercase italic shadow-sm">
+              {/* Vertical Sidebar: Schedules on the Left */}
+              <div className="absolute left-2 top-24 bottom-32 w-[114px] z-40 flex flex-col gap-3 py-4">
+                {trainings.map((t, idx) => (
+                  <div key={idx} className="flex flex-col gap-2">
+                    <div className="bg-theme-primary/10 border-l-2 border-theme-primary px-2 py-1 backdrop-blur-sm">
+                      <h3 className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate">
+                        {t.modality}
+                      </h3>
+                    </div>
+                    
+                    <div className="space-y-2 pl-1">
+                      {t.schedules?.map((s, si) => (
+                        <div key={si} className="relative group">
+                          <div className="bg-black/60 backdrop-blur-md border-l border-white/10 p-2 rounded-r-lg space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all">
+                            {/* Time Slot */}
+                            <div className="flex items-center gap-1">
+                              <Clock size={8} className="text-theme-primary opacity-70" />
+                              <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
+                                {s.start_time}
+                              </span>
+                            </div>
+
+                            {/* Categories Stacks */}
+                            <div className="flex flex-col gap-0.5 mt-0.5">
+                              {s.categories.map((c, ci) => (
+                                <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
+                                  <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
                                     {c}
                                   </span>
-                                ))}
-                              </div>
+                                </div>
+                              ))}
                             </div>
-                            {s.notes && (
-                              <div className="relative flex items-start gap-1.5 pt-1 border-t border-white/5">
-                                <FileText size={9} className="text-theme-primary mt-0.5 flex-shrink-0" />
-                                <p className="text-zinc-400 text-[8px] font-bold uppercase italic leading-tight">
-                                  {s.notes}
-                                </p>
-                              </div>
-                            )}
                           </div>
-                        ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* VS Slot Adjustment - Shifted right to account for sidebar */}
+              {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
+                <div 
+                  className="absolute left-[120px] right-4 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center"
+                >
+                  <div className="relative w-full h-[280px] flex items-center justify-center">
+                    <div className="absolute left-0 w-1/2 h-full flex items-center justify-center -translate-x-2">
+                      <div 
+                        className={cn(
+                          "w-24 h-36 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete || customImage) ? "opacity-100" : "opacity-30 border-zinc-800"
+                        )}
+                        style={{ transform: 'skew(-6deg)' }}
+                      >
+                        {(customImage || selectedAthlete?.photo) && (
+                          <img 
+                            src={customImage || selectedAthlete?.photo} 
+                            className="w-full h-full object-cover transform skew(6deg)" 
+                            style={{ 
+                              transform: `skew(6deg) scale(${pos1.scale}) translate(${pos1.x}px, ${pos1.y}px)` 
+                            }}
+                            crossOrigin="anonymous" 
+                          />
+                        )}
                       </div>
                     </div>
-                  ))}
+
+                    <div className="absolute right-0 w-1/2 h-full flex items-center justify-center translate-x-2">
+                      <div 
+                        className={cn(
+                          "w-24 h-36 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30 border-zinc-800"
+                        )}
+                        style={{ transform: 'skew(-6deg)' }}
+                      >
+                        {(customImage2 || selectedAthlete2?.photo) && (
+                          <img 
+                            src={customImage2 || selectedAthlete2?.photo} 
+                            className="w-full h-full object-cover transform skew(6deg)" 
+                            style={{ 
+                              transform: `skew(6deg) scale(${pos2.scale}) translate(${pos2.x}px, ${pos2.y}px)` 
+                            }}
+                            crossOrigin="anonymous" 
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {showVS && (
+                      <div className="absolute z-10">
+                        <div className="bg-black text-theme-primary font-black text-xl italic px-3 py-1.5 rounded-lg border-2 border-theme-primary shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12">
+                          VS
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Motivational Footer Tag */}
+              <div className="absolute bottom-10 left-[120px] right-6 z-30">
+                <div className="bg-black/20 backdrop-blur-sm border-l-2 border-theme-primary pl-3 py-2 italic text-left">
+                  <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-md leading-tight">
+                    FOCO DISCIPLINA E RAÇA!<br />
+                    O SUCESSO COMEÇA NO TREINO.
+                  </p>
                 </div>
               </div>
 
-              <div className="relative z-30 px-6 pb-6 text-center">
-                <div className="py-2 border-y border-theme-primary/10 mb-2">
-                  <p className="text-theme-primary text-[9px] font-black uppercase italic tracking-[0.1em] drop-shadow-md">
-                    FOCO DISCIPLINA E RAÇA! O SUCESSO COMEÇA, NO TREINO.
-                  </p>
-                </div>
-                <p className="text-zinc-500 text-[7px] font-bold uppercase tracking-widest opacity-40">
+              {/* Footer info */}
+              <div className="absolute bottom-6 left-0 right-0 z-30 text-center">
+                <p className="text-zinc-500 text-[7px] font-bold uppercase tracking-widest opacity-60">
                   {settings.schoolName || 'Piruá Esporte Clube'} • 2026
                 </p>
               </div>
