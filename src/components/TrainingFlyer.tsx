@@ -32,6 +32,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
   const [infoPos, setInfoPos] = useState({ y: 0 });
   const [photoPos, setPhotoPos] = useState({ y: 0 });
+  const [infoAlign, setInfoAlign] = useState<'left' | 'right'>('left');
   const [showVS, setShowVS] = useState(false);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
@@ -513,6 +514,29 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Layout Global</span>
             <div className="space-y-4">
               <div>
+                <label className="text-[9px] font-bold text-zinc-400 uppercase block mb-2">Lado dos Treinos</label>
+                <div className="flex bg-black p-1 rounded-lg border border-zinc-700">
+                  <button 
+                    onClick={() => setInfoAlign('left')}
+                    className={cn(
+                      "flex-1 py-1.5 rounded text-[9px] font-black uppercase transition-all",
+                      infoAlign === 'left' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Esquerda
+                  </button>
+                  <button 
+                    onClick={() => setInfoAlign('right')}
+                    className={cn(
+                      "flex-1 py-1.5 rounded text-[9px] font-black uppercase transition-all",
+                      infoAlign === 'right' ? "bg-theme-primary text-black" : "text-zinc-500"
+                    )}
+                  >
+                    Direita
+                  </button>
+                </div>
+              </div>
+              <div>
                 <div className="flex justify-between mb-1">
                   <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição das Fotos (Vertical)</label>
                 </div>
@@ -855,8 +879,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* Elements */}
               <div className="absolute inset-0 z-[6] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
               
-              {/* Tech Header - Top Right Orientation */}
-              <div className="relative z-30 pt-8 pr-6 flex flex-col items-end">
+              {/* Tech Header - Centered Orientation */}
+              <div className="relative z-30 pt-8 flex flex-col items-center">
                 <div className="w-14 h-14 mb-1 filter drop-shadow-[0_0_15px_rgba(255,255,0,0.3)]">
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
@@ -864,44 +888,57 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <Trophy size={40} className="text-theme-primary" />
                   )}
                 </div>
-                <div className="text-right">
+                <div className="text-center">
                   <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
                     {settings.schoolName || 'Piruá Esporte Clube'}
                   </h1>
                 </div>
               </div>
 
-              {/* Date Section - Top Center/Right Corner */}
-              <div className="relative z-30 mt-4 pr-6 flex justify-end">
+              {/* Date Section - Centered */}
+              <div className="relative z-30 mt-4 flex justify-center">
                 <div className="bg-black/30 backdrop-blur-md border border-white/5 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-xl">
                   <Calendar size={10} className="text-theme-primary" />
-                  <div className="flex flex-col leading-tight">
+                  <div className="flex flex-col leading-tight items-center">
                     <span className="text-[6px] font-black text-theme-primary uppercase tracking-widest">{dayOfWeek}</span>
                     <span className="text-[11px] font-black text-white uppercase tracking-tight">{formattedDate}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Vertical Sidebar: Schedules on the Left */}
-              <div className="absolute left-2 top-24 bottom-32 w-[114px] z-40 flex flex-col gap-3 py-4">
+              {/* Vertical Sidebar: Schedules */}
+              <div 
+                className={cn(
+                  "absolute bottom-32 w-[114px] z-40 flex flex-col gap-3 py-4 transition-all duration-300",
+                  infoAlign === 'left' ? "left-2" : "right-2"
+                )}
+                style={{ top: `${96 + infoPos.y}px` }}
+              >
                 {trainings.map((t, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
-                    <div className="bg-theme-primary/10 border-l-2 border-theme-primary px-2 py-1 backdrop-blur-sm">
-                      <h3 className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate">
+                    <div className={cn(
+                      "bg-theme-primary/10 px-2 py-1 backdrop-blur-sm",
+                      infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right"
+                    )}>
+                      <h3 className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-tight">
                         {t.modality}
                       </h3>
                     </div>
                     
-                    <div className="space-y-2 pl-1">
+                    <div className={cn("space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
                       {t.schedules?.map((s, si) => (
                         <div key={si} className="relative group">
-                          <div className="bg-black/60 backdrop-blur-md border-l border-white/10 p-2 rounded-r-lg space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all">
+                          <div className={cn(
+                            "bg-black/60 backdrop-blur-md p-2 space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all",
+                            infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
+                          )}>
                             {/* Time Slot */}
-                            <div className="flex items-center gap-1">
-                              <Clock size={8} className="text-theme-primary opacity-70" />
+                            <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
+                              {infoAlign === 'left' && <Clock size={8} className="text-theme-primary opacity-70" />}
                               <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
                                 {s.start_time}
                               </span>
+                              {infoAlign === 'right' && <Clock size={8} className="text-theme-primary opacity-70" />}
                             </div>
 
                             {/* Categories Stacks */}
@@ -925,7 +962,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* VS Slot Adjustment - Shifted right to account for sidebar */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
                 <div 
-                  className="absolute left-[120px] right-4 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center"
+                  className={cn(
+                    "absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all",
+                    infoAlign === 'left' ? "left-[120px] right-4" : "left-4 right-[120px]"
+                  )}
                 >
                   <div className="relative w-full h-[280px] flex items-center justify-center">
                     <div className="absolute left-0 w-1/2 h-full flex items-center justify-center -translate-x-2">
@@ -982,8 +1022,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               )}
 
               {/* Motivational Footer Tag */}
-              <div className="absolute bottom-10 left-[120px] right-6 z-30">
-                <div className="bg-black/20 backdrop-blur-sm border-l-2 border-theme-primary pl-3 py-2 italic text-left">
+              <div className={cn(
+                "absolute bottom-10 z-30 transition-all",
+                infoAlign === 'left' ? "left-[120px] right-6" : "left-6 right-[120px]"
+              )}>
+                <div className={cn(
+                  "bg-black/20 backdrop-blur-sm pl-3 py-2 italic",
+                  infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right pr-3 pl-0"
+                )}>
                   <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-md leading-tight">
                     FOCO DISCIPLINA E RAÇA!<br />
                     O SUCESSO COMEÇA NO TREINO.
