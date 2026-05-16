@@ -39,6 +39,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [photoXOffset, setPhotoXOffset] = useState(0);
   const [customMainPhoto, setCustomMainPhoto] = useState<string | null>(null);
   const [congratsScale, setCongratsScale] = useState(1);
+  const [congratsXOffset, setCongratsXOffset] = useState(0);
+  const [congratsYOffset, setCongratsYOffset] = useState(0);
+  const [crestXOffset, setCrestXOffset] = useState(0);
+  const [crestYOffset, setCrestYOffset] = useState(0);
+  const [crestScale, setCrestScale] = useState(1);
+  const [showMainPhoto, setShowMainPhoto] = useState(true);
 
   useEffect(() => {
     if (athletesProp) {
@@ -627,7 +633,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 {/* TOP: Parabéns & Crest */}
                 <div 
                   className="w-full flex flex-col items-center gap-2 relative z-30"
-                  style={{ transform: `scale(${congratsScale})` }}
+                  style={{ transform: `translate(${congratsXOffset}px, ${congratsYOffset}px) scale(${congratsScale})` }}
                 >
                   <div className="bg-black/90 border-4 border-theme-primary px-8 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
                     <h1 className="text-white font-black text-3xl md:text-4xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
@@ -635,7 +641,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     </h1>
                   </div>
                   
-                  <div className="w-20 h-20 md:w-28 md:h-28 relative flex items-center justify-center bg-transparent mt-1">
+                  <div 
+                    className="w-20 h-20 md:w-28 md:h-28 relative flex items-center justify-center bg-transparent mt-1"
+                    style={{ 
+                      transform: `translate(${crestXOffset}px, ${crestYOffset}px) scale(${crestScale})`
+                    }}
+                  >
                     {settings.schoolCrest ? (
                       <img 
                         src={settings.schoolCrest} 
@@ -659,74 +670,76 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 </div>
 
                   {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
-                  <div 
-                    className="relative group z-20 transition-transform my-auto"
-                    style={{ 
-                      transform: `translate(${photoXOffset}px, ${photoYOffset}px) scale(${photoScale})`
-                    }}
-                  >
-                    {/* Glowing background effect */}
-                    <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
-                    
-                    <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
-                      {customMainPhoto ? (
-                        <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                      ) : selectedPerson.photo ? (
-                        <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
-                          <UserCircle size={80} strokeWidth={1} />
-                          <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
-                        </div>
-                      )}
-                      
-                      {/* Internal theme border */}
-                      <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
-                      
-                      {/* Technical corner accents */}
-                      <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
-                      <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
-                    </div>
-
-                    {/* Name Banner - Creative, high-visibility design */}
+                  {showMainPhoto && (
                     <div 
-                      className="absolute z-40 transform"
+                      className="relative group z-20 transition-transform my-auto"
                       style={{ 
-                        bottom: `${-30 + nameYOffset}px`, 
-                        left: `${-15 + nameXOffset}%`, 
-                        right: `${-15 - nameXOffset}%`,
-                        rotate: '1.5deg',
-                        scale: `${bannerScale}`
+                        transform: `translate(${photoXOffset}px, ${photoYOffset}px) scale(${photoScale})`
                       }}
                     >
-                      <div className={cn(
-                        "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
-                        bannerStyle === 'yellow' && "bg-theme-primary border-black",
-                        bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
-                        bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
-                        bannerStyle === 'red' && "bg-red-600 border-black",
-                        bannerStyle === 'outline' && "bg-black/80 backdrop-blur-md border-theme-primary shadow-none"
-                      )}
-                      style={{ transform: `skewX(${bannerSkew}deg)` }}
+                      {/* Glowing background effect */}
+                      <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                      
+                      <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
+                        {customMainPhoto ? (
+                          <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                        ) : selectedPerson.photo ? (
+                          <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
+                            <UserCircle size={80} strokeWidth={1} />
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                          </div>
+                        )}
+                        
+                        {/* Internal theme border */}
+                        <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
+                        
+                        {/* Technical corner accents */}
+                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
+                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
+                      </div>
+
+                      {/* Name Banner - Creative, high-visibility design */}
+                      <div 
+                        className="absolute z-40 transform"
+                        style={{ 
+                          bottom: `${-30 + nameYOffset}px`, 
+                          left: `${-15 + nameXOffset}%`, 
+                          right: `${-15 - nameXOffset}%`,
+                          rotate: '1.5deg',
+                          scale: `${bannerScale}`
+                        }}
                       >
-                        <h3 
-                          className={cn(
-                            "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
-                            (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
-                          )}
-                          style={{ 
-                            fontSize: `${nameFontSize}px`,
-                            transform: `skewX(${-bannerSkew}deg)`,
-                            maxWidth: '100%',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
+                        <div className={cn(
+                          "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
+                          bannerStyle === 'yellow' && "bg-theme-primary border-black",
+                          bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
+                          bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
+                          bannerStyle === 'red' && "bg-red-600 border-black",
+                          bannerStyle === 'outline' && "bg-black/80 backdrop-blur-md border-theme-primary shadow-none"
+                        )}
+                        style={{ transform: `skewX(${bannerSkew}deg)` }}
                         >
-                          {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
-                        </h3>
+                          <h3 
+                            className={cn(
+                              "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
+                              (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
+                            )}
+                            style={{ 
+                              fontSize: `${nameFontSize}px`,
+                              transform: `skewX(${-bannerSkew}deg)`,
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                          >
+                            {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                          </h3>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                 {/* BOTTOM: Message */}
                 <div 
@@ -901,6 +914,68 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       />
                       <span className="text-[10px] font-bold text-white w-8">{Math.round(congratsScale * 100)}%</span>
                     </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">TEXTO Y</span>
+                      <input 
+                        type="range" 
+                        min="-200" 
+                        max="300" 
+                        value={congratsYOffset} 
+                        onChange={(e) => setCongratsYOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-zinc-400 w-12 text-right">TEXTO X</span>
+                      <input 
+                        type="range" 
+                        min="-200" 
+                        max="200" 
+                        value={congratsXOffset} 
+                        onChange={(e) => setCongratsXOffset(parseInt(e.target.value))}
+                        className="flex-1 accent-theme-primary h-1.5"
+                      />
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-800">
+                      <p className="text-[9px] font-black text-theme-primary uppercase tracking-widest mb-2">Ajustes do Escudo</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-zinc-400 w-12 text-right">ESC. Y</span>
+                        <input 
+                          type="range" 
+                          min="-200" 
+                          max="200" 
+                          value={crestYOffset} 
+                          onChange={(e) => setCrestYOffset(parseInt(e.target.value))}
+                          className="flex-1 accent-theme-primary h-1.5"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-zinc-400 w-12 text-right">ESC. X</span>
+                        <input 
+                          type="range" 
+                          min="-200" 
+                          max="200" 
+                          value={crestXOffset} 
+                          onChange={(e) => setCrestXOffset(parseInt(e.target.value))}
+                          className="flex-1 accent-theme-primary h-1.5"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-zinc-400 w-12 text-right">TAM. ESC</span>
+                        <input 
+                          type="range" 
+                          min="0.2" 
+                          max="3" 
+                          step="0.05"
+                          value={crestScale} 
+                          onChange={(e) => setCrestScale(parseFloat(e.target.value))}
+                          className="flex-1 accent-theme-primary h-1.5"
+                        />
+                      </div>
+                    </div>
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-zinc-400 w-12 text-right">ESCALA</span>
                       <input 
@@ -978,6 +1053,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         setPhotoYOffset(0);
                         setPhotoXOffset(0);
                         setCongratsScale(1);
+                        setCongratsXOffset(0);
+                        setCongratsYOffset(0);
+                        setCrestXOffset(0);
+                        setCrestYOffset(0);
+                        setCrestScale(1);
+                        setShowMainPhoto(true);
                         setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                       }}
                       className="w-full py-2 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-widest rounded-lg hover:text-white transition-colors mt-2"
@@ -989,6 +1070,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
 
               <div className="w-full flex flex-wrap justify-center gap-2 mt-2 pt-4 border-t border-zinc-800/50">
+                <button 
+                  onClick={() => setShowMainPhoto(!showMainPhoto)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
+                    showMainPhoto ? "bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white" : "bg-theme-primary text-black border-theme-primary"
+                  )}
+                >
+                  {showMainPhoto ? <X size={12} /> : <Plus size={12} />} 
+                  {showMainPhoto ? "Ocultar Foto Principal" : "Mostrar Foto Principal"}
+                </button>
                 {customMainPhoto && (
                   <button 
                     onClick={() => setCustomMainPhoto(null)}
