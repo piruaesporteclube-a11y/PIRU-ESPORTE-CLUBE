@@ -540,17 +540,25 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       {/* Instagram Post Modal */}
       {selectedPerson && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="relative py-8">
+          <div className="relative py-8 w-full max-w-[1400px]">
             <button 
               onClick={() => setSelectedPerson(null)}
-              className="absolute top-0 right-0 text-white hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-xs"
+              className="absolute top-0 right-0 text-white hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-xs z-[80]"
             >
               Fechar [X]
             </button>
+
+            <div className="flex flex-col items-center mb-10">
+              <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Editor de Encarte</h2>
+              <div className="w-20 h-1 bg-theme-primary mt-2"></div>
+            </div>
             
-            {/* Instagram Style Birthday Card - Modern Sports Poster */}
-            <div 
-              id="birthday-card" 
+            <div className="flex flex-col lg:flex-row gap-12 w-full items-start justify-center px-4">
+              {/* Preview Column */}
+              <div className="flex flex-col items-center gap-8 lg:sticky lg:top-8 w-full lg:w-auto">
+                {/* Instagram Style Birthday Card - Modern Sports Poster */}
+                <div 
+                  id="birthday-card" 
               className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[8px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
             >
               {/* Background Layer: Soccer Theme & Mascot */}
@@ -793,7 +801,32 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
             </div>
 
-            <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+            {/* Action Buttons for Mobile - Only visible on small screens below the preview */}
+            <div className="lg:hidden w-full max-w-[400px] flex flex-col gap-3">
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => downloadCard(false)}
+                  disabled={isGenerating}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
+                >
+                  <Download size={18} className={isGenerating ? "animate-bounce" : ""} />
+                  Salvar
+                </button>
+                <button 
+                  onClick={() => downloadCard(true)}
+                  disabled={isGenerating}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
+                >
+                  <Share2 size={18} />
+                  Postar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls Column */}
+          <div className="flex-1 w-full max-w-[700px] flex flex-col gap-6">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               {/* Tabs Header */}
               <div className="flex bg-black p-1 gap-1">
                 {[
@@ -1103,41 +1136,43 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               </div>
             </div>
 
+            {/* Action Buttons for Desktop */}
+            <div className="hidden lg:flex flex-wrap justify-center gap-4 mt-2">
+                <button 
+                  onClick={() => downloadCard(false)}
+                  disabled={isGenerating}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter"
+                >
+                  <Download size={20} className={isGenerating ? "animate-bounce" : ""} />
+                  {isGenerating ? 'Gerando...' : 'Salvar no Celular'}
+                </button>
+                
+                <button 
+                  onClick={() => downloadCard(true)}
+                  disabled={isGenerating}
+                  className="flex i flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter shadow-[0_10px_20px_rgba(234,179,8,0.3)]"
+                >
+                  <Share2 size={20} />
+                  {isGenerating ? 'Processando...' : 'Postar / Compartilhar'}
+                </button>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-4">
-              <button 
-                onClick={() => downloadCard(false)}
-                disabled={isGenerating}
-                className="flex items-center justify-center gap-2 px-6 py-4 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter"
-              >
-                <Download size={20} className={isGenerating ? "animate-bounce" : ""} />
-                {isGenerating ? 'Gerando...' : 'Salvar no Celular'}
-              </button>
-              
-              <button 
-                onClick={() => downloadCard(true)}
-                disabled={isGenerating}
-                className="flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter shadow-[0_10px_20px_rgba(234,179,8,0.3)]"
-              >
-                <Share2 size={20} />
-                {isGenerating ? 'Processando...' : 'Postar / Compartilhar'}
-              </button>
-
-              <button 
-                onClick={() => {
-                  const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
-                  navigator.clipboard.writeText(text);
-                  toast.success('Legenda copiada! Agora é só colar no post.');
-                }}
-                className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-xl hover:bg-zinc-700 transition-colors uppercase text-sm tracking-tighter"
-              >
-                <Instagram size={20} />
-                Copiar Legenda
-              </button>
+                <button 
+                  onClick={() => {
+                    const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
+                    navigator.clipboard.writeText(text);
+                    toast.success('Legenda copiada! Agora é só colar no post.');
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-xl hover:bg-zinc-700 transition-colors uppercase text-sm tracking-tighter"
+                >
+                  <Instagram size={20} />
+                  Legenda
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }
