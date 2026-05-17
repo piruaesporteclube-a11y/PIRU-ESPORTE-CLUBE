@@ -1,4 +1,4 @@
-import { createExpressApp } from "../server.ts";
+import { createExpressApp } from "../server";
 
 export default async function handler(req: any, res: any) {
   const app = await createExpressApp();

@@ -564,13 +564,23 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
                 {/* Default Background */}
-                <img 
-                  src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
-                  alt="Soccer Stadium" 
-                  className="w-full h-full object-cover opacity-70"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                />
+                <div className="absolute inset-0 bg-black">
+                  <img 
+                    src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
+                    alt="Soccer Stadium" 
+                    className="w-full h-full object-cover opacity-50"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                  />
+                  {/* Carbon Fiber Texture Overlay */}
+                  <div 
+                    className="absolute inset-0 opacity-20 mix-blend-overlay"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")`,
+                      backgroundSize: '20px 20px'
+                    }}
+                  />
+                </div>
 
                 {/* Custom Uploaded Background */}
                 {bgImage && (

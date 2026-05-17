@@ -1,8 +1,7 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { whatsappService } from "./whatsapp.ts";
+import { whatsappService } from "./whatsapp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +22,17 @@ export async function createExpressApp() {
 
   // WhatsApp API Routes
   app.get("/api/whatsapp/status", (req, res) => {
-    res.json(whatsappService.getStatus());
+    try {
+      const status = whatsappService.getStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("[Server] Error in /api/whatsapp/status:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Internal Server Error",
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+      });
+    }
   });
   
   app.post("/api/whatsapp/connect", async (req, res) => {
@@ -146,16 +155,18 @@ async function startServer() {
   const __dirname = path.dirname(__filename);
 
   // Vite middleware
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
