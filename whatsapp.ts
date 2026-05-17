@@ -18,7 +18,9 @@ export class WhatsAppService {
   private socket: any = null;
   private qrCode: string | null = null;
   private connectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
-  private authStatePath = './whatsapp_auth_info';
+  private authStatePath = process.env.VERCEL || process.env.NODE_ENV === 'production' 
+    ? path.join('/tmp', 'whatsapp_auth_info')
+    : path.join(process.cwd(), 'whatsapp_auth_info');
   private groupIds: { [key: string]: string } = {};
   private jidCache: { [key: string]: string } = {};
 

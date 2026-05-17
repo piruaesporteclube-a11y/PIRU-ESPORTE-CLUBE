@@ -7,11 +7,12 @@ import { whatsappService } from "./whatsapp.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function createExpressApp() {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
 
-  const PORT = 3000;
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -134,6 +135,16 @@ async function startServer() {
     res.status(404).json({ success: false, error: `Rota da API não encontrada: ${req.path}` });
   });
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createExpressApp();
+  const PORT = 3000;
+  
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
   // Vite middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -153,4 +164,8 @@ async function startServer() {
   });
 }
 
-startServer();
+// Start server only if not in Vercel environment
+if (!process.env.VERCEL) {
+  startServer();
+}
+
