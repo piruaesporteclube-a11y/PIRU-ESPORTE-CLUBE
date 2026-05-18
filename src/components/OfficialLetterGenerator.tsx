@@ -132,7 +132,7 @@ export default function OfficialLetterGenerator() {
   );
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
-    <div className="bg-white text-black p-8 sm:p-10 min-h-[1123px] w-full max-w-[794px] mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:h-full" style={{ fontSize: '11pt', lineHeight: '1.4' }}>
+    <div className="bg-white text-black p-10 sm:p-12 min-h-[1123px] w-full max-w-[794px] mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0" style={{ fontSize: '11pt', lineHeight: '1.4' }}>
       {/* Header */}
       <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
         {settings?.schoolCrest && (
@@ -494,7 +494,7 @@ export default function OfficialLetterGenerator() {
             @media print {
               @page {
                 size: A4;
-                margin: 0;
+                margin: 2.5cm;
               }
               body {
                 background: white !important;
