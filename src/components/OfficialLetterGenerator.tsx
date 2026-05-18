@@ -15,6 +15,8 @@ export default function OfficialLetterGenerator() {
   const [editingLetter, setEditingLetter] = useState<Partial<OfficialLetter> | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
+  const [marginSize, setMarginSize] = useState<number>(2.5);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -132,23 +134,32 @@ export default function OfficialLetterGenerator() {
   );
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
-    <div className="bg-white text-black p-10 sm:p-12 min-h-[1123px] w-full max-w-[794px] mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0" style={{ fontSize: '11pt', lineHeight: '1.4' }}>
+    <div 
+      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full" 
+      style={{ 
+        padding: `${marginSize}cm`,
+        fontSize: '11pt', 
+        lineHeight: '1.5',
+        width: pageSize === 'A4' ? '210mm' : '215.9mm',
+        minHeight: pageSize === 'A4' ? '297mm' : '279.4mm'
+      }}
+    >
       {/* Header */}
-      <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
+      <div className="flex flex-col items-center mb-10 border-b-2 border-black pb-6">
         {settings?.schoolCrest && (
-          <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain mb-3" referrerPolicy="no-referrer" />
+          <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
         )}
-        <h1 className="text-xl font-bold uppercase text-center">{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 className="text-2xl font-bold uppercase text-center focus:outline-none" contentEditable>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
 
       {/* Title & Date */}
-      <div className="flex justify-between mb-6">
+      <div className="flex justify-between mb-8">
         <p className="font-bold">OFÍCIO Nº {letter.number}/{letter.year}</p>
         <p>{letter.date ? new Date(letter.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
       </div>
 
       {/* Recipient */}
-      <div className="mb-6">
+      <div className="mb-8">
         <p>Ao Sr(a).</p>
         <p className="font-bold uppercase leading-tight">{letter.recipient_name}</p>
         <p className="italic leading-tight">{letter.recipient_role}</p>
@@ -209,11 +220,11 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-4 border-t border-zinc-200 text-[9px] text-zinc-400 text-center uppercase tracking-tighter">
+      <div className="mt-auto pt-4 border-t border-black/10 text-[9px] text-zinc-500 text-center uppercase tracking-widest leading-relaxed">
         {letter.school_info && (
-          <p className="mb-1 text-black font-bold uppercase">{letter.school_info}</p>
+          <p className="mb-1 text-black font-bold uppercase tracking-tight">{letter.school_info}</p>
         )}
-        Documento gerado oficialmente pelo sistema de gestão {settings?.schoolName || 'Piruá Esporte Clube'}
+        <p className="opacity-50">Documento gerado oficialmente pelo sistema de gestão {settings?.schoolName || 'Piruá Esporte Clube'}</p>
       </div>
     </div>
   );
@@ -245,6 +256,49 @@ export default function OfficialLetterGenerator() {
               <Save size={20} />
               Salvar Ofício
             </button>
+          </div>
+        </div>
+
+        {/* Page & Margin Controls */}
+        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem] no-print flex flex-wrap items-center gap-8">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Tamanho do Papel</label>
+            <div className="flex bg-zinc-800 p-1 rounded-xl">
+              <button 
+                onClick={() => setPageSize('A4')}
+                className={cn(
+                  "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
+                  pageSize === 'A4' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                A4
+              </button>
+              <button 
+                onClick={() => setPageSize('Letter')}
+                className={cn(
+                  "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
+                  pageSize === 'Letter' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
+                )}
+              >
+                Ofício (Letter)
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-2 min-w-[200px]">
+            <div className="flex justify-between items-center px-1">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Largura das Margens</label>
+              <span className="text-[10px] font-black text-theme-primary uppercase">{marginSize} cm</span>
+            </div>
+            <input 
+              type="range" 
+              min="1" 
+              max="5" 
+              step="0.1"
+              value={marginSize}
+              onChange={(e) => setMarginSize(parseFloat(e.target.value))}
+              className="w-full accent-theme-primary"
+            />
           </div>
         </div>
 
@@ -486,26 +540,59 @@ export default function OfficialLetterGenerator() {
           </form>
 
           {/* Preview */}
-          <div className="sticky top-24 scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:scale-100 print:w-full print:fixed print:top-0 print:left-0 print:z-[9999] print:bg-white print:rounded-none">
-            <PrintPreview letter={editingLetter} />
+          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:scale-100 print:w-full print:static print:bg-white print:rounded-none">
+            <style>{`
+              @media print {
+                @page {
+                  size: ${pageSize === 'A4' ? 'A4' : 'letter'};
+                  margin: ${marginSize}cm;
+                }
+                body {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  background: white !important;
+                  -webkit-print-color-adjust: exact !important;
+                  color-adjust: exact !important;
+                }
+                /* Robust way to hide EVERYTHING except the print preview container during print */
+                body > *:not(.print-letter-container) {
+                  display: none !important;
+                }
+                .print-preview-container {
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  width: 100% !important;
+                  min-height: 0 !important;
+                  box-shadow: none !important;
+                  display: block !important;
+                }
+                header, nav, footer, .footer, .no-print, button, form, .bg-zinc-900, .bg-black, .sidebar {
+                  display: none !important;
+                }
+                /* Ensure children are visible */
+                #root, .app-container, .main-content, .print-letter-container {
+                  display: block !important;
+                  background: white !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  width: 100% !important;
+                  border: none !important;
+                }
+                /* Remove any dark backgrounds which might cause bars */
+                div, section, main {
+                  background-color: transparent !important;
+                  border-color: transparent !important;
+                  box-shadow: none !important;
+                }
+                .bg-white {
+                  background-color: white !important;
+                }
+              }
+            `}</style>
+            <div className="print-letter-container">
+              <PrintPreview letter={editingLetter} />
+            </div>
           </div>
-
-          <style>{`
-            @media print {
-              @page {
-                size: A4;
-                margin: 2.5cm;
-              }
-              body {
-                background: white !important;
-                -webkit-print-color-adjust: exact;
-              }
-              /* Hide all other elements if the simple .no-print doesn't suffice */
-              header, nav, .footer, .no-print {
-                display: none !important;
-              }
-            }
-          `}</style>
         </div>
       </div>
     );
