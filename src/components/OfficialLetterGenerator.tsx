@@ -548,7 +548,7 @@ export default function OfficialLetterGenerator() {
           </form>
 
           {/* Preview */}
-          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none">
+          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none print:overflow-visible print:block">
             <style>{`
               @media print {
                 @page {
@@ -568,31 +568,28 @@ export default function OfficialLetterGenerator() {
                   margin: 0 !important;
                   padding: 0 !important;
                   width: 100% !important;
-                  height: 100% !important;
+                  height: auto !important;
+                  overflow: visible !important;
                 }
 
-                body > * {
-                  display: none !important;
-                }
-                body > #root {
-                  display: block !important;
-                }
-
-                .no-print, header, nav, footer, .sidebar, button, form, .fixed, .absolute, .shadow-xl, .shadow-2xl {
+                .no-print, header, nav, footer, .sidebar, button, form, .fixed, .absolute, [role="navigation"], [role="banner"], aside {
                   display: none !important;
                 }
 
-                #root, .app-container, .main-content, main, .print-letter-container, .print-sheet {
+                #root, .app-container, .main-content, main, .print-letter-container, .max-w-6xl, .grid {
                   display: block !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   width: 100% !important;
+                  max-width: none !important;
                   height: auto !important;
                   min-height: 0 !important;
                   background: white !important;
                   border: none !important;
                   box-shadow: none !important;
                   position: static !important;
+                  overflow: visible !important;
+                  float: none !important;
                 }
 
                 .print-sheet {
@@ -604,6 +601,11 @@ export default function OfficialLetterGenerator() {
                   margin: 0 auto !important;
                   background: white !important;
                   page-break-after: always;
+                  box-shadow: none !important;
+                }
+
+                .print-sheet * {
+                   visibility: visible !important;
                 }
 
                 .print-sheet > div {
