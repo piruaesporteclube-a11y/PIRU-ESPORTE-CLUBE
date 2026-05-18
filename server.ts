@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { whatsappService } from "./whatsapp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,120 +17,6 @@ export async function createExpressApp() {
        console.log(`[Server] ${req.method} ${req.path}`);
     }
     next();
-  });
-
-  // WhatsApp API Routes
-  app.get("/api/whatsapp/status", (req, res) => {
-    try {
-      const status = whatsappService.getStatus();
-      res.json(status);
-    } catch (error: any) {
-      console.error("[Server] Error in /api/whatsapp/status:", error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Internal Server Error",
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
-      });
-    }
-  });
-  
-  app.post("/api/whatsapp/connect", async (req, res) => {
-    try {
-      console.log(`[Server] POST /api/whatsapp/connect requested`);
-      await whatsappService.connect();
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error(`[WhatsApp] Connect Error:`, error);
-      const message = error.message || error.toString() || "Erro ao conectar";
-      res.status(500).json({ success: false, error: message });
-    }
-  });
-
-  app.post("/api/whatsapp/reset", async (req, res) => {
-    try {
-      console.log(`[Server] POST /api/whatsapp/reset requested`);
-      await whatsappService.logout(true, true, false);
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error(`[WhatsApp] Reset Error:`, error);
-      const message = error.message || error.toString() || "Erro ao reiniciar";
-      res.status(500).json({ success: false, error: message });
-    }
-  });
-
-  app.post("/api/whatsapp/logout", async (req, res) => {
-    try {
-      await whatsappService.logout(false, true, true);
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error(`[WhatsApp] Logout Error:`, error);
-      const message = error.message || error.toString() || "Erro ao desconectar";
-      res.status(500).json({ success: false, error: message });
-    }
-  });
-
-  app.post("/api/whatsapp/add", async (req, res) => {
-    const { groupName, phoneNumber } = req.body;
-    try {
-      console.log(`[WhatsApp] API Request: Add ${phoneNumber} to ${groupName}`);
-      const result = await whatsappService.addToGroup(groupName, phoneNumber);
-      res.json({ success: true, result });
-    } catch (error: any) {
-      console.error(`[WhatsApp] Add to Group Error for ${phoneNumber}:`, error);
-      if (error.stack) console.error(error.stack);
-      
-      const message = error.message || error.toString() || "Erro desconhecido ao adicionar contato";
-      const statusCode = error.output?.statusCode || error.status || 500;
-      
-      // Use the actual status code if it's a client error (4xx), otherwise 500
-      const finalStatus = (statusCode >= 400 && statusCode < 500) ? statusCode : 500;
-      
-      res.status(finalStatus).json({ 
-        success: false, 
-        error: message,
-        details: error.data || error.output?.payload || null,
-        code: statusCode
-      });
-    }
-  });
-
-  app.post("/api/whatsapp/groups/create", async (req, res) => {
-    const { name } = req.body;
-    try {
-      const groupId = await whatsappService.createGroup(name);
-      res.json({ success: true, groupId });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  app.post("/api/whatsapp/groups/add-participant", async (req, res) => {
-    const { groupId, phoneNumber, welcomeMessage } = req.body;
-    try {
-      const result = await whatsappService.addParticipant(groupId, phoneNumber, welcomeMessage);
-      res.json({ success: true, result });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  app.post("/api/whatsapp/groups/remove-participant", async (req, res) => {
-    const { groupId, phoneNumber } = req.body;
-    try {
-      const result = await whatsappService.removeFromGroup(groupId, phoneNumber);
-      res.json({ success: true, result });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  app.post("/api/whatsapp/groups/sync", async (req, res) => {
-    try {
-      const groupIds = await whatsappService.syncGroups();
-      res.json({ success: true, groupIds });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
   });
 
   // Health check

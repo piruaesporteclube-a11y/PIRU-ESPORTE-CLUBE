@@ -441,30 +441,6 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </td>
                   <td className="px-6 py-4 text-right no-print">
                     <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={async () => {
-                              const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
-                              try {
-                                const res = await api.whatsapp.syncAthlete(athlete);
-                                const msgs = [];
-                                if (res.athlete) msgs.push(`Atleta: ${res.athlete.success ? 'OK' : (res.athlete.error || 'Erro')}`);
-                                if (res.guardian) msgs.push(`Responsável: ${res.guardian.success ? 'OK' : (res.guardian.error || 'Erro')}`);
-                                
-                                const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
-                                if (allSuccess) {
-                                  toast.success(`${athlete.name} sincronizado!`, { id: toastId });
-                                } else {
-                                  toast.warning(`Sincronização parcial: ${msgs.join(' | ')}`, { id: toastId });
-                                }
-                              } catch (err: any) {
-                                toast.error(`Erro ao sincronizar: ${err.message}`, { id: toastId });
-                              }
-                            }}
-                            className="p-2 bg-green-500/5 hover:bg-green-500/20 text-green-500 rounded-lg transition-colors border border-green-500/20"
-                            title="Adicionar aos Grupos WhatsApp"
-                          >
-                            <MessageCircle size={18} />
-                          </button>
                       <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         {viewMode === 'pending' ? (
                           <>
@@ -599,30 +575,6 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </>
                 ) : (
                   <>
-                    <button 
-                      onClick={async () => {
-                        const toastId = toast.loading(`Sincronizando ${athlete.name}...`);
-                        try {
-                          const res = await api.whatsapp.syncAthlete(athlete);
-                          const messages = [];
-                          if (res.athlete) messages.push(`Atleta: ${res.athlete.success ? 'OK' : (res.athlete.error || 'Erro')}`);
-                          if (res.guardian) messages.push(`Responsável: ${res.guardian.success ? 'OK' : (res.guardian.error || 'Erro')}`);
-                          
-                          const allSuccess = (!res.athlete || res.athlete.success) && (!res.guardian || res.guardian.success);
-                          if (allSuccess) {
-                            toast.success(`${athlete.name} sincronizado!`, { id: toastId });
-                          } else {
-                            toast.warning(`Sincronização parcial: ${messages.join(' | ')}`, { id: toastId });
-                          }
-                        } catch (err: any) {
-                          toast.error(`Erro: ${err.message}`, { id: toastId });
-                        }
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors text-xs font-bold"
-                    >
-                      <MessageCircle size={14} />
-                      WhatsApp
-                    </button>
                     <button 
                       onClick={() => onEdit(athlete)}
                       className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"

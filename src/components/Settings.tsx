@@ -6,31 +6,16 @@ import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
 import UniformManager from './UniformManager';
-import WhatsAppConnection from './WhatsAppConnection';
 import { compressImage } from '../utils';
 
 export default function SettingsComponent() {
   const { settings: globalSettings } = useTheme();
   const [settings, setSettings] = useState<Settings>(globalSettings);
   const [saved, setSaved] = useState(false);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   useEffect(() => {
     setSettings(globalSettings);
   }, [globalSettings]);
-
-  useEffect(() => {
-    fetchAthletes();
-  }, []);
-
-  const fetchAthletes = async () => {
-    try {
-      const data = await api.getAthletes();
-      setAthletes(data);
-    } catch (err) {
-      console.error('Error fetching athletes for sync:', err);
-    }
-  };
 
   const handleCrestUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -543,9 +528,6 @@ export default function SettingsComponent() {
           </div>
           <UniformManager />
         </div>
-
-        {/* WhatsApp Management */}
-        <WhatsAppConnection athletes={athletes} />
 
         {/* Data Management */}
         <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
