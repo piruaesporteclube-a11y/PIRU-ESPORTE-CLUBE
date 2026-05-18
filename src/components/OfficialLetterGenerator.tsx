@@ -135,13 +135,14 @@ export default function OfficialLetterGenerator() {
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
     <div 
-      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0" 
+      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0 print:static print-letter-inner" 
       style={{ 
         padding: `${marginSize}cm`,
         fontSize: '11pt', 
         lineHeight: '1.5',
         width: pageSize === 'A4' ? '210mm' : '215.9mm',
-        minHeight: pageSize === 'A4' ? '297mm' : '279.4mm'
+        minHeight: pageSize === 'A4' ? '297mm' : '279.4mm',
+        boxSizing: 'border-box'
       }}
     >
       {/* Header */}
@@ -545,31 +546,39 @@ export default function OfficialLetterGenerator() {
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: 0; /* Margin handled by internal padding for better control */
+                  margin: ${marginSize}cm;
                 }
                 
                 /* Reset backgrounds for all elements */
                 * {
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
-                  background-color: transparent !important;
-                  box-shadow: none !important;
                 }
 
                 html, body {
                   background-color: white !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
                   width: 100% !important;
                   height: auto !important;
                 }
 
                 /* Container specific background */
-                .print-letter-content {
+                .print-letter-container, .print-letter-content {
                   background-color: white !important;
                   margin: 0 !important;
-                  padding: ${marginSize}cm !important;
+                  padding: 0 !important;
                   width: 100% !important;
-                  min-height: 100vh !important;
                   display: block !important;
+                  height: auto !important;
+                }
+
+                .print-letter-inner {
+                  padding: 0 !important; /* Important: Margin is handled by @page */
+                  width: 100% !important;
+                  min-height: 0 !important;
+                  box-shadow: none !important;
+                  background-color: white !important;
                 }
 
                 /* Hide everything by default */
