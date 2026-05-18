@@ -135,7 +135,7 @@ export default function OfficialLetterGenerator() {
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
     <div 
-      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full" 
+      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0" 
       style={{ 
         padding: `${marginSize}cm`,
         fontSize: '11pt', 
@@ -545,52 +545,72 @@ export default function OfficialLetterGenerator() {
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: ${marginSize}cm;
+                  margin: 0; /* Margin handled by internal padding for better control */
                 }
-                body {
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  background: white !important;
+                
+                /* Reset backgrounds for all elements */
+                * {
                   -webkit-print-color-adjust: exact !important;
-                  color-adjust: exact !important;
-                }
-                /* Robust way to hide EVERYTHING except the print preview container during print */
-                body > *:not(.print-letter-container) {
-                  display: none !important;
-                }
-                .print-preview-container {
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  width: 100% !important;
-                  min-height: 0 !important;
-                  box-shadow: none !important;
-                  display: block !important;
-                }
-                header, nav, footer, .footer, .no-print, button, form, .bg-zinc-900, .bg-black, .sidebar {
-                  display: none !important;
-                }
-                /* Ensure children are visible */
-                #root, .app-container, .main-content, .print-letter-container {
-                  display: block !important;
-                  background: white !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  width: 100% !important;
-                  border: none !important;
-                }
-                /* Remove any dark backgrounds which might cause bars */
-                div, section, main {
+                  print-color-adjust: exact !important;
                   background-color: transparent !important;
-                  border-color: transparent !important;
                   box-shadow: none !important;
                 }
-                .bg-white {
+
+                html, body {
                   background-color: white !important;
+                  width: 100% !important;
+                  height: auto !important;
+                }
+
+                /* Container specific background */
+                .print-letter-content {
+                  background-color: white !important;
+                  margin: 0 !important;
+                  padding: ${marginSize}cm !important;
+                  width: 100% !important;
+                  min-height: 100vh !important;
+                  display: block !important;
+                }
+
+                /* Hide everything by default */
+                body > * {
+                  display: none !important;
+                }
+
+                /* Show root and navigate down to the letter */
+                body > #root {
+                  display: block !important;
+                }
+
+                /* Hide all siblings of the letter containers */
+                .no-print, 
+                header, 
+                nav, 
+                footer, 
+                .sidebar,
+                button,
+                form,
+                .fixed,
+                .absolute:not(.print-letter-container *) {
+                  display: none !important;
+                }
+
+                /* Reset container layout for printing */
+                #root, .app-container, .main-content, main, .print-letter-container {
+                  display: block !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  min-height: 0 !important;
+                  overflow: visible !important;
                 }
               }
             `}</style>
             <div className="print-letter-container">
-              <PrintPreview letter={editingLetter} />
+              <div className="print-letter-content">
+                <PrintPreview letter={editingLetter} />
+              </div>
             </div>
           </div>
         </div>
