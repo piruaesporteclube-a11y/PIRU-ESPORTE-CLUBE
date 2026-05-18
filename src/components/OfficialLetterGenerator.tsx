@@ -132,49 +132,49 @@ export default function OfficialLetterGenerator() {
   );
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
-    <div className="bg-white text-black p-12 min-h-[1123px] w-[794px] mx-auto shadow-2xl flex flex-col font-serif" style={{ fontSize: '12pt', lineHeight: '1.5' }}>
+    <div className="bg-white text-black p-8 sm:p-10 min-h-[1123px] w-full max-w-[794px] mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:h-full" style={{ fontSize: '11pt', lineHeight: '1.4' }}>
       {/* Header */}
-      <div className="flex flex-col items-center mb-12 border-b-2 border-black pb-6">
+      <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
         {settings?.schoolCrest && (
-          <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
+          <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain mb-3" referrerPolicy="no-referrer" />
         )}
-        <h1 className="text-2xl font-bold uppercase text-center">{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 className="text-xl font-bold uppercase text-center">{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
 
       {/* Title & Date */}
-      <div className="flex justify-between mb-8">
+      <div className="flex justify-between mb-6">
         <p className="font-bold">OFÍCIO Nº {letter.number}/{letter.year}</p>
         <p>{letter.date ? new Date(letter.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
       </div>
 
       {/* Recipient */}
-      <div className="mb-8">
+      <div className="mb-6">
         <p>Ao Sr(a).</p>
-        <p className="font-bold uppercase">{letter.recipient_name}</p>
-        <p className="italic">{letter.recipient_role}</p>
-        <p>{letter.recipient_address}</p>
+        <p className="font-bold uppercase leading-tight">{letter.recipient_name}</p>
+        <p className="italic leading-tight">{letter.recipient_role}</p>
+        <p className="leading-tight">{letter.recipient_address}</p>
       </div>
 
       {/* Subject */}
-      <div className="mb-8">
+      <div className="mb-6">
         <p><span className="font-bold">Assunto:</span> {letter.subject}</p>
       </div>
       
       {/* Travel Info (Optional) */}
       {(letter.departure_location || letter.arrival_location) && (
-        <div className="mb-8 p-4 border border-black/10 bg-zinc-50 rounded-lg">
-          <h4 className="font-bold mb-2 uppercase text-xs border-b border-black/20 pb-1">Informações de Logística / Viagem</h4>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm italic">
+        <div className="mb-6 p-3 border border-black/10 bg-zinc-50 rounded-lg">
+          <h4 className="font-bold mb-1 uppercase text-xs border-b border-black/20 pb-1">Informações de Logística / Viagem</h4>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm italic">
             {letter.departure_location && (
               <div>
-                <p><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
-                {letter.departure_time && <p><span className="font-bold not-italic">Horário de Saída:</span> {letter.departure_time}</p>}
+                <p className="leading-tight"><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
+                {letter.departure_time && <p className="leading-tight"><span className="font-bold not-italic">Horário de Saída:</span> {letter.departure_time}</p>}
               </div>
             )}
             {letter.arrival_location && (
               <div>
-                <p><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
-                {letter.arrival_time && <p><span className="font-bold not-italic">Horário de Retorno (estimado):</span> {letter.arrival_time}</p>}
+                <p className="leading-tight"><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
+                {letter.arrival_time && <p className="leading-tight"><span className="font-bold not-italic">Horário de Retorno:</span> {letter.arrival_time}</p>}
               </div>
             )}
           </div>
@@ -182,24 +182,24 @@ export default function OfficialLetterGenerator() {
       )}
 
       {/* Salutation */}
-      <div className="mb-6">
+      <div className="mb-4">
         <p>Prezado(a) Senhor(a),</p>
       </div>
 
       {/* Body */}
-      <div className="flex-1 whitespace-pre-wrap text-justify">
+      <div className="flex-1 whitespace-pre-wrap text-justify text-sm">
         {letter.body}
       </div>
 
       {/* Closing */}
-      <div className="mt-12 text-center">
-        <p className="mb-12">{letter.closing}</p>
+      <div className="mt-8 text-center">
+        <p className="mb-8">{letter.closing}</p>
         <div className="flex flex-col items-center">
           <div className="w-64 border-t border-black mb-1"></div>
           <p className="font-bold uppercase leading-tight">{letter.sender_name}</p>
-          <p className="text-sm uppercase leading-tight">{letter.sender_role}</p>
+          <p className="text-xs uppercase leading-tight">{letter.sender_role}</p>
           {(letter.school_cnpj || letter.school_cpf) && (
-            <p className="text-[10px] uppercase mt-1">
+            <p className="text-[9px] uppercase mt-1">
               {letter.school_cnpj && <span>CNPJ: {letter.school_cnpj}</span>}
               {letter.school_cnpj && letter.school_cpf && <span className="mx-2">|</span>}
               {letter.school_cpf && <span>CPF: {letter.school_cpf}</span>}
@@ -209,7 +209,7 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-8 border-t border-zinc-200 text-[10px] text-zinc-400 text-center uppercase tracking-tighter">
+      <div className="mt-auto pt-4 border-t border-zinc-200 text-[9px] text-zinc-400 text-center uppercase tracking-tighter">
         {letter.school_info && (
           <p className="mb-1 text-black font-bold uppercase">{letter.school_info}</p>
         )}
@@ -486,9 +486,26 @@ export default function OfficialLetterGenerator() {
           </form>
 
           {/* Preview */}
-          <div className="sticky top-24 scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:scale-100">
+          <div className="sticky top-24 scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:scale-100 print:w-full print:fixed print:top-0 print:left-0 print:z-[9999] print:bg-white print:rounded-none">
             <PrintPreview letter={editingLetter} />
           </div>
+
+          <style>{`
+            @media print {
+              @page {
+                size: A4;
+                margin: 0;
+              }
+              body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+              }
+              /* Hide all other elements if the simple .no-print doesn't suffice */
+              header, nav, .footer, .no-print {
+                display: none !important;
+              }
+            }
+          `}</style>
         </div>
       </div>
     );
