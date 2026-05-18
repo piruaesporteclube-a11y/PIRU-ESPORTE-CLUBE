@@ -135,14 +135,15 @@ export default function OfficialLetterGenerator() {
 
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
     <div 
-      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print:p-0 print:w-full print:min-h-0 print:static print-letter-inner" 
+      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print-sheet" 
       style={{ 
         padding: `${marginSize}cm`,
         fontSize: '11pt', 
         lineHeight: '1.5',
         width: pageSize === 'A4' ? '210mm' : '215.9mm',
         minHeight: pageSize === 'A4' ? '297mm' : '279.4mm',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        position: 'relative'
       }}
     >
       {/* Header */}
@@ -315,7 +316,13 @@ export default function OfficialLetterGenerator() {
                 <select 
                   className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
                   value={selectedEventId}
-                  onChange={e => setSelectedEventId(e.target.value)}
+                  onChange={e => {
+                    const eventId = e.target.value;
+                    setSelectedEventId(eventId);
+                    if (eventId) {
+                      fillWithEventData(eventId);
+                    }
+                  }}
                 >
                   <option value="">SELECIONE UM EVENTO CADASTRADO...</option>
                   {events.map(event => (
@@ -328,9 +335,9 @@ export default function OfficialLetterGenerator() {
                   type="button"
                   disabled={!selectedEventId}
                   onClick={() => fillWithEventData(selectedEventId)}
-                  className="px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs uppercase transition-all whitespace-nowrap"
+                  className="px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs uppercase transition-all whitespace-nowrap hidden sm:block"
                 >
-                  Importar Dados
+                  Atualizar Dados
                 </button>
               </div>
               <p className="text-[10px] text-zinc-500 italic">Ao importar, o assunto e o corpo do texto serão preenchidos automaticamente com os dados do evento.</p>
@@ -541,18 +548,19 @@ export default function OfficialLetterGenerator() {
           </form>
 
           {/* Preview */}
-          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:scale-100 print:w-full print:static print:bg-white print:rounded-none">
+          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none">
             <style>{`
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: ${marginSize}cm;
+                  margin: 0;
                 }
                 
-                /* Reset backgrounds for all elements */
                 * {
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
+                  text-shadow: none !important;
+                  box-sizing: border-box !important;
                 }
 
                 html, body {
@@ -560,59 +568,46 @@ export default function OfficialLetterGenerator() {
                   margin: 0 !important;
                   padding: 0 !important;
                   width: 100% !important;
-                  height: auto !important;
+                  height: 100% !important;
                 }
 
-                /* Container specific background */
-                .print-letter-container, .print-letter-content {
-                  background-color: white !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  display: block !important;
-                  height: auto !important;
-                }
-
-                .print-letter-inner {
-                  padding: 0 !important; /* Important: Margin is handled by @page */
-                  width: 100% !important;
-                  min-height: 0 !important;
-                  box-shadow: none !important;
-                  background-color: white !important;
-                }
-
-                /* Hide everything by default */
                 body > * {
                   display: none !important;
                 }
-
-                /* Show root and navigate down to the letter */
                 body > #root {
                   display: block !important;
                 }
 
-                /* Hide all siblings of the letter containers */
-                .no-print, 
-                header, 
-                nav, 
-                footer, 
-                .sidebar,
-                button,
-                form,
-                .fixed,
-                .absolute:not(.print-letter-container *) {
+                .no-print, header, nav, footer, .sidebar, button, form, .fixed, .absolute, .shadow-xl, .shadow-2xl {
                   display: none !important;
                 }
 
-                /* Reset container layout for printing */
-                #root, .app-container, .main-content, main, .print-letter-container {
+                #root, .app-container, .main-content, main, .print-letter-container, .print-sheet {
                   display: block !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   width: 100% !important;
                   height: auto !important;
                   min-height: 0 !important;
-                  overflow: visible !important;
+                  background: white !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  position: static !important;
+                }
+
+                .print-sheet {
+                  display: flex !important;
+                  flex-direction: column !important;
+                  width: ${pageSize === 'A4' ? '210mm' : '215.9mm'} !important;
+                  min-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                  padding: ${marginSize}cm !important;
+                  margin: 0 auto !important;
+                  background: white !important;
+                  page-break-after: always;
+                }
+
+                .print-sheet > div {
+                   width: 100% !important;
                 }
               }
             `}</style>
