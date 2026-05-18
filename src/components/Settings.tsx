@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Settings, Athlete } from '../types';
-import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin } from 'lucide-react';
+import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin, Database } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
@@ -532,51 +532,54 @@ export default function SettingsComponent() {
         {/* Data Management */}
         <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-8">
           <div className="flex items-center gap-3 text-theme-primary mb-6">
-            <Download size={24} />
-            <h3 className="text-lg font-bold uppercase tracking-widest">Gestão de Dados & Backup</h3>
+            <div className="p-3 bg-theme-primary/10 rounded-2xl">
+              <Database size={24} />
+            </div>
+            <h3 className="text-lg font-bold uppercase tracking-widest">Backup para Computador / Celular</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-white uppercase">Exportar Backup</h4>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Baixe uma cópia completa de todos os dados do sistema (atletas, professores, eventos e chamadas) em formato JSON.
+              <h4 className="text-sm font-bold text-white uppercase italic">Exportar Cópia de Segurança</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Baixe uma cópia completa de todos os seus dados agora. Este arquivo pode ser guardado no seu computador, celular ou pen drive como uma garantia extra além da nuvem.
               </p>
               <button 
                 type="button"
                 onClick={handleBackup}
-                className="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 bg-theme-primary text-black hover:opacity-90 rounded-2xl font-black transition-all flex items-center justify-center gap-3 shadow-lg shadow-theme-primary/10 uppercase tracking-widest text-xs"
               >
-                <Download size={20} className="text-theme-primary" />
-                Gerar Backup Agora
+                <Download size={20} />
+                Gerar Backup (Salvar no PC/Celular)
               </button>
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-white uppercase">Sincronização & Cache</h4>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Se você estiver vendo erros de "tempo no futuro" ou dados desatualizados, use esta opção para limpar o cache local e forçar uma nova sincronização com o servidor.
+              <h4 className="text-sm font-bold text-white uppercase italic">Sincronização & Cache</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Se os dados parecerem desatualizados ou se estiver vendo erros de data, use esta opção para resetar a conexão local e baixar os dados frescos do servidor.
               </p>
               <button 
                 type="button"
                 onClick={handleClearPersistence}
-                className="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 border border-zinc-700 uppercase tracking-widest text-xs"
               >
                 <RotateCcw size={20} className="text-theme-primary" />
                 Limpar Cache e Sincronizar
               </button>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-white uppercase">Local de Salvamento</h4>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Por segurança do navegador, os arquivos (PDFs, Backups) são salvos automaticamente na sua pasta de <strong>Downloads</strong> padrão do Windows/Mac/Linux.
-              </p>
-              <div className="p-4 bg-theme-primary/5 border border-theme-primary/20 rounded-2xl">
-                <p className="text-[10px] text-theme-primary font-bold uppercase tracking-tighter">Dica de Software PC:</p>
-                <p className="text-[10px] text-zinc-400 mt-1">
-                  Para escolher onde salvar, ative a opção "Perguntar onde salvar cada arquivo antes de fazer download" nas configurações do seu navegador (Chrome/Edge).
-                </p>
+            <div className="md:col-span-2 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+              <div className="flex gap-4">
+                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg h-fit">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Dica de Salvamento:</h5>
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    Ao clicar no botão de backup, o arquivo será salvo na sua pasta de <strong>Downloads</strong>. No celular, ele geralmente fica na pasta "Documentos" ou "Downloads" do gestor de arquivos.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
