@@ -126,10 +126,10 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
 
   return (
     <div className="fixed inset-0 bg-black/98 backdrop-blur-3xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-[1fr,380px] gap-6 lg:gap-8 items-start my-auto">
+      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-[380px,1fr] gap-6 lg:gap-8 items-start my-auto">
         
-        {/* Left: Dynamic Editor Panel */}
-        <div className="space-y-6 bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] shadow-2xl backdrop-blur-md">
+        {/* Right Panel: Dynamic Editor Panel */}
+        <div className="space-y-6 bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] shadow-2xl backdrop-blur-md md:order-2 w-full">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-theme-primary/10 rounded-2xl">
@@ -620,8 +620,8 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
           <input type="file" ref={schoolCrestRef} onChange={e => handleImageUpload(e, 'school')} accept="image/*" className="hidden" />
         </div>
 
-        {/* Right Content: The Professional Canvas */}
-        <div className="flex flex-col items-center sticky top-4">
+        {/* Left Content: The Professional Canvas (Swapped visually to left on desktop) */}
+        <div className="flex flex-col items-center sticky top-4 md:order-1 w-full">
           <div 
             className="shadow-[0_45px_100px_rgba(0,0,0,0.9)] rounded-3xl overflow-hidden ring-1 ring-white/5"
             style={{ width: '360px', height: '640px', position: 'relative' }}
