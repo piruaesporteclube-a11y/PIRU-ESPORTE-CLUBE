@@ -126,7 +126,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
 
   return (
     <div className="fixed inset-0 bg-black/98 backdrop-blur-3xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr,380px] gap-8 items-start my-auto">
+      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-[1fr,380px] gap-6 lg:gap-8 items-start my-auto">
         
         {/* Left: Dynamic Editor Panel */}
         <div className="space-y-6 bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] shadow-2xl backdrop-blur-md">
