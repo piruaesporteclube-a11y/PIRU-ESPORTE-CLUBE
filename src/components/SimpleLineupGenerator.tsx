@@ -102,7 +102,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
         const num = (idx + 1).toString().padStart(2, '0');
         const nickname = a.nickname ? ` "${a.nickname.toUpperCase()}"` : '';
         const position = a.position ? ` - ${a.position}` : '';
-        text += `${num}. *${a.name}${nickname}* (#${a.jersey_number || 'S/N'}${position})\n`;
+        text += `${num}.   *${a.name}${nickname}* (#${a.jersey_number || 'S/N'}${position})\n`;
       });
       text += `\n`;
     } else {
@@ -134,7 +134,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
       const num = (idx + 1).toString().padStart(2, '0');
       const nickname = a.nickname ? ` "${a.nickname.toUpperCase()}"` : '';
       const position = a.position ? ` - ${a.position}` : '';
-      text += `${num}. *${a.name}${nickname}* (#${a.jersey_number || 'S/N'}${position})\n`;
+      text += `${num}.   *${a.name}${nickname}* (#${a.jersey_number || 'S/N'}${position})\n`;
     });
 
     text += `\n━━━━━━━━━━━━━━━━━━━━\n`;
@@ -155,7 +155,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
       const num = (idx + 1).toString().padStart(2, '0');
       const nickname = a.nickname ? ` "${a.nickname.toUpperCase()}"` : '';
       const sub = getSubCategory(a.birth_date);
-      text += `${num}. *${a.name}${nickname}* - #${a.jersey_number || 'S/N'} (${sub})\n`;
+      text += `${num}.   *${a.name}${nickname}* - #${a.jersey_number || 'S/N'} (${sub})\n`;
     });
     text += `\n`;
 
@@ -349,7 +349,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                                   .map((a, idx) => (
                                     <li key={a.id} className="flex justify-between items-center text-xs text-zinc-350 hover:text-white py-0.5 border-b border-zinc-900/45 last:border-0">
                                       <span className="font-bold truncate max-w-[200px] uppercase">
-                                        <span className="text-[10px] text-zinc-600 font-medium mr-1.5">
+                                        <span className="text-[10px] text-zinc-600 font-medium mr-4">
                                           {(idx + 1).toString().padStart(2, '0')}
                                         </span>
                                         {a.name} {a.nickname ? `"${a.nickname}"` : ''}
@@ -467,7 +467,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                               {list.map((a, idx) => (
                                 <li key={a.id} className="flex justify-between items-center text-xs text-zinc-350 hover:text-white py-0.5 border-b border-zinc-900/45 last:border-0">
                                   <span className="font-bold truncate max-w-[200px] uppercase">
-                                    <span className="text-[10px] text-zinc-600 font-medium mr-1.5">
+                                    <span className="text-[10px] text-zinc-600 font-medium mr-4">
                                       {(idx + 1).toString().padStart(2, '0')}
                                     </span>
                                     {a.name} {a.nickname ? `"${a.nickname}"` : ''}
