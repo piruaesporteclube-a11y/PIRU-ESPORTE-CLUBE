@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import Attendance from './Attendance';
 import EventFlyer from './EventFlyer';
 import TrainingFlyer from './TrainingFlyer';
+import SimpleLineupGenerator from './SimpleLineupGenerator';
+import LineupFlyerGenerator from './LineupFlyerGenerator';
 
 interface EventsManagementProps {
   athletes?: Athlete[];
@@ -62,7 +64,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [lineupSummaries, setLineupSummaries] = useState<Record<string, string[]>>({});
   const [activeQRCodeEvent, setActiveQRCodeEvent] = useState<Event | null>(null);
   const [activeFlyerEvent, setActiveFlyerEvent] = useState<Event | null>(null);
-  const [modalTab, setModalTab] = useState<'lineup' | 'scores'>('lineup');
+  const [modalTab, setModalTab] = useState<'lineup' | 'scores' | 'simple_list' | 'lineup_flyer'>('lineup');
+  const [allLineupsData, setAllLineupsData] = useState<{ athletes: Athlete[], staff: Professor[], lineup_index: number, category?: string, lineup_name?: string }[]>([]);
   const [eventMatches, setEventMatches] = useState<EventMatch[]>([]);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
@@ -488,6 +491,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       ]);
       
       setEventMatches(matches);
+      setAllLineupsData(allLineups);
       
       // Set data for the specific index
       const targetLineup = allLineups.find(l => l.lineup_index === index) || { athletes: [], staff: [], category: '', lineup_name: '' };
@@ -740,6 +744,7 @@ Contamos com sua presença!`;
 
       // Update total counts and summaries for the main list
       const allLineups = await api.getAllEventLineups(selectedEvent.id, athletes, professors);
+      setAllLineupsData(allLineups);
       const summaries: string[] = [];
       allLineups.forEach(l => summaries.push(...l.athletes.map(a => a.name)));
       const uniqueNames = Array.from(new Set(summaries));
@@ -834,6 +839,21 @@ Contamos com sua presença!`;
           setMaxLineupIndex(prev => prev - 1);
         }
       }
+      
+      const allLineups = await api.getAllEventLineups(selectedEvent.id, athletes, professors);
+      setAllLineupsData(allLineups);
+      const summaries: string[] = [];
+      allLineups.forEach(l => summaries.push(...l.athletes.map(a => a.name)));
+      const uniqueNames = Array.from(new Set(summaries));
+
+      setLineupCounts(prev => ({
+        ...prev,
+        [selectedEvent.id]: uniqueNames.length
+      }));
+      setLineupSummaries(prev => ({
+        ...prev,
+        [selectedEvent.id]: uniqueNames
+      }));
       
       toast.success('Lista excluída com sucesso!', { id: loadingToast });
     } catch (err: any) {
@@ -1237,6 +1257,30 @@ Contamos com sua presença!`;
                     <Trophy size={14} />
                     JOGOS E ESCALAÇÕES
                   </button>
+                  <button
+                    onClick={() => setModalTab('simple_list')}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
+                      modalTab === 'simple_list'
+                        ? "bg-theme-primary border-theme-primary text-black"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                    )}
+                  >
+                    <FileText size={14} />
+                    LISTA SIMPLES / COMUNICADOS
+                  </button>
+                  <button
+                    onClick={() => setModalTab('lineup_flyer')}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
+                      modalTab === 'lineup_flyer'
+                        ? "bg-theme-primary border-theme-primary text-black"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                    )}
+                  >
+                    <Instagram size={14} />
+                    GERADOR DE ENCARTE
+                  </button>
                 </div>
                 {modalTab === 'lineup' && !activeMatchId && (
                   <div className="flex flex-wrap gap-1 items-end">
@@ -1365,7 +1409,16 @@ Contamos com sua presença!`;
                 </div>
               )}
 
-              {modalTab === 'scores' ? (
+              {modalTab === 'lineup_flyer' ? (
+                <LineupFlyerGenerator 
+                  event={selectedEvent} 
+                  allLineups={allLineupsData} 
+                  athletes={athletes} 
+                  professors={professors} 
+                />
+              ) : modalTab === 'simple_list' ? (
+                <SimpleLineupGenerator event={selectedEvent} allLineups={allLineupsData} />
+              ) : modalTab === 'scores' ? (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
