@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText } from 'lucide-react';
+import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText, ChevronDown } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
@@ -26,6 +26,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [customImage2, setCustomImage2] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedTrainingId, setSelectedTrainingId] = useState<string>('all');
+
+  const activeTrainings = selectedTrainingId === 'all' 
+    ? trainings 
+    : trainings.filter(t => t.id === selectedTrainingId);
 
   // Positioning State
   const [pos1, setPos1] = useState({ scale: 1, x: 0, y: 0 });
@@ -278,8 +283,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       document.body.removeChild(clone);
       toast.dismiss(loadingToast);
       
+      const isSingle = activeTrainings.length === 1;
+      const downloadName = isSingle 
+        ? `TREINO_${activeTrainings[0].modality.replace(/\s+/g, '_').toUpperCase()}_${date}.png`
+        : `AGENDA_TREINO_${date}.png`;
+
       const link = document.createElement('a');
-      link.download = `AGENDA_TREINO_${date}.png`;
+      link.download = downloadName;
       link.href = dataUrl;
       link.click();
       
@@ -319,6 +329,32 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <X size={24} />
             </button>
           </div>
+
+          {/* Training Display Selector (only when there is more than 1 training) */}
+          {trainings.length > 1 && (
+            <div className="space-y-2 bg-black/40 p-4 rounded-3xl border border-zinc-800">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">
+                Exibição de Treino
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedTrainingId}
+                  onChange={(e) => setSelectedTrainingId(e.target.value)}
+                  className="w-full bg-black border border-zinc-700 hover:border-zinc-600 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs font-black uppercase tracking-wider appearance-none cursor-pointer"
+                >
+                  <option value="all">TODOS OS TREINOS DO DIA</option>
+                  {trainings.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.modality.toUpperCase()} ({t.start_time})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Background Selection */}
           <div className="space-y-3">
@@ -949,7 +985,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   transform: `translateX(${infoPos.x}px)`
                 }}
               >
-                {trainings.map((t, idx) => (
+                {activeTrainings.map((t, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
                     <div className={cn(
                       "bg-theme-primary/10 px-2 py-1 backdrop-blur-sm",
@@ -961,8 +997,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     </div>
                     
                     <div className={cn("space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
-                      {t.schedules?.map((s, si) => (
-                        <div key={si} className="relative group">
+                      {!t.schedules || t.schedules.length === 0 ? (
+                        <div className="relative group">
                           <div className={cn(
                             "bg-black/60 backdrop-blur-md p-2 space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all",
                             infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
@@ -971,24 +1007,53 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                             <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
                               {infoAlign === 'left' && <Clock size={8} className="text-theme-primary opacity-70" />}
                               <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
-                                {s.start_time}
+                                {t.start_time}
                               </span>
                               {infoAlign === 'right' && <Clock size={8} className="text-theme-primary opacity-70" />}
                             </div>
 
                             {/* Categories Stacks */}
                             <div className="flex flex-col gap-0.5 mt-0.5">
-                              {s.categories.map((c, ci) => (
-                                <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
+                              {t.category && (
+                                <div className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
                                   <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
-                                    {c}
+                                    {t.category}
                                   </span>
                                 </div>
-                              ))}
+                              )}
                             </div>
                           </div>
                         </div>
-                      ))}
+                      ) : (
+                        t.schedules.map((s, si) => (
+                          <div key={si} className="relative group">
+                            <div className={cn(
+                              "bg-black/60 backdrop-blur-md p-2 space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all",
+                              infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
+                            )}>
+                              {/* Time Slot */}
+                              <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
+                                {infoAlign === 'left' && <Clock size={8} className="text-theme-primary opacity-70" />}
+                                <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
+                                  {s.start_time}
+                                </span>
+                                {infoAlign === 'right' && <Clock size={8} className="text-theme-primary opacity-70" />}
+                              </div>
+
+                              {/* Categories Stacks */}
+                              <div className="flex flex-col gap-0.5 mt-0.5">
+                                {s.categories.map((c, ci) => (
+                                  <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
+                                    <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
+                                      {c}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 ))}

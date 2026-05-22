@@ -529,27 +529,37 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                           )}
 
                           {isAdmin && (
-                            <button 
-                              onClick={() => setActiveAttendanceTraining(training)}
-                              className={cn(
-                                "w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
-                                ended 
-                                  ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-white" 
-                                  : "bg-green-500 text-black hover:bg-green-400"
-                              )}
-                            >
-                              {ended ? (
-                                <>
-                                  <FileText size={18} />
-                                  {isAdmin ? 'Editar Chamada' : 'Ver Chamada'}
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle2 size={18} />
-                                  Fazer Chamada
-                                </>
-                              )}
-                            </button>
+                            <div className="space-y-2">
+                              <button 
+                                onClick={() => setActiveAttendanceTraining(training)}
+                                className={cn(
+                                  "w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+                                  ended 
+                                    ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-white" 
+                                    : "bg-green-500 text-black hover:bg-green-400"
+                                )}
+                              >
+                                {ended ? (
+                                  <>
+                                    <FileText size={18} />
+                                    {isAdmin ? 'Editar Chamada' : 'Ver Chamada'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 size={18} />
+                                    Fazer Chamada
+                                  </>
+                                )}
+                              </button>
+
+                              <button 
+                                onClick={() => setFlyerData({ date: training.date, trainings: [training] })}
+                                className="w-full py-3 border border-zinc-800 hover:border-theme-primary/50 text-zinc-400 hover:text-theme-primary bg-zinc-950/40 rounded-2xl font-black uppercase tracking-tighter text-[10px] transition-all flex items-center justify-center gap-2 group"
+                              >
+                                <Instagram size={14} className="group-hover:scale-110 transition-transform" />
+                                Gerar Encarte Individual
+                              </button>
+                            </div>
                           )}
                         </div>
                       </Reorder.Item>
