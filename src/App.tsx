@@ -624,7 +624,7 @@ export default function App() {
     // Optimized data fetching to save Firestore quota
     if (!user?.id) return;
 
-    if (user.role === 'admin') {
+    if (user.role === 'admin' || user.role === 'professor') {
       // Use getAthletes which has a 15-minute cache to significantly reduce read operations
       api.getAthletes().then(data => {
         setAthletes(data);
@@ -644,6 +644,42 @@ export default function App() {
         setEvents(data);
         setStats(prev => ({ ...prev, events: data.length }));
       }).catch(err => console.error("Erro ao carregar eventos:", err));
+
+      if (user.role === 'professor' && user.professor_id) {
+        // Fetch professor data and map it to an athlete-like structure for generic components
+        const loadProfessorData = async () => {
+          try {
+            const me = await api.getProfessor(user.professor_id!);
+            if (me) {
+              const mappedAsAthlete: Athlete = {
+                id: me.id,
+                name: me.name,
+                birth_date: me.birth_date,
+                doc: me.doc,
+                gender: "Masculino", // Default
+                street: me.street,
+                number: me.number,
+                neighborhood: me.neighborhood,
+                city: me.city,
+                uf: me.uf,
+                jersey_number: "00",
+                photo: me.photo,
+                contact: me.phone,
+                email: user.email || "",
+                guardian_name: "COMISSÃO",
+                guardian_doc: "",
+                guardian_phone: me.phone,
+                status: "Ativo",
+                modality: "Comissão Técnica"
+              };
+              setMyAthleteData(mappedAsAthlete);
+            }
+          } catch (error) {
+            console.error("Error loading professor data:", error);
+          }
+        };
+        loadProfessorData();
+      }
     } else if (user.role === 'student' && user.athlete_id) {
       // Students only subscribe to their own document, which is very efficient
         const unsubscribe = api.subscribeToAthlete(user.athlete_id, (data) => {
@@ -653,41 +689,6 @@ export default function App() {
           }
         });
       return () => unsubscribe();
-    } else if (user.role === 'professor' && user.professor_id) {
-      // Fetch professor data and map it to an athlete-like structure for generic components
-      const loadProfessorData = async () => {
-        try {
-          const me = await api.getProfessor(user.professor_id!);
-          if (me) {
-            const mappedAsAthlete: Athlete = {
-              id: me.id,
-              name: me.name,
-              birth_date: me.birth_date,
-              doc: me.doc,
-              gender: "Masculino", // Default
-              street: me.street,
-              number: me.number,
-              neighborhood: me.neighborhood,
-              city: me.city,
-              uf: me.uf,
-              jersey_number: "00",
-              photo: me.photo,
-              contact: me.phone,
-              email: user.email || "",
-              guardian_name: "COMISSÃO",
-              guardian_doc: "",
-              guardian_phone: me.phone,
-              status: "Ativo",
-              modality: "Comissão Técnica"
-            };
-            setMyAthleteData(mappedAsAthlete);
-            setAthletes([mappedAsAthlete]);
-          }
-        } catch (error) {
-          console.error("Error loading professor data:", error);
-        }
-      };
-      loadProfessorData();
     }
   }, [user?.id, user?.role, user?.athlete_id, user?.professor_id]); // Re-subscribe if user changes
 

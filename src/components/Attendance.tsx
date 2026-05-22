@@ -19,6 +19,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
+  const [showOnlyActive, setShowOnlyActive] = useState(true);
 
   useEffect(() => {
     setFilterSub(filterCategory);
@@ -726,7 +727,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     }
   };
 
-  const activeAthletes = athletes.filter(a => a.status === 'Ativo' && a.confirmation !== 'Pendente');
+  const activeAthletes = athletes.filter(a => {
+    if (!showOnlyActive) return true;
+    return a.status === 'Ativo' && a.confirmation !== 'Pendente';
+  });
   const filteredAthletes = activeAthletes
     .filter(a => {
       const isSearching = search.trim().length > 0;
@@ -1191,7 +1195,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="relative md:col-span-2 lg:col-span-1 border-2 border-theme-primary/30 rounded-xl overflow-hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
@@ -1253,6 +1257,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowOnlyActive(!showOnlyActive)}
+          className={cn(
+            "w-full py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all flex items-center justify-center gap-2 h-[50px] cursor-pointer",
+            showOnlyActive 
+              ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700" 
+              : "bg-theme-primary/10 border-theme-primary text-theme-primary hover:bg-theme-primary/20"
+          )}
+        >
+          {showOnlyActive ? "Apenas Alunos Ativos" : "Todos os Cadastrados"}
+        </button>
       </div>
 
       <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
@@ -1574,8 +1591,29 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </div>
 
         {filteredAthletes.length === 0 && (
-          <div className="px-6 py-12 text-center text-zinc-500">
-            Nenhum atleta encontrado para chamada.
+          <div className="px-6 py-16 text-center text-zinc-500 flex flex-col items-center justify-center gap-4">
+            <p className="text-sm font-semibold max-w-md">
+              Nenhum atleta ativo e confirmado foi encontrado para esta chamada.
+            </p>
+            {showOnlyActive && athletes.length > 0 && (
+              <div className="max-w-md p-6 bg-zinc-900/40 border border-zinc-800 rounded-3xl space-y-4 shadow-xl">
+                 <p className="text-xs text-zinc-400 leading-relaxed uppercase tracking-wide font-medium">
+                   Existem {athletes.length} atleta(s) cadastrados no total, mas estão atualmente desativados ou com matrícula pendente por padrão.
+                 </p>
+                 <button
+                   type="button"
+                   onClick={() => setShowOnlyActive(false)}
+                   className="w-full py-3 bg-theme-primary text-black rounded-xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer shadow-lg shadow-theme-primary/10"
+                 >
+                   Visualizar todos os cadastrados nesta lista
+                 </button>
+              </div>
+            )}
+            {athletes.length === 0 && (
+              <p className="text-xs text-zinc-600 uppercase tracking-widest">
+                Importe ou cadastre atletas no menu "Atletas" para começar.
+              </p>
+            )}
           </div>
         )}
       </div>
