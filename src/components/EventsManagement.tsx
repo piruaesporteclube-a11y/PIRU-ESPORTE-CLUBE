@@ -342,7 +342,13 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       doc.line(15, 23, pageWidth - 15, 23);
       
       // Event Banner Style
-      const currentLineupLabel = lineupName ? `${lineupName.toUpperCase()} - ${lineupCategory.toUpperCase()}` : `CONVOCATÓRIA: ${selectedEvent.name.toUpperCase()}`;
+      let currentLineupLabel = `CONVOCATÓRIA: ${selectedEvent.name.toUpperCase()}`;
+      if (lineupName || lineupCategory) {
+        const parts = [];
+        if (lineupName) parts.push(lineupName.toUpperCase());
+        if (lineupCategory) parts.push(`CATEGORIA: ${lineupCategory.toUpperCase()}`);
+        currentLineupLabel = parts.join(' - ');
+      }
       doc.setFillColor(0, 0, 0);
       doc.rect(15, 26, pageWidth - 30, 8, 'F');
       doc.setTextColor(255, 255, 255);
@@ -359,17 +365,27 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40, { align: 'right' });
       doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
       
-      // Display current Match if applicable
+      // Display current Match or Category if applicable
+      let matchY = 52;
+      if (lineupCategory) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(`CATEGORIA DA ESCOLA / SUB: ${lineupCategory.toUpperCase()}`, 15, matchY);
+        matchY += 5;
+      }
+
       if (activeMatchId) {
         const match = eventMatches.find(m => m.id === activeMatchId);
         if (match) {
           doc.setFont('helvetica', 'bold');
-          doc.text(`PARTIDA: ${match.team_a_name} X ${match.team_b_name} (${match.date} ${match.time})`.toUpperCase(), 15, 54);
+          doc.setFontSize(8);
+          doc.text(`PARTIDA: ${match.team_a_name} X ${match.team_b_name} (${match.date} ${match.time})`.toUpperCase(), 15, matchY);
+          matchY += 5;
         }
       }
 
       // Table - Staff
-      let startY = activeMatchId ? 58 : 55;
+      let startY = matchY + 1;
       if (lineupStaff.length > 0) {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2329,9 +2345,13 @@ Contamos com sua presença!`;
                     <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
                   ) : null}
                   <div className="text-left">
-                    <h1 className="text-xl font-black uppercase leading-tight">Piruá Esporte Clube</h1>
-                    <h2 className="text-sm font-bold uppercase text-zinc-600">Folha de SUB Oficial - {activeLineupIndex + 1}</h2>
-                    {lineupCategory && <p className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Categorias: {lineupCategory}</p>}
+                    <h1 className="text-2xl font-black uppercase leading-tight">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
+                    <h2 className="text-sm font-extrabold uppercase text-zinc-700 mt-1">CONVOCAÇÃO EXTRAOFICIAL / RELATÓRIO DE SQUAD DE SUB</h2>
+                    {lineupCategory && (
+                      <div className="mt-2 text-xs font-black text-black border-2 border-dashed border-black px-3 py-1 bg-zinc-50 inline-block rounded-lg uppercase tracking-wider">
+                        CATEGORIA DO SUB: {lineupCategory.toUpperCase()}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">

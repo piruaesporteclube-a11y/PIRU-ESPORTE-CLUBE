@@ -181,6 +181,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
       <style>
         body { background: white; color: black; font-family: sans-serif; padding: 20px; }
         .no-print { display: none !important; }
+        .print-only { display: block !important; }
         .print-card { border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid; }
         .print-header { border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
         .print-title { font-size: 20px; font-weight: bold; text-transform: uppercase; }
@@ -291,9 +292,9 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                       className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between hover:border-zinc-700 transition-all group"
                     >
                       <div id={innerElementId} className="print-card">
-                        <div className="print-header hidden">
+                        <div className="print-header print-only">
                           <h1 className="print-title">{schoolName}</h1>
-                          <h2 className="print-subtitle">{listName} {lineup.category ? `(${lineup.category})` : ''}</h2>
+                          <h2 className="print-subtitle">{listName} {lineup.category ? ` - CATEGORIA: ${lineup.category.toUpperCase()}` : ''}</h2>
                           <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - {event.start_date}</p>
                         </div>
 
@@ -417,9 +418,9 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                         className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between hover:border-zinc-700 transition-all"
                       >
                         <div id={innerElementId} className="print-card">
-                          <div className="print-header hidden">
+                          <div className="print-header print-only">
                             <h1 className="print-title">{schoolName}</h1>
-                            <h2 className="print-subtitle">{subName}</h2>
+                            <h2 className="print-subtitle">CATEGORIA: {subName.toUpperCase()}</h2>
                             <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - {event.start_date}</p>
                           </div>
 
@@ -494,7 +495,7 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
           {activeSubTab === 'general' && (
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] p-6 lg:p-8 hover:border-zinc-700 transition-all">
               <div id="print-general-complete" className="print-card">
-                <div className="print-header hidden">
+                <div className="print-header print-only">
                   <h1 className="print-title">{schoolName}</h1>
                   <h2 className="print-subtitle">Sumário / Convocação Geral</h2>
                   <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - Data: {event.start_date}</p>
