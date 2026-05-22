@@ -304,10 +304,29 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     setIsGeneratingPDF(true);
     const loadingToast = toast.loading('Gerando PDF da escalação...');
     
+    const formatDateSafe = (dateStr: string | undefined | null) => {
+      if (!dateStr) return '---';
+      try {
+        const parts = dateStr.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          if (year.length === 4 && month.length === 2 && day.length === 2) {
+            return `${day}/${month}/${year}`;
+          }
+        }
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('pt-BR');
+        }
+      } catch (e) {
+        console.warn("Date error:", e);
+      }
+      return dateStr || '---';
+    };
+
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      const { settings } = useTheme();
       
       // Header
       doc.setFontSize(16);
@@ -336,7 +355,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       doc.setFontSize(8);
       doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
       doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
-      doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
+      doc.text(`DATA: ${formatDateSafe(selectedEvent.start_date)}`, 15, 48);
       doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40, { align: 'right' });
       doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
       
@@ -361,7 +380,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
           head: [['#', 'NOME COMPLETO', 'IDENTIDADE', 'CARGO', 'CONFIRMAÇÃO']],
           body: lineupStaff.map((s, idx) => [
             idx + 1,
-            s.name.toUpperCase(),
+            (s.name || '').toUpperCase(),
             s.doc || '---',
             (s.role || 'COMISSÃO').toUpperCase(),
             (s.confirmation || 'PENDENTE').toUpperCase()
@@ -377,18 +396,24 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       // Table - Athletes
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`ATLETAS CONVOCADOS (${lineupAthletes.length})`, 15, startY);
+      doc.text(`ATLETAS CONVOCADOS (${(lineupAthletes || []).length})`, 15, startY);
       
+      const sortedAthletes = [...(lineupAthletes || [])].sort((a, b) => {
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        return nameA.localeCompare(nameB);
+      });
+
       autoTable(doc, {
         startY: startY + 2,
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'NASC.', 'CATEGORIA', 'STATUS', 'CONFIRMAÇÃO']],
-        body: lineupAthletes.sort((a, b) => a.name.localeCompare(b.name)).map((a, idx) => [
+        body: sortedAthletes.map((a, idx) => [
           idx + 1,
-          a.name.toUpperCase(),
+          (a.name || '').toUpperCase(),
           a.doc || '---',
-          a.birth_date ? new Date(a.birth_date).toLocaleDateString('pt-BR') : '---',
+          formatDateSafe(a.birth_date),
           getSubCategory(a.birth_date),
-          ((a as any).lineup_status || '---').toUpperCase(),
+          (typeof (a as any).lineup_status === 'string' ? (a as any).lineup_status : '---').toUpperCase(),
           (a.confirmation || 'PENDENTE').toUpperCase()
         ]),
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
