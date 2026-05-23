@@ -362,7 +362,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP']],
         body: companions.map((c, idx) => [
           idx + 1 + lineup.athletes.length + lineup.staff.length,
-          c.name.toUpperCase(),
+          c.role ? `${c.name.toUpperCase()} (${c.role.toUpperCase()})` : c.name.toUpperCase(),
           c.doc,
           c.whatsapp
         ]),
@@ -815,7 +815,12 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                         {companions.map((c, idx) => (
                           <tr key={c.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1 + lineup.athletes.length + lineup.staff.length}</td>
-                            <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight text-zinc-800">{c.name}</td>
+                            <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight text-zinc-800">
+                              {c.name}
+                              {c.role && (
+                                <span className="ml-2 text-[8px] bg-zinc-200 text-zinc-700 px-1 py-0.5 rounded font-black tracking-tight">{c.role}</span>
+                              )}
+                            </td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.doc}</td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.whatsapp || '---'}</td>
                             <td className="py-1 px-2 no-print">

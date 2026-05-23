@@ -22,7 +22,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
   const [formData, setFormData] = useState({
     name: '',
     doc: '',
-    whatsapp: ''
+    whatsapp: '',
+    role: ''
   });
 
   useEffect(() => {
@@ -60,7 +61,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
         event_id: eventId,
         name: formData.name.toUpperCase(),
         doc: formData.doc.replace(/\D/g, ''),
-        whatsapp: formData.whatsapp.replace(/\D/g, '')
+        whatsapp: formData.whatsapp.replace(/\D/g, ''),
+        role: formData.role || undefined
       });
       setSubmitted(true);
       toast.success("Cadastro realizado com sucesso!");
@@ -193,6 +195,20 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                   value={formData.whatsapp}
                   onChange={e => setFormData({...formData, whatsapp: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Vínculo com o Atleta / Função (Opcional)</label>
+                <select 
+                  className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium cursor-pointer"
+                  value={formData.role}
+                  onChange={e => setFormData({...formData, role: e.target.value})}
+                >
+                  <option value="">Deixar em branco</option>
+                  <option value="PAI">PAI</option>
+                  <option value="RESPONSÁVEL">RESPONSÁVEL</option>
+                  <option value="MOTORISTA">MOTORISTA</option>
+                </select>
               </div>
             </div>
 

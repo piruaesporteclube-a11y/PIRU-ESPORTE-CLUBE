@@ -341,6 +341,7 @@ export interface Companion {
   doc: string;
   whatsapp?: string; // New field
   presence?: "Presente" | "Ausente"; // New field
+  role?: string;
   created_at?: any;
 }
 
