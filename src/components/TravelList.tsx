@@ -278,36 +278,6 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 15, { align: 'center' });
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
-    
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.line(15, 23, pageWidth - 15, 23);
-    
-    // Event Banner Style
-    doc.setFillColor(0, 0, 0);
-    doc.rect(15, 26, pageWidth - 30, 8, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('LISTA DE VIAGEM', pageWidth / 2, 31, { align: 'center' });
-    
-    // Event Details
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(8);
-    doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
-    doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
-    doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
-    doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 40, { align: 'right' });
-    doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
-    
     // Table - Athletes
     doc.setFontSize(10);
     doc.text(`ATLETAS (${lineup.athletes.length})`, 15, 55);
@@ -326,13 +296,13 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
       styles: { fontSize: 6.5, cellPadding: 0.8 },
       alternateRowStyles: { fillColor: [250, 250, 250] },
-      margin: { left: 15, right: 15 }
+      margin: { top: 55, left: 15, right: 15 }
     });
     
     // Table - Staff
     let nextY = (doc as any).lastAutoTable.finalY + 5;
     if (lineup.staff.length > 0) {
-      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 55; }
       doc.setFontSize(9);
       doc.text(`COMISSÃO TÉCNICA (${lineup.staff.length})`, 15, nextY);
       autoTable(doc, {
@@ -347,14 +317,14 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 6.5, cellPadding: 0.8 },
         alternateRowStyles: { fillColor: [250, 250, 250] },
-        margin: { left: 15, right: 15 }
+        margin: { top: 55, left: 15, right: 15 }
       });
       nextY = (doc as any).lastAutoTable.finalY + 5;
     }
     
     // Table - Companions
     if (companions.length > 0) {
-      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 55; }
       doc.setFontSize(9);
       doc.text(`ACOMPANHANTES (${companions.length})`, 15, nextY);
       autoTable(doc, {
@@ -369,7 +339,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         headStyles: { fillColor: [150, 150, 150], textColor: [0, 0, 0], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 6.5, cellPadding: 0.8 },
         alternateRowStyles: { fillColor: [250, 250, 250] },
-        margin: { left: 15, right: 15 }
+        margin: { top: 55, left: 15, right: 15 }
       });
       nextY = (doc as any).lastAutoTable.finalY + 10;
     } else {
@@ -380,7 +350,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     const totalOccupiedSeats = lineup.athletes.length + lineup.staff.length + companions.length;
     const remainingSeatsCount = Math.max(0, 50 - totalOccupiedSeats);
     if (remainingSeatsCount > 0) {
-      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 55; }
       doc.setFontSize(9);
       doc.text(`ASSENTOS LIVRES / VAGAS REMANESCENTES EM BRANCO (${remainingSeatsCount})`, 15, nextY);
       autoTable(doc, {
@@ -395,18 +365,20 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         headStyles: { fillColor: [220, 220, 220], textColor: [100, 100, 100], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 6.5, cellPadding: 0.8 },
         alternateRowStyles: { fillColor: [255, 255, 255] },
-        margin: { left: 15, right: 15 }
+        margin: { top: 55, left: 15, right: 15 }
       });
       nextY = (doc as any).lastAutoTable.finalY + 10;
     }
 
     // Signatures
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    let signatureY;
     if (finalY + 40 > doc.internal.pageSize.getHeight()) {
       doc.addPage();
+      signatureY = 80;
+    } else {
+      signatureY = finalY + 25;
     }
-    
-    const signatureY = (doc as any).lastAutoTable.finalY + 40 > doc.internal.pageSize.getHeight() ? 40 : (doc as any).lastAutoTable.finalY + 40;
     
     doc.setLineWidth(0.5);
     doc.line(20, signatureY, 90, signatureY);
@@ -416,8 +388,51 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     doc.line(pageWidth - 90, signatureY, pageWidth - 20, signatureY);
     doc.text(directorName.toUpperCase() || 'DIRETOR(A) EXECUTIVO(A)', pageWidth - 55, signatureY + 5, { align: 'center' });
 
+    // Header drawing on all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Header Text and Lines
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(15, 23, pageWidth - 15, 23);
+      
+      // Event Banner Style
+      doc.setFillColor(0, 0, 0);
+      doc.rect(15, 26, pageWidth - 30, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('LISTA DE VIAGEM', pageWidth / 2, 31, { align: 'center' });
+      
+      // Event Details
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
+      doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
+      doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
+      doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 40, { align: 'right' });
+      doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
+
+      // Page numbers at the bottom footer
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Páginas: ${i} / ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
     doc.save(`lista-viagem-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
-    toast.success('PDF gerado com sucesso!');
+    toast.primary ? (toast as any).primary('PDF gerado com sucesso!') : toast.success('PDF gerado com sucesso!');
   };
 
   if (isEditingLineup && selectedEvent) {

@@ -325,10 +325,77 @@ const getDocWithCacheFallback = async (docRef: any) => {
 
 const getCacheKey = (q: any) => {
   try {
-    return q.path || (q._query && q._query.path && q._query.path.canonicalString()) || JSON.stringify(q);
+    if (!q) return '';
+    if (typeof q === 'string') return q;
+    if (q.path) return q.path;
+    
+    if (q._query) {
+      const parts: string[] = [];
+      const queryInfo = q._query;
+      
+      if (queryInfo.path) {
+        parts.push(queryInfo.path.canonicalString() || '');
+      }
+      
+      if (queryInfo.filters && Array.isArray(queryInfo.filters)) {
+        queryInfo.filters.forEach((filter: any) => {
+          if (filter.field && filter.op) {
+            const fieldPath = filter.field.canonicalString ? filter.field.canonicalString() : String(filter.field);
+            const op = filter.op;
+            let val = '';
+            if (filter.value) {
+              val = filter.value.internalValue !== undefined ? filter.value.internalValue : String(filter.value);
+            }
+            parts.push(`filter:${fieldPath}:${op}:${val}`);
+          } else if (filter.filters && Array.isArray(filter.filters)) {
+            filter.filters.forEach((sub: any) => {
+              if (sub.field && sub.op) {
+                const fieldPath = sub.field.canonicalString ? sub.field.canonicalString() : String(sub.field);
+                const op = sub.op;
+                let val = '';
+                if (sub.value) {
+                  val = sub.value.internalValue !== undefined ? sub.value.internalValue : String(sub.value);
+                }
+                parts.push(`filter:${fieldPath}:${op}:${val}`);
+              } else {
+                parts.push(JSON.stringify(sub));
+              }
+            });
+          } else {
+            parts.push(JSON.stringify(filter));
+          }
+        });
+      } else if (queryInfo.filters) {
+        parts.push(JSON.stringify(queryInfo.filters));
+      }
+      
+      if (queryInfo.explicitOrderBy && Array.isArray(queryInfo.explicitOrderBy)) {
+        queryInfo.explicitOrderBy.forEach((ob: any) => {
+          const field = ob.field ? (ob.field.canonicalString ? ob.field.canonicalString() : String(ob.field)) : '';
+          const dir = ob.dir || '';
+          parts.push(`order:${field}:${dir}`);
+        });
+      }
+      
+      if (queryInfo.limit !== undefined && queryInfo.limit !== null) {
+        parts.push(`limit:${queryInfo.limit}`);
+      }
+      
+      if (parts.length > 0) {
+        return parts.join('|');
+      }
+    }
   } catch (e) {
-    return Math.random().toString();
+    console.warn("Error serializing Firestore query in getCacheKey:", e);
   }
+  
+  try {
+    if (typeof q.toString === 'function' && q.toString() !== '[object Object]') {
+      return q.toString();
+    }
+  } catch (e) {}
+
+  return q.path || (q._query && q._query.path && q._query.path.canonicalString()) || 'query_fallback';
 };
 
 export const api = {
@@ -1368,6 +1435,7 @@ export const api = {
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       });
+      invalidateCache("named_lineups");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "named_lineups");
     }
@@ -1375,6 +1443,7 @@ export const api = {
   deleteNamedLineup: async (id: string) => {
     try {
       await deleteDoc(doc(db, "named_lineups", id));
+      invalidateCache("named_lineups");
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `named_lineups/${id}`);
     }
@@ -1390,7 +1459,7 @@ export const api = {
         confirmation: "Pendente",
         updated_at: serverTimestamp()
       }, { merge: true });
-      delete cache[`lineup_${event_id}_${lineup_index}`];
+      invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1406,7 +1475,7 @@ export const api = {
         await deleteDoc(doc(db, "event_lineups", oldId));
       }
       
-      delete cache[`lineup_${event_id}_${lineup_index}`];
+      invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1435,7 +1504,7 @@ export const api = {
           });
         }
       }
-      delete cache[`lineup_${event_id}_${lineup_index}`];
+      invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1446,7 +1515,7 @@ export const api = {
       const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
       const docRef = doc(db, "event_lineups", id);
       await updateDoc(docRef, { presence, updated_at: serverTimestamp() });
-      delete cache[`lineup_${event_id}_${lineup_index}`];
+      invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1457,8 +1526,8 @@ export const api = {
       const id = match_id ? `${match_id}_athlete_${person_id}` : `${event_id}_${lineup_index}_athlete_${person_id}`;
       const docRef = doc(db, "event_lineups", id);
       await updateDoc(docRef, { lineup_status: status, updated_at: serverTimestamp() });
-      if (match_id) delete cache[`lineup_match_${match_id}`];
-      else delete cache[`lineup_${event_id}_${lineup_index}`];
+      if (match_id) invalidateCache(`lineup_match_${match_id}`);
+      else invalidateCache(`lineup_${event_id}_${lineup_index}`);
     } catch (error) {
        handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${match_id || event_id}_status_${person_id}`);
     }
@@ -2020,7 +2089,7 @@ export const api = {
       querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
       
       await batch.commit();
-      delete cache[`lineup_match_${id}`];
+      invalidateCache(`lineup_match_${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_matches/${id}`);
     }
