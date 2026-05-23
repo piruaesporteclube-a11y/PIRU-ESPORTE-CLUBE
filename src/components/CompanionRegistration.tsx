@@ -72,7 +72,8 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
     }
   };
 
-  const isLocked = event ? new Date().toISOString().split('T')[0] > event.start_date : false;
+  // Always keep companion registration open for active events, as requested
+  const isLocked = false;
 
   if (loading) {
     return (

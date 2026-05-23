@@ -47,6 +47,9 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
   const [directorName, setDirectorName] = useState(settings?.president || '');
 
+  const totalOccupiedSeats = (lineup?.athletes?.length || 0) + (lineup?.staff?.length || 0) + (companions?.length || 0);
+  const remainingSeatsCount = Math.max(0, 50 - totalOccupiedSeats);
+
   useEffect(() => {
     if (athletesProp) setAthletes(athletesProp);
     if (professorsProp) setProfessors(professorsProp);
@@ -336,7 +339,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         startY: nextY + 2,
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CARGO']],
         body: lineup.staff.map((s, idx) => [
-          idx + 1,
+          idx + 1 + lineup.athletes.length,
           s.name.toUpperCase(),
           s.doc,
           (s.role || 'COMISSÃO').toUpperCase()
@@ -358,7 +361,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         startY: nextY + 2,
         head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP']],
         body: companions.map((c, idx) => [
-          idx + 1,
+          idx + 1 + lineup.athletes.length + lineup.staff.length,
           c.name.toUpperCase(),
           c.doc,
           c.whatsapp
@@ -370,6 +373,30 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       });
       nextY = (doc as any).lastAutoTable.finalY + 10;
     } else {
+      nextY = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Table - Remaining Empty Seats to hit minimum 50 spots
+    const totalOccupiedSeats = lineup.athletes.length + lineup.staff.length + companions.length;
+    const remainingSeatsCount = Math.max(0, 50 - totalOccupiedSeats);
+    if (remainingSeatsCount > 0) {
+      if (nextY + 20 > doc.internal.pageSize.getHeight()) { doc.addPage(); nextY = 15; }
+      doc.setFontSize(9);
+      doc.text(`ASSENTOS LIVRES / VAGAS REMANESCENTES EM BRANCO (${remainingSeatsCount})`, 15, nextY);
+      autoTable(doc, {
+        startY: nextY + 2,
+        head: [['#', 'NOME COMPLETO (PREENCHIMENTO MANUAL ATÉ 50 LUGARES)', 'RG / CPF', 'ASSINATURA / WHATSAPP']],
+        body: Array.from({ length: remainingSeatsCount }).map((_, rIdx) => [
+          totalOccupiedSeats + rIdx + 1,
+          '...........................................................................................',
+          '................................................',
+          '................................................'
+        ]),
+        headStyles: { fillColor: [220, 220, 220], textColor: [100, 100, 100], fontStyle: 'bold', minCellHeight: 4 },
+        styles: { fontSize: 6.5, cellPadding: 0.8 },
+        alternateRowStyles: { fillColor: [255, 255, 255] },
+        margin: { left: 15, right: 15 }
+      });
       nextY = (doc as any).lastAutoTable.finalY + 10;
     }
 
@@ -724,7 +751,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   
                           return (
                             <tr key={p.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
-                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1 + lineup.athletes.length}</td>
                               <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight">{p.name}</td>
                               <td className="py-1 px-2 text-[9px] font-bold uppercase text-zinc-500">{p.role || 'Comissão'}</td>
                               <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{p.doc}</td>
@@ -787,7 +814,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                       <tbody className="border-x border-b border-zinc-200">
                         {companions.map((c, idx) => (
                           <tr key={c.id} className="hover:bg-zinc-50 border-b border-zinc-100 last:border-0 odd:bg-white even:bg-zinc-50/50">
-                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
+                            <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1 + lineup.athletes.length + lineup.staff.length}</td>
                             <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight text-zinc-800">{c.name}</td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.doc}</td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{c.whatsapp || '---'}</td>
@@ -823,6 +850,41 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Remaining Empty Seats to hit minimum 50 spots */}
+                {remainingSeatsCount > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-4 w-1 bg-zinc-300" />
+                      <h4 className="text-sm print:text-xs font-black uppercase tracking-tight text-zinc-500">
+                        Vagas em Branco / Assentos Livres ({remainingSeatsCount} lugares restantes para atingir mínimo de 50)
+                      </h4>
+                    </div>
+                    <table className="w-full border-collapse border border-zinc-200">
+                      <thead>
+                        <tr className="bg-zinc-50 text-zinc-400">
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest w-12 border-b border-zinc-200"># Assento</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest border-b border-zinc-200">Nome Completo (Preenchimento Manual)</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest w-1/4 border-b border-zinc-200">RG / CPF</th>
+                          <th className="py-1 px-2 text-left text-[8px] uppercase font-black tracking-widest w-1/4 border-b border-zinc-200">Assinatura / WhatsApp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="border-x border-b border-zinc-200 text-zinc-450">
+                        {Array.from({ length: remainingSeatsCount }).map((_, rIdx) => {
+                          const seatNumber = totalOccupiedSeats + rIdx + 1;
+                          return (
+                            <tr key={rIdx} className="border-b border-zinc-100 last:border-0 h-[28px] odd:bg-white even:bg-zinc-50/20">
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-300 border-r border-zinc-100">{seatNumber}</td>
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200">...........................................................................................................</td>
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200 border-l border-zinc-100">...................................................</td>
+                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200 border-l border-zinc-100">...................................................</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
