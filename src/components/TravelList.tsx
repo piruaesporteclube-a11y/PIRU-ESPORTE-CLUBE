@@ -290,11 +290,11 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         a.name.toUpperCase(),
         a.doc || '---',
         getSubCategory(a.birth_date),
-        (a.guardian_name || '---').toUpperCase().split(' ').slice(0, 2).join(' '),
+        (a.guardian_name || '---').toUpperCase(),
         a.guardian_phone || '---'
       ]),
       headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
-      styles: { fontSize: 6.5, cellPadding: 0.8 },
+      styles: { fontSize: 6.5, cellPadding: 0.8, overflow: 'linebreak' },
       alternateRowStyles: { fillColor: [250, 250, 250] },
       margin: { top: 55, left: 15, right: 15 }
     });
@@ -389,7 +389,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     doc.text(directorName.toUpperCase() || 'DIRETOR(A) EXECUTIVO(A)', pageWidth - 55, signatureY + 5, { align: 'center' });
 
     // Header drawing on all pages
-    const totalPages = doc.internal.getNumberOfPages();
+    const totalPages = (doc as any).getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       
@@ -432,7 +432,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     }
 
     doc.save(`lista-viagem-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
-    toast.primary ? (toast as any).primary('PDF gerado com sucesso!') : toast.success('PDF gerado com sucesso!');
+    toast.success('PDF gerado com sucesso!');
   };
 
   if (isEditingLineup && selectedEvent) {
@@ -698,8 +698,8 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-400">{idx + 1}</td>
                             <td className="py-1 px-2 text-[9px] font-black uppercase leading-tight">{athlete.name}</td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{athlete.doc}</td>
-                            <td className="py-1 px-2 text-[9px] font-bold uppercase text-zinc-600 truncate max-w-[150px]">
-                              {athlete.guardian_name ? athlete.guardian_name.split(' ').slice(0, 2).join(' ') : '---'}
+                            <td className="py-1 px-2 text-[9px] font-bold uppercase text-zinc-600 break-words max-w-[200px]">
+                              {athlete.guardian_name || '---'}
                             </td>
                             <td className="py-1 px-2 text-[9px] font-bold text-zinc-600">{athlete.guardian_phone || '---'}</td>
                             <td className="py-1 px-2 no-print">
@@ -897,11 +897,17 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                         {Array.from({ length: remainingSeatsCount }).map((_, rIdx) => {
                           const seatNumber = totalOccupiedSeats + rIdx + 1;
                           return (
-                            <tr key={rIdx} className="border-b border-zinc-100 last:border-0 h-[28px] odd:bg-white even:bg-zinc-50/20">
-                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-300 border-r border-zinc-100">{seatNumber}</td>
-                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200">...........................................................................................................</td>
-                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200 border-l border-zinc-100">...................................................</td>
-                              <td className="py-1 px-2 text-[9px] font-bold text-zinc-200 border-l border-zinc-100">...................................................</td>
+                            <tr key={rIdx} className="border-b border-zinc-100 last:border-0 h-[32px] odd:bg-white even:bg-zinc-50/20">
+                              <td className="py-2 px-2 text-[9px] font-bold text-zinc-300 border-r border-zinc-100">{seatNumber}</td>
+                              <td className="py-2 px-2 border-r border-zinc-100">
+                                <div className="border-b border-dashed border-zinc-300 h-4 w-full opacity-60"></div>
+                              </td>
+                              <td className="py-2 px-2 border-r border-zinc-100">
+                                <div className="border-b border-dashed border-zinc-300 h-4 w-full opacity-60"></div>
+                              </td>
+                              <td className="py-2 px-2">
+                                <div className="border-b border-dashed border-zinc-300 h-4 w-full opacity-60"></div>
+                              </td>
                             </tr>
                           );
                         })}
