@@ -1082,9 +1082,9 @@ export default function App() {
         case 'championships':
           return <ChampionshipManagement />;
         case 'lineups':
-          return user.role === 'admin' 
+          return (user.role === 'admin' || user.role === 'professor')
             ? <LineupManagement setActiveTab={setActiveTab} setSelectedEventIdForTravel={setSelectedEventIdForTravel} /> 
-            : <StudentLineups athleteId={user.athlete_id || user.professor_id || ''} athleteName={myAthleteData?.name || ''} />;
+            : <StudentLineups athleteId={user.athlete_id || ''} athleteName={myAthleteData?.name || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} loggedInUserId={user?.id} />;
         case 'birthdays':
