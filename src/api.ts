@@ -2070,6 +2070,7 @@ export const api = {
         created_at: match.created_at || serverTimestamp()
       };
       await setDoc(doc(db, "event_matches", id), sanitizeData(data), { merge: true });
+      invalidateCache("event_matches");
       return id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_matches");
@@ -2090,6 +2091,7 @@ export const api = {
       
       await batch.commit();
       invalidateCache(`lineup_match_${id}`);
+      invalidateCache("event_matches");
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_matches/${id}`);
     }
