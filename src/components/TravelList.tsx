@@ -42,7 +42,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [loading, setLoading] = useState(false);
   const [isAddingCompanion, setIsAddingCompanion] = useState(false);
   const [isEditingLineup, setIsEditingLineup] = useState(false);
-  const [newCompanion, setNewCompanion] = useState({ name: '', doc: '', whatsapp: '' });
+  const [newCompanion, setNewCompanion] = useState({ name: '', doc: '', whatsapp: '', role: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [responsibleWhatsApp, setResponsibleWhatsApp] = useState('');
   const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
@@ -217,19 +217,20 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const isLocked = selectedEvent ? (new Date().toISOString().split('T')[0] > selectedEvent.start_date && !isAdmin) : false;
 
   const handleAddCompanion = async () => {
-    if (!newCompanion.name || !newCompanion.doc || !newCompanion.whatsapp) {
-      toast.error("Preencha todos os campos");
+    if (!newCompanion.name.trim()) {
+      toast.error("O nome do acompanhante é obrigatório");
       return;
     }
     try {
       await api.saveCompanion({
         event_id: selectedEventId,
-        name: newCompanion.name.toUpperCase(),
-        doc: newCompanion.doc,
-        whatsapp: newCompanion.whatsapp.replace(/\D/g, '')
+        name: newCompanion.name.toUpperCase().trim(),
+        doc: newCompanion.doc.trim() || '---',
+        whatsapp: newCompanion.whatsapp.replace(/\D/g, '') || '---',
+        role: newCompanion.role.toUpperCase().trim() || 'ACOMPANHANTE'
       });
       toast.success("Acompanhante adicionado");
-      setNewCompanion({ name: '', doc: '', whatsapp: '' });
+      setNewCompanion({ name: '', doc: '', whatsapp: '', role: '' });
       setIsAddingCompanion(false);
       loadEventData(selectedEventId);
     } catch (error) {
@@ -609,9 +610,16 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
             </div>
           </div>
 
-          <div className="w-full md:w-auto flex gap-2">
+          <div className="w-full md:w-auto flex flex-wrap gap-2">
             {!isLocked ? (
               <>
+                <button 
+                  onClick={() => setIsAddingCompanion(!isAddingCompanion)}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-2xl border transition-all uppercase tracking-widest text-xs ${isAddingCompanion ? 'bg-theme-primary text-black border-theme-primary shadow-lg shadow-theme-primary/20' : 'bg-zinc-800 text-white border-zinc-700 hover:border-theme-primary'}`}
+                >
+                  <UserPlus size={14} />
+                  {isAddingCompanion ? 'Fechar Painel' : 'Incluir Passageiro'}
+                </button>
                 <button 
                   onClick={() => setIsEditingLineup(true)}
                   className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs"
@@ -1032,43 +1040,55 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                       </div>
 
                       {/* Manual Add Companion */}
-                      <div className="p-6 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-2xl">
+                      <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
                         <div className="flex items-center gap-3 mb-4">
-                          <UserPlus className="text-zinc-600" size={18} />
-                          <h5 className="text-xs font-black text-zinc-600 uppercase tracking-widest">Incluir Acompanhante (Não Cadastrado)</h5>
+                          <UserPlus className="text-theme-primary" size={18} />
+                          <h5 className="text-xs font-black text-white uppercase tracking-widest">Incluir Acompanhante Manualmente (Não Cadastrado)</h5>
                         </div>
                         <div className="flex flex-wrap gap-4 items-end">
-                          <div className="flex-1 min-w-[150px]">
-                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Nome</label>
+                          <div className="flex-1 min-w-[200px]">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1 animate-pulse">Nome Completo *</label>
                             <input 
                               type="text" 
-                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 uppercase"
+                              placeholder="NOME DO PASSAGEIRO"
+                              className="w-full px-4 py-3 bg-black border border-zinc-820 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold uppercase placeholder:text-zinc-700"
                               value={newCompanion.name}
                               onChange={e => setNewCompanion({...newCompanion, name: e.target.value})}
                             />
                           </div>
-                          <div className="w-32">
-                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">RG / CPF</label>
+                          <div className="w-48">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">Vínculo / Função</label>
                             <input 
                               type="text" 
-                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                              placeholder="Ex: MÃE, PAI, MOTORISTA..."
+                              className="w-full px-4 py-3 bg-black border border-zinc-820 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold uppercase placeholder:text-zinc-700"
+                              value={newCompanion.role}
+                              onChange={e => setNewCompanion({...newCompanion, role: e.target.value})}
+                            />
+                          </div>
+                          <div className="w-32">
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">RG / CPF (Opcional)</label>
+                            <input 
+                              type="text" 
+                              placeholder="DOCUMENTO"
+                              className="w-full px-4 py-3 bg-black border border-zinc-820 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold placeholder:text-zinc-700"
                               value={newCompanion.doc}
                               onChange={e => setNewCompanion({...newCompanion, doc: e.target.value})}
                             />
                           </div>
                           <div className="w-40">
-                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">WhatsApp</label>
+                            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 px-1">WhatsApp (Opcional)</label>
                             <input 
                               type="text" 
                               placeholder="(00) 00000-0000"
-                              className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                              className="w-full px-4 py-3 bg-black border border-zinc-820 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold placeholder:text-zinc-700"
                               value={newCompanion.whatsapp}
                               onChange={e => setNewCompanion({...newCompanion, whatsapp: e.target.value})}
                             />
                           </div>
                           <button 
                             onClick={handleAddCompanion}
-                            className="px-6 py-2 bg-black text-white font-black rounded-lg text-[10px] uppercase hover:bg-zinc-800 transition-all flex items-center gap-2 h-[38px]"
+                            className="px-6 py-3 bg-theme-primary text-black font-black rounded-xl text-xs uppercase hover:bg-theme-primary/95 transition-all flex items-center justify-center gap-2 h-[42px] shadow-lg shadow-theme-primary/20"
                           >
                             <Plus size={14} />
                             Adicionar
