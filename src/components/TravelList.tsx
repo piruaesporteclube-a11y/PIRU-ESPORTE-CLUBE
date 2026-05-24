@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Edit,
   FileText,
-  MessageCircle
+  MessageCircle,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EventsManagement from './EventsManagement';
@@ -46,6 +47,14 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [responsibleWhatsApp, setResponsibleWhatsApp] = useState('');
   const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
   const [directorName, setDirectorName] = useState(settings?.president || '');
+
+  const formatTravelDate = (dateStr: string) => {
+    if (!dateStr) return '---';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  };
 
   const totalOccupiedSeats = (lineup?.athletes?.length || 0) + (lineup?.staff?.length || 0) + (companions?.length || 0);
   const remainingSeatsCount = Math.max(0, 50 - totalOccupiedSeats);
@@ -421,9 +430,9 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       doc.setFont('helvetica', 'normal');
       doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
       doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
-      doc.text(`DATA: ${new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}`, 15, 48);
+      doc.text(`DATA DA VIAGEM: ${formatTravelDate(selectedEvent.start_date)}`, 15, 48);
       doc.text(`RESPONSÁVEL: ${delegationResponsible}`.toUpperCase(), pageWidth - 15, 40, { align: 'right' });
-      doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
+      doc.text(`CONTATO: ${responsibleWhatsApp || '---'}`, pageWidth - 15, 44, { align: 'right' });
 
       // Page numbers at the bottom footer
       doc.setFontSize(7);
@@ -473,6 +482,24 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={() => {
+              if (selectedEventId) {
+                toast.promise(loadEventData(selectedEventId), {
+                  loading: 'Sincronizando dados mais recentes...',
+                  success: 'Dados atualizados com sucesso!',
+                  error: 'Erro ao conectar ou buscar dados.',
+                });
+              } else {
+                toast.error('Nenhum evento selecionado.');
+              }
+            }}
+            disabled={loading || !selectedEventId}
+            className="flex items-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-theme-primary transition-all uppercase tracking-widest text-xs disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin text-theme-primary" : "text-theme-primary"} />
+            Atualizar dados
+          </button>
           <button 
             onClick={handleDownloadPDF}
             className="flex items-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-2xl border border-zinc-700 hover:border-blue-500 transition-all uppercase tracking-widest text-xs"
@@ -640,7 +667,8 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                   <div className="bg-black text-white px-3 py-1 font-black italic transform skew-x-[-12deg] inline-block mb-1">
                     <span className="skew-x-[12deg] block uppercase text-xs">Lista de Viagem</span>
                   </div>
-                  <p className="text-[9px] font-black uppercase tracking-widest leading-none">{new Date().toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 leading-none">Data da Viagem</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">{selectedEvent ? formatTravelDate(selectedEvent.start_date) : '---'}</p>
                 </div>
               </div>
  
@@ -658,7 +686,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                     </div>
                     <div>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Data</p>
-                      <p className="font-bold uppercase text-[9px]">{new Date(selectedEvent.start_date).toLocaleDateString('pt-BR')}</p>
+                      <p className="font-bold uppercase text-[9px]">{formatTravelDate(selectedEvent.start_date)}</p>
                     </div>
                     <div>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Responsável</p>
@@ -932,7 +960,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
               {/* Print Footer */}
               <div className="mt-6 print:mt-4 pt-4 text-center border-t border-zinc-100">
                 <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Documento Oficial - {settings?.schoolName} • Gerado em: {new Date().toLocaleDateString('pt-BR')} {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  Documento Oficial - {settings?.schoolName} • Viagem em: {selectedEvent ? formatTravelDate(selectedEvent.start_date) : '---'}
                 </p>
                 {(settings?.address || settings?.city) && (
                   <p className="text-[6px] text-zinc-300 uppercase font-medium mt-0.5">
