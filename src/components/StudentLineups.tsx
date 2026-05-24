@@ -21,18 +21,14 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
     setIsLoading(true);
     try {
       const allEvents = await api.getEvents();
-      // Only show future events or recent ones (last 30 days) to keep it clean
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const recentEvents = allEvents.filter(e => new Date(e.start_date) >= thirtyDaysAgo);
       
-      setLineupEvents(recentEvents.sort((a, b) => b.start_date.localeCompare(a.start_date)));
+      setLineupEvents(allEvents.sort((a, b) => b.start_date.localeCompare(a.start_date)));
       
       // Fetch summaries for ALL lineups of each event efficiently
       const athletesList = await api.getAthletes();
       const professorsList = await api.getProfessors();
 
-      await Promise.all(recentEvents.map(async (event) => {
+      await Promise.all(allEvents.map(async (event) => {
         try {
           const allLineups = await api.getAllEventLineups(event.id, athletesList, professorsList);
           const summaries: string[] = [];
