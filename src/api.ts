@@ -2049,6 +2049,51 @@ export const api = {
     }
   },
 
+  getTravelExclusions: async (event_id: string): Promise<{ excluded_ids: string[] }> => {
+    try {
+      const docSnap = await getDoc(doc(db, "travel_exclusions", event_id));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return { excluded_ids: data.excluded_ids || [] };
+      }
+    } catch (error) {
+      console.error("Error loading travel exclusions", error);
+    }
+    return { excluded_ids: [] };
+  },
+
+  addTravelExclusion: async (event_id: string, person_id: string) => {
+    try {
+      const docRef = doc(db, "travel_exclusions", event_id);
+      const docSnap = await getDoc(docRef);
+      let excluded_ids: string[] = [];
+      if (docSnap.exists()) {
+        excluded_ids = docSnap.data().excluded_ids || [];
+      }
+      if (!excluded_ids.includes(person_id)) {
+        excluded_ids.push(person_id);
+        await setDoc(docRef, { excluded_ids, updated_at: serverTimestamp() }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Error adding travel exclusion", error);
+      throw error;
+    }
+  },
+
+  removeTravelExclusion: async (event_id: string, person_id: string) => {
+    try {
+      const docRef = doc(db, "travel_exclusions", event_id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const excluded_ids = (docSnap.data().excluded_ids || []).filter((id: string) => id !== person_id);
+        await setDoc(docRef, { excluded_ids, updated_at: serverTimestamp() }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Error removing travel exclusion", error);
+      throw error;
+    }
+  },
+
   // Event Matches
   getEventMatches: async (eventId: string): Promise<EventMatch[]> => {
     try {

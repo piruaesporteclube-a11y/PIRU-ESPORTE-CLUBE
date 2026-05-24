@@ -37,6 +37,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [selectedLineupIndexes, setSelectedLineupIndexes] = useState<number[]>([0]);
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
+  const [excludedIds, setExcludedIds] = useState<string[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
   const [loading, setLoading] = useState(false);
@@ -112,13 +113,13 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     lineups.forEach(l => {
       if (selectedLineupIndexes.includes(l.lineup_index)) {
         l.athletes.forEach(a => {
-          if (!processedAthleteIds.has(a.id)) {
+          if (!processedAthleteIds.has(a.id) && !excludedIds.includes(a.id)) {
             cumulativeAthletes.push(a);
             processedAthleteIds.add(a.id);
           }
         });
         l.staff.forEach(s => {
-          if (!processedStaffIds.has(s.id)) {
+          if (!processedStaffIds.has(s.id) && !excludedIds.includes(s.id)) {
             cumulativeStaff.push(s);
             processedStaffIds.add(s.id);
           }
@@ -127,7 +128,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     });
 
     setLineup({ athletes: cumulativeAthletes, staff: cumulativeStaff });
-  }, [lineups, selectedLineupIndexes]);
+  }, [lineups, selectedLineupIndexes, excludedIds]);
 
   const loadEvents = async () => {
     try {
@@ -166,6 +167,10 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       // Get Companions
       const compData = await api.getCompanions(eventId);
       setCompanions(compData);
+
+      // Get Travel Exclusions
+      const exclusions = await api.getTravelExclusions(eventId);
+      setExcludedIds(exclusions.excluded_ids || []);
     } catch (error) {
       toast.error("Erro ao carregar dados da viagem");
     } finally {
@@ -251,10 +256,10 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   };
 
   const handleRemoveFromLineup = async (personId: string, type: 'athlete' | 'staff') => {
-    if (confirm(`Deseja remover esta pessoa da lista de viagem?`)) {
+    if (confirm(`Deseja remover esta pessoa da lista de viagem (sem alterar a escalação original)?`)) {
       try {
-        await api.removePersonFromLineup(selectedEventId, personId, type);
-        toast.success("Removido com sucesso");
+        await api.addTravelExclusion(selectedEventId, personId);
+        toast.success("Passageiro removido da lista de viagem! (Escalação original preservada)");
         loadEventData(selectedEventId);
       } catch (error) {
         toast.error("Erro ao remover");
@@ -264,8 +269,13 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
 
   const handleAddToLineup = async (personId: string, type: 'athlete' | 'staff') => {
     try {
-      await api.addPersonToLineup(selectedEventId, personId, type);
-      toast.success("Adicionado à lista");
+      if (excludedIds.includes(personId)) {
+        await api.removeTravelExclusion(selectedEventId, personId);
+        toast.success("Passageiro reincluído na lista de viagem!");
+      } else {
+        await api.addPersonToLineup(selectedEventId, personId, type);
+        toast.success("Adicionado à lista");
+      }
       loadEventData(selectedEventId);
       setSearchQuery('');
     } catch (error) {
@@ -294,19 +304,32 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     
     autoTable(doc, {
       startY: 57,
-      head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CATEGORIA', 'RESPONSÁVEL', 'TELEFONE']],
+      head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CATEGORIA', 'RESPONSÁVEL', 'TELEFONE', 'PRESENÇA']],
       body: lineup.athletes.map((a, idx) => [
         idx + 1,
         a.name.toUpperCase(),
         a.doc || '---',
         getSubCategory(a.birth_date),
         (a.guardian_name || '---').toUpperCase(),
-        a.guardian_phone || '---'
+        a.guardian_phone || '---',
+        (a.presence || 'PENDENTE').toUpperCase()
       ]),
       headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
       styles: { fontSize: 6.5, cellPadding: 0.8, overflow: 'linebreak' },
       alternateRowStyles: { fillColor: [250, 250, 250] },
-      margin: { top: 55, left: 15, right: 15 }
+      margin: { top: 55, left: 15, right: 15 },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          const athlete = lineup.athletes[data.row.index];
+          if (athlete) {
+            if (athlete.presence === 'Presente') {
+              data.cell.styles.fillColor = [220, 252, 231]; // light green (#dcfce7)
+            } else if (athlete.presence === 'Ausente') {
+              data.cell.styles.fillColor = [254, 226, 226]; // light red (#fee2e2)
+            }
+          }
+        }
+      }
     });
     
     // Table - Staff
@@ -317,17 +340,30 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       doc.text(`COMISSÃO TÉCNICA (${lineup.staff.length})`, 15, nextY);
       autoTable(doc, {
         startY: nextY + 2,
-        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CARGO']],
+        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'CARGO', 'PRESENÇA']],
         body: lineup.staff.map((s, idx) => [
           idx + 1 + lineup.athletes.length,
           s.name.toUpperCase(),
           s.doc,
-          (s.role || 'COMISSÃO').toUpperCase()
+          (s.role || 'COMISSÃO').toUpperCase(),
+          (s.presence || 'PENDENTE').toUpperCase()
         ]),
         headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 6.5, cellPadding: 0.8 },
         alternateRowStyles: { fillColor: [250, 250, 250] },
-        margin: { top: 55, left: 15, right: 15 }
+        margin: { top: 55, left: 15, right: 15 },
+        didParseCell: (data) => {
+          if (data.section === 'body') {
+            const staffMember = lineup.staff[data.row.index];
+            if (staffMember) {
+              if (staffMember.presence === 'Presente') {
+                data.cell.styles.fillColor = [220, 252, 231]; // light green (#dcfce7)
+              } else if (staffMember.presence === 'Ausente') {
+                data.cell.styles.fillColor = [254, 226, 226]; // light red (#fee2e2)
+              }
+            }
+          }
+        }
       });
       nextY = (doc as any).lastAutoTable.finalY + 5;
     }
@@ -339,17 +375,30 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       doc.text(`ACOMPANHANTES (${companions.length})`, 15, nextY);
       autoTable(doc, {
         startY: nextY + 2,
-        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP']],
+        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'WHATSAPP', 'PRESENÇA']],
         body: companions.map((c, idx) => [
           idx + 1 + lineup.athletes.length + lineup.staff.length,
           c.role ? `${c.name.toUpperCase()} (${c.role.toUpperCase()})` : c.name.toUpperCase(),
           c.doc,
-          c.whatsapp
+          c.whatsapp,
+          (c.presence || 'PENDENTE').toUpperCase()
         ]),
         headStyles: { fillColor: [150, 150, 150], textColor: [0, 0, 0], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 6.5, cellPadding: 0.8 },
         alternateRowStyles: { fillColor: [250, 250, 250] },
-        margin: { top: 55, left: 15, right: 15 }
+        margin: { top: 55, left: 15, right: 15 },
+        didParseCell: (data) => {
+          if (data.section === 'body') {
+            const companion = companions[data.row.index];
+            if (companion) {
+              if (companion.presence === 'Presente') {
+                data.cell.styles.fillColor = [220, 252, 231]; // light green (#dcfce7)
+              } else if (companion.presence === 'Ausente') {
+                data.cell.styles.fillColor = [254, 226, 226]; // light red (#fee2e2)
+              }
+            }
+          }
+        }
       });
       nextY = (doc as any).lastAutoTable.finalY + 10;
     } else {
@@ -1004,9 +1053,16 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                               .slice(0, 10)
                               .map(person => {
                                 const isAthlete = 'position' in person;
-                                const isAlreadyIn = isAthlete 
-                                  ? lineup.athletes.some(a => a.id === person.id)
-                                  : lineup.staff.some(s => s.id === person.id);
+                                const isExcluded = excludedIds.includes(person.id);
+                                const isOriginallyInLineup = lineups.some(l => 
+                                  selectedLineupIndexes.includes(l.lineup_index) && 
+                                  (isAthlete ? l.athletes.some(a => a.id === person.id) : l.staff.some(s => s.id === person.id))
+                                );
+                                const isAlreadyIn = isOriginallyInLineup ? !isExcluded : (
+                                  isAthlete 
+                                    ? lineup.athletes.some(a => a.id === person.id)
+                                    : lineup.staff.some(s => s.id === person.id)
+                                );
                                 
                                 return (
                                   <div key={person.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors">
@@ -1026,7 +1082,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                                         onClick={() => handleAddToLineup(person.id, isAthlete ? 'athlete' : 'staff')}
                                         className="px-4 py-1.5 bg-theme-primary text-black text-[10px] font-black rounded-lg hover:bg-theme-primary/90 transition-all uppercase"
                                       >
-                                        Incluir
+                                        {isExcluded ? 'Reincluir' : 'Incluir'}
                                       </button>
                                     )}
                                   </div>
@@ -1038,6 +1094,40 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                           </div>
                         )}
                       </div>
+
+                      {/* List of Excluded Passengers */}
+                      {excludedIds.length > 0 && (
+                        <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
+                          <div className="flex items-center gap-3 mb-4">
+                            <X className="text-red-500" size={18} />
+                            <h5 className="text-xs font-black text-white uppercase tracking-widest">Passageiros Excluídos da Viagem ({excludedIds.length})</h5>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-4 leading-relaxed">
+                            Estas pessoas estão escaladas no evento, mas foram removidas especificamente da lista de viagem. Clique em "Reincluir" para adicioná-las de volta, sem alterar as escalações dos jogos.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {excludedIds.map(exId => {
+                              const p = [...athletes, ...professors].find(x => x.id === exId);
+                              if (!p) return null;
+                              const isAthlete = 'position' in p;
+                              return (
+                                <div key={exId} className="flex items-center justify-between p-3 bg-black border border-zinc-800 rounded-xl">
+                                  <div className="min-w-0 flex-1 mr-2">
+                                    <p className="text-xs font-black text-white uppercase truncate">{p.name}</p>
+                                    <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">{isAthlete ? 'Atleta' : 'Comissão'}</p>
+                                  </div>
+                                  <button
+                                    onClick={() => handleAddToLineup(exId, isAthlete ? 'athlete' : 'staff')}
+                                    className="px-3 py-1 bg-theme-primary text-black text-[9px] font-black rounded-lg hover:bg-theme-primary/95 transition-all uppercase flex-shrink-0"
+                                  >
+                                    Reincluir
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Manual Add Companion */}
                       <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
