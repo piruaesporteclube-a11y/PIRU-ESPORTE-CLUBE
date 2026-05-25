@@ -48,6 +48,49 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [responsibleWhatsApp, setResponsibleWhatsApp] = useState('');
   const [delegationResponsible, setDelegationResponsible] = useState(settings?.technicalDirector || '');
   const [directorName, setDirectorName] = useState(settings?.president || '');
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
 
   const formatTravelDate = (dateStr: string) => {
     if (!dateStr) return '---';
@@ -127,6 +170,10 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       }
     });
 
+    // Sort alphabetically by name
+    cumulativeAthletes.sort((a, b) => a.name.localeCompare(b.name));
+    cumulativeStaff.sort((a, b) => a.name.localeCompare(b.name));
+
     setLineup({ athletes: cumulativeAthletes, staff: cumulativeStaff });
   }, [lineups, selectedLineupIndexes, excludedIds]);
 
@@ -166,7 +213,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
 
       // Get Companions
       const compData = await api.getCompanions(eventId);
-      setCompanions(compData);
+      setCompanions(compData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Get Travel Exclusions
       const exclusions = await api.getTravelExclusions(eventId);
@@ -453,6 +500,14 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       doc.setPage(i);
       
       // Header Text and Lines
+      if (crestDataUrl) {
+        try {
+          doc.addImage(crestDataUrl, 'PNG', 15, 8, 13, 13);
+        } catch (err) {
+          console.warn('Could not add school crest to PDF', err);
+        }
+      }
+
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
