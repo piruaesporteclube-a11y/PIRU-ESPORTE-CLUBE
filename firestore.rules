@@ -312,6 +312,11 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    match /travel_exclusions/{eventId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
     match /sponsors/{sponsorId} {
       allow read: if true;
       allow create, update: if isAdmin() && isValidSponsor(request.resource.data);

@@ -391,6 +391,16 @@
         "created_at": { "type": "string" }
       },
       "required": ["id", "doc_attempted", "error_message", "created_at"]
+    },
+    "TravelExclusion": {
+      "title": "TravelExclusion",
+      "description": "List of excluded athlete or staff IDs for a specific travel list/event",
+      "type": "object",
+      "properties": {
+        "excluded_ids": { "type": "array", "items": { "type": "string" } },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["excluded_ids"]
     }
   },
   "firestore": {
@@ -481,6 +491,10 @@
     "/login_errors/{errorId}": {
       "schema": "LoginError",
       "description": "Logs of failed login attempts"
+    },
+    "/travel_exclusions/{eventId}": {
+      "schema": "TravelExclusion",
+      "description": "Travel exclusions collection to exclude specific passengers from the travel list of an event"
     }
   }
 }
