@@ -17,6 +17,7 @@ export default function OfficialLetterGenerator() {
   const [loading, setLoading] = useState(false);
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
   const [marginSize, setMarginSize] = useState<number>(2.5);
+  const [fontSize, setFontSize] = useState<number>(11);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,8 +139,8 @@ export default function OfficialLetterGenerator() {
       className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print-sheet" 
       style={{ 
         padding: `${marginSize}cm`,
-        fontSize: '11pt', 
-        lineHeight: '1.5',
+        fontSize: `${fontSize}pt`, 
+        lineHeight: '1.6',
         width: pageSize === 'A4' ? '210mm' : '215.9mm',
         minHeight: pageSize === 'A4' ? '297mm' : '279.4mm',
         boxSizing: 'border-box',
@@ -151,17 +152,17 @@ export default function OfficialLetterGenerator() {
         {settings?.schoolCrest && (
           <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
         )}
-        <h1 className="text-2xl font-bold uppercase text-center focus:outline-none" contentEditable>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable style={{ fontSize: `${fontSize + 3}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
 
       {/* Title & Date */}
-      <div className="flex justify-between mb-8">
+      <div className="flex justify-between mb-8" style={{ fontSize: `${fontSize}pt` }}>
         <p className="font-bold">OFÍCIO Nº {letter.number}/{letter.year}</p>
         <p>{letter.date ? new Date(letter.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
       </div>
 
       {/* Recipient */}
-      <div className="mb-8">
+      <div className="mb-8" style={{ fontSize: `${fontSize}pt` }}>
         <p>Ao Sr(a).</p>
         <p className="font-bold uppercase leading-tight">{letter.recipient_name}</p>
         <p className="italic leading-tight">{letter.recipient_role}</p>
@@ -169,15 +170,15 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Subject */}
-      <div className="mb-6">
+      <div className="mb-6" style={{ fontSize: `${fontSize}pt` }}>
         <p><span className="font-bold">Assunto:</span> {letter.subject}</p>
       </div>
       
       {/* Travel Info (Optional) */}
       {(letter.departure_location || letter.arrival_location) && (
         <div className="mb-6 p-3 border border-black/10 bg-zinc-50 rounded-lg">
-          <h4 className="font-bold mb-1 uppercase text-xs border-b border-black/20 pb-1">Informações de Logística / Viagem</h4>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm italic">
+          <h4 className="font-bold mb-1 uppercase border-b border-black/20 pb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Informações de Logística / Viagem</h4>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1 italic" style={{ fontSize: `${fontSize - 1}pt` }}>
             {letter.departure_location && (
               <div>
                 <p className="leading-tight"><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
@@ -195,24 +196,24 @@ export default function OfficialLetterGenerator() {
       )}
 
       {/* Salutation */}
-      <div className="mb-4">
+      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
         <p>Prezado(a) Senhor(a),</p>
       </div>
 
       {/* Body */}
-      <div className="flex-1 whitespace-pre-wrap text-justify text-sm">
+      <div className="flex-1 whitespace-pre-wrap text-justify animate-fade-in" style={{ fontSize: `${fontSize}pt` }}>
         {letter.body}
       </div>
 
       {/* Closing */}
-      <div className="mt-8 text-center">
+      <div className="mt-8 text-center" style={{ fontSize: `${fontSize}pt` }}>
         <p className="mb-8">{letter.closing}</p>
         <div className="flex flex-col items-center">
           <div className="w-64 border-t border-black mb-1"></div>
           <p className="font-bold uppercase leading-tight">{letter.sender_name}</p>
-          <p className="text-xs uppercase leading-tight">{letter.sender_role}</p>
+          <p className="uppercase leading-tight text-zinc-650" style={{ fontSize: `${fontSize - 1}pt` }}>{letter.sender_role}</p>
           {(letter.school_cnpj || letter.school_cpf) && (
-            <p className="text-[9px] uppercase mt-1">
+            <p className="uppercase mt-1 text-zinc-500" style={{ fontSize: `${fontSize - 3}pt` }}>
               {letter.school_cnpj && <span>CNPJ: {letter.school_cnpj}</span>}
               {letter.school_cnpj && letter.school_cpf && <span className="mx-2">|</span>}
               {letter.school_cpf && <span>CPF: {letter.school_cpf}</span>}
@@ -222,7 +223,7 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-4 border-t border-black/10 text-[9px] text-zinc-500 text-center uppercase tracking-widest leading-relaxed">
+      <div className="mt-auto pt-4 border-t border-black/10 text-zinc-500 text-center uppercase tracking-widest leading-relaxed" style={{ fontSize: `${fontSize - 3}pt` }}>
         {letter.school_info && (
           <p className="mb-1 text-black font-bold uppercase tracking-tight">{letter.school_info}</p>
         )}
@@ -299,6 +300,22 @@ export default function OfficialLetterGenerator() {
               step="0.1"
               value={marginSize}
               onChange={(e) => setMarginSize(parseFloat(e.target.value))}
+              className="w-full accent-theme-primary"
+            />
+          </div>
+
+          <div className="flex-1 space-y-2 min-w-[200px]">
+            <div className="flex justify-between items-center px-1">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tamanho da Fonte</label>
+              <span className="text-[10px] font-black text-theme-primary uppercase">{fontSize} pt</span>
+            </div>
+            <input 
+              type="range" 
+              min="8" 
+              max="20" 
+              step="0.5"
+              value={fontSize}
+              onChange={(e) => setFontSize(parseFloat(e.target.value))}
               className="w-full accent-theme-primary"
             />
           </div>
@@ -600,6 +617,7 @@ export default function OfficialLetterGenerator() {
                   padding: ${marginSize}cm !important;
                   margin: 0 auto !important;
                   background: white !important;
+                  font-size: ${fontSize}pt !important;
                   page-break-after: always;
                   box-shadow: none !important;
                 }
