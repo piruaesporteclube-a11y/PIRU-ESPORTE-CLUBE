@@ -81,43 +81,81 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
       
       if (!value) return;
 
-      // Handle oklch/oklab
-      if (value.includes('oklch') || value.includes('oklab')) {
-        // We try to get the actual computed RGB value
-        // Note: window.getComputedStyle usually returns rgb() or rgba() for colors in modern browsers
-        // even if they were specified as oklch in CSS. 
-        // If it still says oklch, it means the browser might not be resolving it correctly for the computed style
-        // OR html-to-image is picking up the CSS variable value instead.
-        
-        // Let's try to force a solid color fallback if it's a theme color
-        if (value.includes('var(--theme-primary)') || htmlEl.classList.contains('text-theme-primary') || htmlEl.classList.contains('bg-theme-primary') || htmlEl.classList.contains('border-theme-primary')) {
-          const fallback = '#EAB308';
-          if (prop === 'color') htmlEl.style.color = fallback;
-          else if (prop === 'backgroundColor') htmlEl.style.backgroundColor = fallback;
-          else if (prop === 'borderColor') htmlEl.style.borderColor = fallback;
-          else if (prop === 'background' && !value.includes('gradient')) htmlEl.style.background = fallback;
-        } else {
-          // General fallback for oklch -> rgb if browser supports it we try to "read" it back
-          // If the computed value is still oklch, we must provide a hard fallback
-          if (prop.toLowerCase().includes('background')) {
-             if (value.includes('gradient')) {
-               // Gradients are harder, but we can try to simplify them or just hope html-to-image handles them if we remove oklch
-               htmlEl.style[prop as any] = value.replace(/oklch\(.*?\)/g, '#3f3f46'); // zinc-700
-             } else {
-               htmlEl.style[prop as any] = '#18181b'; // zinc-900
-             }
-          } else if (prop === 'color') {
+      // FIRST: Unconditionally detect and convert theme-primary / theme-secondary variables or classes
+      const isThemePrimary = 
+        value.includes('var(--theme-primary)') || 
+        value.includes('var(--color-theme-primary)') ||
+        value.includes('#EAB308') ||
+        value.includes('rgb(234, 179, 8)') ||
+        htmlEl.classList.contains('text-theme-primary') && prop === 'color' ||
+        htmlEl.classList.contains('bg-theme-primary') && prop === 'backgroundColor' ||
+        htmlEl.classList.contains('border-theme-primary') && prop === 'borderColor';
+
+      const isThemeSecondary = 
+        value.includes('var(--theme-secondary)') || 
+        value.includes('var(--color-theme-secondary)') ||
+        htmlEl.classList.contains('text-theme-secondary') && prop === 'color' ||
+        htmlEl.classList.contains('bg-theme-secondary') && prop === 'backgroundColor' ||
+        htmlEl.classList.contains('border-theme-secondary') && prop === 'borderColor';
+
+      if (isThemePrimary) {
+        const fallback = '#EAB308';
+        if (prop === 'color') htmlEl.style.color = fallback;
+        else if (prop === 'backgroundColor') htmlEl.style.backgroundColor = fallback;
+        else if (prop === 'borderColor') htmlEl.style.borderColor = fallback;
+        else if (prop === 'background' && !value.includes('gradient')) htmlEl.style.background = fallback;
+        else if (prop === 'fill') htmlEl.style.fill = fallback;
+        else if (prop === 'stroke') htmlEl.style.stroke = fallback;
+        return;
+      }
+
+      if (isThemeSecondary) {
+        const fallback = '#000000';
+        if (prop === 'color') htmlEl.style.color = fallback;
+        else if (prop === 'backgroundColor') htmlEl.style.backgroundColor = fallback;
+        else if (prop === 'borderColor') htmlEl.style.borderColor = fallback;
+        else if (prop === 'background' && !value.includes('gradient')) htmlEl.style.background = fallback;
+        else if (prop === 'fill') htmlEl.style.fill = fallback;
+        else if (prop === 'stroke') htmlEl.style.stroke = fallback;
+        return;
+      }
+
+      // SECOND: Handle oklch / oklab or general variables fallback
+      if (value.includes('oklch') || value.includes('oklab') || value.includes('var(')) {
+        if (prop === 'color') {
+          if (htmlEl.classList.contains('text-zinc-500')) {
+            htmlEl.style.color = '#71717a';
+          } else if (htmlEl.classList.contains('text-zinc-400')) {
+            htmlEl.style.color = '#a1a1aa';
+          } else if (htmlEl.classList.contains('text-zinc-300')) {
+            htmlEl.style.color = '#d4d4d8';
+          } else if (htmlEl.classList.contains('text-zinc-600')) {
+            htmlEl.style.color = '#52525b';
+          } else {
+            // Default white text
             htmlEl.style.color = '#ffffff';
-          } else if (prop === 'borderColor') {
-            htmlEl.style.borderColor = '#3f3f46';
+          }
+        } else if (prop === 'backgroundColor') {
+          if (htmlEl.classList.contains('bg-zinc-900')) {
+            htmlEl.style.backgroundColor = '#18181b';
+          } else if (htmlEl.classList.contains('bg-zinc-950')) {
+            htmlEl.style.backgroundColor = '#09090b';
+          } else if (htmlEl.classList.contains('bg-zinc-800')) {
+            htmlEl.style.backgroundColor = '#27272a';
+          } else if (htmlEl.classList.contains('bg-zinc-700')) {
+            htmlEl.style.backgroundColor = '#3f3f46';
+          } else {
+            htmlEl.style.backgroundColor = '#000000';
+          }
+        } else if (prop === 'borderColor') {
+          htmlEl.style.borderColor = '#3f3f46';
+        } else if (prop === 'background') {
+          if (value.includes('gradient')) {
+            htmlEl.style.background = value.replace(/oklch\(.*?\)/g, '#000000');
+          } else {
+            htmlEl.style.background = '#000000';
           }
         }
-      }
-      
-      // Fix for background-image with variables or relative paths
-      if (prop === 'backgroundImage' && value.includes('var(')) {
-        // html-to-image sometimes struggles with variables in background images
-        // But if it's just a gradient it should be fine if colors are resolved.
       }
     });
   });
