@@ -1158,7 +1158,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
               {/* Footer info */}
               <div className="absolute bottom-6 left-0 right-0 z-30 text-center">
-                <p className="text-zinc-500 text-[7px] font-bold uppercase tracking-widest opacity-60">
+                <p 
+                  className="text-[7px] font-bold uppercase tracking-widest opacity-60"
+                  style={{ color: '#71717a' }}
+                >
                   {settings.schoolName || 'Piruá Esporte Clube'} • 2026
                 </p>
               </div>
