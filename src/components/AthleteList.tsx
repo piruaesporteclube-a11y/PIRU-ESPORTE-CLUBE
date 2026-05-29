@@ -15,6 +15,36 @@ interface AthleteListProps {
   onRefresh?: () => void;
 }
 
+// Helper functions for robust date parsing and formatting
+const getTimestamp = (created_at: any): number => {
+  if (!created_at) return 0;
+  if (typeof created_at.toDate === 'function') {
+    try {
+      return created_at.toDate().getTime();
+    } catch (_) {}
+  }
+  if (typeof created_at.seconds === 'number') {
+    return created_at.seconds * 1000;
+  }
+  if (typeof created_at._seconds === 'number') {
+    return created_at._seconds * 1000;
+  }
+  const parsed = new Date(created_at);
+  const time = parsed.getTime();
+  return isNaN(time) ? 0 : time;
+};
+
+const formatCreatedAt = (created_at: any): string => {
+  if (!created_at) return '--';
+  const timestamp = getTimestamp(created_at);
+  if (timestamp === 0) return '--';
+  try {
+    return format(new Date(timestamp), 'dd/MM/yyyy HH:mm');
+  } catch (e) {
+    return '--';
+  }
+};
+
 export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: AthleteListProps) {
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
@@ -98,11 +128,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
 
   const recentAthletes = [...athletes]
-    .sort((a, b) => {
-      const dateA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
-      const dateB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
-      return dateB - dateA;
-    })
+    .sort((a, b) => getTimestamp(b.created_at) - getTimestamp(a.created_at))
     .slice(0, 5);
 
   const currentAthletes = viewMode === 'active' ? activeAthletes : (viewMode === 'recent' ? recentAthletes : pendingAthletes);
@@ -124,15 +150,16 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       return matchesSearch && matchesSub && matchesStatus;
     })
     .sort((a, b) => {
-      // Sorting Logic
-      if (sortBy === 'name_asc') {
+      // Sorting Logic - For "recent" viewMode, if the sort is default 'name_asc', default to 'created_new' (newest first)
+      const activeSortBy = viewMode === 'recent' && sortBy === 'name_asc' ? 'created_new' : sortBy;
+      if (activeSortBy === 'name_asc') {
         return a.name.localeCompare(b.name);
-      } else if (sortBy === 'name_desc') {
+      } else if (activeSortBy === 'name_desc') {
         return b.name.localeCompare(a.name);
-      } else if (sortBy === 'created_new' || sortBy === 'created_old') {
-        const dateA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
-        const dateB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
-        return sortBy === 'created_new' ? dateB - dateA : dateA - dateB;
+      } else if (activeSortBy === 'created_new' || activeSortBy === 'created_old') {
+        const dateA = getTimestamp(a.created_at);
+        const dateB = getTimestamp(b.created_at);
+        return activeSortBy === 'created_new' ? dateB - dateA : dateA - dateB;
       }
       return 0;
     });
@@ -375,7 +402,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                           {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
                           {athlete.confirmation === 'Pendente' && athlete.created_at && (
                             (() => {
-                              const date = athlete.created_at.toDate ? athlete.created_at.toDate() : new Date(athlete.created_at);
+                              const date = new Date(getTimestamp(athlete.created_at));
                               const days = differenceInDays(new Date(), date);
                               if (days >= 10) {
                                 return (
@@ -431,11 +458,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   <td className="px-6 py-4">
                     <div className="text-center">
                       <span className="text-zinc-300 text-[10px] font-bold">
-                        {athlete.created_at ? (
-                          athlete.created_at.toDate ? 
-                          format(athlete.created_at.toDate(), 'dd/MM/yyyy HH:mm') : 
-                          (typeof athlete.created_at === 'string' ? format(new Date(athlete.created_at), 'dd/MM/yyyy HH:mm') : '--')
-                        ) : '--'}
+                        {formatCreatedAt(athlete.created_at)}
                       </span>
                     </div>
                   </td>

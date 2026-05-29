@@ -1004,7 +1004,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       "bg-theme-primary/10 px-2 py-1 backdrop-blur-sm",
                       infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right"
                     )}>
-                      <h3 className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-tight">
+                      <h3 
+                        className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-tight"
+                        style={{ color: '#EAB308' }}
+                      >
                         {t.modality}
                       </h3>
                     </div>
@@ -1149,7 +1152,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   "bg-black/20 backdrop-blur-sm pl-3 py-2 italic",
                   infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right pr-3 pl-0"
                 )}>
-                  <p className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-md leading-tight">
+                  <p 
+                    className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-md leading-tight"
+                    style={{ color: '#EAB308' }}
+                  >
                     FOCO DISCIPLINA E RAÇA!<br />
                     O SUCESSO COMEÇA NO TREINO.
                   </p>
