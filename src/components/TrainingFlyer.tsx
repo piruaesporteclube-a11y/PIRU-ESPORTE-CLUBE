@@ -45,6 +45,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [playerMode, setPlayerMode] = useState<'foreground' | 'background'>('foreground');
   const [playerOpacity, setPlayerOpacity] = useState(0.4);
+  const [timeFontSize, setTimeFontSize] = useState<number>(9);
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
@@ -623,6 +624,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       </div>
                 </div>
               </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Tamanho da Fonte dos Horários</label>
+                  <span className="text-[9px] text-theme-primary font-bold">{timeFontSize}px</span>
+                </div>
+                <input 
+                  type="range" min="5" max="20" step="0.5"
+                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                  value={timeFontSize}
+                  onChange={e => setTimeFontSize(parseFloat(e.target.value))}
+                />
+              </div>
             </div>
           </div>
 
@@ -1005,11 +1018,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           )}>
                             {/* Time Slot */}
                             <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
-                              {infoAlign === 'left' && <Clock size={8} className="text-theme-primary opacity-70" />}
-                              <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
+                              {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                              <span 
+                                className="text-theme-primary font-mono font-black tracking-tighter"
+                                style={{ fontSize: `${timeFontSize}px` }}
+                              >
                                 {t.start_time}
                               </span>
-                              {infoAlign === 'right' && <Clock size={8} className="text-theme-primary opacity-70" />}
+                              {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                             </div>
 
                             {/* Categories Stacks */}
@@ -1033,11 +1049,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                             )}>
                               {/* Time Slot */}
                               <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
-                                {infoAlign === 'left' && <Clock size={8} className="text-theme-primary opacity-70" />}
-                                <span className="text-theme-primary font-mono text-[9px] font-black tracking-tighter">
+                                {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                                <span 
+                                  className="text-theme-primary font-mono font-black tracking-tighter"
+                                  style={{ fontSize: `${timeFontSize}px` }}
+                                >
                                   {s.start_time}
                                 </span>
-                                {infoAlign === 'right' && <Clock size={8} className="text-theme-primary opacity-70" />}
+                                {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                               </div>
 
                               {/* Categories Stacks */}
