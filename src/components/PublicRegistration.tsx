@@ -43,6 +43,27 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
   const [newUser, setNewUser] = useState<User | null>(null);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+
+  React.useEffect(() => {
+    if (step === 'success' && !hasAutoOpened && newAthlete) {
+      setHasAutoOpened(true);
+      const guardianPhoneClean = newAthlete.guardian_phone?.replace(/\D/g, "");
+      if (guardianPhoneClean) {
+        const parentsGroupLink = localStorage.getItem('pirua_wa_parents_link') || 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
+        const inviteMsg = `Olá! Acabei de realizar a matrícula de ${newAthlete.name} no Piruá Esporte Clube e gostaria de entrar no Grupo de Responsáveis. Link Oficial do Grupo: ${parentsGroupLink}`;
+        
+        toast.success("Redirecionando para o WhatsApp do Responsável para convite...", {
+          description: "Abriremos a guia automaticamente para você entrar no grupo.",
+          duration: 5000
+        });
+
+        setTimeout(() => {
+          window.open(`https://wa.me/55${guardianPhoneClean}?text=${encodeURIComponent(inviteMsg)}`, '_blank');
+        }, 1200);
+      }
+    }
+  }, [step, newAthlete, hasAutoOpened]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -236,6 +257,67 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             <p className="text-[10px] text-zinc-500 mt-4 italic border-t border-zinc-700/50 pt-3 uppercase">
               * Utilize seu CPF (apenas números) para realizar o primeiro acesso.
             </p>
+          </motion.div>
+
+          {/* WhatsApp Automated Invite Direction */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-green-500/10 border border-green-500/30 p-5 rounded-[2rem] text-left space-y-3"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-green-500 text-black rounded-xl">
+                <MessageCircle size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">Canais de Comunicação</p>
+                <h4 className="text-sm font-black text-white uppercase tracking-tight">Associe-se aos Grupos Oficiais</h4>
+              </div>
+            </div>
+            <p className="text-[10px] text-zinc-400 leading-tight uppercase font-medium">
+              Importante! Entre no grupo oficial utilizando os links automáticos abaixo para receber comunicados:
+            </p>
+
+            <div className="space-y-2 pt-1">
+              {newAthlete?.guardian_phone && (
+                <a
+                  href={`https://wa.me/55${newAthlete.guardian_phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    `Olá! Acabei de realizar a matrícula de ${newAthlete.name} no Piruá Esporte Clube e gostaria de entrar no Grupo de Responsáveis. Link Oficial do Grupo: ${localStorage.getItem('pirua_wa_parents_link') || 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1'}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-2xl hover:border-green-500/40 transition-colors"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-black text-white uppercase truncate">Grupo de Responsáveis</p>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase truncate">Responsável: {newAthlete.guardian_name}</p>
+                  </div>
+                  <span className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-[9px] uppercase tracking-tighter rounded-xl transition-all shrink-0">
+                    Entrar Grupo
+                  </span>
+                </a>
+              )}
+
+              {newAthlete?.contact && (
+                <a
+                  href={`https://wa.me/55${newAthlete.contact.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    `Olá! Acabei de me matricular no Piruá Esporte Clube e gostaria de entrar no Grupo de Atletas. Link Oficial do Grupo: ${localStorage.getItem('pirua_wa_athletes_link') || 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9'}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-2xl hover:border-green-500/40 transition-colors"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-black text-white uppercase truncate">Grupo de Atletas (Geral)</p>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase truncate">Atleta: {newAthlete.nickname || newAthlete.name}</p>
+                  </div>
+                  <span className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-[9px] uppercase tracking-tighter rounded-xl transition-all shrink-0">
+                    Entrar Grupo
+                  </span>
+                </a>
+              )}
+            </div>
           </motion.div>
 
           <motion.button 

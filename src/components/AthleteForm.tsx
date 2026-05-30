@@ -166,6 +166,23 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       if (isRegistration) {
         const { athlete } = await api.register(dataToSave);
         toast.success("Cadastro realizado com sucesso!");
+        
+        // Auto WhatsApp invitation trigger
+        const guardianPhoneClean = athlete.guardian_phone?.replace(/\D/g, "");
+        if (guardianPhoneClean) {
+          const parentsGroupLink = localStorage.getItem('pirua_wa_parents_link') || 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
+          const inviteMsg = `Olá! Tudo bem? O cadastro de ${athlete.name} no Piruá Esporte Clube foi realizado com sucesso. Por favor, entre no nosso Grupo de Responsáveis Oficial para receber recados e informativos: ${parentsGroupLink}`;
+          
+          toast.success("Enviando convite de WhatsApp...", {
+            description: "Abrindo chat com o responsável...",
+            duration: 5000
+          });
+          
+          setTimeout(() => {
+            window.open(`https://wa.me/55${guardianPhoneClean}?text=${encodeURIComponent(inviteMsg)}`, '_blank');
+          }, 1200);
+        }
+        
         onRegisterSuccess?.(athlete);
       } else {
         if (userRole === 'professor') {
@@ -174,6 +191,24 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         } else {
           await api.saveAthlete(dataToSave as Athlete);
           toast.success("Atleta salvo com sucesso!");
+          
+          // Auto WhatsApp invitation trigger for brand new athletes in admin panel
+          if (!athlete) {
+            const guardianPhoneClean = dataToSave.guardian_phone?.replace(/\D/g, "");
+            if (guardianPhoneClean) {
+              const parentsGroupLink = localStorage.getItem('pirua_wa_parents_link') || 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
+              const inviteMsg = `Olá! Tudo bem? Cadastramos o atleta ${dataToSave.name} no Piruá Esporte Clube. Por favor, junte-se ao nosso Grupo de Responsáveis Oficial para ficar por dentro de tudo: ${parentsGroupLink}`;
+              
+              toast.success("Enviando convite de WhatsApp para o responsável...", {
+                description: "Abrindo chat...",
+                duration: 5000
+              });
+              
+              setTimeout(() => {
+                window.open(`https://wa.me/55${guardianPhoneClean}?text=${encodeURIComponent(inviteMsg)}`, '_blank');
+              }, 1200);
+            }
+          }
         }
         onSave(formData as Athlete);
       }
