@@ -51,6 +51,20 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connectionMethod, setConnectionMethod] = useState<'qr' | 'code' | null>(null);
 
+  // Synchronization Wizard and Group Creation simulation states
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncStep, setSyncStep] = useState<number>(0);
+  const [syncProgress, setSyncProgress] = useState<number>(0);
+
+  // Phone input mask for Brazil mobile numbers: (XX) XXXXX-XXXX
+  const formatPhoneBR = (value: string) => {
+    const raw = value.replace(/\D/g, "");
+    if (raw.length === 0) return "";
+    if (raw.length <= 2) return `(${raw}`;
+    if (raw.length <= 7) return `(${raw.substring(0, 2)}) ${raw.substring(2)}`;
+    return `(${raw.substring(0, 2)}) ${raw.substring(2, 7)}-${raw.substring(7, 11)}`;
+  };
+
   // Helper to render high-fidelity, realistic vector QR Code
   const renderQRCode = (dataString: string, onScanSimulated: () => void) => {
     const size = 25; // 25x25 grid for perfect high-density look
@@ -261,36 +275,69 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   };
 
   const confirmSimulatedConnection = () => {
-    setIsConnected(true);
-    setQrCodeData(null);
-    setPairingCode(null);
-    setConnectionMethod(null);
-    localStorage.setItem('pirua_wa_connected', 'true');
-    if (phoneNumber) {
-      localStorage.setItem('pirua_wa_number', phoneNumber);
-    } else {
-      localStorage.setItem('pirua_wa_number', '(11) 98765-4321');
-      setPhoneNumber('(11) 98765-4321');
+    if (!phoneNumber || phoneNumber.trim() === "") {
+      toast.error("Número de celular ausente", {
+        description: "Por favor, digite o número do seu celular no campo de entrada antes de prosseguir com a sincronização."
+      });
+      return;
     }
 
-    // Automatically create the 3 groups requested
-    const pLink = 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
-    const aLink = 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9';
-    const tLink = 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
-    
-    setParentsGroupLink(pLink);
-    setAthletesGroupLink(aLink);
-    setTravelsGroupLink(tLink);
-    
-    localStorage.setItem('pirua_wa_parents_link', pLink);
-    localStorage.setItem('pirua_wa_athletes_link', aLink);
-    localStorage.setItem('pirua_wa_travels_link', tLink);
-    localStorage.setItem('pirua_wa_groups_created', 'true');
+    // Set connection in progress
+    setIsSyncing(true);
+    setSyncStep(1); // Connecting to server
+    setSyncProgress(15);
 
-    toast.success("WhatsApp Sincronizado com Sucesso!", {
-      description: "Os grupos Piruá Esporte Clube Responsáveis, Piruá Esporte Clube Atletas e Piruá Esporte Clube Viagens foram criados e configurados automaticamente.",
-      duration: 5000
-    });
+    // Step 1 to Step 2
+    setTimeout(() => {
+      setSyncStep(2); // Connecting WhatsApp and reading lines
+      setSyncProgress(40);
+    }, 1200);
+
+    // Step 2 to Step 3
+    setTimeout(() => {
+      setSyncStep(3); // Creating Responsáveis group of Piruá
+      setSyncProgress(65);
+    }, 2400);
+
+    // Step 3 to Step 4
+    setTimeout(() => {
+      setSyncStep(4); // Creating Atletas & Viagens group
+      setSyncProgress(85);
+    }, 3600);
+
+    // Finish and trigger success!
+    setTimeout(() => {
+      setSyncStep(5); // Created completely
+      setSyncProgress(100);
+
+      setIsConnected(true);
+      setQrCodeData(null);
+      setPairingCode(null);
+      setConnectionMethod(null);
+      localStorage.setItem('pirua_wa_connected', 'true');
+      localStorage.setItem('pirua_wa_number', phoneNumber);
+
+      // Automatically create the 3 groups requested
+      const pLink = 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
+      const aLink = 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9';
+      const tLink = 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
+      
+      setParentsGroupLink(pLink);
+      setAthletesGroupLink(aLink);
+      setTravelsGroupLink(tLink);
+      
+      localStorage.setItem('pirua_wa_parents_link', pLink);
+      localStorage.setItem('pirua_wa_athletes_link', aLink);
+      localStorage.setItem('pirua_wa_travels_link', tLink);
+      localStorage.setItem('pirua_wa_groups_created', 'true');
+      
+      setIsSyncing(false);
+
+      toast.success("Sincronização e Canais Criados!", {
+        description: `O seu celular ${phoneNumber} foi pareado com sucesso e os 3 grupos foram gerados.`,
+        duration: 6000
+      });
+    }, 4800);
   };
 
   const handleDisconnect = () => {
@@ -301,6 +348,14 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     setConnectionMethod(null);
     localStorage.removeItem('pirua_wa_connected');
     localStorage.removeItem('pirua_wa_number');
+    localStorage.removeItem('pirua_wa_groups_created');
+    localStorage.removeItem('pirua_wa_parents_link');
+    localStorage.removeItem('pirua_wa_athletes_link');
+    localStorage.removeItem('pirua_wa_travels_link');
+    setParentsGroupLink('');
+    setAthletesGroupLink('');
+    setTravelsGroupLink('');
+    toast.success("WhatsApp desconectado do painel.");
   };
 
   const handleSaveLinks = () => {
@@ -710,20 +765,40 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 ) : (
                   <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Número do Celular (WhatsApp)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Número do Celular (WhatsApp)</label>
+                        {phoneNumber && phoneNumber.replace(/\D/g, "").length >= 10 ? (
+                          <span className="text-green-400 font-black text-[8.5px] uppercase tracking-normal flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
+                            Pronto para Sincronizar
+                          </span>
+                        ) : (
+                          <span className="text-zinc-500 font-black text-[8.5px] uppercase tracking-normal">Aguardando número</span>
+                        )}
+                      </div>
                       <input 
                         type="text"
                         placeholder="Ex: (11) 98765-4321"
-                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-green-500"
+                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-green-500 transition-all placeholder:text-zinc-650"
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        onChange={(e) => setPhoneNumber(formatPhoneBR(e.target.value))}
                       />
+                    </div>
+                    
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-[10px] text-zinc-400 leading-normal font-semibold space-y-1">
+                      <p className="text-zinc-300 font-black uppercase text-[9px] flex items-center gap-1 text-green-500">
+                        <Sparkles size={11} /> 
+                        Por que meu celular não conecta?
+                      </p>
+                      <p className="uppercase leading-normal">
+                        Como este é um ambiente de desenvolvimento e inovação, a sincronização é simulada de forma instantânea em nossa nuvem. Não há necessidade de câmera real. Digite seu número acima e clique no botão verde abaixo.
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleConnect('qr')}
-                        disabled={isGeneratingQR}
+                        disabled={isGeneratingQR || isSyncing}
                         className="p-3 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50 text-white font-black text-xs uppercase tracking-tighter rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
                         <QrCode size={14} className="text-green-500" strokeWidth={2.5} />
@@ -731,7 +806,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                       </button>
                       <button
                         onClick={() => handleConnect('code')}
-                        disabled={isGeneratingQR}
+                        disabled={isGeneratingQR || isSyncing}
                         className="p-3 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50 text-white font-black text-xs uppercase tracking-tighter rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
                         <Smartphone size={14} className="text-green-500" strokeWidth={2.5} />
@@ -742,10 +817,20 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     <div className="border-t border-zinc-800/60 pt-4">
                       <button
                         onClick={confirmSimulatedConnection}
-                        className="w-full py-3 bg-green-500 hover:bg-green-400 text-black font-black text-xs uppercase tracking-tight rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/15"
+                        disabled={isSyncing}
+                        className="w-full py-3 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-xs uppercase tracking-tight rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/15"
                       >
-                        <Sparkles size={16} />
-                        Sincronizar Oficialmente Agora
+                        {isSyncing ? (
+                          <>
+                            <RefreshCw className="animate-spin" size={16} />
+                            Sincronizando... {syncProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={16} />
+                            Sincronizar Oficialmente Agora
+                          </>
+                        )}
                       </button>
                       <p className="text-[8.5px] text-zinc-400 uppercase tracking-wider text-center mt-2.5 font-bold leading-normal">
                         ⚡ Clique para conectar instantaneamente e configurar todos os 3 grupos solicitados automaticamente
@@ -754,17 +839,110 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                   </div>
                 )}
               </div>
+ 
+               {/* QR / Token Visualizations */}
+               <div className="bg-zinc-950/80 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[250px] text-center">
+                {isSyncing && (
+                  <div className="w-full space-y-6 text-center animate-fade-in p-4">
+                    <div className="relative inline-flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full border-4 border-zinc-800 border-t-green-500 animate-spin flex items-center justify-center" />
+                      <span className="absolute text-xs font-black text-white">{syncProgress}%</span>
+                    </div>
 
-              {/* QR / Token Visualizations */}
-              <div className="bg-zinc-950/80 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[250px] text-center">
-                {isGeneratingQR && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                        Sincronizando Sistema de Nuvem
+                      </h4>
+                      <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">
+                        Celular: {phoneNumber}
+                      </p>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full max-w-xs mx-auto bg-zinc-900 border border-zinc-800 h-3 rounded-full overflow-hidden p-0.5">
+                      <div 
+                        className="bg-green-500 h-full rounded-full transition-all duration-300 shadow-md shadow-green-500/50"
+                        style={{ width: `${syncProgress}%` }}
+                      />
+                    </div>
+
+                    {/* Steps logs */}
+                    <div className="space-y-2 w-full max-w-sm text-left bg-zinc-900/50 border border-zinc-800/60 p-4 rounded-xl font-mono text-[9.5px]">
+                      {/* Step 1 */}
+                      <div className="flex items-center gap-2">
+                        {syncStep > 1 ? (
+                          <span className="text-green-500 font-bold">✓</span>
+                        ) : syncStep === 1 ? (
+                          <span className="text-yellow-400 animate-pulse">⚡</span>
+                        ) : (
+                          <span className="text-zinc-600">○</span>
+                        )}
+                        <span className={cn(
+                          syncStep === 1 ? "text-yellow-400 font-bold" : syncStep > 1 ? "text-zinc-300" : "text-zinc-500"
+                        )}>
+                          [1/4] AUTENTICANDO CONTA {phoneNumber}...
+                        </span>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex items-center gap-2">
+                        {syncStep > 2 ? (
+                          <span className="text-green-500 font-bold">✓</span>
+                        ) : syncStep === 2 ? (
+                          <span className="text-yellow-400 animate-pulse">⏳</span>
+                        ) : (
+                          <span className="text-zinc-600">○</span>
+                        )}
+                        <span className={cn(
+                          syncStep === 2 ? "text-yellow-400 font-bold" : syncStep > 2 ? "text-zinc-300" : "text-zinc-500"
+                        )}>
+                          [2/4] PARALELIZANDO "GRUPO RESPONSÁVEIS"...
+                        </span>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="flex items-center gap-2">
+                        {syncStep > 3 ? (
+                          <span className="text-green-500 font-bold">✓</span>
+                        ) : syncStep === 3 ? (
+                          <span className="text-yellow-400 animate-pulse">⏳</span>
+                        ) : (
+                          <span className="text-zinc-600">○</span>
+                        )}
+                        <span className={cn(
+                          syncStep === 3 ? "text-yellow-400 font-bold" : syncStep > 3 ? "text-zinc-300" : "text-zinc-500"
+                        )}>
+                          [3/4] CONSTRUINDO LINK "GRUPO ATLETAS"...
+                        </span>
+                      </div>
+
+                      {/* Step 4 */}
+                      <div className="flex items-center gap-2">
+                        {syncStep > 4 ? (
+                          <span className="text-green-500 font-bold">✓</span>
+                        ) : syncStep === 4 ? (
+                          <span className="text-yellow-400 animate-pulse">⏳</span>
+                        ) : (
+                          <span className="text-zinc-600">○</span>
+                        )}
+                        <span className={cn(
+                          syncStep === 4 ? "text-yellow-400 font-bold" : syncStep > 4 ? "text-zinc-300" : "text-zinc-500"
+                        )}>
+                          [4/4] VINCULANDO CANAL "GRUPO VIAGENS"...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!isSyncing && isGeneratingQR && (
                   <div className="space-y-3 flex flex-col items-center">
                     <RefreshCw className="text-green-500 animate-spin" size={32} />
                     <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Iniciando Servidor Web e gerando token seguro de handshake...</p>
                   </div>
                 )}
-
-                {!isGeneratingQR && !qrCodeData && !pairingCode && !isConnected && (
+ 
+                {!isSyncing && !isGeneratingQR && !qrCodeData && !pairingCode && !isConnected && (
                   <div className="space-y-4 max-w-sm">
                     <MessageCircle size={40} className="text-zinc-600 mx-auto" strokeWidth={1.5} />
                     <div className="space-y-1">
@@ -782,8 +960,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     </button>
                   </div>
                 )}
-
-                {!isGeneratingQR && qrCodeData && (
+ 
+                {!isSyncing && !isGeneratingQR && qrCodeData && (
                   <div className="space-y-4 flex flex-col items-center">
                     {/* Informative alert explaining the prototype sandboxed state */}
                     <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 max-w-sm text-center">
@@ -798,7 +976,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         👉 NÃO é necessário escanear com a câmera real! Clique no botão verde abaixo para ativar o pareamento virtual e criar os 3 grupos com canais integrados de forma automática.
                       </p>
                     </div>
-
+ 
                     {renderQRCode(qrCodeData, confirmSimulatedConnection)}
                     <div className="space-y-2 text-center">
                       <p className="text-xs font-black text-white uppercase">Escaneie com a câmera do celular no WhatsApp</p>
@@ -813,8 +991,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     </div>
                   </div>
                 )}
-
-                {!isGeneratingQR && pairingCode && (
+ 
+                {!isSyncing && !isGeneratingQR && pairingCode && (
                   <div className="space-y-5 text-center flex flex-col items-center">
                     {/* Informative alert explaining the prototype sandboxed state */}
                     <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 max-w-sm text-center">
@@ -829,7 +1007,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         👉 Clique abaixo em "Confirmar Conexão Virtual" para simular o recebimento do handshake de forma instantânea.
                       </p>
                     </div>
-
+ 
                     <div>
                       <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">CÓDIGO DE PAREAMENTO</p>
                       <div className="bg-zinc-900 border border-zinc-700 px-6 py-3 rounded-2xl text-xl font-black text-green-400 tracking-widest select-all">
@@ -850,8 +1028,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     </div>
                   </div>
                 )}
-
-                {isConnected && (
+ 
+                {!isSyncing && isConnected && (
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <Sparkles className="text-green-500 fill-green-500/10 mx-auto" size={40} />
@@ -860,7 +1038,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         O painel sincroniza dinamicamente as categorias SUB do Piruá com os canais e gera relatórios automáticos.
                       </p>
                     </div>
-
+ 
                     {/* Automatically Created Groups Notification Card */}
                     <div className="border-t border-zinc-800 pt-4 text-left space-y-2.5 w-full">
                       <div className="flex items-center gap-1.5 justify-center sm:justify-start">
