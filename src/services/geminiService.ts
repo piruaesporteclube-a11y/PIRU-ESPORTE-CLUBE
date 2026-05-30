@@ -1,6 +1,7 @@
 export interface GeneratedDrill {
   name: string;
   description: string;
+  modality?: "Futebol" | "Futsal" | "Vôlei" | "Basquete" | "Futebol de Areia" | "Outros";
   category: string;
   intensity: 'Baixa' | 'Média' | 'Alta';
   difficulty: 'Iniciante' | 'Intermediário' | 'Avançado';

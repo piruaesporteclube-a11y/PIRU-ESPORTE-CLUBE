@@ -134,8 +134,9 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
       }
       toast.success(`${suggestions.length} novas atividades geradas pela IA!`);
       loadActivities();
-    } catch (err) {
-      toast.error("Erro ao conectar com a IA");
+    } catch (err: any) {
+      console.error("AI Generation Error:", err);
+      toast.error(`Erro ao conectar com a IA: ${err?.message || err}`);
     } finally {
       setIsGenerating(false);
     }
@@ -161,8 +162,9 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
         category: (drill.category as any)
       }));
       toast.success("Exercício gerado com sucesso!");
-    } catch (err) {
-      toast.error("Erro na geração por IA");
+    } catch (err: any) {
+      console.error("Magic Fill Error:", err);
+      toast.error(`Erro na geração por IA: ${err?.message || err}`);
     } finally {
       setIsGenerating(false);
     }
