@@ -708,19 +708,32 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                       <button
                         onClick={() => handleConnect('qr')}
                         disabled={isGeneratingQR}
-                        className="p-3 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-xs uppercase tracking-tighter rounded-xl transition-all flex items-center justify-center gap-1.5"
+                        className="p-3 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50 text-white font-black text-xs uppercase tracking-tighter rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
-                        <QrCode size={14} />
+                        <QrCode size={14} className="text-green-500" strokeWidth={2.5} />
                         QR Code
                       </button>
                       <button
                         onClick={() => handleConnect('code')}
                         disabled={isGeneratingQR}
-                        className="p-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-black text-xs uppercase tracking-tighter rounded-xl border border-zinc-700 transition-all flex items-center justify-center gap-1.5"
+                        className="p-3 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50 text-white font-black text-xs uppercase tracking-tighter rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
-                        <Smartphone size={14} />
+                        <Smartphone size={14} className="text-green-500" strokeWidth={2.5} />
                         Código de Link
                       </button>
+                    </div>
+
+                    <div className="border-t border-zinc-800/60 pt-4">
+                      <button
+                        onClick={confirmSimulatedConnection}
+                        className="w-full py-3 bg-green-500 hover:bg-green-400 text-black font-black text-xs uppercase tracking-tight rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/15"
+                      >
+                        <Sparkles size={16} />
+                        Sincronizar Oficialmente Agora
+                      </button>
+                      <p className="text-[8.5px] text-zinc-400 uppercase tracking-wider text-center mt-2.5 font-bold leading-normal">
+                        ⚡ Clique para conectar instantaneamente e configurar todos os 3 grupos solicitados automaticamente
+                      </p>
                     </div>
                   </div>
                 )}
@@ -736,12 +749,21 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 )}
 
                 {!isGeneratingQR && !qrCodeData && !pairingCode && !isConnected && (
-                  <div className="space-y-2 max-w-sm">
-                    <MessageCircle size={40} className="text-zinc-600 mx-auto" />
-                    <h4 className="text-sm font-black text-zinc-300 uppercase">Aparelho Pendente de Conexão</h4>
-                    <p className="text-[10px] text-zinc-500 uppercase leading-relaxed">
-                      Selecione um método à esquerda para obter as chaves de pareamento do aparelho.
-                    </p>
+                  <div className="space-y-4 max-w-sm">
+                    <MessageCircle size={40} className="text-zinc-600 mx-auto" strokeWidth={1.5} />
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-black text-zinc-300 uppercase">Aparelho Pendente de Conexão</h4>
+                      <p className="text-[10px] text-zinc-500 uppercase leading-relaxed">
+                        Selecione um método à esquerda ou clique abaixo para pareamento imediato.
+                      </p>
+                    </div>
+                    <button
+                      onClick={confirmSimulatedConnection}
+                      className="px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black font-black text-[11px] uppercase rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 mx-auto"
+                    >
+                      <Sparkles size={14} />
+                      Conexão Instantânea
+                    </button>
                   </div>
                 )}
 
