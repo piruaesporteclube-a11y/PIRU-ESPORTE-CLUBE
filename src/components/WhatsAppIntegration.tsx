@@ -255,7 +255,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   // Handle WhatsApp Mock Authentication
   const handleConnect = (method: 'qr' | 'code') => {
     if (!phoneNumber && method === 'code') {
-      alert("Por favor, digite o número de telefone de conexão!");
+      toast.warning("Telefone Necessário", {
+        description: "Por favor, digite o número de telefone de conexão antes de solicitar o código."
+      });
       return;
     }
     setIsGeneratingQR(true);
@@ -361,7 +363,11 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const handleSaveLinks = () => {
     localStorage.setItem('pirua_wa_parents_link', parentsGroupLink);
     localStorage.setItem('pirua_wa_athletes_link', athletesGroupLink);
-    alert("Configurações de links de grupo atualizadas com sucesso!");
+    localStorage.setItem('pirua_wa_travels_link', travelsGroupLink);
+    toast.success("Canais Atualizados com Sucesso!", {
+      description: "Os links reais do seu WhatsApp foram gravados no painel e serão usados para novos convites.",
+      duration: 5000
+    });
   };
 
   // Helper function to redirect and open WhatsApp Web/Mobile with custom message
@@ -494,7 +500,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const runSimulationBulkSend = () => {
     if (bulkQueue.length === 0) return;
     if (!isConnected) {
-      alert("Aparelho desconectado! Por favor, conecte o WhatsApp virtual primeiro na aba \"Conectar Aparelho\" ou use o Envio Semiautomático.");
+      toast.error("Celular Desconectado", {
+        description: "Por favor, configure e ative o seu número de WhatsApp na primeira aba antes de tentar disparar mensagens automáticas."
+      });
       return;
     }
     
@@ -641,7 +649,10 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         return { ...prev, [eventId]: [] };
       });
       setIsCleaningGroup(null);
-      alert(`Grupo de Viagem "Piruá_Viagem_${eventName.replace(/\s+/g, '_')}" purgado com sucesso!\nTodos os responsáveis dos atletas escalados foram removidos conforme agendamento de 2 dias após ou encerramento manual.`);
+      toast.success("Grupo de Viagem Purgado!", {
+        description: `O grupo "Piruá_Viagem_${eventName.replace(/\s+/g, '_')}" foi limpo com sucesso. Todos os responsáveis foram removidos automaticamente.`,
+        duration: 5000
+      });
     }, 2500);
   };
 
@@ -732,6 +743,51 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         {/* SECTION 1: CONNECTION SETUPS */}
         {currentSection === 'connection' && (
           <div className="space-y-6">
+            
+            {/* INSTRUÇÃO E SUPORTE DE LINKS DO WHATSAPP REAIS */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-amber-400 uppercase tracking-tight">
+                    ⚠️ CENTRAL DE LOGÍSTICA: POR QUE DEU O ERRO "NÃO FOI POSSÍVEL ENTRAR NESTE GRUPO"?
+                  </h4>
+                  <p className="text-[11px] text-zinc-300 leading-relaxed uppercase">
+                    Os links de grupo que vêm pré-configurados no sistema por padrão (<span className="text-amber-300 font-mono">chat.whatsapp.com/FLX90tK...</span>) são links fictícios de demonstração, usados para ilustrar o fluxo de disparo do painel. Por questões de privacidade, o WhatsApp não permite que sistemas virtuais criem automaticamente grupos reais dentro da sua conta pessoal sem a sua intervenção. Por isso, ao tentar clicar nos links fictícios pelo seu celular, o WhatsApp acusa o erro dizendo que não é possível entrar.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="border-t border-amber-500/20 pt-3">
+                <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-2.5">
+                  👉 COMO COLOCAR SEUS GRUPOS REAIS PARA FUNCIONAR EM 3 PASSOS SIMPLES:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10.5px] uppercase font-bold text-zinc-400">
+                  <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/80 space-y-1">
+                    <span className="text-amber-400 font-black">1. CRIE OS GRUPOS</span>
+                    <p className="text-[9px] leading-relaxed text-zinc-400 leading-normal font-semibold">
+                      No seu próprio celular, dentro do aplicativo WhatsApp, crie os 3 grupos manualmente se ainda não os tiver criado (Responsáveis, Atletas e Viagens).
+                    </p>
+                  </div>
+                  <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/80 space-y-1">
+                    <span className="text-amber-400 font-black">2. EXTRAIA OS LINKS DE CONVITE</span>
+                    <p className="text-[9px] leading-relaxed text-zinc-400 leading-normal font-semibold">
+                      Nas configurações de cada grupo real do WhatsApp no seu telefone, toque em "Convidar via link" e copie o link gerado pelo WhatsApp.
+                    </p>
+                  </div>
+                  <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/80 space-y-1">
+                    <span className="text-amber-400 font-black">3. ATUALIZE ABAIXO</span>
+                    <p className="text-[9px] leading-relaxed text-zinc-400 leading-normal font-semibold">
+                      Cole esses links de convite reais nos campos do formulário <strong className="text-white">"Canais Oficiais"</strong> (logo abaixo nesta tela) e clique em Salvar!
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 bg-green-500/10 p-2.5 rounded-lg text-center text-[9px] text-green-400 font-bold leading-normal uppercase">
+                  ⚡ Pronto! Assim que colar os links gerados pelo seu celular, os botões "Convidar no WhatsApp" e os disparos em lote do painel começarão a direcionar os pais e atletas para os seus grupos reais, funcionando perfeitamente!
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
@@ -1158,15 +1214,25 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
             {/* Link Box */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo</span>
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo</span>
+                  {parentsGroupLink.includes('FLX90tK') && (
+                    <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-sans">Simulado</span>
+                  )}
+                </div>
                 <p className="text-xs font-mono text-zinc-300 break-all">{parentsGroupLink}</p>
+                {parentsGroupLink.includes('FLX90tK') && (
+                  <p className="text-[9.5px] text-zinc-400 font-medium leading-normal uppercase">
+                    ⚠️ Link fictício de demonstração. Vá no menu <strong className="text-white">"Conectar Aparelho"</strong> acima para trocá-lo pelo link real do seu grupo do WhatsApp do Piruá.
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(parentsGroupLink);
-                    alert("Link copiado!");
+                    toast.success("Link de convite dos Responsáveis copiado!");
                   }}
                   className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold"
                 >
@@ -1291,15 +1357,25 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
             {/* Invite link */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo Geral de Atletas</span>
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo Geral de Atletas</span>
+                  {athletesGroupLink.includes('CHk80mP') && (
+                    <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-sans">Simulado</span>
+                  )}
+                </div>
                 <p className="text-xs font-mono text-zinc-300 break-all">{athletesGroupLink}</p>
+                {athletesGroupLink.includes('CHk80mP') && (
+                  <p className="text-[9.5px] text-zinc-400 font-medium leading-normal uppercase">
+                    ⚠️ Link fictício de demonstração. Vá no menu <strong className="text-white">"Conectar Aparelho"</strong> acima para trocá-lo pelo link de convite real do seu grupo de atletas do WhatsApp.
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(athletesGroupLink);
-                    alert("Link copiado!");
+                    toast.success("Link de convite dos Atletas copiado!");
                   }}
                   className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold"
                 >
@@ -1466,6 +1542,22 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                       </div>
                     </div>
 
+                    {/* Canal de Viagem link warning showing */}
+                    <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl space-y-1.5 text-left select-all">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-green-400 uppercase tracking-widest block">Link de Convite do Canal da Viagem</span>
+                        {travelsGroupLink.includes('ED70tK') && (
+                          <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-sans">Simulado</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-mono text-zinc-300 break-all">{travelsGroupLink}</p>
+                      {travelsGroupLink.includes('ED70tK') && (
+                        <p className="text-[9px] text-zinc-400 font-medium leading-normal uppercase">
+                          ⚠️ Link fictício de simulação. Para que o grupo funcione de verdade na convocação dos pais do seu clube, configure o link real no menu <strong className="text-white">"Conectar Aparelho"</strong> na primeira aba.
+                        </p>
+                      )}
+                    </div>
+
                     {/* Active Group Actions */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80">
                       <div>
@@ -1488,7 +1580,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         onClick={() => {
                           const inviteMsg = `Olá, somos do Piruá Esporte Clube!\n\nEste é o grupo de viagem exclusivo para os responsáveis dos atletas convocados para o evento: "${activeEvent.name}".\n\nPor favor, entrem para combinarmos a logística de saída e volta: ${travelsGroupLink}`;
                           navigator.clipboard.writeText(inviteMsg);
-                          alert("Mensagem modelo com link copiado para área de transferência!");
+                          toast.success("Convite modelo copiado para área de transferência!");
                         }}
                         className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-white font-black text-[10px] uppercase rounded-xl transition-all border border-zinc-700 flex items-center justify-center gap-1.5"
                       >
