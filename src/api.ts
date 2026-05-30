@@ -91,7 +91,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   if (quotaDetected) {
     quotaExceededToday = true;
     try {
-      localStorage.setItem('quota_exceeded_today', new Date().toDateString());
+      localStorage.setItem('quota_exceeded_today', Date.now().toString());
     } catch (e) {}
   }
 
@@ -131,7 +131,27 @@ const CACHE_TTL = 900000; // 15 minutes for "fresh" data
 const PERSISTENT_CACHE_PREFIX = "pirua_cache_";
 const STALE_TTL = 172800000; // 48 hours (can use very stale data if quota is out)
 
-let quotaExceededToday = localStorage.getItem('quota_exceeded_today') === new Date().toDateString();
+const checkQuotaExceeded = (): boolean => {
+  try {
+    const val = localStorage.getItem('quota_exceeded_today');
+    if (!val) return false;
+    
+    // If it's a legacy date string
+    if (val.includes(" ") || isNaN(Number(val))) {
+      return val === new Date().toDateString();
+    }
+    
+    // It's a timestamp
+    const ts = Number(val);
+    const isSameDay = new Date(ts).toDateString() === new Date().toDateString();
+    const isRecent = (Date.now() - ts) < (4 * 60 * 60 * 1000); // 4 hours
+    return isSameDay && isRecent;
+  } catch (e) {
+    return false;
+  }
+};
+
+let quotaExceededToday = checkQuotaExceeded();
 
 export const isQuotaExceeded = () => quotaExceededToday;
 
@@ -264,7 +284,7 @@ const getDocsWithCacheFallback = async (q: any) => {
       if (isQuotaError(error)) {
       quotaExceededToday = true;
       try {
-        localStorage.setItem('quota_exceeded_today', new Date().toDateString());
+        localStorage.setItem('quota_exceeded_today', Date.now().toString());
       } catch (e) {}
       console.warn("Quota exceeded, attempting to load from cache...");
         
@@ -821,13 +841,30 @@ export const api = {
 
   logout: () => signOut(auth),
   
+  clearQuota: () => {
+    quotaExceededToday = false;
+    try {
+      localStorage.removeItem('quota_exceeded_today');
+      // Clear local memory cache keys to force fresh fetches
+      for (const key of Object.keys(cache)) {
+        delete cache[key];
+      }
+    } catch (e) {
+      console.error("Error clearing quota flags", e);
+    }
+  },
+  
   clearPersistence: async () => {
     try {
+      quotaExceededToday = false;
+      localStorage.removeItem('quota_exceeded_today');
       await terminate(db);
       await clearIndexedDbPersistence(db);
       window.location.reload();
     } catch (error) {
       console.error("Error clearing persistence:", error);
+      localStorage.removeItem('quota_exceeded_today');
+      window.location.reload();
     }
   },
 

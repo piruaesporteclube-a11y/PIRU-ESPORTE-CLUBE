@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CloudOff, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, CloudOff, RefreshCcw, Wifi } from 'lucide-react';
 import { isQuotaExceeded, api } from '../api';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,6 +16,11 @@ export default function QuotaBanner() {
 
   if (!show) return null;
 
+  const handleReconnect = () => {
+    api.clearQuota();
+    window.location.reload();
+  };
+
   return (
     <AnimatePresence>
       <motion.div 
@@ -29,13 +34,22 @@ export default function QuotaBanner() {
           <span>Modo de Economia: Limite diário do banco de dados atingido (Quota Exceeded).</span>
           <span className="hidden md:inline opacity-70">O sistema está funcionando com dados salvos no seu navegador para evitar interrupções.</span>
         </div>
-        <button 
-          onClick={() => api.clearPersistence()}
-          className="flex items-center gap-1.5 px-3 py-1 bg-black text-white rounded-full hover:bg-zinc-800 transition-colors"
-        >
-          <RefreshCcw size={12} />
-          Limpar Cache
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            onClick={handleReconnect}
+            className="flex items-center gap-1.5 px-3 py-1 bg-black text-white rounded-full hover:bg-zinc-800 transition-colors"
+          >
+            <Wifi size={12} />
+            Reconectar
+          </button>
+          <button 
+            onClick={() => api.clearPersistence()}
+            className="flex items-center gap-1.5 px-3 py-1 bg-amber-600/35 border border-black/20 text-black rounded-full hover:bg-amber-600/50 transition-colors"
+          >
+            <RefreshCcw size={12} />
+            Limpar Cache
+          </button>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
