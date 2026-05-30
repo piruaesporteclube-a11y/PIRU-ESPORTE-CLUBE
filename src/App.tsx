@@ -15,6 +15,7 @@ import SettingsComponent from './components/Settings';
 import AthleteSearchSelect from './components/AthleteSearchSelect';
 import MembershipCard from './components/MembershipCard';
 import ContactList from './components/ContactList';
+import WhatsAppIntegration from './components/WhatsAppIntegration';
 import CategoryList from './components/CategoryList';
 import LineupManagement from './components/LineupManagement';
 import StudentLineups from './components/StudentLineups';
@@ -1097,6 +1098,8 @@ export default function App() {
           return <ModalityList />;
         case 'contacts':
           return <ContactList athletes={athletes} />;
+        case 'whatsapp':
+          return <WhatsAppIntegration athletes={athletes} />;
         case 'activities':
           return <ActivityManagement role={user?.role} />;
         case 'trainings':

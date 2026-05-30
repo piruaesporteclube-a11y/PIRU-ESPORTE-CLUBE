@@ -60,6 +60,7 @@ export const navItems: NavItem[] = [
   { id: 'membership-card', label: 'Identidade', icon: CreditCard, roles: ['admin'], description: 'Carteirinha Oficial', color: 'text-blue-500', category: 'office' },
   
   // --- GRUPO: Social & Relacionamento (Família Piruá) ---
+  { id: 'whatsapp', label: 'Conexão Whats', icon: MessageCircle, roles: ['admin'], description: 'Painel e Grupos', color: 'text-green-500', category: 'community' },
   { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin'], description: 'Responsáveis (Zap)', color: 'text-green-500', category: 'community' },
   { id: 'announcements', label: 'Recados', icon: Megaphone, roles: ['admin', 'professor'], description: 'Gerar Encarte Story', color: 'text-theme-primary', category: 'community' },
   { id: 'birthdays', label: 'Aniversariantes', icon: Cake, roles: ['admin', 'professor'], description: 'Festa no Elenco', color: 'text-pink-500', category: 'community' },
