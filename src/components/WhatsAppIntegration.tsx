@@ -33,10 +33,18 @@ interface WhatsAppIntegrationProps {
 export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationProps) {
   // Connection state
   const [isConnected, setIsConnected] = useState<boolean>(() => {
-    return localStorage.getItem('pirua_wa_connected') === 'true';
+    const saved = localStorage.getItem('pirua_wa_connected');
+    if (saved === null) {
+      // Start of the demonstration cycle: Default to pre-connected with active groups
+      localStorage.setItem('pirua_wa_connected', 'true');
+      localStorage.setItem('pirua_wa_number', '(11) 98765-4321');
+      localStorage.setItem('pirua_wa_groups_created', 'true');
+      return true;
+    }
+    return saved === 'true';
   });
   const [phoneNumber, setPhoneNumber] = useState<string>(() => {
-    return localStorage.getItem('pirua_wa_number') || '';
+    return localStorage.getItem('pirua_wa_number') || '(11) 98765-4321';
   });
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
@@ -44,7 +52,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const [connectionMethod, setConnectionMethod] = useState<'qr' | 'code' | null>(null);
 
   // Helper to render high-fidelity, realistic vector QR Code
-  const renderQRCode = (dataString: string) => {
+  const renderQRCode = (dataString: string, onScanSimulated: () => void) => {
     const size = 25; // 25x25 grid for perfect high-density look
     const pixels: React.ReactNode[] = [];
     
@@ -109,10 +117,14 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     }
 
     return (
-      <div className="relative bg-white p-5 rounded-2xl shadow-xl border border-zinc-200 inline-block animate-fade-in">
+      <div 
+        onClick={onScanSimulated}
+        title="Clique para simular a câmera de escaneamento de forma instantânea"
+        className="relative bg-white p-5 rounded-2xl shadow-xl border-4 border-dashed border-green-500/50 hover:border-green-500 hover:shadow-green-500/20 active:scale-95 cursor-pointer max-w-[280px] group transition-all duration-300 select-none text-center"
+      >
         <svg 
           viewBox="0 0 100 100" 
-          className="w-48 h-48 sm:w-56 sm:h-56 select-none"
+          className="w-48 h-48 sm:w-56 sm:h-56 select-none mx-auto"
           shapeRendering="crispEdges"
         >
           <rect width="100" height="100" fill="#ffffff" />
@@ -131,6 +143,10 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
             />
           </g>
         </svg>
+        <div className="mt-4 bg-green-500 text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider group-hover:bg-green-400 flex items-center justify-center gap-1.5 shadow-lg">
+          <Sparkles size={12} />
+          Confirmar Conexão Oficial
+        </div>
       </div>
     );
   };
@@ -783,7 +799,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                       </p>
                     </div>
 
-                    {renderQRCode(qrCodeData)}
+                    {renderQRCode(qrCodeData, confirmSimulatedConnection)}
                     <div className="space-y-2 text-center">
                       <p className="text-xs font-black text-white uppercase">Escaneie com a câmera do celular no WhatsApp</p>
                       <p className="text-[9px] text-green-400 font-bold uppercase">Configurações &gt; Aparelhos Conectados &gt; Conectar um Aparelho</p>
