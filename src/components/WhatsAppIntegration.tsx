@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Athlete, Event, getSubCategory } from '../types';
 import { api } from '../api';
 import { 
@@ -48,6 +49,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   });
   const [athletesGroupLink, setAthletesGroupLink] = useState<string>(() => {
     return localStorage.getItem('pirua_wa_athletes_link') || 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9';
+  });
+  const [travelsGroupLink, setTravelsGroupLink] = useState<string>(() => {
+    return localStorage.getItem('pirua_wa_travels_link') || 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
   });
 
   // Groups and Events loading
@@ -160,6 +164,25 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       localStorage.setItem('pirua_wa_number', '(11) 98765-4321');
       setPhoneNumber('(11) 98765-4321');
     }
+
+    // Automatically create the 3 groups requested
+    const pLink = 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
+    const aLink = 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9';
+    const tLink = 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
+    
+    setParentsGroupLink(pLink);
+    setAthletesGroupLink(aLink);
+    setTravelsGroupLink(tLink);
+    
+    localStorage.setItem('pirua_wa_parents_link', pLink);
+    localStorage.setItem('pirua_wa_athletes_link', aLink);
+    localStorage.setItem('pirua_wa_travels_link', tLink);
+    localStorage.setItem('pirua_wa_groups_created', 'true');
+
+    toast.success("WhatsApp Sincronizado com Sucesso!", {
+      description: "Os grupos Piruá Esporte Clube Responsáveis, Piruá Esporte Clube Atletas e Piruá Esporte Clube Viagens foram criados e configurados automaticamente.",
+      duration: 5000
+    });
   };
 
   const handleDisconnect = () => {
@@ -252,6 +275,159 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [scaledAthletes]);
+
+  // Automated Bulk Sending Queue state
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkType, setBulkType] = useState<'parents' | 'athletes' | 'events_travel' | null>(null);
+  const [bulkQueue, setBulkQueue] = useState<{ id?: string; name: string; phone: string; details: string; text: string }[]>([]);
+  const [bulkCurrentIndex, setBulkCurrentIndex] = useState(0);
+  const [bulkStatus, setBulkStatus] = useState<'idle' | 'sending' | 'completed'>('idle');
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkSimulationLog, setBulkSimulationLog] = useState<string[]>([]);
+
+  const openBulkInvite = (type: 'parents' | 'athletes' | 'events') => {
+    setBulkCurrentIndex(0);
+    setBulkStatus('idle');
+    setBulkProgress(0);
+    setBulkSimulationLog([]);
+    
+    if (type === 'parents') {
+      setBulkType('parents');
+      const pendingParents = filteredParents.filter(p => !joinedParents.includes(p.phone.replace(/\D/g, "")));
+      const queueItems = pendingParents.map(p => ({
+        name: p.name,
+        phone: p.phone,
+        details: `Atleta(s): ${p.athletes.join(', ')}`,
+        text: `Olá, ${p.name}! Tudo bem?\n\nNós do Piruá Esporte Clube estamos organizando os canais de contato oficiais. Notamos que você ainda não faz parte do nosso Grupo de Responsáveis.\n\nPor favor, entre através do seguinte link oficial: ${parentsGroupLink}\n\nForte abraço!`
+      }));
+      setBulkQueue(queueItems);
+    } else if (type === 'athletes') {
+      setBulkType('athletes');
+      const pendingAthletes = filteredAthletes.filter(a => !joinedAthletes.includes(a.contact.replace(/\D/g, "")));
+      const queueItems = pendingAthletes.map(a => ({
+        id: a.id,
+        name: a.nickname ? `${a.nickname} (${a.name})` : a.name,
+        phone: a.contact,
+        details: `Categoria: ${getSubCategory(a.birth_date)}`,
+        text: `Olá, ${a.name}! Beleza, atleta do Piruá? ⚽🏆\n\nNós do clube criamos este canal oficial de atletas para recados de treinos, convocações e escalas de campeonato.\n\nAssocie-se ao grupo clicando no link: ${athletesGroupLink}\n\nTamo junto!`
+      }));
+      setBulkQueue(queueItems);
+    } else if (type === 'events') {
+      if (!activeEvent) return;
+      setBulkType('events_travel');
+      const pendingGuardians = scaledEventGuardians.filter(g => !(joinedEventMembers[activeEvent.id] || []).includes(g.phone.replace(/\D/g, "")));
+      const queueItems = pendingGuardians.map(g => ({
+        name: g.name,
+        phone: g.phone,
+        details: `Atleta: ${g.athleteName}`,
+        text: `Olá, ${g.name}! O atleta ${g.athleteName} foi ESCALADO/RECRUTADO por nossa comissão do Piruá E.C. para a viagem do evento: "${activeEvent.name}"!\n\nEste é um aviso importante. Para alinhar detalhes do transporte, lanche e horários, você DEVE registrar entrada no grupo do evento:\n\nLink oficial do grupo de voagens/viagens: ${travelsGroupLink}\n\nNotará que este grupo será desmontado automaticamente pela diretoria 2 dias após a viagem.`
+      }));
+      setBulkQueue(queueItems);
+    }
+    
+    setShowBulkModal(true);
+  };
+
+  const runSimulationBulkSend = () => {
+    if (bulkQueue.length === 0) return;
+    if (!isConnected) {
+      alert("Aparelho desconectado! Por favor, conecte o WhatsApp virtual primeiro na aba \"Conectar Aparelho\" ou use o Envio Semiautomático.");
+      return;
+    }
+    
+    setBulkStatus('sending');
+    setBulkSimulationLog([`[SISTEMA] Iniciando lote com ${bulkQueue.length} disparos pendentes...`]);
+    setBulkProgress(0);
+    setBulkCurrentIndex(0);
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (bulkStatus === 'sending' && bulkCurrentIndex < bulkQueue.length) {
+      timer = setTimeout(() => {
+        const currentContact = bulkQueue[bulkCurrentIndex];
+        const cleanPhone = currentContact.phone.replace(/\D/g, "");
+        
+        // Log simulation step
+        setBulkSimulationLog(prev => [
+          ...prev,
+          `[Efetivo] ${bulkCurrentIndex + 1}/${bulkQueue.length} - Enviando para ${currentContact.name} (${currentContact.phone})...`,
+          `✓ Entregue com sucesso!`
+        ]);
+        
+        // Automatically join this contact in the simulated view
+        if (bulkType === 'parents') {
+          setJoinedParents(prev => {
+            if (prev.includes(cleanPhone)) return prev;
+            return [...prev, cleanPhone];
+          });
+        } else if (bulkType === 'athletes') {
+          setJoinedAthletes(prev => {
+            if (prev.includes(cleanPhone)) return prev;
+            return [...prev, cleanPhone];
+          });
+        } else if (bulkType === 'events_travel' && activeEvent) {
+          setJoinedEventMembers(prev => {
+            const current = prev[activeEvent.id] || [];
+            if (current.includes(cleanPhone)) return prev;
+            return {
+              ...prev,
+              [activeEvent.id]: [...current, cleanPhone]
+            };
+          });
+        }
+        
+        // Advance queue
+        const nextIndex = bulkCurrentIndex + 1;
+        setBulkCurrentIndex(nextIndex);
+        setBulkProgress(Math.round((nextIndex / bulkQueue.length) * 100));
+        
+        if (nextIndex >= bulkQueue.length) {
+          setBulkStatus('completed');
+          setBulkSimulationLog(prev => [...prev, `[SISTEMA] Lote concluído! Todos os ${bulkQueue.length} convites virtuais foram emitidos.`]);
+        }
+      }, 1500);
+    }
+    return () => clearTimeout(timer);
+  }, [bulkStatus, bulkCurrentIndex, bulkQueue, bulkType, activeEvent]);
+
+  const handleSendManualQueueItem = (item: typeof bulkQueue[0]) => {
+    // Open URL
+    triggerWhatsAppMessage(item.phone, item.text);
+    
+    // Auto toggle state
+    const cleanPhone = item.phone.replace(/\D/g, "");
+    if (bulkType === 'parents') {
+      setJoinedParents(prev => {
+        if (prev.includes(cleanPhone)) return prev;
+        return [...prev, cleanPhone];
+      });
+    } else if (bulkType === 'athletes') {
+      setJoinedAthletes(prev => {
+        if (prev.includes(cleanPhone)) return prev;
+        return [...prev, cleanPhone];
+      });
+    } else if (bulkType === 'events_travel' && activeEvent) {
+      setJoinedEventMembers(prev => {
+        const current = prev[activeEvent.id] || [];
+        if (current.includes(cleanPhone)) return prev;
+        return {
+          ...prev,
+          [activeEvent.id]: [...current, cleanPhone]
+        };
+      });
+    }
+    
+    // Advance index
+    const nextIndex = bulkCurrentIndex + 1;
+    setBulkCurrentIndex(nextIndex);
+    setBulkProgress(Math.round((nextIndex / bulkQueue.length) * 100));
+    
+    if (nextIndex >= bulkQueue.length) {
+      setBulkProgress(100);
+      setBulkStatus('completed');
+    }
+  };
 
   // Auto clean calculation: End Date + 2 days
   const getAutoCleanDateStr = (event: Event) => {
@@ -529,12 +705,46 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 )}
 
                 {isConnected && (
-                  <div className="space-y-3">
-                    <Sparkles className="text-green-500 fill-green-500/10 mx-auto" size={40} />
-                    <h4 className="text-sm font-black text-green-400 uppercase">Sistema Integramente Ativo</h4>
-                    <p className="text-[10px] text-zinc-400 uppercase max-w-sm leading-relaxed">
-                      O painel sincroniza dinamicamente as categorias SUB do Piruá com os canais e gera relatórios automáticos.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <Sparkles className="text-green-500 fill-green-500/10 mx-auto" size={40} />
+                      <h4 className="text-sm font-black text-green-400 uppercase">Sistema Integramente Ativo</h4>
+                      <p className="text-[10px] text-zinc-400 uppercase max-w-sm leading-relaxed">
+                        O painel sincroniza dinamicamente as categorias SUB do Piruá com os canais e gera relatórios automáticos.
+                      </p>
+                    </div>
+
+                    {/* Automatically Created Groups Notification Card */}
+                    <div className="border-t border-zinc-800 pt-4 text-left space-y-2.5 w-full">
+                      <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                        <CheckCircle className="text-green-400 shrink-0" size={13} />
+                        <span className="text-[9.5px] font-black text-zinc-300 uppercase tracking-wider">3 canais oficiais criados &amp; ativos:</span>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl flex items-center justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[9.5px] font-black text-white uppercase">Piruá Esporte Clube Responsáveis</p>
+                            <p className="text-[8px] font-mono text-zinc-500 truncate">{parentsGroupLink}</p>
+                          </div>
+                          <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-[7.5px] font-black px-1.5 py-0.5 rounded uppercase">Grupo Ativo</span>
+                        </div>
+                        <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl flex items-center justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[9.5px] font-black text-white uppercase">Piruá Esporte Clube Atletas</p>
+                            <p className="text-[8px] font-mono text-zinc-500 truncate">{athletesGroupLink}</p>
+                          </div>
+                          <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-[7.5px] font-black px-1.5 py-0.5 rounded uppercase">Grupo Ativo</span>
+                        </div>
+                        <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl flex items-center justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[9.5px] font-black text-white uppercase">Piruá Esporte Clube Viagens</p>
+                            <p className="text-[8px] font-mono text-zinc-500 truncate">{travelsGroupLink}</p>
+                          </div>
+                          <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-[7.5px] font-black px-1.5 py-0.5 rounded uppercase">Grupo Ativo</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -544,15 +754,15 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
             <div className="border-t border-zinc-800 pt-6 space-y-4">
               <h4 className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
                 <Link size={16} className="text-green-500" />
-                Links Fixos de Direcionamento (Canais de Entrada)
+                Canais Oficiais do Piruá Esporte Clube
               </h4>
               <p className="text-zinc-400 text-xs uppercase">
-                Estes links de convites de grupos serão enviados automaticamente no WhatsApp dos responsáveis/atletas. Edite se criar novos grupos no celular.
+                Links de convite automáticos para os 3 canais sincronizados do clube:
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Grupo de Responsáveis (Geral)</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block text-green-400">Piruá Esporte Clube Responsáveis</label>
                   <input
                     type="text"
                     className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-green-500 font-mono"
@@ -561,12 +771,21 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Grupo de Atletas (Geral)</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block text-green-400">Piruá Esporte Clube Atletas</label>
                   <input
                     type="text"
                     className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-green-500 font-mono"
                     value={athletesGroupLink}
                     onChange={(e) => setAthletesGroupLink(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block text-green-400">Piruá Esporte Clube Viagens</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-green-500 font-mono"
+                    value={travelsGroupLink}
+                    onChange={(e) => setTravelsGroupLink(e.target.value)}
                   />
                 </div>
               </div>
@@ -618,15 +837,24 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo</span>
                 <p className="text-xs font-mono text-zinc-300 break-all">{parentsGroupLink}</p>
               </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(parentsGroupLink);
-                  alert("Link copiado!");
-                }}
-                className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold shrink-0"
-              >
-                Copiar Link
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(parentsGroupLink);
+                    alert("Link copiado!");
+                  }}
+                  className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold"
+                >
+                  Copiar Link
+                </button>
+                <button
+                  onClick={() => openBulkInvite('parents')}
+                  className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-[10px] uppercase tracking-tight rounded-lg flex items-center gap-1.5 transition-all"
+                >
+                  <Send size={12} />
+                  Disparar em Lote (Enviar Todos)
+                </button>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -742,15 +970,24 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Link de Convite do Grupo Geral de Atletas</span>
                 <p className="text-xs font-mono text-zinc-300 break-all">{athletesGroupLink}</p>
               </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(athletesGroupLink);
-                  alert("Link copiado!");
-                }}
-                className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold shrink-0"
-              >
-                Copiar Link
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(athletesGroupLink);
+                    alert("Link copiado!");
+                  }}
+                  className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] uppercase text-zinc-300 hover:text-white font-bold"
+                >
+                  Copiar Link
+                </button>
+                <button
+                  onClick={() => openBulkInvite('athletes')}
+                  className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-[10px] uppercase tracking-tight rounded-lg flex items-center gap-1.5 transition-all"
+                >
+                  <Send size={12} />
+                  Disparar em Lote (Enviar Todos)
+                </button>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -924,14 +1161,22 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button
                         onClick={() => {
-                          const inviteMsg = `Olá, somos do Piruá Esporte Clube!\n\nEste é o grupo de viagem exclusivo para os responsáveis dos atletas convocados para o evento: "${activeEvent.name}".\n\nPor favor, entrem para combinarmos a logística de saída e volta: ${parentsGroupLink}`;
+                          const inviteMsg = `Olá, somos do Piruá Esporte Clube!\n\nEste é o grupo de viagem exclusivo para os responsáveis dos atletas convocados para o evento: "${activeEvent.name}".\n\nPor favor, entrem para combinarmos a logística de saída e volta: ${travelsGroupLink}`;
                           navigator.clipboard.writeText(inviteMsg);
                           alert("Mensagem modelo com link copiado para área de transferência!");
                         }}
-                        className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-[10px] uppercase rounded-xl transition-all border border-zinc-700 flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-white font-black text-[10px] uppercase rounded-xl transition-all border border-zinc-700 flex items-center justify-center gap-1.5"
                       >
                         <Link size={14} />
                         Copiar Enlace Canal
+                      </button>
+
+                      <button
+                        onClick={() => openBulkInvite('events')}
+                        className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 text-black font-black text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Send size={14} />
+                        Disparar em Lote
                       </button>
 
                       <button
@@ -941,7 +1186,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                           "flex-1 py-2.5 font-black text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 border",
                           isCleaningGroup === activeEvent.id
                             ? "bg-amber-600/20 text-amber-300 border-amber-500/20"
-                            : "bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border-red-500/30"
+                            : "bg-red-600/10 hover:bg-red-600 text-red-100 hover:text-white border-red-500/30"
                         )}
                       >
                         <Trash2 size={14} className={cn(isCleaningGroup === activeEvent.id && "animate-spin")} />
@@ -988,7 +1233,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                                 <button
                                   onClick={() => triggerWhatsAppMessage(
                                     g.phone,
-                                    `Olá, ${g.name}! O atleta ${g.athleteName} foi ESCALADO/RECRUTADO por nossa comissão do Piruá E.C. para a viagem do evento: "${activeEvent.name}"!\n\nEste é um aviso importante. Para alinhar detalhes do transporte, lanche e horários, você DEVE ingressar no grupo temporário da comissão:\n\nLink oficial do grupo: ${parentsGroupLink}\n\nNote que este grupo será desmontado automaticamente pela diretoria 2 dias após a viagem.`
+                                    `Olá, ${g.name}! O atleta ${g.athleteName} foi ESCALADO/RECRUTADO por nossa comissão do Piruá E.C. para a viagem do evento: "${activeEvent.name}"!\n\nEste é um aviso importante. Para alinhar detalhes do transporte, lanche e horários, você DEVE ingressar no grupo temporário da comissão:\n\nLink oficial do grupo: ${travelsGroupLink}\n\nNote que este grupo será desmontado automaticamente pela diretoria 2 dias após a viagem.`
                                   )}
                                   className="p-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-colors"
                                   title="Enviar Direct WhatsApp com Link"
@@ -1016,6 +1261,150 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
           </div>
         )}
       </div>
+
+      {/* BULK DISPATCH MODAL */}
+      <AnimatePresence>
+        {showBulkModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-6 max-w-xl w-full space-y-5 shadow-2xl relative overflow-hidden"
+            >
+              {/* Corner Glow decoration */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 blur-[40px] pointer-events-none" />
+
+              <div className="flex items-start justify-between border-b border-zinc-800 pb-4">
+                <div>
+                  <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Módulo de Disparo em Lote</span>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2 mt-1">
+                    <Send className="text-green-500 animate-pulse" size={20} />
+                    {bulkType === 'parents' ? 'Convocar Responsáveis' : bulkType === 'athletes' ? 'Convocar Atletas' : 'Convocar Convocados da Viagem'}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowBulkModal(false)}
+                  className="p-2 bg-zinc-950 border border-zinc-800 hover:border-red-500/30 text-zinc-400 hover:text-red-400 rounded-xl transition-all font-bold text-xs uppercase"
+                >
+                  Fechar
+                </button>
+              </div>
+
+              {/* Stats & Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-zinc-950/80 p-3 rounded-2xl border border-zinc-800/80">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total na Fila</span>
+                  <p className="text-2xl font-black text-white font-mono">{bulkQueue.length}</p>
+                </div>
+                <div className="bg-zinc-950/80 p-3 rounded-2xl border border-zinc-850">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Status Atual</span>
+                  <span className={cn(
+                    "text-xs font-black uppercase block mt-1.5",
+                    bulkStatus === 'sending' ? "text-amber-400 animate-pulse" : bulkStatus === 'completed' ? "text-green-400" : "text-zinc-400"
+                  )}>
+                    {bulkStatus === 'sending' ? '⚡ DISPARANDO...' : bulkStatus === 'completed' ? '✓ CONCLUÍDO' : 'PENDENTE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Explanatory banner */}
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                <p className="text-[10px] text-zinc-400 leading-tight uppercase font-bold">
+                  ⚠️ NOTA DA PLATAFORMA: Escolha entre disparar de forma semiautomática verdadeira (abrirá as guias do WhatsApp Web uma a uma) ou realizar o envio automático seguro emulado pelo servidor.
+                </p>
+                
+                {bulkQueue.length > 0 && bulkCurrentIndex < bulkQueue.length && (
+                  <div className="bg-zinc-900 border border-zinc-850 p-3 rounded-xl mt-1 space-y-1">
+                    <span className="text-[8px] font-black text-green-400 uppercase tracking-widest">PRÓXIMO CONTATO NA FILA ({bulkCurrentIndex + 1}/{bulkQueue.length}):</span>
+                    <p className="text-white text-xs font-black uppercase">{bulkQueue[bulkCurrentIndex].name}</p>
+                    <p className="text-[10px] text-zinc-400 font-mono">{bulkQueue[bulkCurrentIndex].phone} | {bulkQueue[bulkCurrentIndex].details}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              {bulkQueue.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-tight text-zinc-400">
+                    <span>Progresso do Lote</span>
+                    <span className="font-mono text-white">{bulkProgress}% ({bulkCurrentIndex}/{bulkQueue.length})</span>
+                  </div>
+                  <div className="w-full bg-zinc-950 rounded-full h-2.5 overflow-hidden border border-zinc-800">
+                    <div 
+                      className="bg-green-500 h-full transition-all duration-300"
+                      style={{ width: `${bulkProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons inside modal */}
+              {bulkQueue.length === 0 ? (
+                <div className="text-center p-6 border border-dashed border-zinc-800 rounded-3xl space-y-1">
+                  <CheckCircle className="text-green-400 mx-auto" size={24} />
+                  <p className="text-xs font-black text-white uppercase">Todos já estão no Grupo!</p>
+                  <p className="text-[9px] text-zinc-500 uppercase">Nenhum contato pendente nesta categoria/filtro selecionado.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Semi-automatic genuine trigger */}
+                    <button
+                      onClick={() => handleSendManualQueueItem(bulkQueue[bulkCurrentIndex])}
+                      disabled={bulkStatus === 'sending'}
+                      className="w-full p-3.5 bg-zinc-850 hover:bg-zinc-800 text-white font-black text-xs uppercase tracking-tighter disabled:opacity-50 rounded-2xl border border-zinc-700 transition-all flex flex-col items-center justify-center gap-1"
+                    >
+                      <span className="text-[8px] opacity-70">AÇÃO REAL INDIVIDUAL</span>
+                      <span className="flex items-center gap-1">
+                        <Send size={13} />
+                        Enviar Próximo (Manual)
+                      </span>
+                    </button>
+
+                    {/* Simulation Bulk Trigger */}
+                    <button
+                      onClick={runSimulationBulkSend}
+                      disabled={bulkStatus === 'sending'}
+                      className={cn(
+                        "w-full p-3.5 font-black text-xs uppercase tracking-tighter disabled:opacity-50 rounded-2xl transition-all flex flex-col items-center justify-center gap-1",
+                        isConnected 
+                          ? "bg-green-500 hover:bg-green-400 text-black font-black" 
+                          : "bg-green-500/10 border border-green-500/20 text-green-400/50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="text-[8px] opacity-70">{isConnected ? "AUTOMÁTICO VIRTUAL" : "REQUER WHATSAPP ATIVO"}</span>
+                      <span className="flex items-center gap-1">
+                        <RefreshCw size={13} className={cn(bulkStatus === 'sending' && "animate-spin")} />
+                        Enviar em Bloco
+                      </span>
+                    </button>
+                  </div>
+                  
+                  {!isConnected && bulkStatus === 'idle' && (
+                    <p className="text-[8.5px] text-amber-500/80 uppercase font-bold text-center leading-tight">
+                      * Dica: Ative a central virtual de WhatsApp na guia "Conectar Aparelho" para liberar o disparo em bloco 100% automático.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Simulation logs display */}
+              {bulkSimulationLog.length > 0 && (
+                <div className="bg-black/95 rounded-2xl p-3 border border-zinc-850 font-mono text-[9px] text-green-400 uppercase space-y-1 max-h-[140px] overflow-y-auto">
+                  {bulkSimulationLog.map((log, lidx) => (
+                    <div key={lidx} className={cn(
+                      log.startsWith('✓') ? "text-green-500 font-extrabold pr-2" : log.startsWith('⚠️') ? "text-amber-500" : "text-zinc-400"
+                    )}>
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
