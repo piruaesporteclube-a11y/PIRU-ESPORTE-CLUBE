@@ -57,6 +57,41 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
     visualData: ''
   });
 
+  // Local storage fallback helper functions for read-only / guest users
+  const getLocalActivities = (): TrainingActivity[] => {
+    try {
+      const data = localStorage.getItem("local_training_activities");
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const saveLocalActivity = (activity: TrainingActivity) => {
+    try {
+      const current = getLocalActivities();
+      const index = current.findIndex(a => a.id === activity.id);
+      if (index >= 0) {
+        current[index] = activity;
+      } else {
+        current.push(activity);
+      }
+      localStorage.setItem("local_training_activities", JSON.stringify(current));
+    } catch (e) {
+      console.error("Error saving local activity:", e);
+    }
+  };
+
+  const deleteLocalActivity = (id: string) => {
+    try {
+      const current = getLocalActivities();
+      const updated = current.filter(a => a.id !== id);
+      localStorage.setItem("local_training_activities", JSON.stringify(updated));
+    } catch (e) {
+      console.error("Error deleting local activity:", e);
+    }
+  };
+
   useEffect(() => {
     loadActivities();
   }, []);
@@ -64,10 +99,27 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
   const loadActivities = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await api.getActivities();
-      setActivities(data);
+      const serverData = await api.getActivities();
+      const localData = getLocalActivities();
+      
+      // Combine list without duplication, favoring server data for existing IDs
+      const combined = [...localData];
+      serverData.forEach(item => {
+        const localIndex = combined.findIndex(c => c.id === item.id);
+        if (localIndex >= 0) {
+          // If already in combined, replace local with server version
+          combined[localIndex] = item;
+        } else {
+          combined.push(item);
+        }
+      });
+      
+      setActivities(combined);
     } catch (err) {
-      toast.error("Erro ao carregar biblioteca");
+      // Fallback completely to local if server fails or is offline
+      const localData = getLocalActivities();
+      setActivities(localData);
+      toast.error("Erro ao carregar banco de dados, exibindo apenas salvos localmente.");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -76,15 +128,34 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isGenerating) return;
+
+    const docId = formData.id || `local_${Math.random().toString(36).substring(2, 11)}`;
+    const fullActivity: TrainingActivity = {
+      id: docId,
+      name: formData.name || '',
+      description: formData.description || '',
+      category: (formData.category || 'Fundamento') as any,
+      modality: (formData.modality || 'Futebol') as any,
+      intensity: (formData.intensity || 'Média') as any,
+      difficulty: (formData.difficulty || 'Iniciante') as any,
+      duration: Number(formData.duration) || 15,
+      equipment: formData.equipment || '',
+      youtubeUrl: formData.youtubeUrl || '',
+      visualData: formData.visualData || '[]'
+    };
+
     try {
-      await api.saveActivity(formData);
+      await api.saveActivity(fullActivity);
       toast.success(formData.id ? "Atividade atualizada!" : "Atividade adicionada à biblioteca!");
-      setIsModalOpen(false);
-      resetForm();
-      loadActivities(true);
     } catch (err) {
-      toast.error("Erro ao salvar atividade");
+      console.warn("Permissão negada ou banco indisponível. Salvando localmente...", err);
+      saveLocalActivity(fullActivity);
+      toast.success(formData.id ? "Atividade atualizada localmente!" : "Atividade adicionada localmente!");
     }
+
+    setIsModalOpen(false);
+    resetForm();
+    loadActivities(true);
   };
 
   const resetForm = () => {
@@ -108,10 +179,12 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
     try {
       await api.deleteActivity(id);
       toast.success("Atividade removida!");
-      loadActivities();
     } catch (err) {
-      toast.error("Erro ao remover atividade");
+      console.warn("Não foi possível excluir do banco, removendo localmente...", err);
+      toast.success("Atividade removida!");
     }
+    deleteLocalActivity(id);
+    loadActivities();
   };
 
   const openEdit = (activity: TrainingActivity) => {
@@ -129,10 +202,31 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
     setIsGenerating(true);
     try {
       const suggestions = await geminiService.generateSuggestions(selectedModality);
+      let serverSavedCount = 0;
+      let localSavedCount = 0;
+
       for (const s of suggestions) {
-        await api.saveActivity(s as any);
+        // Generate an ID for each suggestion so we can distinguish them
+        const docId = `ai_${Math.random().toString(36).substring(2, 11)}`;
+        const fullActivity = { ...s, id: docId };
+        
+        try {
+          await api.saveActivity(fullActivity as any);
+          serverSavedCount++;
+        } catch (dbErr) {
+          console.warn("Direct DB write failed during suggestions generation. Saving to local storage fallback.", dbErr);
+          saveLocalActivity(fullActivity as any);
+          localSavedCount++;
+        }
       }
-      toast.success(`${suggestions.length} novas atividades geradas pela IA!`);
+
+      if (serverSavedCount > 0) {
+        toast.success(`${serverSavedCount} novas atividades geradas pela IA e salvas no banco público!`);
+      } else if (localSavedCount > 0) {
+        toast.success(`${localSavedCount} novas atividades geradas pela IA e salvas localmente no seu navegador!`);
+      } else {
+        toast.success("Exercícios gerados por IA com sucesso!");
+      }
       loadActivities();
     } catch (err: any) {
       console.error("AI Generation Error:", err);
