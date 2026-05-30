@@ -747,14 +747,29 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
                 {!isGeneratingQR && qrCodeData && (
                   <div className="space-y-4 flex flex-col items-center">
+                    {/* Informative alert explaining the prototype sandboxed state */}
+                    <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 max-w-sm text-center">
+                      <div className="flex items-center gap-1.5 justify-center text-amber-400 font-black text-[10px] uppercase tracking-wider mb-1">
+                        <AlertCircle size={14} className="shrink-0" />
+                        Ambiente de Demonstração Seguro
+                      </div>
+                      <p className="text-[9.5px] text-zinc-300 uppercase leading-relaxed">
+                        Por segurança e restrições de sandbox do Google AI Studio, este QR Code é um simulador oficial de pareamento.
+                      </p>
+                      <p className="text-[9px] text-amber-300 font-bold uppercase mt-1 leading-relaxed">
+                        👉 NÃO é necessário escanear com a câmera real! Clique no botão verde abaixo para ativar o pareamento virtual e criar os 3 grupos com canais integrados de forma automática.
+                      </p>
+                    </div>
+
                     {renderQRCode(qrCodeData)}
                     <div className="space-y-2 text-center">
                       <p className="text-xs font-black text-white uppercase">Escaneie com a câmera do celular no WhatsApp</p>
                       <p className="text-[9px] text-green-400 font-bold uppercase">Configurações &gt; Aparelhos Conectados &gt; Conectar um Aparelho</p>
                       <button
                         onClick={confirmSimulatedConnection}
-                        className="px-4 py-2 bg-green-500 text-black font-black text-[11px] uppercase rounded-xl hover:bg-green-400 tracking-tight"
+                        className="px-6 py-2.5 bg-green-500 text-black font-black text-[11px] uppercase rounded-xl hover:bg-green-400 tracking-tight transition-all shadow-lg hover:shadow-green-500/10 active:scale-95 duration-150 flex items-center gap-1.5 mx-auto"
                       >
+                        <CheckCircle size={14} />
                         Confirmar Conexão Virtual
                       </button>
                     </div>
@@ -763,6 +778,20 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
                 {!isGeneratingQR && pairingCode && (
                   <div className="space-y-5 text-center flex flex-col items-center">
+                    {/* Informative alert explaining the prototype sandboxed state */}
+                    <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 max-w-sm text-center">
+                      <div className="flex items-center gap-1.5 justify-center text-amber-400 font-black text-[10px] uppercase tracking-wider mb-1">
+                        <AlertCircle size={14} className="shrink-0" />
+                        Pareamento Virtual de Código
+                      </div>
+                      <p className="text-[9.5px] text-zinc-300 uppercase leading-relaxed">
+                        Este código simula a associação direta número-aparelho no painel do clube.
+                      </p>
+                      <p className="text-[9px] text-amber-300 font-bold uppercase mt-1 leading-relaxed">
+                        👉 Clique abaixo em "Confirmar Conexão Virtual" para simular o recebimento do handshake de forma instantânea.
+                      </p>
+                    </div>
+
                     <div>
                       <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">CÓDIGO DE PAREAMENTO</p>
                       <div className="bg-zinc-900 border border-zinc-700 px-6 py-3 rounded-2xl text-xl font-black text-green-400 tracking-widest select-all">
@@ -770,13 +799,14 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                       </div>
                     </div>
                     <div className="space-y-2 max-w-xs">
-                      <p className="text-[10px] text-zinc-400 uppercase leading-relaxed">
+                      <p className="text-[10px] text-zinc-400 uppercase leading-relaxed font-semibold">
                         Abra o WhatsApp Web, clique em <strong>"Vincular com número de celular"</strong> e insira o código acima no aparelho de celular.
                       </p>
                       <button
                         onClick={confirmSimulatedConnection}
-                        className="px-4 py-2 bg-green-500 text-black font-black text-[11px] uppercase rounded-xl hover:bg-green-400 tracking-tight"
+                        className="px-6 py-2.5 bg-green-500 text-black font-black text-[11px] uppercase rounded-xl hover:bg-green-400 tracking-tight transition-all shadow-lg hover:shadow-green-500/10 active:scale-95 duration-150 flex items-center gap-1.5 mx-auto"
                       >
+                        <CheckCircle size={14} />
                         Confirmar Conexão Virtual
                       </button>
                     </div>
