@@ -42,6 +42,98 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connectionMethod, setConnectionMethod] = useState<'qr' | 'code' | null>(null);
+
+  // Helper to render high-fidelity, realistic vector QR Code
+  const renderQRCode = (dataString: string) => {
+    const size = 25; // 25x25 grid for perfect high-density look
+    const pixels: React.ReactNode[] = [];
+    
+    // Deterministic bit generator to build a robust, beautiful mock QR pattern
+    const getDeterministicBit = (r: number, c: number) => {
+      const charCodeSum = dataString.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      const val = (r * 701 + c * 857 + charCodeSum * 17) % 997;
+      return val % 2 === 0;
+    };
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        let isBlack = false;
+
+        // 1. Finder pattern: Top-Left (7x7)
+        if (r < 7 && c < 7) {
+          const border = r === 0 || r === 6 || c === 0 || c === 6;
+          const center = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+          isBlack = border || center;
+        }
+        // 2. Finder pattern: Top-Right (7x7)
+        else if (r < 7 && c >= size - 7) {
+          const cLocal = c - (size - 7);
+          const border = r === 0 || r === 6 || cLocal === 0 || cLocal === 6;
+          const center = r >= 2 && r <= 4 && cLocal >= 2 && cLocal <= 4;
+          isBlack = border || center;
+        }
+        // 3. Finder pattern: Bottom-Left (7x7)
+        else if (r >= size - 7 && c < 7) {
+          const rLocal = r - (size - 7);
+          const border = rLocal === 0 || rLocal === 6 || c === 0 || c === 6;
+          const center = rLocal >= 2 && rLocal <= 4 && c >= 2 && c <= 4;
+          isBlack = border || center;
+        }
+        // 4. Center Area for WhatsApp Brand Logo Placement (leave a small 5x5 zone empty)
+        else if (r >= Math.floor(size/2) - 2 && r <= Math.floor(size/2) + 2 && 
+                 c >= Math.floor(size/2) - 2 && c <= Math.floor(size/2) + 2) {
+          isBlack = false; 
+        }
+        // 5. High-density data pixels
+        else {
+          isBlack = getDeterministicBit(r, c);
+        }
+
+        const pixelSize = 100 / size;
+        const x = c * pixelSize;
+        const y = r * pixelSize;
+
+        if (isBlack) {
+          pixels.push(
+            <rect 
+              key={`${r}-${c}`} 
+              x={x} 
+              y={y} 
+              width={pixelSize + 0.15} // slightly larger to prevent rendering gaps
+              height={pixelSize + 0.15} 
+              fill="#09090b" // deep charcoal
+            />
+          );
+        }
+      }
+    }
+
+    return (
+      <div className="relative bg-white p-5 rounded-2xl shadow-xl border border-zinc-200 inline-block animate-fade-in">
+        <svg 
+          viewBox="0 0 100 100" 
+          className="w-48 h-48 sm:w-56 sm:h-56 select-none"
+          shapeRendering="crispEdges"
+        >
+          <rect width="100" height="100" fill="#ffffff" />
+          {pixels}
+          
+          {/* Beautiful WhatsApp branding badge in the exact center */}
+          <g transform="translate(38, 38)">
+            {/* Green backing circle */}
+            <circle cx="12" cy="12" r="11" fill="#22c55e" />
+            {/* White concentric circle */}
+            <circle cx="12" cy="12" r="9" fill="#ffffff" />
+            {/* Inner green WhatsApp icon shape */}
+            <path 
+              d="M 12 7 C 9.24 7 7 9.24 7 12 C 7 12.96 7.27 13.86 7.74 14.64 L 7.12 16.9 L 9.47 16.3 C 10.2 16.7 11.06 17 12 17 C 14.76 17 17 14.76 17 12 C 17 9.24 14.76 7 12 7 Z M 14.82 13.89 C 14.64 14.4 13.93 14.82 13.43 14.92 C 13.08 14.99 12.62 15.06 11.11 14.43 C 9.18 13.63 7.93 11.68 7.83 11.54 C 7.74 11.41 7.04 10.48 7.04 9.52 C 7.04 8.56 7.53 8.09 7.73 7.89 C 7.89 7.74 8.14 7.66 8.39 7.66 C 8.46 7.66 8.53 7.66 8.6 7.66 C 8.78 7.67 8.87 7.68 9 7.98 C 9.15 8.36 9.53 9.29 9.58 9.38 C 9.63 9.47 9.68 9.6 9.61 9.72 C 9.56 9.84 9.51 9.91 9.42 10.02 C 9.33 10.13 9.23 10.26 9.15 10.35 C 9.06 10.45 8.96 10.56 9.07 10.75 C 9.18 10.94 9.55 11.55 10.11 12.04 C 10.83 12.04 11.41 12.89 11.6 12.97 C 11.79 13.05 11.91 13.03 12.02 12.9 C 12.13 12.77 12.47 12.36 12.59 12.19 C 12.71 12.02 12.83 12.05 13.01 12.12 C 13.19 12.19 14.15 12.66 14.34 12.76 C 14.53 12.86 14.66 12.91 14.7 12.99 C 14.75 13.07 14.75 13.56 14.82 13.89 Z" 
+              fill="#22c55e" 
+            />
+          </g>
+        </svg>
+      </div>
+    );
+  };
   
   // Custom Links
   const [parentsGroupLink, setParentsGroupLink] = useState<string>(() => {
@@ -655,23 +747,10 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
                 {!isGeneratingQR && qrCodeData && (
                   <div className="space-y-4 flex flex-col items-center">
-                    <div className="bg-white p-4 rounded-xl">
-                      {/* Fake QR code representation */}
-                      <div className="grid grid-cols-4 gap-1 w-32 h-32 bg-black p-2 rounded">
-                        {Array.from({length: 16}).map((_, i) => (
-                          <div 
-                            key={i} 
-                            className={cn(
-                              "w-full h-full", 
-                              (i % 3 === 0 || i % 5 === 0 || i === 0 || i === 15) ? "bg-white" : "bg-zinc-900"
-                            )} 
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    {renderQRCode(qrCodeData)}
                     <div className="space-y-2 text-center">
-                      <p className="text-xs font-black text-white uppercase">Escaneie com a câmera do celular</p>
-                      <p className="text-[9px] text-green-400 font-bold uppercase">Dispositivo &gt; Parear Aparelhos no WhatsApp</p>
+                      <p className="text-xs font-black text-white uppercase">Escaneie com a câmera do celular no WhatsApp</p>
+                      <p className="text-[9px] text-green-400 font-bold uppercase">Configurações &gt; Aparelhos Conectados &gt; Conectar um Aparelho</p>
                       <button
                         onClick={confirmSimulatedConnection}
                         className="px-4 py-2 bg-green-500 text-black font-black text-[11px] uppercase rounded-xl hover:bg-green-400 tracking-tight"
