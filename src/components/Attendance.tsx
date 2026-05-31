@@ -26,6 +26,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       "Fala, {NOME_ATLETA}! Sentimos sua falta no treino hoje ({DATA_TREINO}) da categoria {CATEGORIA}. Lembra de justificar com o treinador do Piruá para não perder frequência e garantir sua vaga de titular. Bora! ⚽⚡";
   });
 
+  const [reactivationTemplateParent, setReactivationTemplateParent] = useState(() => {
+    return localStorage.getItem('pirua_reactivation_template_parent') || 
+      "Olá, {NOME_RESPONSAVEL}! Percebemos que o(a) {NOME_ATLETA} está ausente dos treinos do Piruá Esporte Clube há {DIAS_AUSENTE} dias (última presença em {ULTIMA_PRESENCA}). Gostaríamos de confirmar se está tudo bem e se há alguma dificuldade ou justificativa para as ausências. A frequência regular é fundamental para manter a vaga e a evolução esportiva. Contamos com vocês! ⚽⚡";
+  });
+
+  const [reactivationTemplateAthlete, setReactivationTemplateAthlete] = useState(() => {
+    return localStorage.getItem('pirua_reactivation_template_athlete') || 
+      "Fala, {NOME_ATLETA}! Tudo bem? Sentimos sua falta nos treinos cara! Já faz {DIAS_AUSENTE} dias que você não aparece (desde {ULTIMA_PRESENCA}). A gente quer você correndo com o time! Tem alguma justificativa com o professor? Lembra que a frequência é o que garante sua vaga de titular e evolução. Dá um retorno pro clube e bora voltar! ⚽⚡";
+  });
+
   const [absenceTarget, setAbsenceTarget] = useState<'parent' | 'athlete' | 'both'>(() => {
     return (localStorage.getItem('pirua_absence_target') as any) || 'parent';
   });
@@ -35,63 +45,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   });
 
   const [showAbsenceConfig, setShowAbsenceConfig] = useState(false);
-
-  const formatAbsenceMessage = (athlete: Athlete, template: string) => {
-    const parsedDate = new Date(date + 'T12:00:00');
-    const today = isNaN(parsedDate.getTime()) ? date : format(parsedDate, 'dd/MM/yyyy');
-    
-    let activeCategory = 'Todos';
-    if (selectedTrainingId !== 'geral') {
-      const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
-      if (selTraining) activeCategory = selTraining.category || 'Todos';
-    } else {
-      activeCategory = getSubCategory(athlete.birth_date);
-    }
-    
-    return template
-      .replace(/{NOME_ATLETA}/g, athlete.name || '')
-      .replace(/{NOME_RESPONSAVEL}/g, athlete.guardian_name || 'Responsável')
-      .replace(/{DATA_TREINO}/g, today)
-      .replace(/{CATEGORIA}/g, activeCategory)
-      .replace(/{HORARIO_TREINO}/g, training ? `${training.start_time || 'S/H'} às ${training.end_time || 'S/H'}` : 'Horário de Treino');
-  };
-
-  const handleSendIndividualAbsenceAlert = (athlete: Athlete, target: 'parent' | 'athlete') => {
-    const isParent = target === 'parent';
-    const phone = isParent ? athlete.guardian_phone : athlete.contact;
-    const template = isParent ? absenceTemplateParent : absenceTemplateAthlete;
-    const nameLabel = isParent ? `Responsável (${athlete.guardian_name})` : `Atleta (${athlete.name})`;
-    
-    if (!phone || phone.replace(/\D/g, '').trim() === '') {
-      toast.error(`Não foi possível enviar: ${nameLabel} não possui telefone cadastrado!`);
-      return;
-    }
-    
-    const textMsg = formatAbsenceMessage(athlete, template);
-    const cleanPhone = phone.replace(/\D/g, '');
-    const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
-    
-    window.open(url, '_blank');
-    toast.success(`Alerta gerado para ${nameLabel}! Direcionando para o WhatsApp...`);
-  };
-
-  const saveAbsenceConfig = () => {
-    localStorage.setItem('pirua_absence_template_parent', absenceTemplateParent);
-    localStorage.setItem('pirua_absence_template_athlete', absenceTemplateAthlete);
-    localStorage.setItem('pirua_absence_target', absenceTarget);
-    localStorage.setItem('pirua_auto_send_next_day', String(autoSendNextDay));
-    toast.success("Configurações das Notificações de Falta atualizadas com sucesso!");
-    setShowAbsenceConfig(false);
-  };
+  const [absenceSubTab, setAbsenceSubTab] = useState<'today' | 'longTerm'>('today');
+  const [longTermAbsents, setLongTermAbsents] = useState<{ athlete: Athlete, lastPresentDate: string | null, daysAbsent: number }[]>([]);
+  const [loadingLongTerm, setLoadingLongTerm] = useState(false);
 
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
-
-  useEffect(() => {
-    setFilterSub(filterCategory);
-  }, [filterCategory]);
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
@@ -109,6 +70,147 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [showConfigPreviewTarget, setShowConfigPreviewTarget] = useState<'parent' | 'athlete'>('parent');
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
+
+  const formatAbsenceMessage = (athlete: Athlete, template: string, daysAbsent?: number, lastPresentDate?: string | null) => {
+    const parsedDate = new Date(date + 'T12:00:00');
+    const today = isNaN(parsedDate.getTime()) ? date : format(parsedDate, 'dd/MM/yyyy');
+    
+    let activeCategory = 'Todos';
+    if (selectedTrainingId !== 'geral') {
+      const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
+      if (selTraining) activeCategory = selTraining.category || 'Todos';
+    } else {
+      activeCategory = getSubCategory(athlete.birth_date);
+    }
+    
+    const formattedLastDate = lastPresentDate ? format(new Date(lastPresentDate + 'T12:00:00'), 'dd/MM/yyyy') : 'Sem registro';
+
+    return template
+      .replace(/{NOME_ATLETA}/g, athlete.name || '')
+      .replace(/{NOME_RESPONSAVEL}/g, athlete.guardian_name || 'Responsável')
+      .replace(/{DATA_TREINO}/g, today)
+      .replace(/{CATEGORIA}/g, activeCategory)
+      .replace(/{DIAS_AUSENTE}/g, daysAbsent && daysAbsent < 999 ? String(daysAbsent) : 'mais de 15')
+      .replace(/{ULTIMA_PRESENCA}/g, formattedLastDate)
+      .replace(/{HORARIO_TREINO}/g, training ? `${training.start_time || 'S/H'} às ${training.end_time || 'S/H'}` : 'Horário de Treino');
+  };
+
+  const fetchLongTermAbsents = async () => {
+    setLoadingLongTerm(true);
+    try {
+      const todayObj = new Date();
+      const fortyFiveDaysAgo = new Date(todayObj.getTime() - 45 * 24 * 60 * 60 * 1000);
+      const startDateStr = format(fortyFiveDaysAgo, 'yyyy-MM-dd');
+      const endDateStr = format(todayObj, 'yyyy-MM-dd');
+      
+      const historical = await api.getAttendance(undefined, undefined, undefined, undefined, startDateStr, endDateStr);
+      
+      const recordMap: Record<string, AttendanceRecord[]> = {};
+      historical.forEach(rec => {
+        if (!recordMap[rec.athlete_id]) {
+          recordMap[rec.athlete_id] = [];
+        }
+        recordMap[rec.athlete_id].push(rec);
+      });
+      
+      const tempAbsents: { athlete: Athlete, lastPresentDate: string | null, daysAbsent: number }[] = [];
+      const fifteenDaysAgoLimit = new Date(todayObj.getTime() - 15 * 24 * 60 * 60 * 1000);
+      const fifteenDaysLimitStr = format(fifteenDaysAgoLimit, 'yyyy-MM-dd');
+
+      const currentAthletes = athletesProp || athletes || [];
+      currentAthletes.forEach(ath => {
+        if (showOnlyActive && ath.status !== 'Ativo') {
+          return;
+        }
+
+        const recs = recordMap[ath.id] || [];
+        
+        // Check if they were present in the last 15 days
+        const presentInLast15 = recs.some(r => r.status === 'Presente' && r.date >= fifteenDaysLimitStr);
+        
+        if (!presentInLast15) {
+          const presenceRecs = recs
+            .filter(r => r.status === 'Presente')
+            .sort((a, b) => b.date.localeCompare(a.date));
+             
+          const lastPresenceDate = presenceRecs.length > 0 ? presenceRecs[0].date : null;
+          
+          let days = 999;
+          if (lastPresenceDate) {
+            const lastDateObj = new Date(lastPresenceDate + 'T12:00:00');
+            const diffTime = Math.abs(todayObj.getTime() - lastDateObj.getTime());
+            days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          }
+          
+          tempAbsents.push({
+            athlete: ath,
+            lastPresentDate: lastPresenceDate,
+            daysAbsent: days
+          });
+        }
+      });
+      
+      tempAbsents.sort((a, b) => b.daysAbsent - a.daysAbsent);
+      setLongTermAbsents(tempAbsents);
+    } catch (err) {
+      console.error("Error loading long term absents:", err);
+    } finally {
+      setLoadingLongTerm(false);
+    }
+  };
+
+  const handleSendIndividualAbsenceAlert = (athlete: Athlete, target: 'parent' | 'athlete') => {
+    const isParent = target === 'parent';
+    const phone = isParent ? athlete.guardian_phone : athlete.contact;
+    
+    const isLongTerm = tabFilter === 'absent' && absenceSubTab === 'longTerm';
+    const template = isLongTerm
+      ? (isParent ? reactivationTemplateParent : reactivationTemplateAthlete)
+      : (isParent ? absenceTemplateParent : absenceTemplateAthlete);
+      
+    const nameLabel = isParent ? `Responsável (${athlete.guardian_name})` : `Atleta (${athlete.name})`;
+    
+    if (!phone || phone.replace(/\D/g, '').trim() === '') {
+      toast.error(`Não foi possível enviar: ${nameLabel} não possui telefone cadastrado!`);
+      return;
+    }
+    
+    let days: number | undefined;
+    let lastDate: string | undefined;
+    if (isLongTerm) {
+      const found = longTermAbsents.find(item => item.athlete.id === athlete.id);
+      if (found) {
+        days = found.daysAbsent;
+        lastDate = found.lastPresentDate || undefined;
+      }
+    }
+    
+    const textMsg = formatAbsenceMessage(athlete, template, days, lastDate);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
+    
+    window.open(url, '_blank');
+    toast.success(`Alerta de resgate gerado para ${nameLabel}! Direcionando para o WhatsApp...`);
+  };
+
+  const saveAbsenceConfig = () => {
+    localStorage.setItem('pirua_absence_template_parent', absenceTemplateParent);
+    localStorage.setItem('pirua_absence_template_athlete', absenceTemplateAthlete);
+    localStorage.setItem('pirua_absence_target', absenceTarget);
+    localStorage.setItem('pirua_auto_send_next_day', String(autoSendNextDay));
+    toast.success("Configurações das Notificações de Falta atualizadas com sucesso!");
+    setShowAbsenceConfig(false);
+  };
+
+  useEffect(() => {
+    if (athletes.length > 0 && tabFilter === 'absent' && absenceSubTab === 'longTerm') {
+      fetchLongTermAbsents();
+    }
+  }, [athletes, tabFilter, absenceSubTab, showOnlyActive]);
+
+  useEffect(() => {
+    setFilterSub(filterCategory);
+  }, [filterCategory]);
 
   useEffect(() => {
     const fetchDayTrainings = async () => {
@@ -1170,12 +1272,54 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             </div>
           </div>
 
-          <div className="hidden sm:block">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-2 md:mt-0">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setDate('2026-05-29')}
+                className={cn(
+                  "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
+                  date === '2026-05-29' 
+                    ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
+                    : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
+                )}
+                title="Atuar na presença de Sexta-feira dia 29/05"
+              >
+                📅 Sex (29/05)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDate('2026-05-30')}
+                className={cn(
+                  "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
+                  date === '2026-05-30' 
+                    ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
+                    : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
+                )}
+                title="Atuar na presença de Sábado dia 30/05(Ontem)"
+              >
+                📅 Sáb (30/05)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDate('2026-05-31')}
+                className={cn(
+                  "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
+                  date === '2026-05-31' 
+                    ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
+                    : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
+                )}
+                title="Atuar na presença de Hoje (31/05)"
+              >
+                📅 Hoje (31/05)
+              </button>
+            </div>
+            
             <input 
               type="date" 
               disabled={!!trainingId || !!eventId}
               className={cn(
-                "px-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs",
+                "px-3 py-2 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-black uppercase text-xs cursor-pointer",
                 (trainingId || eventId) && "opacity-50 cursor-not-allowed"
               )}
               value={date}
@@ -1362,36 +1506,45 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
               : "bg-theme-primary/10 border-theme-primary text-theme-primary hover:bg-theme-primary/20"
           )}
         >
-          {showOnlyActive ? "Apenas Alunos Ativos" : "Todos os Cadastrados"}
+          {showOnlyActive ? "Apenas Ativos" : "Todos os Atletas"}
         </button>
       </div>
 
       {tabFilter === 'absent' && (
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-theme-primary/10 rounded-xl text-theme-primary shrink-0">
-                <Sparkles size={18} className="text-theme-primary animate-pulse" />
-              </div>
-              <div className="space-y-0.5 text-left">
-                <h3 className="text-sm font-black text-white uppercase tracking-tight flex flex-wrap items-center gap-2">
-                  Robô de Tele-Alerta de Faltas do Piruá
-                  {autoSendNextDay ? (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 border border-green-500/30 text-green-400 text-[8px] font-black uppercase rounded animate-pulse">
-                      ● Automático Ativo
-                    </span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 bg-zinc-850 border border-zinc-800 text-zinc-400 text-[8px] font-black uppercase rounded">
-                      Manual via WhatsApp
-                    </span>
-                  )}
-                </h3>
-                <p className="text-[10px] text-zinc-400 uppercase leading-normal">
-                  Configure e envie notificações de ausências não justificadas após os treinos do seu clube.
-                </p>
-              </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-3 border-b border-zinc-805">
+            {/* Sub-Tabs Toggles */}
+            <div className="flex bg-black p-1 rounded-xl border border-zinc-850 w-full sm:max-w-md shrink-0">
+              <button 
+                type="button"
+                onClick={() => setAbsenceSubTab('today')}
+                className={cn(
+                  "flex-1 py-2 text-[10px] font-black uppercase tracking-tight rounded-lg transition-all cursor-pointer text-center",
+                  absenceSubTab === 'today' 
+                    ? "bg-red-500 text-black font-black shadow-lg" 
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                Faltas do Dia ({stats.absent})
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  setAbsenceSubTab('longTerm');
+                  fetchLongTermAbsents();
+                }}
+                className={cn(
+                  "flex-1 py-2 text-[10px] font-black uppercase tracking-tight rounded-lg transition-all cursor-pointer text-center flex items-center justify-center gap-1.5",
+                  absenceSubTab === 'longTerm' 
+                    ? "bg-amber-500 text-black font-black shadow-lg" 
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                ⚠️ Sumidos (+15 Dias) ({longTermAbsents.length})
+              </button>
             </div>
-            <div className="px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none">
+
+            <div className="px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 self-start sm:self-center select-none">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               <span>✓ Salvo em Tempo Real</span>
             </div>
@@ -1401,120 +1554,174 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             className="space-y-4 pt-1 pb-2 border-b border-zinc-800/60"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <div className="space-y-1.5">
-                <span className="text-[9.5px] font-black text-green-400 tracking-wider uppercase block">
-                  📝 MENSAGEM DOS PAIS (EDITÁVEL):
-                </span>
-                <textarea
-                  rows={4}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
-                  value={absenceTemplateParent}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setAbsenceTemplateParent(val);
-                    localStorage.setItem('pirua_absence_template_parent', val);
-                  }}
-                  placeholder="Olá, {NOME_RESPONSAVEL}..."
-                />
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[9.5px] font-black text-theme-primary tracking-wider uppercase block">
-                  📝 MENSAGEM DO ALUNO (EDITÁVEL):
-                </span>
-                <textarea
-                  rows={4}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
-                  value={absenceTemplateAthlete}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setAbsenceTemplateAthlete(val);
-                    localStorage.setItem('pirua_absence_template_athlete', val);
-                  }}
-                  placeholder="Fala, {NOME_ATLETA}..."
-                />
-              </div>
+              {absenceSubTab === 'today' ? (
+                <>
+                  <div className="space-y-1.5">
+                    <span className="text-[9.5px] font-black text-green-400 tracking-wider uppercase block">
+                      📝 MENSAGEM DOS PAIS (EDITÁVEL):
+                    </span>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                      value={absenceTemplateParent}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAbsenceTemplateParent(val);
+                        localStorage.setItem('pirua_absence_template_parent', val);
+                      }}
+                      placeholder="Olá, {NOME_RESPONSAVEL}..."
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[9.5px] font-black text-theme-primary tracking-wider uppercase block">
+                      📝 MENSAGEM DO ALUNO (EDITÁVEL):
+                    </span>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                      value={absenceTemplateAthlete}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAbsenceTemplateAthlete(val);
+                        localStorage.setItem('pirua_absence_template_athlete', val);
+                      }}
+                      placeholder="Fala, {NOME_ATLETA}..."
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <span className="text-[9.5px] font-black text-amber-400 tracking-wider uppercase block">
+                      📝 MENSAGEM REATIVADORA DOS PAIS (+15 Dias):
+                    </span>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                      value={reactivationTemplateParent}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setReactivationTemplateParent(val);
+                        localStorage.setItem('pirua_reactivation_template_parent', val);
+                      }}
+                      placeholder="Olá, {NOME_RESPONSAVEL}..."
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[9.5px] font-black text-theme-primary tracking-wider uppercase block">
+                      📝 MENSAGEM REATIVADORA ALUNO (+15 Dias):
+                    </span>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                      value={reactivationTemplateAthlete}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setReactivationTemplateAthlete(val);
+                        localStorage.setItem('pirua_reactivation_template_athlete', val);
+                      }}
+                      placeholder="Fala, {NOME_ATLETA}..."
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase font-bold text-zinc-400">
-                <span className="text-zinc-500 font-black">Tags Dinâmicas Disponíveis (O sistema substitui de verdade):</span>
+                <span className="text-zinc-500 font-black">Tags Dinâmicas Disponíveis:</span>
                 <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_ATLETA}`}</span>
                 <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_RESPONSAVEL}`}</span>
-                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DATA_TREINO}`}</span>
                 <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{CATEGORIA}`}</span>
-                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{HORARIO_TREINO}`}</span>
+                {absenceSubTab === 'today' ? (
+                  <>
+                    <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DATA_TREINO}`}</span>
+                    <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{HORARIO_TREINO}`}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DIAS_AUSENTE}`}</span>
+                    <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{ULTIMA_PRESENCA}`}</span>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-950/40 p-3 rounded-xl border border-zinc-850 text-left">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="auto_send_next"
-                  className="rounded text-theme-primary focus:ring-theme-primary/50 w-4 h-4 bg-black border border-zinc-800 cursor-pointer"
-                  checked={autoSendNextDay}
-                  onChange={(e) => {
-                    const val = e.target.checked;
+            {absenceSubTab === 'today' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-950/40 p-3 rounded-xl border border-zinc-850 text-left">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="auto_send_next"
+                    className="rounded text-theme-primary focus:ring-theme-primary/50 w-4 h-4 bg-black border border-zinc-800 cursor-pointer"
+                    checked={autoSendNextDay}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setAutoSendNextDay(val);
+                      localStorage.setItem('pirua_auto_send_next_day', String(val));
+                      toast.success(val ? "Agendamento automático pós-treino ATIVADO!" : "Agendamento automático pós-treino DESATIVADO!");
+                    }}
+                  />
+                  <div className="flex flex-col leading-tight cursor-pointer" onClick={() => {
+                    const val = !autoSendNextDay;
                     setAutoSendNextDay(val);
                     localStorage.setItem('pirua_auto_send_next_day', String(val));
                     toast.success(val ? "Agendamento automático pós-treino ATIVADO!" : "Agendamento automático pós-treino DESATIVADO!");
-                  }}
-                />
-                <div className="flex flex-col leading-tight cursor-pointer" onClick={() => {
-                  const val = !autoSendNextDay;
-                  setAutoSendNextDay(val);
-                  localStorage.setItem('pirua_auto_send_next_day', String(val));
-                  toast.success(val ? "Agendamento automático pós-treino ATIVADO!" : "Agendamento automático pós-treino DESATIVADO!");
-                }}>
-                  <label htmlFor="auto_send_next" className="text-[10px] font-black text-white uppercase cursor-pointer">
-                    Agendar Envio pós-Treino
-                  </label>
-                  <span className="text-[9px] text-zinc-500 font-semibold uppercase">Dispara no dia seguinte às 09:00</span>
+                  }}>
+                    <label htmlFor="auto_send_next" className="text-[10px] font-black text-white uppercase cursor-pointer">
+                      Agendar Envio pós-Treino
+                    </label>
+                    <span className="text-[9px] text-zinc-500 font-semibold uppercase">Dispara no dia seguinte às 09:00</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-1 sm:col-span-2 text-left">
-                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block font-bold text-left">Destinatário Preferencial por Padrão:</span>
-                <div className="flex gap-2">
-                  {(['parent', 'athlete', 'both'] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setAbsenceTarget(t);
-                        localStorage.setItem('pirua_absence_target', t);
-                        toast.success(`Destinatário preferencial alterado para: ${t === 'parent' ? 'Apenas Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}`);
-                      }}
-                      className={cn(
-                        "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-tight cursor-pointer",
-                        absenceTarget === t 
-                          ? "bg-theme-primary text-black font-black" 
-                          : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white"
-                      )}
-                    >
-                      {t === 'parent' ? 'Apenas os Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-1 sm:col-span-2 text-left">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block font-bold text-left">Destinatário Preferencial por Padrão:</span>
+                  <div className="flex gap-2">
+                    {(['parent', 'athlete', 'both'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          setAbsenceTarget(t);
+                          localStorage.setItem('pirua_absence_target', t);
+                          toast.success(`Destinatário preferencial alterado para: ${t === 'parent' ? 'Apenas Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}`);
+                        }}
+                        className={cn(
+                          "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-tight cursor-pointer",
+                          absenceTarget === t 
+                            ? "bg-theme-primary text-black font-black" 
+                            : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white"
+                        )}
+                      >
+                        {t === 'parent' ? 'Apenas os Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
             <div className="md:col-span-7 bg-zinc-950/60 p-4 border border-zinc-850 rounded-xl space-y-3">
               <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", autoSendNextDay ? "bg-green-500 animate-pulse" : "bg-amber-500")} />
+                <div className={cn("w-2 h-2 rounded-full", (absenceSubTab === 'today' && autoSendNextDay) ? "bg-green-500 animate-pulse" : "bg-amber-500")} />
                 <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                  {autoSendNextDay ? 'Coprodutor de Presença Ativo 📡' : 'Disparo em Lote Semiautomático'}
+                  {absenceSubTab === 'today'
+                    ? (autoSendNextDay ? 'Coprodutor de Presença Ativo 📡' : 'Disparo em Lote Semiautomático')
+                    : 'Disparos Individuais de Resgate ⚡'}
                 </span>
               </div>
               <p className="text-[10px] leading-relaxed text-zinc-300 font-semibold uppercase">
-                {autoSendNextDay 
-                  ? `AUTOMAÇÃO ATIVA: O robô de presença do Piruá está ativo! Quando esta chamada for encerrada, o sistema aguardará até o dia seguinte às 09:00 e preparará automaticamente os alertas para todos os ${stats.absent} atletas ausentes que faltarem sem justificativa.` 
-                  : "DICA: Ative o Agendamento pós-Treino acima para que o robô virtual prepare automaticamente todos os avisos de falta no dia seguinte, ou utilize os botões rápidos de disparo em lote ao lado."}
+                {absenceSubTab === 'today' 
+                  ? (autoSendNextDay 
+                    ? `AUTOMAÇÃO ATIVA: O robô de presença do Piruá está ativo! Quando esta chamada for encerrada, o sistema aguará até o dia seguinte às 09:00 e preparará automaticamente os alertas para todos os ${stats.absent} atletas ausentes que faltarem sem justificativa.` 
+                    : "DICA: Ative o Agendamento pós-Treino acima para que o robô virtual prepare automaticamente todos os avisos de falta no dia seguinte, ou utilize os botões rápidos de disparo em lote ao lado.")
+                  : "PRO-TIP: Use este painel para enviar mensagens amigáveis e reativadoras do WhatsApp individualmente para atletas sumidos há mais de duas semanas. O carinho e a atenção pessoal aumentam o engajamento e evitam evasões!"}
               </p>
               
-              {autoSendNextDay && (
+              {(absenceSubTab === 'today' && autoSendNextDay) && (
                 <div className="p-2.5 bg-green-500/10 border border-green-500/15 rounded-lg text-green-400 text-[9px] font-bold uppercase leading-normal">
                   🚀 AGENDADO: Disparo automático programado para amanhã às 09:00 para os alunos sem justificativa.
                 </div>
@@ -1522,94 +1729,131 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             </div>
 
             <div className="md:col-span-5 bg-zinc-950/40 p-4 border border-zinc-850 rounded-xl flex flex-col justify-between gap-3">
-              <div>
-                <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase block">
-                  Ações Rápidas de Faltas
-                </span>
-                <span className="text-base font-black text-white block mt-0.5">
-                  {stats.absent} Ausente(s) Sem Justificativa
-                </span>
-              </div>
+              {absenceSubTab === 'today' ? (
+                <>
+                  <div>
+                    <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase block">
+                      Ações Rápidas de Faltas
+                    </span>
+                    <span className="text-base font-black text-white block mt-0.5 border-b border-zinc-800 pb-1.5 mb-1.5">
+                      {stats.absent} Ausente(s) Sem Justificativa
+                    </span>
+                  </div>
 
-              {stats.absent > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const unexcusedAthletes = filteredAthletes.filter(a => {
-                      const records = attendance[a.id] || [];
-                      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-                      const att = records.find(r => 
-                        (activeTrainingId && r.training_id === activeTrainingId) ||
-                        (eventId && r.event_id === eventId) ||
-                        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-                      );
-                      return att?.status === 'Faltou' && !att?.justification;
-                    });
+                  {stats.absent > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const unexcusedAthletes = filteredAthletes.filter(a => {
+                          const records = attendance[a.id] || [];
+                          const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                          const att = records.find(r => 
+                            (activeTrainingId && r.training_id === activeTrainingId) ||
+                            (eventId && r.event_id === eventId) ||
+                            (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                          );
+                          return att?.status === 'Faltou' && !att?.justification;
+                        });
 
-                    if (unexcusedAthletes.length === 0) {
-                      toast.info("Todos os ausentes já possuem justificativa de falta cadastrada!");
-                      return;
-                    }
-
-                    const loadingAbsenceToast = toast.loading(`Iniciando disparos em lote para ${unexcusedAthletes.length} atletas...`);
-                    
-                    let indexCount = 0;
-                    const triggerNext = () => {
-                      if (indexCount < unexcusedAthletes.length) {
-                        const athlete = unexcusedAthletes[indexCount];
-                        const tempTarget = absenceTarget === 'both' ? 'parent' : absenceTarget;
-                        const phone = tempTarget === 'parent' ? athlete.guardian_phone : athlete.contact;
-                        
-                        if (phone && phone.replace(/\D/g, '').trim() !== '') {
-                          const textMsg = formatAbsenceMessage(athlete, tempTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete);
-                          const cleanPhone = phone.replace(/\D/g, '');
-                          window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`, '_blank');
+                        if (unexcusedAthletes.length === 0) {
+                          toast.info("Todos os ausentes já possuem justificativa de falta cadastrada!");
+                          return;
                         }
-                        
-                        indexCount++;
-                        setTimeout(triggerNext, 1200);
-                      } else {
-                        toast.success("Disparos em lote gerados!", { id: loadingAbsenceToast });
-                      }
-                    };
 
-                    triggerNext();
-                  }}
-                  className="w-full py-2.5 bg-red-500 hover:bg-red-400 text-black font-black text-[10px] uppercase rounded-xl tracking-wider hover:scale-102 active:scale-98 transition-all shadow-lg shadow-red-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Send size={12} />
-                  Disparar Alertas Coletivos Agora
-                </button>
+                        const loadingAbsenceToast = toast.loading(`Iniciando disparos em lote para ${unexcusedAthletes.length} atletas...`);
+                        
+                        let indexCount = 0;
+                        const triggerNext = () => {
+                          if (indexCount < unexcusedAthletes.length) {
+                            const athlete = unexcusedAthletes[indexCount];
+                            const tempTarget = absenceTarget === 'both' ? 'parent' : absenceTarget;
+                            const phone = tempTarget === 'parent' ? athlete.guardian_phone : athlete.contact;
+                            
+                            if (phone && phone.replace(/\D/g, '').trim() !== '') {
+                              const textMsg = formatAbsenceMessage(athlete, tempTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete);
+                              const cleanPhone = phone.replace(/\D/g, '');
+                              window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`, '_blank');
+                            }
+                            
+                            indexCount++;
+                            setTimeout(triggerNext, 1200);
+                          } else {
+                            toast.success("Disparos em lote gerados!", { id: loadingAbsenceToast });
+                          }
+                        };
+
+                        triggerNext();
+                      }}
+                      className="w-full py-2.5 bg-red-500 hover:bg-red-400 text-black font-black text-[10px] uppercase rounded-xl tracking-wider hover:scale-102 active:scale-98 transition-all shadow-lg shadow-red-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Send size={12} />
+                      Disparar Alertas Coletivos Agora
+                    </button>
+                  ) : (
+                    <div className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-center font-bold text-[9px] uppercase rounded-xl select-none">
+                      Sem Ausências para Notificar Hoje 🎉
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-center font-bold text-[9px] uppercase rounded-xl select-none">
-                  Sem Ausências para Notificar Hoje 🎉
-                </div>
+                <>
+                  <div>
+                    <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase block">
+                      Ações de Resgate Social
+                    </span>
+                    <span className="text-base font-black text-amber-500 block mt-0.5 border-b border-zinc-800 pb-1.5 mb-1.5">
+                      {longTermAbsents.length} Alunos Sumidos há +15 Dias
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 uppercase font-bold text-center py-2 border border-zinc-800/40 bg-zinc-900/30 rounded-xl">
+                    ⚡ Use botões individuais abaixo na tabela para enviar WhatsApp!
+                  </div>
+                </>
               )}
             </div>
           </div>
 
           {/* PAINEL DE VISUALIZAÇÃO EM TEMPO REAL DA MENSAGEM */}
           {(() => {
-            const previewAthlete = filteredAthletes.find(a => {
-              const records = attendance[a.id] || [];
-              const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-              const att = records.find(r => 
-                (activeTrainingId && r.training_id === activeTrainingId) ||
-                (eventId && r.event_id === eventId) ||
-                (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
-              );
-              return att?.status === 'Faltou';
-            }) || (filteredAthletes.length > 0 ? filteredAthletes[0] : null) || { 
-              name: 'Davi Lucca do Piruá', 
-              guardian_name: 'Neymar da Silva', 
-              contact: '37991243101', 
-              guardian_phone: '37991243101', 
-              birth_date: '2012-05-15' 
-            } as Athlete;
+            const isTodayTab = absenceSubTab === 'today';
+            
+            const previewAthlete = isTodayTab 
+              ? (filteredAthletes.find(a => {
+                  const records = attendance[a.id] || [];
+                  const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                  const att = records.find(r => 
+                    (activeTrainingId && r.training_id === activeTrainingId) ||
+                    (eventId && r.event_id === eventId) ||
+                    (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                  );
+                  return att?.status === 'Faltou';
+                }) || (filteredAthletes.length > 0 ? filteredAthletes[0] : null) || { 
+                  name: 'Davi Lucca do Piruá', 
+                  guardian_name: 'Neymar da Silva', 
+                  contact: '37991243101', 
+                  guardian_phone: '37991243101', 
+                  birth_date: '2012-05-15' 
+                } as Athlete)
+              : (longTermAbsents.length > 0 ? longTermAbsents[0].athlete : {
+                  name: 'Davi Lucca do Piruá', 
+                  guardian_name: 'Neymar da Silva', 
+                  contact: '37991243101', 
+                  guardian_phone: '37991243101', 
+                  birth_date: '2012-05-15' 
+                } as Athlete);
+
+            const daysAbsent = !isTodayTab && longTermAbsents.length > 0 ? longTermAbsents[0].daysAbsent : 18;
+            const lastPresentDate = !isTodayTab && longTermAbsents.length > 0 ? longTermAbsents[0].lastPresentDate : '2026-05-12';
+            
+            const currentTemplate = isTodayTab 
+              ? (showConfigPreviewTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete)
+              : (showConfigPreviewTarget === 'parent' ? reactivationTemplateParent : reactivationTemplateAthlete);
 
             const previewTextFormatted = formatAbsenceMessage(
               previewAthlete, 
-              showConfigPreviewTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete
+              currentTemplate,
+              isTodayTab ? undefined : daysAbsent,
+              isTodayTab ? undefined : lastPresentDate
             );
 
             return (
@@ -1617,7 +1861,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 <div className="flex items-center gap-2 mb-3 bg-theme-primary/5 p-2 rounded-xl border border-theme-primary/10">
                   <MessageSquare size={14} className="text-theme-primary shrink-0" />
                   <span className="text-[10px] font-black text-white uppercase tracking-wider block">
-                    👁️ VISUALIZAÇÃO DA MENSAGEM DO DIA SEGUINTE:
+                    👁️ {isTodayTab ? 'VISUALIZAÇÃO DA MENSAGEM DO DIA SEGUINTE:' : 'VISUALIZAÇÃO DO MODELO DE RESGATE:'}
                   </span>
                 </div>
                 
@@ -1646,7 +1890,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           : "bg-zinc-950 border-zinc-850 text-zinc-500 hover:text-zinc-300"
                       )}
                     >
-                      <span>💬 Mensagem para os Alunos</span>
+                      <span>💬 Mensagem para os Aluno(as)</span>
                       {showConfigPreviewTarget === 'athlete' && <span className="w-1.5 h-1.5 bg-theme-primary rounded-full animate-ping" />}
                     </button>
                     
@@ -1681,7 +1925,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
                     <div className="border-t border-zinc-850 pt-2.5 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <span className="text-[8px] uppercase text-zinc-550 leading-normal">
-                        💡 Este texto será pré-preenchido e colado diretamente no WhatsApp ao clicar em "Responsáveis" ou "Aluno".
+                        💡 Este texto será pré-preenchido e colado diretamente no WhatsApp ao clicar em "Pais" ou "Aluno".
                       </span>
                       <button
                         type="button"
@@ -1705,390 +1949,568 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-black/50 border-b border-zinc-800">
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tele-Alerta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {filteredAthletes.map((athlete) => {
-                const records = attendance[athlete.id] || [];
-                const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-                
-                const generalAtt = records.find(r => !r.training_id && !r.event_id);
-                const specificAtt = records.find(r => 
-                  (activeTrainingId && r.training_id === activeTrainingId) ||
-                  (eventId && r.event_id === eventId)
-                );
-
-                let att = specificAtt;
-                let isSyncedFromGeneral = false;
-
-                if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
-                  att = generalAtt;
-                } else if (activeTrainingId || eventId) {
-                  // Crossing info: if specifically marked, use it. 
-                  // Otherwise, if generally marked present, show it as synced.
-                  if (!specificAtt || specificAtt.status !== 'Presente') {
-                    if (generalAtt?.status === 'Presente') {
-                      att = generalAtt;
-                      isSyncedFromGeneral = true;
-                    }
-                  }
-                }
-                
-                const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
-                const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
-
-                return (
-                  <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-between gap-3">
+          {(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-black/50 border-b border-zinc-800">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta Sumido</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria / Sub</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Última Presença</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Tempo de Ausência</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ações de Resgate Social</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {loadingLongTerm ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-zinc-550 font-bold uppercase text-[10px] tracking-widest">
+                      <span className="inline-block animate-spin mr-2">⏳</span> Buscando histórico de presenças do Piruá...
+                    </td>
+                  </tr>
+                ) : longTermAbsents.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-16 text-center text-zinc-500 font-bold uppercase text-[10px] tracking-wider">
+                      🎉 Muito bem! Nenhum atleta sumido há mais de 15 dias encontrado! Retenção impecável no Piruá!
+                    </td>
+                  </tr>
+                ) : (
+                  longTermAbsents.map(({ athlete, daysAbsent, lastPresentDate }) => (
+                    <tr key={athlete.id} className="hover:bg-amber-500/5 transition-colors">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
+                          <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 shrink-0">
                             {athlete.photo && athlete.photo.trim() !== "" ? (
                               <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
                               <User size={16} />
                             )}
                           </div>
-                          <span className="font-medium text-white">
-                            {athlete.name}
-                            {athlete.nickname && (
-                              <span className="ml-1 text-zinc-500 text-xs font-normal">
-                                ({athlete.nickname})
-                              </span>
-                            )}
-                          </span>
+                          <div>
+                            <span className="font-bold text-white block text-sm leading-tight">
+                              {athlete.name}
+                              {athlete.nickname && <span className="ml-1 text-zinc-500 font-normal text-xs">({athlete.nickname})</span>}
+                            </span>
+                            <span className="text-[9.5px] font-black text-theme-primary uppercase">{athlete.guardian_name || 'Sem Responsável Cadastrado'}</span>
+                          </div>
                         </div>
-                        
-                        {(selectedTrainingId === 'geral' && !trainingId) && (
-                          <div className="flex items-center gap-1">
-                            {otherTrainingRecords.length > 0 && (
-                              <div className="flex -space-x-1">
-                                {otherTrainingRecords.map((r, i) => (
-                                  <div 
-                                    key={i} 
-                                    className="w-4 h-4 rounded-full bg-theme-primary/20 border border-theme-primary/40 flex items-center justify-center"
-                                    title={`Presente no treino: ${availableTrainings.find(t => t.id === r.training_id)?.category || 'Treino'}`}
-                                  >
-                                    <Trophy size={8} className="text-theme-primary" />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
-                        {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
-                          <div key={i} className="flex items-center gap-1 opacity-60">
-                            <FileText size={8} className="text-theme-primary" />
-                            <span className="text-[8px] text-zinc-500 italic max-w-[120px] truncate" title={s.notes}>{s.notes}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        {att ? (
-                          <div className="flex flex-col items-center">
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
-                            <div className={cn(
-                              "flex items-center gap-1.5 border px-3 py-1.5 rounded-xl",
-                              att.status === 'Presente' ? "bg-theme-primary/10 border-theme-primary/20 text-theme-primary" : "bg-red-500/10 border-red-500/20 text-red-500"
-                            )}>
-                              <Clock size={12} />
-                              <span className="text-xs font-black">
-                                {att.arrival_time || '--:--'}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center opacity-30">
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
-                            <span className="text-xs font-black text-zinc-700">--:--</span>
-                          </div>
-                        )}
-                        {getAthleteSchedules(athlete) && (
-                          <div className="flex flex-col gap-0.5 mt-2">
-                            <span className="text-[8px] text-zinc-600 font-black uppercase tracking-tighter">Horário Previsto</span>
-                            {getAthleteSchedules(athlete)?.map((s, i) => (
-                              <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
-                                {s.start_time}-{s.end_time}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
-                          disabled={isAthleteLocked(athlete)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-                            (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
-                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <CheckCircle2 size={18} />
-                          <span className="text-[10px] uppercase font-black">
-                            {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
-                          </span>
-                        </button>
-                        <button 
-                          onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
-                          disabled={isAthleteLocked(athlete)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-                            att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
-                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <XCircle size={18} />
-                          <span className="text-[10px] uppercase font-black">Faltou</span>
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {att?.status === 'Faltou' && (
-                        <input 
-                          type="text" 
-                          disabled={isAthleteLocked(athlete)}
-                          placeholder="Justificar falta..."
-                          className={cn(
-                            "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                          )}
-                          value={att.justification || ''}
-                          onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
-                        />
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {att?.status === 'Faltou' && (
-                        <div className="flex items-center gap-1.5 justify-start text-left">
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-zinc-400 font-medium">{getSubCategory(athlete.birth_date)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-xs font-black text-zinc-300 font-mono">
+                          {lastPresentDate ? new Date(lastPresentDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Nunca Registrou Presença'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-xl text-red-400 font-black text-xs font-mono">
+                          ⚠️ {daysAbsent} dias sumidos
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
                           {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
                             <button
                               type="button"
                               onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
-                              title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
-                              className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                              title={`WhatsApp para Responsável (${athlete.guardian_name})`}
+                              className="px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
                             >
                               <MessageSquare size={12} />
                               <span>Responsáveis</span>
                             </button>
                           ) : (
-                            <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
+                            <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Pais</span>
                           )}
                           
                           {athlete.contact && athlete.contact.trim() !== '' ? (
                             <button
                               type="button"
                               onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
-                              title="Notificar Atleta diretamente via WhatsApp"
-                              className="px-2.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                              title="WhatsApp direto para o Aluno"
+                              className="px-3 py-2 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
                             >
                               <Smartphone size={12} />
                               <span>Aluno</span>
                             </button>
                           ) : (
-                            <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
+                            <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Aluno</span>
                           )}
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-black/50 border-b border-zinc-800">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tele-Alerta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {filteredAthletes.map((athlete) => {
+                  const records = attendance[athlete.id] || [];
+                  const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                  
+                  const generalAtt = records.find(r => !r.training_id && !r.event_id);
+                  const specificAtt = records.find(r => 
+                    (activeTrainingId && r.training_id === activeTrainingId) ||
+                    (eventId && r.event_id === eventId)
+                  );
 
-        <div className="md:hidden divide-y divide-zinc-800">
-          {filteredAthletes.map((athlete) => {
-            const records = attendance[athlete.id] || [];
-            const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-            
-            const generalAtt = records.find(r => !r.training_id && !r.event_id);
-            const specificAtt = records.find(r => 
-              (activeTrainingId && r.training_id === activeTrainingId) ||
-              (eventId && r.event_id === eventId)
-            );
+                  let att = specificAtt;
+                  let isSyncedFromGeneral = false;
 
-            let att = specificAtt;
-            let isSyncedFromGeneral = false;
+                  if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+                    att = generalAtt;
+                  } else if (activeTrainingId || eventId) {
+                    // Crossing info: if specifically marked, use it. 
+                    // Otherwise, if generally marked present, show it as synced.
+                    if (!specificAtt || specificAtt.status !== 'Presente') {
+                      if (generalAtt?.status === 'Presente') {
+                        att = generalAtt;
+                        isSyncedFromGeneral = true;
+                      }
+                    }
+                  }
+                  
+                  const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
+                  const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
 
-            if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
-              att = generalAtt;
-            } else if (activeTrainingId || eventId) {
-              if (!specificAtt || specificAtt.status !== 'Presente') {
-                if (generalAtt?.status === 'Presente') {
-                  att = generalAtt;
-                  isSyncedFromGeneral = true;
-                }
-              }
-            }
-            
-            const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
-            const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
-
-            return (
-              <div key={athlete.id} className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                      {athlete.photo && athlete.photo.trim() !== "" ? (
-                        <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <User size={20} />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white text-sm flex items-center gap-2">
-                        {athlete.name}
-                        {athlete.nickname && (
-                          <span className="text-zinc-500 text-[10px] font-normal">
-                            ({athlete.nickname})
-                          </span>
-                        )}
-                        {(selectedTrainingId === 'geral' && !trainingId) && otherTrainingRecords.length > 0 && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-theme-primary/10 rounded-full border border-theme-primary/20">
-                             <Trophy size={8} className="text-theme-primary" />
-                             <span className="text-[8px] font-black text-theme-primary">{otherTrainingRecords.length}</span>
+                  return (
+                    <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
+                              {athlete.photo && athlete.photo.trim() !== "" ? (
+                                <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <User size={16} />
+                              )}
+                            </div>
+                            <span className="font-medium text-white">
+                              {athlete.name}
+                              {athlete.nickname && (
+                                <span className="ml-1 text-zinc-500 text-xs font-normal">
+                                  ({athlete.nickname})
+                                </span>
+                              )}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
-                      {getAthleteSchedules(athlete) && (
-                        <div className="space-y-1 mt-2">
-                          <div className="flex flex-wrap gap-1">
-                            {getAthleteSchedules(athlete)?.map((s, i) => (
-                              <span key={i} className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded border border-zinc-700 font-bold uppercase">
-                                {s.start_time}-{s.end_time}
-                              </span>
-                            ))}
-                          </div>
+                          
+                          {(selectedTrainingId === 'geral' && !trainingId) && (
+                            <div className="flex items-center gap-1">
+                              {otherTrainingRecords.length > 0 && (
+                                <div className="flex -space-x-1">
+                                  {otherTrainingRecords.map((r, i) => (
+                                    <div 
+                                      key={i} 
+                                      className="w-4 h-4 rounded-full bg-theme-primary/20 border border-theme-primary/40 flex items-center justify-center"
+                                      title={`Presente no treino: ${availableTrainings.find(t => t.id === r.training_id)?.category || 'Treino'}`}
+                                    >
+                                      <Trophy size={8} className="text-theme-primary" />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
                           {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
-                            <div key={i} className="bg-theme-primary/5 p-2 rounded-lg border border-theme-primary/10">
-                              <p className="text-[9px] text-zinc-400 leading-tight italic">
-                                <span className="font-black text-theme-primary not-italic mr-1 uppercase text-[7px]">Atividade:</span>
-                                {s.notes}
-                              </p>
+                            <div key={i} className="flex items-center gap-1 opacity-60">
+                              <FileText size={8} className="text-theme-primary" />
+                              <span className="text-[8px] text-zinc-500 italic max-w-[120px] truncate" title={s.notes}>{s.notes}</span>
                             </div>
                           ))}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          {att ? (
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                              <div className={cn(
+                                "flex items-center gap-1.5 border px-3 py-1.5 rounded-xl",
+                                att.status === 'Presente' ? "bg-theme-primary/10 border-theme-primary/20 text-theme-primary" : "bg-red-500/10 border-red-500/20 text-red-500"
+                              )}>
+                                <Clock size={12} />
+                                <span className="text-xs font-black">
+                                  {att.arrival_time || '--:--'}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center opacity-30">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                              <span className="text-xs font-black text-zinc-700">--:--</span>
+                            </div>
+                          )}
+                          {getAthleteSchedules(athlete) && (
+                            <div className="flex flex-col gap-0.5 mt-2">
+                              <span className="text-[8px] text-zinc-650 font-black uppercase tracking-tighter">Horário Previsto</span>
+                              {getAthleteSchedules(athlete)?.map((s, i) => (
+                                <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                                  {s.start_time}-{s.end_time}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
+                            disabled={isAthleteLocked(athlete)}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
+                              (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <CheckCircle2 size={18} />
+                            <span className="text-[10px] uppercase font-black">
+                              {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                            </span>
+                          </button>
+                          <button 
+                            onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
+                            disabled={isAthleteLocked(athlete)}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
+                              att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <XCircle size={18} />
+                            <span className="text-[10px] uppercase font-black">Faltou</span>
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {att?.status === 'Faltou' && (
+                          <input 
+                            type="text" 
+                            disabled={isAthleteLocked(athlete)}
+                            placeholder="Justificar falta..."
+                            className={cn(
+                              "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
+                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                            )}
+                            value={att.justification || ''}
+                            onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
+                          />
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {att?.status === 'Faltou' && (
+                          <div className="flex items-center gap-1.5 justify-start text-left">
+                            {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                                title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
+                                className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                              >
+                                <MessageSquare size={12} />
+                                <span>Responsáveis</span>
+                              </button>
+                            ) : (
+                              <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
+                            )}
+                            
+                            {athlete.contact && athlete.contact.trim() !== '' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                                title="Notificar Atleta diretamente via WhatsApp"
+                                className="px-2.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                              >
+                                <Smartphone size={12} />
+                                <span>Aluno</span>
+                              </button>
+                            ) : (
+                              <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="md:hidden divide-y divide-zinc-800">
+          {(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
+            loadingLongTerm ? (
+              <div className="py-12 text-center text-zinc-550 font-bold uppercase text-[10px] tracking-widest leading-none">
+                <span className="inline-block animate-spin mr-2">⏳</span> Buscando histórico de presenças do Piruá...
+              </div>
+            ) : longTermAbsents.length === 0 ? (
+              <div className="py-16 text-center text-zinc-500 font-bold uppercase text-[10px] tracking-wider">
+                🎉 Muito bem! Nenhum atleta sumido há mais de 15 dias encontrado!
+              </div>
+            ) : (
+              longTermAbsents.map(({ athlete, daysAbsent, lastPresentDate }) => (
+                <div key={athlete.id} className="p-4 space-y-3 bg-amber-500/2 hover:bg-amber-500/5 transition-all">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 shrink-0">
+                        {athlete.photo && athlete.photo.trim() !== "" ? (
+                          <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <User size={20} />
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-bold text-white text-sm block">
+                          {athlete.name}
+                          {athlete.nickname && <span className="text-zinc-500 text-[10px] font-normal">({athlete.nickname})</span>}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</span>
+                      </div>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-xl text-red-500 font-black text-[10px] font-mono shrink-0">
+                      ⚠️ {daysAbsent} dias
+                    </div>
+                  </div>
+
+                  <div className="py-1 px-2 border border-zinc-850 bg-black/40 rounded-xl flex items-center justify-between text-[10px]">
+                    <span className="text-zinc-500 font-bold uppercase">Última Presença:</span>
+                    <span className="text-zinc-200 font-mono font-black">
+                      {lastPresentDate ? new Date(lastPresentDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Nunca Registrou'}
+                    </span>
+                  </div>
+
+                  <div className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl space-y-1.5">
+                    <span className="text-[8.5px] font-black text-zinc-500 uppercase tracking-wider block text-left">
+                      Disparar Mensagem Reativadora:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                          className="flex items-center justify-center gap-1.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-404 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                        >
+                          <MessageSquare size={12} />
+                          <span>Pais</span>
+                        </button>
+                      ) : (
+                        <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
+                          Sem Pais
+                        </div>
                       )}
-                      {att && (
-                        <div className={cn(
-                          "flex items-center gap-2 mt-2 border p-2 rounded-xl w-fit",
-                          att.status === 'Presente' ? "bg-theme-primary/5 border-theme-primary/10 text-theme-primary" : "bg-red-500/5 border-red-500/10 text-red-500"
-                        )}>
-                          <Clock size={12} />
-                          <span className="text-[10px] font-black uppercase"> 
-                            Registro às {att.arrival_time || '--:--'}
-                          </span>
+
+                      {athlete.contact && athlete.contact.trim() !== '' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                          className="flex items-center justify-center gap-1.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                        >
+                          <Smartphone size={12} />
+                          <span>Aluno</span>
+                        </button>
+                      ) : (
+                        <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
+                          Sem Aluno
                         </div>
                       )}
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
-                      disabled={isAthleteLocked(athlete)}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
-                        (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
-                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <CheckCircle2 size={18} />
-                      <span className="text-[10px] uppercase font-black">
-                        {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
-                      </span>
-                    </button>
-                    <button 
-                      onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
-                      disabled={isAthleteLocked(athlete)}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
-                        att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
-                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <XCircle size={18} />
-                      <span className="text-[10px] uppercase font-black">Faltou</span>
-                    </button>
-                  </div>
                 </div>
+              ))
+            )
+          ) : (
+            filteredAthletes.map((athlete) => {
+              const records = attendance[athlete.id] || [];
+              const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+              
+              const generalAtt = records.find(r => !r.training_id && !r.event_id);
+              const specificAtt = records.find(r => 
+                (activeTrainingId && r.training_id === activeTrainingId) ||
+                (eventId && r.event_id === eventId)
+              );
 
-                {att?.status === 'Faltou' && (
-                  <div className="pt-1 space-y-2.5">
-                    <input 
-                      type="text" 
-                      disabled={isAthleteLocked(athlete)}
-                      placeholder="Justificar falta..."
-                      className={cn(
-                        "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                        isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                      )}
-                      value={att.justification || ''}
-                      onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
-                    />
-                    
-                    <div className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl space-y-1.5">
-                      <span className="text-[8.5px] font-black text-zinc-500 uppercase tracking-wider block text-left">
-                        Tele-Alerta de Falta (WhatsApp):
-                      </span>
-                      <div className="grid grid-cols-2 gap-2">
-                        {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
-                            className="flex items-center justify-center gap-1.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
-                          >
-                            <MessageSquare size={12} />
-                            <span>Pais</span>
-                          </button>
+              let att = specificAtt;
+              let isSyncedFromGeneral = false;
+
+              if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+                att = generalAtt;
+              } else if (activeTrainingId || eventId) {
+                if (!specificAtt || specificAtt.status !== 'Presente') {
+                  if (generalAtt?.status === 'Presente') {
+                    att = generalAtt;
+                    isSyncedFromGeneral = true;
+                  }
+                }
+              }
+              
+              const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
+              const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
+
+              return (
+                <div key={athlete.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
+                        {athlete.photo && athlete.photo.trim() !== "" ? (
+                          <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
-                            Sem Tel. Pais
+                          <User size={20} />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-sm flex items-center gap-2">
+                          {athlete.name}
+                          {athlete.nickname && (
+                            <span className="text-zinc-500 text-[10px] font-normal">
+                              ({athlete.nickname})
+                            </span>
+                          )}
+                          {(selectedTrainingId === 'geral' && !trainingId) && otherTrainingRecords.length > 0 && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-theme-primary/10 rounded-full border border-theme-primary/20">
+                               <Trophy size={8} className="text-theme-primary" />
+                               <span className="text-[8px] font-black text-theme-primary">{otherTrainingRecords.length}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
+                        {getAthleteSchedules(athlete) && (
+                          <div className="space-y-1 mt-2">
+                            <div className="flex flex-wrap gap-1">
+                              {getAthleteSchedules(athlete)?.map((s, i) => (
+                                <span key={i} className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded border border-zinc-700 font-bold uppercase">
+                                  {s.start_time}-{s.end_time}
+                                </span>
+                              ))}
+                            </div>
+                            {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
+                              <div key={i} className="bg-theme-primary/5 p-2 rounded-lg border border-theme-primary/10">
+                                <p className="text-[9px] text-zinc-400 leading-tight italic">
+                                  <span className="font-black text-theme-primary not-italic mr-1 uppercase text-[7px]">Atividade:</span>
+                                  {s.notes}
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         )}
-
-                        {athlete.contact && athlete.contact.trim() !== '' ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
-                            className="flex items-center justify-center gap-1.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
-                          >
-                            <Smartphone size={12} />
-                            <span>Aluno</span>
-                          </button>
-                        ) : (
-                          <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
-                            Sem Tel. Aluno
+                        {att && (
+                          <div className={cn(
+                            "flex items-center gap-2 mt-2 border p-2 rounded-xl w-fit",
+                            att.status === 'Presente' ? "bg-theme-primary/5 border-theme-primary/10 text-theme-primary" : "bg-red-500/5 border-red-500/10 text-red-500"
+                          )}>
+                            <Clock size={12} />
+                            <span className="text-[10px] font-black uppercase"> 
+                              Registro às {att.arrival_time || '--:--'}
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
+                        disabled={isAthleteLocked(athlete)}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
+                          (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
+                          isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <CheckCircle2 size={18} />
+                        <span className="text-[10px] uppercase font-black">
+                          {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                        </span>
+                      </button>
+                      <button 
+                        onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
+                        disabled={isAthleteLocked(athlete)}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl transition-all",
+                          att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500",
+                          isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <XCircle size={18} />
+                        <span className="text-[10px] uppercase font-black">Faltou</span>
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {att?.status === 'Faltou' && (
+                    <div className="pt-1 space-y-2.5">
+                      <input 
+                        type="text" 
+                        disabled={isAthleteLocked(athlete)}
+                        placeholder="Justificar falta..."
+                        className={cn(
+                          "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
+                          isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                        )}
+                        value={att.justification || ''}
+                        onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
+                      />
+                      
+                      <div className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl space-y-1.5">
+                        <span className="text-[8.5px] font-black text-zinc-500 uppercase tracking-wider block text-left">
+                          Tele-Alerta de Falta (WhatsApp):
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                              className="flex items-center justify-center gap-1.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                            >
+                              <MessageSquare size={12} />
+                              <span>Pais</span>
+                            </button>
+                          ) : (
+                            <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-650 font-bold uppercase italic select-none">
+                              Sem Tel. Pais
+                            </div>
+                          )}
+
+                          {athlete.contact && athlete.contact.trim() !== '' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                              className="flex items-center justify-center gap-1.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                            >
+                              <Smartphone size={12} />
+                              <span>Aluno</span>
+                            </button>
+                          ) : (
+                            <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-650 font-bold uppercase italic select-none">
+                              Sem Tel. Aluno
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
         {filteredAthletes.length === 0 && (
