@@ -1391,117 +1391,114 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAbsenceConfig(!showAbsenceConfig)}
-              className="px-3.5 py-1.5 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 font-bold text-[9px] uppercase rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-1.5"
-            >
-              <Settings size={12} className={cn(showAbsenceConfig && "rotate-45 transition-transform duration-200")} />
-              {showAbsenceConfig ? 'Fechar Opções' : 'Configurar Modelos & Regras'}
-            </button>
+            <div className="px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span>✓ Salvo em Tempo Real</span>
+            </div>
           </div>
 
-          {showAbsenceConfig && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-4 pt-1 pb-2 border-b border-zinc-800/60 overflow-hidden"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-black text-green-400 tracking-wider uppercase block">
-                    Modelo 1: Mensagem para os Pais (Responsáveis)
-                  </span>
-                  <textarea
-                    rows={3}
-                    className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-normal"
-                    value={absenceTemplateParent}
-                    onChange={(e) => setAbsenceTemplateParent(e.target.value)}
-                    placeholder="Olá, {NOME_RESPONSAVEL}..."
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-black text-theme-primary tracking-wider uppercase block">
-                    Modelo 2: Mensagem Direta para o Aluno
-                  </span>
-                  <textarea
-                    rows={3}
-                    className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-normal"
-                    value={absenceTemplateAthlete}
-                    onChange={(e) => setAbsenceTemplateAthlete(e.target.value)}
-                    placeholder="Fala, {NOME_ATLETA}..."
-                  />
+          <div 
+            className="space-y-4 pt-1 pb-2 border-b border-zinc-800/60"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5">
+                <span className="text-[9.5px] font-black text-green-400 tracking-wider uppercase block">
+                  📝 MENSAGEM DOS PAIS (EDITÁVEL):
+                </span>
+                <textarea
+                  rows={4}
+                  className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                  value={absenceTemplateParent}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAbsenceTemplateParent(val);
+                    localStorage.setItem('pirua_absence_template_parent', val);
+                  }}
+                  placeholder="Olá, {NOME_RESPONSAVEL}..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[9.5px] font-black text-theme-primary tracking-wider uppercase block">
+                  📝 MENSAGEM DO ALUNO (EDITÁVEL):
+                </span>
+                <textarea
+                  rows={4}
+                  className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-relaxed font-sans"
+                  value={absenceTemplateAthlete}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAbsenceTemplateAthlete(val);
+                    localStorage.setItem('pirua_absence_template_athlete', val);
+                  }}
+                  placeholder="Fala, {NOME_ATLETA}..."
+                />
+              </div>
+            </div>
+
+            <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase font-bold text-zinc-400">
+                <span className="text-zinc-500 font-black">Tags Dinâmicas Disponíveis (O sistema substitui de verdade):</span>
+                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_ATLETA}`}</span>
+                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_RESPONSAVEL}`}</span>
+                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DATA_TREINO}`}</span>
+                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{CATEGORIA}`}</span>
+                <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{HORARIO_TREINO}`}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-950/40 p-3 rounded-xl border border-zinc-850 text-left">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="auto_send_next"
+                  className="rounded text-theme-primary focus:ring-theme-primary/50 w-4 h-4 bg-black border border-zinc-800 cursor-pointer"
+                  checked={autoSendNextDay}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setAutoSendNextDay(val);
+                    localStorage.setItem('pirua_auto_send_next_day', String(val));
+                    toast.success(val ? "Agendamento automático pós-treino ATIVADO!" : "Agendamento automático pós-treino DESATIVADO!");
+                  }}
+                />
+                <div className="flex flex-col leading-tight cursor-pointer" onClick={() => {
+                  const val = !autoSendNextDay;
+                  setAutoSendNextDay(val);
+                  localStorage.setItem('pirua_auto_send_next_day', String(val));
+                  toast.success(val ? "Agendamento automático pós-treino ATIVADO!" : "Agendamento automático pós-treino DESATIVADO!");
+                }}>
+                  <label htmlFor="auto_send_next" className="text-[10px] font-black text-white uppercase cursor-pointer">
+                    Agendar Envio pós-Treino
+                  </label>
+                  <span className="text-[9px] text-zinc-500 font-semibold uppercase">Dispara no dia seguinte às 09:00</span>
                 </div>
               </div>
 
-              <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase font-bold text-zinc-400">
-                  <span className="text-zinc-500 font-black">Tags Dinâmicas Disponíveis:</span>
-                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_ATLETA}`}</span>
-                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_RESPONSAVEL}`}</span>
-                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DATA_TREINO}`}</span>
-                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{CATEGORIA}`}</span>
-                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{HORARIO_TREINO}`}</span>
+              <div className="flex flex-col gap-1 sm:col-span-2 text-left">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block font-bold text-left">Destinatário Preferencial por Padrão:</span>
+                <div className="flex gap-2">
+                  {(['parent', 'athlete', 'both'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setAbsenceTarget(t);
+                        localStorage.setItem('pirua_absence_target', t);
+                        toast.success(`Destinatário preferencial alterado para: ${t === 'parent' ? 'Apenas Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}`);
+                      }}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-tight cursor-pointer",
+                        absenceTarget === t 
+                          ? "bg-theme-primary text-black font-black" 
+                          : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      {t === 'parent' ? 'Apenas os Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-950/40 p-3 rounded-xl border border-zinc-850 text-left">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="auto_send_next"
-                    className="rounded text-theme-primary focus:ring-theme-primary/50 w-4 h-4 bg-black border border-zinc-800 cursor-pointer"
-                    checked={autoSendNextDay}
-                    onChange={(e) => setAutoSendNextDay(e.target.checked)}
-                  />
-                  <div className="flex flex-col leading-tight cursor-pointer" onClick={() => setAutoSendNextDay(!autoSendNextDay)}>
-                    <label htmlFor="auto_send_next" className="text-[10px] font-black text-white uppercase cursor-pointer">
-                      Agendar Envio pós-Treino
-                    </label>
-                    <span className="text-[9px] text-zinc-500 font-semibold uppercase">Dispara no dia seguinte às 09:00</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1 sm:col-span-2">
-                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Destinatário Preferencial por Padrão:</span>
-                  <div className="flex gap-2">
-                    {(['parent', 'athlete', 'both'] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setAbsenceTarget(t)}
-                        className={cn(
-                          "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-tight cursor-pointer",
-                          absenceTarget === t 
-                            ? "bg-theme-primary text-black font-black" 
-                            : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white"
-                        )}
-                      >
-                        {t === 'parent' ? 'Apenas os Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowAbsenceConfig(false)}
-                  className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold text-[10px] uppercase rounded-xl hover:text-white transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={saveAbsenceConfig}
-                  className="px-4 py-2 bg-theme-primary text-black font-black text-[10px] uppercase rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-theme-primary/20 cursor-pointer"
-                >
-                  Confirmar & Gravar Regras
-                </button>
-              </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
             <div className="md:col-span-7 bg-zinc-950/60 p-4 border border-zinc-850 rounded-xl space-y-3">
