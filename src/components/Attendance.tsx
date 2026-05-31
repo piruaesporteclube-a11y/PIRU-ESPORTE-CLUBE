@@ -106,6 +106,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showConfigPreviewTarget, setShowConfigPreviewTarget] = useState<'parent' | 'athlete'>('parent');
   const lastScannedCode = useRef<string | null>(null);
   const lastScanTime = useRef<number>(0);
 
@@ -1564,6 +1565,118 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
               )}
             </div>
           </div>
+
+          {/* PAINEL DE VISUALIZAÇÃO EM TEMPO REAL DA MENSAGEM */}
+          {(() => {
+            const previewAthlete = filteredAthletes.find(a => {
+              const records = attendance[a.id] || [];
+              const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+              const att = records.find(r => 
+                (activeTrainingId && r.training_id === activeTrainingId) ||
+                (eventId && r.event_id === eventId) ||
+                (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+              );
+              return att?.status === 'Faltou';
+            }) || (filteredAthletes.length > 0 ? filteredAthletes[0] : null) || { 
+              name: 'Davi Lucca do Piruá', 
+              guardian_name: 'Neymar da Silva', 
+              contact: '37991243101', 
+              guardian_phone: '37991243101', 
+              birth_date: '2012-05-15' 
+            } as Athlete;
+
+            const previewTextFormatted = formatAbsenceMessage(
+              previewAthlete, 
+              showConfigPreviewTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete
+            );
+
+            return (
+              <div className="border-t border-zinc-800/80 pt-4 mt-2">
+                <div className="flex items-center gap-2 mb-3 bg-theme-primary/5 p-2 rounded-xl border border-theme-primary/10">
+                  <MessageSquare size={14} className="text-theme-primary shrink-0" />
+                  <span className="text-[10px] font-black text-white uppercase tracking-wider block">
+                    👁️ VISUALIZAÇÃO DA MENSAGEM DO DIA SEGUINTE:
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-4 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigPreviewTarget('parent')}
+                      className={cn(
+                        "py-2.5 px-3 rounded-xl text-left font-black text-[10px] uppercase transition-all border flex items-center justify-between cursor-pointer",
+                        showConfigPreviewTarget === 'parent'
+                          ? "bg-green-500/10 border-green-500/30 text-green-400"
+                          : "bg-zinc-950 border-zinc-850 text-zinc-500 hover:text-zinc-300"
+                      )}
+                    >
+                      <span>💬 Mensagem para os Pais</span>
+                      {showConfigPreviewTarget === 'parent' && <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigPreviewTarget('athlete')}
+                      className={cn(
+                        "py-2.5 px-3 rounded-xl text-left font-black text-[10px] uppercase transition-all border flex items-center justify-between cursor-pointer",
+                        showConfigPreviewTarget === 'athlete'
+                          ? "bg-theme-primary/10 border-theme-primary/30 text-theme-primary"
+                          : "bg-zinc-950 border-zinc-850 text-zinc-500 hover:text-zinc-300"
+                      )}
+                    >
+                      <span>💬 Mensagem para os Alunos</span>
+                      {showConfigPreviewTarget === 'athlete' && <span className="w-1.5 h-1.5 bg-theme-primary rounded-full animate-ping" />}
+                    </button>
+                    
+                    <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-900 space-y-1.5 text-[9px] uppercase font-bold text-zinc-500 text-left">
+                      <span className="text-zinc-400 block font-black">Amostra do Atleta:</span>
+                      <div>
+                        <span className="text-zinc-500">Atleta Exemplo: </span>
+                        <span className="text-white font-mono block text-[9.5px] leading-relaxed break-all font-black">{previewAthlete.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500">Responsável: </span>
+                        <span className="text-white font-mono block text-[9.5px] leading-relaxed break-all font-black">{previewAthlete.guardian_name || 'Não cadastrado'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-8 bg-zinc-950 border border-zinc-850 rounded-xl p-4 flex flex-col justify-between relative min-h-[140px] text-left">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                          CONTEÚDO DA MENSAGEM FINAL INSTANTÂNEA:
+                        </span>
+                        <span className="text-[8px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-bold uppercase">
+                          WhatsApp Ativo
+                        </span>
+                      </div>
+                      
+                      <p className="text-[11px] text-zinc-200 leading-relaxed font-sans font-semibold whitespace-pre-line text-left bg-black p-3.5 rounded-xl border border-zinc-900 select-all">
+                        {previewTextFormatted}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-zinc-850 pt-2.5 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[8px] uppercase text-zinc-550 leading-normal">
+                        💡 Este texto será pré-preenchido e colado diretamente no WhatsApp ao clicar em "Responsáveis" ou "Aluno".
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(previewTextFormatted);
+                          toast.success("Mensagem modelo copiada para área de transferência!");
+                        }}
+                        className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-lg text-[9px] uppercase hover:text-white font-black transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                      >
+                        Copiar Modelo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
