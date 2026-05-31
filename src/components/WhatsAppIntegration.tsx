@@ -335,9 +335,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       
       setIsSyncing(false);
 
-      toast.success("Sincronização e Canais Criados!", {
-        description: `O seu celular ${phoneNumber} foi pareado com sucesso e os 3 grupos foram gerados.`,
-        duration: 6000
+      toast.success("Sincronização Virtual Concluída! 📡", {
+        description: "IMPORTANTE: O WhatsApp protege sua conta e não permite que sites externos criem grupos silenciosamente no seu celular. Crie os 3 grupos reais em seu celular (Responsáveis, Atletas e Viagens), copie o link deles e salve-os no painel abaixo para funcionar de verdade!",
+        duration: 12000
       });
     }, 4800);
   };
@@ -680,6 +680,27 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
           <span className={cn("w-2 h-2 rounded-full animate-pulse", isConnected ? "bg-green-400" : "bg-red-400")} />
           Status WA: {isConnected ? "CONECTADO" : "DESCONECTADO"}
         </div>
+      </div>
+
+      {/* PERSISTENT EXPLANATORY BANNER FOR GROUP CREATION */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-left">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={18} />
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-black text-amber-400 uppercase tracking-tight">
+              ⚠️ ATENÇÃO COM O WHATSAPP: POR QUE DÁ O ERRO "NÃO FOI POSSÍVEL ENTRAR NESTE GRUPO"?
+            </h4>
+            <p className="text-[10px] text-zinc-300 uppercase leading-relaxed font-semibold">
+              O WhatsApp é privado e proíbe que sites externos criem ou entrem em grupos na sua conta pessoal sozinhos. Os links fictícios iniciais (<span className="text-amber-300 font-mono">chat.whatsapp.com/FLX90tK...</span>) são apenas simulados de exemplo. É por isso que no seu celular acusa o erro "Não foi possível entrar". Para fazer funcionar perfeitamente, crie os 3 grupos no seu aplicativo de celular e cole os links reais obtidos na aba <strong className="text-white">"CONECTAR APARELHO"</strong> abaixo.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => { setCurrentSection('connection'); setSearchQuery(''); }}
+          className="shrink-0 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-[9px] uppercase rounded-lg tracking-wider transition-all"
+        >
+          Ver Onde Colar Links Reais ➔
+        </button>
       </div>
 
       {/* Navigation Buttons for sections */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -16,6 +16,74 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+  const [absenceTemplateParent, setAbsenceTemplateParent] = useState(() => {
+    return localStorage.getItem('pirua_absence_template_parent') || 
+      "Olá, {NOME_RESPONSAVEL}! Nós do Piruá Esporte Clube sentimos a falta de {NOME_ATLETA} no treino de hoje ({DATA_TREINO}). Como a falta não possui justificativa registrada em nossa chamada, pedimos por gentileza que nos mande por aqui para mantermos o boletim atualizado. Agradecemos a colaboração!";
+  });
+
+  const [absenceTemplateAthlete, setAbsenceTemplateAthlete] = useState(() => {
+    return localStorage.getItem('pirua_absence_template_athlete') || 
+      "Fala, {NOME_ATLETA}! Sentimos sua falta no treino hoje ({DATA_TREINO}) da categoria {CATEGORIA}. Lembra de justificar com o treinador do Piruá para não perder frequência e garantir sua vaga de titular. Bora! ⚽⚡";
+  });
+
+  const [absenceTarget, setAbsenceTarget] = useState<'parent' | 'athlete' | 'both'>(() => {
+    return (localStorage.getItem('pirua_absence_target') as any) || 'parent';
+  });
+
+  const [autoSendNextDay, setAutoSendNextDay] = useState(() => {
+    return localStorage.getItem('pirua_auto_send_next_day') === 'true';
+  });
+
+  const [showAbsenceConfig, setShowAbsenceConfig] = useState(false);
+
+  const formatAbsenceMessage = (athlete: Athlete, template: string) => {
+    const parsedDate = new Date(date + 'T12:00:00');
+    const today = isNaN(parsedDate.getTime()) ? date : format(parsedDate, 'dd/MM/yyyy');
+    
+    let activeCategory = 'Todos';
+    if (selectedTrainingId !== 'geral') {
+      const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
+      if (selTraining) activeCategory = selTraining.category || 'Todos';
+    } else {
+      activeCategory = getSubCategory(athlete.birth_date);
+    }
+    
+    return template
+      .replace(/{NOME_ATLETA}/g, athlete.name || '')
+      .replace(/{NOME_RESPONSAVEL}/g, athlete.guardian_name || 'Responsável')
+      .replace(/{DATA_TREINO}/g, today)
+      .replace(/{CATEGORIA}/g, activeCategory)
+      .replace(/{HORARIO_TREINO}/g, training ? `${training.start_time || 'S/H'} às ${training.end_time || 'S/H'}` : 'Horário de Treino');
+  };
+
+  const handleSendIndividualAbsenceAlert = (athlete: Athlete, target: 'parent' | 'athlete') => {
+    const isParent = target === 'parent';
+    const phone = isParent ? athlete.guardian_phone : athlete.contact;
+    const template = isParent ? absenceTemplateParent : absenceTemplateAthlete;
+    const nameLabel = isParent ? `Responsável (${athlete.guardian_name})` : `Atleta (${athlete.name})`;
+    
+    if (!phone || phone.replace(/\D/g, '').trim() === '') {
+      toast.error(`Não foi possível enviar: ${nameLabel} não possui telefone cadastrado!`);
+      return;
+    }
+    
+    const textMsg = formatAbsenceMessage(athlete, template);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
+    
+    window.open(url, '_blank');
+    toast.success(`Alerta gerado para ${nameLabel}! Direcionando para o WhatsApp...`);
+  };
+
+  const saveAbsenceConfig = () => {
+    localStorage.setItem('pirua_absence_template_parent', absenceTemplateParent);
+    localStorage.setItem('pirua_absence_template_athlete', absenceTemplateAthlete);
+    localStorage.setItem('pirua_absence_target', absenceTarget);
+    localStorage.setItem('pirua_auto_send_next_day', String(autoSendNextDay));
+    toast.success("Configurações das Notificações de Falta atualizadas com sucesso!");
+    setShowAbsenceConfig(false);
+  };
+
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
@@ -1272,6 +1340,233 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </button>
       </div>
 
+      {tabFilter === 'absent' && (
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-theme-primary/10 rounded-xl text-theme-primary shrink-0">
+                <Sparkles size={18} className="text-theme-primary animate-pulse" />
+              </div>
+              <div className="space-y-0.5 text-left">
+                <h3 className="text-sm font-black text-white uppercase tracking-tight flex flex-wrap items-center gap-2">
+                  Robô de Tele-Alerta de Faltas do Piruá
+                  {autoSendNextDay ? (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 border border-green-500/30 text-green-400 text-[8px] font-black uppercase rounded animate-pulse">
+                      ● Automático Ativo
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 bg-zinc-850 border border-zinc-800 text-zinc-400 text-[8px] font-black uppercase rounded">
+                      Manual via WhatsApp
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[10px] text-zinc-400 uppercase leading-normal">
+                  Configure e envie notificações de ausências não justificadas após os treinos do seu clube.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAbsenceConfig(!showAbsenceConfig)}
+              className="px-3.5 py-1.5 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 font-bold text-[9px] uppercase rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Settings size={12} className={cn(showAbsenceConfig && "rotate-45 transition-transform duration-200")} />
+              {showAbsenceConfig ? 'Fechar Opções' : 'Configurar Modelos & Regras'}
+            </button>
+          </div>
+
+          {showAbsenceConfig && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-4 pt-1 pb-2 border-b border-zinc-800/60 overflow-hidden"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-black text-green-400 tracking-wider uppercase block">
+                    Modelo 1: Mensagem para os Pais (Responsáveis)
+                  </span>
+                  <textarea
+                    rows={3}
+                    className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-normal"
+                    value={absenceTemplateParent}
+                    onChange={(e) => setAbsenceTemplateParent(e.target.value)}
+                    placeholder="Olá, {NOME_RESPONSAVEL}..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-black text-theme-primary tracking-wider uppercase block">
+                    Modelo 2: Mensagem Direta para o Aluno
+                  </span>
+                  <textarea
+                    rows={3}
+                    className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-theme-primary leading-normal"
+                    value={absenceTemplateAthlete}
+                    onChange={(e) => setAbsenceTemplateAthlete(e.target.value)}
+                    placeholder="Fala, {NOME_ATLETA}..."
+                  />
+                </div>
+              </div>
+
+              <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase font-bold text-zinc-400">
+                  <span className="text-zinc-500 font-black">Tags Dinâmicas Disponíveis:</span>
+                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_ATLETA}`}</span>
+                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{NOME_RESPONSAVEL}`}</span>
+                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{DATA_TREINO}`}</span>
+                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{CATEGORIA}`}</span>
+                  <span className="text-zinc-200 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded font-mono">{`{HORARIO_TREINO}`}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-950/40 p-3 rounded-xl border border-zinc-850 text-left">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="auto_send_next"
+                    className="rounded text-theme-primary focus:ring-theme-primary/50 w-4 h-4 bg-black border border-zinc-800 cursor-pointer"
+                    checked={autoSendNextDay}
+                    onChange={(e) => setAutoSendNextDay(e.target.checked)}
+                  />
+                  <div className="flex flex-col leading-tight cursor-pointer" onClick={() => setAutoSendNextDay(!autoSendNextDay)}>
+                    <label htmlFor="auto_send_next" className="text-[10px] font-black text-white uppercase cursor-pointer">
+                      Agendar Envio pós-Treino
+                    </label>
+                    <span className="text-[9px] text-zinc-500 font-semibold uppercase">Dispara no dia seguinte às 09:00</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Destinatário Preferencial por Padrão:</span>
+                  <div className="flex gap-2">
+                    {(['parent', 'athlete', 'both'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setAbsenceTarget(t)}
+                        className={cn(
+                          "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-tight cursor-pointer",
+                          absenceTarget === t 
+                            ? "bg-theme-primary text-black font-black" 
+                            : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white"
+                        )}
+                      >
+                        {t === 'parent' ? 'Apenas os Pais' : t === 'athlete' ? 'Apenas Aluno' : 'Ambos'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowAbsenceConfig(false)}
+                  className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold text-[10px] uppercase rounded-xl hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={saveAbsenceConfig}
+                  className="px-4 py-2 bg-theme-primary text-black font-black text-[10px] uppercase rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-theme-primary/20 cursor-pointer"
+                >
+                  Confirmar & Gravar Regras
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-left">
+            <div className="md:col-span-7 bg-zinc-950/60 p-4 border border-zinc-850 rounded-xl space-y-3">
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", autoSendNextDay ? "bg-green-500 animate-pulse" : "bg-amber-500")} />
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                  {autoSendNextDay ? 'Coprodutor de Presença Ativo 📡' : 'Disparo em Lote Semiautomático'}
+                </span>
+              </div>
+              <p className="text-[10px] leading-relaxed text-zinc-300 font-semibold uppercase">
+                {autoSendNextDay 
+                  ? `AUTOMAÇÃO ATIVA: O robô de presença do Piruá está ativo! Quando esta chamada for encerrada, o sistema aguardará até o dia seguinte às 09:00 e preparará automaticamente os alertas para todos os ${stats.absent} atletas ausentes que faltarem sem justificativa.` 
+                  : "DICA: Ative o Agendamento pós-Treino acima para que o robô virtual prepare automaticamente todos os avisos de falta no dia seguinte, ou utilize os botões rápidos de disparo em lote ao lado."}
+              </p>
+              
+              {autoSendNextDay && (
+                <div className="p-2.5 bg-green-500/10 border border-green-500/15 rounded-lg text-green-400 text-[9px] font-bold uppercase leading-normal">
+                  🚀 AGENDADO: Disparo automático programado para amanhã às 09:00 para os alunos sem justificativa.
+                </div>
+              )}
+            </div>
+
+            <div className="md:col-span-5 bg-zinc-950/40 p-4 border border-zinc-850 rounded-xl flex flex-col justify-between gap-3">
+              <div>
+                <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase block">
+                  Ações Rápidas de Faltas
+                </span>
+                <span className="text-base font-black text-white block mt-0.5">
+                  {stats.absent} Ausente(s) Sem Justificativa
+                </span>
+              </div>
+
+              {stats.absent > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const unexcusedAthletes = filteredAthletes.filter(a => {
+                      const records = attendance[a.id] || [];
+                      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                      const att = records.find(r => 
+                        (activeTrainingId && r.training_id === activeTrainingId) ||
+                        (eventId && r.event_id === eventId) ||
+                        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                      );
+                      return att?.status === 'Faltou' && !att?.justification;
+                    });
+
+                    if (unexcusedAthletes.length === 0) {
+                      toast.info("Todos os ausentes já possuem justificativa de falta cadastrada!");
+                      return;
+                    }
+
+                    const loadingAbsenceToast = toast.loading(`Iniciando disparos em lote para ${unexcusedAthletes.length} atletas...`);
+                    
+                    let indexCount = 0;
+                    const triggerNext = () => {
+                      if (indexCount < unexcusedAthletes.length) {
+                        const athlete = unexcusedAthletes[indexCount];
+                        const tempTarget = absenceTarget === 'both' ? 'parent' : absenceTarget;
+                        const phone = tempTarget === 'parent' ? athlete.guardian_phone : athlete.contact;
+                        
+                        if (phone && phone.replace(/\D/g, '').trim() !== '') {
+                          const textMsg = formatAbsenceMessage(athlete, tempTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete);
+                          const cleanPhone = phone.replace(/\D/g, '');
+                          window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`, '_blank');
+                        }
+                        
+                        indexCount++;
+                        setTimeout(triggerNext, 1200);
+                      } else {
+                        toast.success("Disparos em lote gerados!", { id: loadingAbsenceToast });
+                      }
+                    };
+
+                    triggerNext();
+                  }}
+                  className="w-full py-2.5 bg-red-500 hover:bg-red-400 text-black font-black text-[10px] uppercase rounded-xl tracking-wider hover:scale-102 active:scale-98 transition-all shadow-lg shadow-red-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Send size={12} />
+                  Disparar Alertas Coletivos Agora
+                </button>
+              ) : (
+                <div className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-center font-bold text-[9px] uppercase rounded-xl select-none">
+                  Sem Ausências para Notificar Hoje 🎉
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
@@ -1283,6 +1578,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
                 <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
+                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tele-Alerta</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
@@ -1445,6 +1741,39 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                         />
                       )}
                     </td>
+                    <td className="px-6 py-4">
+                      {att?.status === 'Faltou' && (
+                        <div className="flex items-center gap-1.5 justify-start text-left">
+                          {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                              title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
+                              className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                            >
+                              <MessageSquare size={12} />
+                              <span>Responsáveis</span>
+                            </button>
+                          ) : (
+                            <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
+                          )}
+                          
+                          {athlete.contact && athlete.contact.trim() !== '' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                              title="Notificar Atleta diretamente via WhatsApp"
+                              className="px-2.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                            >
+                              <Smartphone size={12} />
+                              <span>Aluno</span>
+                            </button>
+                          ) : (
+                            <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -1571,7 +1900,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 </div>
 
                 {att?.status === 'Faltou' && (
-                  <div className="pt-1">
+                  <div className="pt-1 space-y-2.5">
                     <input 
                       type="text" 
                       disabled={isAthleteLocked(athlete)}
@@ -1583,6 +1912,43 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       value={att.justification || ''}
                       onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
                     />
+                    
+                    <div className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl space-y-1.5">
+                      <span className="text-[8.5px] font-black text-zinc-500 uppercase tracking-wider block text-left">
+                        Tele-Alerta de Falta (WhatsApp):
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                            className="flex items-center justify-center gap-1.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                          >
+                            <MessageSquare size={12} />
+                            <span>Pais</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
+                            Sem Tel. Pais
+                          </div>
+                        )}
+
+                        {athlete.contact && athlete.contact.trim() !== '' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                            className="flex items-center justify-center gap-1.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                          >
+                            <Smartphone size={12} />
+                            <span>Aluno</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-600 font-bold uppercase italic select-none">
+                            Sem Tel. Aluno
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
