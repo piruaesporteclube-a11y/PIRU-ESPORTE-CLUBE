@@ -1264,6 +1264,31 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         )}
       </AnimatePresence>
 
+      {/* BANNER DE DIRECIONAMENTO DO TELE-ALERTA DE FALTAS */}
+      <div className="bg-zinc-950 border border-red-500/30 rounded-2xl p-4.5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl shrink-0">
+            <Sparkles size={18} className="animate-pulse text-red-400" />
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-black text-red-400 uppercase tracking-tight flex items-center gap-2">
+              📢 ALERTA AUTOMÁTICO DE FALTAS ATIVO!
+            </h4>
+            <p className="text-[10.5px] text-zinc-300 font-semibold uppercase leading-normal">
+              Existem <span className="text-white font-black">{stats.absent} atletas ausentes</span> sem justificativa registrada. O modelo do texto que é enviado para os Pais ou Alunos e os botões de disparo de WhatsApp ficam na aba vermelha <strong className="text-red-400 uppercase font-black">"FALTAS / AUSENTES"</strong> abaixo!
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTabFilter('absent')}
+          className="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-black text-[10px] uppercase rounded-xl tracking-wider transition-all hover:scale-103 active:scale-97 cursor-pointer flex items-center gap-1.5 shadow-lg shadow-red-500/10"
+        >
+          <Send size={11} />
+          <span>Ver e Enviar Alertas ➔</span>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="relative md:col-span-2 lg:col-span-1 border-2 border-theme-primary/30 rounded-xl overflow-hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
@@ -1299,10 +1324,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             onClick={() => setTabFilter('absent')}
             className={cn(
               "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-              tabFilter === 'absent' ? "bg-red-500 text-white" : "text-zinc-500 hover:text-white"
+              tabFilter === 'absent' ? "bg-red-500 text-white animate-pulse" : "border border-red-500/10 text-red-500 hover:text-red-400"
             )}
           >
-            Ausentes ({stats.absent})
+            🚫 FALTAS / AUSENTES ({stats.absent})
           </button>
           <button 
             onClick={() => setTabFilter('observation')}
