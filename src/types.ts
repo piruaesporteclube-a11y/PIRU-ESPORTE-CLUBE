@@ -79,6 +79,8 @@ export type Attendance = {
   status: "Presente" | "Faltou";
   justification?: string;
   arrival_time?: string;
+  parent_notified?: boolean;
+  athlete_notified?: boolean;
   created_at?: any;
   updated_at?: any;
 };

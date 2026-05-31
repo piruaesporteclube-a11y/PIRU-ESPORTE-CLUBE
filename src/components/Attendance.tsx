@@ -49,6 +49,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [longTermAbsents, setLongTermAbsents] = useState<{ athlete: Athlete, lastPresentDate: string | null, daysAbsent: number }[]>([]);
   const [loadingLongTerm, setLoadingLongTerm] = useState(false);
 
+  // Batch Sending Queue States
+  const [batchQueue, setBatchQueue] = useState<{ athlete: Athlete, target: 'parent' | 'athlete', phone: string, message: string }[]>([]);
+  const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(0);
+  const [isBatchSending, setIsBatchSending] = useState<boolean>(false);
+
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
@@ -190,7 +195,60 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
     
     window.open(url, '_blank');
-    toast.success(`Alerta de resgate gerado para ${nameLabel}! Direcionando para o WhatsApp...`);
+    
+    // Mark as notified in state and firestore
+    const records = attendance[athlete.id] || [];
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    const att = records.find(r => 
+      (activeTrainingId && r.training_id === activeTrainingId) ||
+      (eventId && r.event_id === eventId) ||
+      (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+    );
+
+    if (att) {
+      const updatedAtt: AttendanceRecord = {
+        ...att,
+        parent_notified: isParent ? true : (att.parent_notified || false),
+        athlete_notified: !isParent ? true : (att.athlete_notified || false)
+      };
+
+      const updatedRecords = records.map(r => r.id === att.id ? updatedAtt : r);
+      setAttendance(prev => ({
+        ...prev,
+        [athlete.id]: updatedRecords
+      }));
+
+      api.saveAttendance(updatedAtt).catch(err => {
+        console.error("Erro ao salvar notificação no banco de dados", err);
+      });
+    } else {
+      let attendanceId = `${athlete.id}_${date}`;
+      if (activeTrainingId) attendanceId = `${athlete.id}_training_${activeTrainingId}`;
+      if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
+
+      const newRecord: AttendanceRecord = {
+        id: attendanceId,
+        athlete_id: athlete.id,
+        training_id: activeTrainingId,
+        event_id: eventId,
+        date,
+        status: 'Faltou',
+        parent_notified: isParent,
+        athlete_notified: !isParent,
+        arrival_time: format(new Date(), 'HH:mm')
+      };
+
+      setAttendance(prev => ({
+        ...prev,
+        [athlete.id]: [...records, newRecord]
+      }));
+
+      api.saveAttendance(newRecord).catch(err => {
+        console.error("Erro ao salvar nova notificação no banco de dados", err);
+      });
+    }
+    
+    toast.success(`Alerta gerado para ${nameLabel}! Direcionando para o WhatsApp e salvo no sistema.`);
   };
 
   const saveAbsenceConfig = () => {
@@ -1760,29 +1818,52 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           return;
                         }
 
-                        const loadingAbsenceToast = toast.loading(`Iniciando disparos em lote para ${unexcusedAthletes.length} atletas...`);
+                        // Build batch queue tasks
+                        const queue: { athlete: Athlete, target: 'parent' | 'athlete', phone: string, message: string }[] = [];
                         
-                        let indexCount = 0;
-                        const triggerNext = () => {
-                          if (indexCount < unexcusedAthletes.length) {
-                            const athlete = unexcusedAthletes[indexCount];
-                            const tempTarget = absenceTarget === 'both' ? 'parent' : absenceTarget;
-                            const phone = tempTarget === 'parent' ? athlete.guardian_phone : athlete.contact;
-                            
-                            if (phone && phone.replace(/\D/g, '').trim() !== '') {
-                              const textMsg = formatAbsenceMessage(athlete, tempTarget === 'parent' ? absenceTemplateParent : absenceTemplateAthlete);
-                              const cleanPhone = phone.replace(/\D/g, '');
-                              window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(textMsg)}`, '_blank');
-                            }
-                            
-                            indexCount++;
-                            setTimeout(triggerNext, 1200);
-                          } else {
-                            toast.success("Disparos em lote gerados!", { id: loadingAbsenceToast });
-                          }
-                        };
+                        unexcusedAthletes.forEach(athlete => {
+                          const records = attendance[athlete.id] || [];
+                          const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                          const att = records.find(r => 
+                            (activeTrainingId && r.training_id === activeTrainingId) ||
+                            (eventId && r.event_id === eventId) ||
+                            (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                          );
 
-                        triggerNext();
+                          const targets: ('parent' | 'athlete')[] = [];
+                          if (absenceTarget === 'both') {
+                            targets.push('parent', 'athlete');
+                          } else {
+                            targets.push(absenceTarget);
+                          }
+
+                          targets.forEach(t => {
+                            const isParent = t === 'parent';
+                            const alreadySent = isParent ? att?.parent_notified : att?.athlete_notified;
+                            if (!alreadySent) {
+                              const phone = isParent ? athlete.guardian_phone : athlete.contact;
+                              if (phone && phone.replace(/\D/g, '').trim() !== '') {
+                                const message = formatAbsenceMessage(athlete, isParent ? absenceTemplateParent : absenceTemplateAthlete);
+                                queue.push({
+                                  athlete,
+                                  target: t,
+                                  phone,
+                                  message
+                                });
+                              }
+                            }
+                          });
+                        });
+
+                        if (queue.length === 0) {
+                          toast.info("Todos os alertas em lote selecionados já foram marcados como enviados!");
+                          return;
+                        }
+
+                        setBatchQueue(queue);
+                        setCurrentQueueIndex(0);
+                        setIsBatchSending(true);
+                        toast.success(`Fila de disparos em lote iniciada: ${queue.length} mensagens pendentes.`);
                       }}
                       className="w-full py-2.5 bg-red-500 hover:bg-red-400 text-black font-black text-[10px] uppercase rounded-xl tracking-wider hover:scale-102 active:scale-98 transition-all shadow-lg shadow-red-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
@@ -2223,10 +2304,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                 type="button"
                                 onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
                                 title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
-                                className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                                className={cn(
+                                  "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
+                                  att?.parent_notified
+                                    ? "bg-green-500 text-black border border-green-500 hover:opacity-95"
+                                    : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
+                                )}
                               >
-                                <MessageSquare size={12} />
-                                <span>Responsáveis</span>
+                                {att?.parent_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <MessageSquare size={12} />}
+                                <span>Responsáveis{att?.parent_notified ? ' ✓' : ''}</span>
                               </button>
                             ) : (
                               <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
@@ -2237,10 +2323,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                 type="button"
                                 onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
                                 title="Notificar Atleta diretamente via WhatsApp"
-                                className="px-2.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in"
+                                className={cn(
+                                  "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
+                                  att?.athlete_notified
+                                    ? "bg-theme-primary text-black border border-theme-primary hover:opacity-95"
+                                    : "bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20"
+                                )}
                               >
-                                <Smartphone size={12} />
-                                <span>Aluno</span>
+                                {att?.athlete_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <Smartphone size={12} />}
+                                <span>Aluno{att?.athlete_notified ? ' ✓' : ''}</span>
                               </button>
                             ) : (
                               <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
@@ -2478,10 +2569,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             <button
                               type="button"
                               onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
-                              className="flex items-center justify-center gap-1.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                              className={cn(
+                                "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer",
+                                att?.parent_notified
+                                  ? "bg-green-500 text-black border border-green-500"
+                                  : "bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400"
+                              )}
                             >
-                              <MessageSquare size={12} />
-                              <span>Pais</span>
+                              {att?.parent_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <MessageSquare size={12} />}
+                              <span>Pais{att?.parent_notified ? ' ✓' : ''}</span>
                             </button>
                           ) : (
                             <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-650 font-bold uppercase italic select-none">
@@ -2493,10 +2589,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             <button
                               type="button"
                               onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
-                              className="flex items-center justify-center gap-1.5 py-1.5 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                              className={cn(
+                                "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer",
+                                att?.athlete_notified
+                                  ? "bg-theme-primary text-black border border-theme-primary"
+                                  : "bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/20 text-theme-primary"
+                              )}
                             >
-                              <Smartphone size={12} />
-                              <span>Aluno</span>
+                              {att?.athlete_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <Smartphone size={12} />}
+                              <span>Aluno{att?.athlete_notified ? ' ✓' : ''}</span>
                             </button>
                           ) : (
                             <div className="flex items-center justify-center py-1.5 bg-zinc-900 border border-zinc-850 rounded-lg text-[8px] text-zinc-650 font-bold uppercase italic select-none">
@@ -2675,6 +2776,246 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+       )}
+
+      {/* WIZARD DE DISPARO DE MENSAGENS EM LOTE */}
+      {isBatchSending && batchQueue.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in no-print">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl shadow-red-500/5 animate-scale-up text-left">
+            
+            {/* Header */}
+            <div className="bg-zinc-900/80 px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Disparo Automático de Falta em Lote
+                  </h3>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase block mt-0.5">
+                    Processador de Alertas do Piruá
+                  </span>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsBatchSending(false);
+                  setBatchQueue([]);
+                }}
+                className="p-1.5 bg-zinc-805 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="bg-zinc-900 border-b border-zinc-850 px-6 py-3">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-400 mb-1.5">
+                <span>Progresso da Fila</span>
+                <span className="font-mono text-white text-xs">
+                  {currentQueueIndex + 1} de {batchQueue.length} ({Math.round(((currentQueueIndex) / batchQueue.length) * 100)}%)
+                </span>
+              </div>
+              <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-red-500 h-full transition-all duration-300" 
+                  style={{ width: `${((currentQueueIndex) / batchQueue.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Body Info */}
+            {(() => {
+              const currentTask = batchQueue[currentQueueIndex];
+              if (!currentTask) return null;
+              const { athlete, target, phone, message } = currentTask;
+              const isParent = target === 'parent';
+              
+              return (
+                <div className="p-6 space-y-4">
+                  {/* Athlete Card */}
+                  <div className="bg-zinc-900/40 border border-zinc-850 p-4 rounded-2xl flex items-center gap-4">
+                    <div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 shrink-0 border border-zinc-800">
+                      {athlete.photo && athlete.photo.trim() !== "" ? (
+                        <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <User size={24} />
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-white leading-tight uppercase">
+                        {athlete.name}
+                        {athlete.nickname && <span className="ml-1 text-zinc-500 text-xs font-normal">({athlete.nickname})</span>}
+                      </h4>
+                      <p className="text-[10px] font-black text-theme-primary uppercase mt-0.5 tracking-wide">
+                        {isParent ? `Enviar para Responsável: ${athlete.guardian_name || 'Pais'}` : 'Enviar para o Aluno'}
+                      </p>
+                      <p className="text-[10px] font-bold text-zinc-400 font-mono mt-1">
+                        📞 Telefone: {phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Message Preview */}
+                  <div className="space-y-1 text-left">
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block font-bold">
+                      Falta - Pré-visualização da Mensagem:
+                    </span>
+                    <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-850 text-xs text-zinc-300 font-medium font-sans whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                      {message}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Skip
+                        if (currentQueueIndex + 1 < batchQueue.length) {
+                          setCurrentQueueIndex(prev => prev + 1);
+                        } else {
+                          toast.success("Fila de disparos concluída!");
+                          setIsBatchSending(false);
+                          setBatchQueue([]);
+                        }
+                      }}
+                      className="py-2.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white font-black text-[10px] uppercase rounded-xl tracking-wider transition-all cursor-pointer text-center"
+                    >
+                      Pular Atleta
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // Mark as sent without opening WhatsApp
+                        const records = attendance[athlete.id] || [];
+                        const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                        const att = records.find(r => 
+                          (activeTrainingId && r.training_id === activeTrainingId) ||
+                          (eventId && r.event_id === eventId) ||
+                          (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                        );
+
+                        if (att) {
+                          const updatedAtt: AttendanceRecord = {
+                            ...att,
+                            parent_notified: isParent ? true : (att.parent_notified || false),
+                            athlete_notified: !isParent ? true : (att.athlete_notified || false)
+                          };
+                          
+                          const updatedRecords = records.map(r => r.id === att.id ? updatedAtt : r);
+                          setAttendance(prev => ({ ...prev, [athlete.id]: updatedRecords }));
+                          await api.saveAttendance(updatedAtt);
+                        } else {
+                          let attendanceId = `${athlete.id}_${date}`;
+                          if (activeTrainingId) attendanceId = `${athlete.id}_training_${activeTrainingId}`;
+                          if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
+
+                          const newRecord: AttendanceRecord = {
+                            id: attendanceId,
+                            athlete_id: athlete.id,
+                            training_id: activeTrainingId,
+                            event_id: eventId,
+                            date,
+                            status: 'Faltou',
+                            parent_notified: isParent,
+                            athlete_notified: !isParent,
+                            arrival_time: format(new Date(), 'HH:mm')
+                          };
+
+                          setAttendance(prev => ({ ...prev, [athlete.id]: [...records, newRecord] }));
+                          await api.saveAttendance(newRecord);
+                        }
+
+                        toast.success("Marcado como enviado!");
+
+                        if (currentQueueIndex + 1 < batchQueue.length) {
+                          setCurrentQueueIndex(prev => prev + 1);
+                        } else {
+                          toast.success("Fila de disparos concluída!");
+                          setIsBatchSending(false);
+                          setBatchQueue([]);
+                        }
+                      }}
+                      className="py-2.5 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 font-black text-[10px] uppercase rounded-xl tracking-wider transition-all cursor-pointer text-center border border-zinc-750"
+                    >
+                      ✓ Confirmar sem Enviar
+                    </button>
+                  </div>
+
+                  {/* Main Send and Next Button */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const cleanPhone = phone.replace(/\D/g, '');
+                      window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+
+                      // Mark as sent in state & database
+                      const records = attendance[athlete.id] || [];
+                      const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                      const att = records.find(r => 
+                        (activeTrainingId && r.training_id === activeTrainingId) ||
+                        (eventId && r.event_id === eventId) ||
+                        (!activeTrainingId && !eventId && !r.training_id && !r.event_id)
+                      );
+
+                      if (att) {
+                        const updatedAtt: AttendanceRecord = {
+                          ...att,
+                          parent_notified: isParent ? true : (att.parent_notified || false),
+                          athlete_notified: !isParent ? true : (att.athlete_notified || false)
+                        };
+                        
+                        const updatedRecords = records.map(r => r.id === att.id ? updatedAtt : r);
+                        setAttendance(prev => ({ ...prev, [athlete.id]: updatedRecords }));
+                        await api.saveAttendance(updatedAtt).catch(err => {
+                          console.error("Erro ao salvar no banco", err);
+                        });
+                      } else {
+                        let attendanceId = `${athlete.id}_${date}`;
+                        if (activeTrainingId) attendanceId = `${athlete.id}_training_${activeTrainingId}`;
+                        if (eventId) attendanceId = `${athlete.id}_event_${eventId}`;
+
+                        const newRecord: AttendanceRecord = {
+                          id: attendanceId,
+                          athlete_id: athlete.id,
+                          training_id: activeTrainingId,
+                          event_id: eventId,
+                          date,
+                          status: 'Faltou',
+                          parent_notified: isParent,
+                          athlete_notified: !isParent,
+                          arrival_time: format(new Date(), 'HH:mm')
+                        };
+
+                        setAttendance(prev => ({ ...prev, [athlete.id]: [...records, newRecord] }));
+                        await api.saveAttendance(newRecord).catch(err => {
+                          console.error("Erro ao salvar no banco", err);
+                        });
+                      }
+
+                      toast.success(`Alerta enviado para ${athlete.name}!`);
+
+                      if (currentQueueIndex + 1 < batchQueue.length) {
+                        setCurrentQueueIndex(prev => prev + 1);
+                      } else {
+                        toast.success("Fila de disparos concluída!");
+                        setIsBatchSending(false);
+                        setBatchQueue([]);
+                      }
+                    }}
+                    className="w-full py-3.5 bg-green-500 hover:bg-green-400 text-black font-black text-xs uppercase rounded-xl tracking-widest hover:scale-102 active:scale-98 transition-all shadow-lg shadow-green-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Send size={14} />
+                    Enviar WhatsApp e Próximo Aluno
+                  </button>
+                </div>
+              );
+            })()}
+
           </div>
         </div>
       )}
