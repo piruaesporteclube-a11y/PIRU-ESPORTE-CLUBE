@@ -55,8 +55,8 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
     }
   };
 
-  const ringColor = loginType === 'student' ? 'focus:ring-theme-primary/50 focus:border-theme-primary' : 'focus:ring-emerald-500/50 focus:border-emerald-500';
-  const iconFocusColor = loginType === 'student' ? 'group-focus-within:text-theme-primary' : 'group-focus-within:text-emerald-400';
+  const ringColor = loginType === 'student' ? 'focus:ring-theme-primary/50 focus:border-theme-primary' : 'focus:ring-yellow-500/50 focus:border-yellow-500';
+  const iconFocusColor = loginType === 'student' ? 'group-focus-within:text-theme-primary' : 'group-focus-within:text-theme-primary';
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -64,11 +64,11 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={cn(
           "absolute top-[-10%] left-[-10%] w-[40%] h-[40%] blur-[120px] rounded-full transition-all duration-700",
-          loginType === 'student' ? 'bg-theme-primary/10' : 'bg-emerald-500/10'
+          loginType === 'student' ? 'bg-theme-primary/10' : 'bg-yellow-500/10'
         )} />
         <div className={cn(
           "absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] blur-[120px] rounded-full transition-all duration-700",
-          loginType === 'student' ? 'bg-theme-primary/5' : 'bg-emerald-500/5'
+          loginType === 'student' ? 'bg-theme-primary/5' : 'bg-yellow-500/5'
         )} />
       </div>
 
@@ -76,12 +76,14 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
         <div className="text-center mb-10">
           <div className={cn(
             "inline-flex items-center justify-center p-4 bg-black border rounded-3xl mb-6 shadow-2xl transition-all duration-500",
-            loginType === 'student' ? 'border-theme-primary/30 shadow-theme-primary/5' : 'border-emerald-500/30 shadow-emerald-500/5'
+            loginType === 'student' 
+              ? 'border-theme-primary/30 shadow-theme-primary/5' 
+              : 'border-l-2 border-r-2 border-t border-b border-l-theme-primary border-r-theme-primary border-t-zinc-800 border-b-zinc-800 shadow-yellow-500/10'
           )}>
             {settings?.schoolCrest ? (
               <img src={settings.schoolCrest} className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
             ) : (
-              <Trophy size={48} className={loginType === 'student' ? 'text-theme-primary' : 'text-emerald-400'} />
+              <Trophy size={48} className={loginType === 'student' ? 'text-theme-primary' : 'text-theme-primary'} />
             )}
           </div>
           <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">Piruá E.C.</h1>
@@ -90,7 +92,9 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
 
         <div className={cn(
           "bg-black backdrop-blur-xl border p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500",
-          loginType === 'student' ? 'border-theme-primary/20' : 'border-emerald-500/20'
+          loginType === 'student' 
+            ? 'border-theme-primary/20 shadow-theme-primary/5' 
+            : 'border-l-2 border-r-2 border-t border-b border-l-theme-primary border-r-theme-primary border-t-zinc-800 border-b-zinc-800 shadow-[0_0_20px_rgba(234,179,8,0.07)]'
         )}>
           {/* Custom Tabs with Life and Color */}
           <div className="grid grid-cols-2 p-1 bg-zinc-900/60 rounded-2xl mb-8 border border-zinc-800/80">
@@ -113,7 +117,7 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
               className={cn(
                 "py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2",
                 loginType === 'admin' 
-                  ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/25 font-black scale-[1.02]" 
+                  ? "bg-zinc-950 border border-theme-primary text-theme-primary shadow-lg shadow-theme-primary/10 font-black scale-[1.02]" 
                   : "text-zinc-400 hover:text-white"
               )}
             >
@@ -194,7 +198,7 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
                 "w-full py-4 font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 group disabled:opacity-50",
                 loginType === 'student' 
                   ? "bg-theme-primary text-black hover:opacity-90 shadow-theme-primary/20" 
-                  : "bg-emerald-500 text-black hover:bg-emerald-400 shadow-emerald-500/20"
+                  : "bg-zinc-950 border-2 border-theme-primary hover:bg-theme-primary hover:text-black text-theme-primary shadow-theme-primary/10"
               )}
             >
               {loading ? 'Entrando...' : (
@@ -249,9 +253,9 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
                       window.location.href = '/?professor_registration=true';
                     }
                   }}
-                  className="w-full py-4 bg-zinc-805/40 border border-zinc-800 hover:border-emerald-500/30 bg-zinc-900/50 hover:bg-zinc-900 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-4 bg-zinc-805/40 border border-zinc-800 hover:border-theme-primary/30 bg-zinc-900/50 hover:bg-zinc-900 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group"
                 >
-                  <UserPlus size={20} className="text-emerald-400" />
+                  <UserPlus size={20} className="text-theme-primary" />
                   Pré-cadastro de Comissão Técnica
                 </button>
               </div>
