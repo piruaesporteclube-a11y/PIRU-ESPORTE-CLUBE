@@ -48,6 +48,73 @@ import { format } from 'date-fns';
 import { navItems } from './navigation';
 import { cn } from './utils';
 
+const getCardColorClasses = (colorClass: string | undefined, isSelected: boolean) => {
+  const c = colorClass || '';
+  const isRed = c.includes('red');
+  const isGreen = c.includes('green');
+  const isBlue = c.includes('blue');
+  const isPink = c.includes('pink');
+  const isIndigo = c.includes('indigo');
+  const isPurple = c.includes('purple');
+  const isAmber = c.includes('amber');
+
+  const cursorClass = isSelected ? 'cursor-default' : 'cursor-pointer';
+
+  if (isSelected) {
+    if (isRed) return `bg-zinc-900 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.15)] ring-1 ring-red-500/30 scale-[1.02] ${cursorClass}`;
+    if (isGreen) return `bg-zinc-900 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.15)] ring-1 ring-green-500/30 scale-[1.02] ${cursorClass}`;
+    if (isBlue) return `bg-zinc-900 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30 scale-[1.02] ${cursorClass}`;
+    if (isPink) return `bg-zinc-900 border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.15)] ring-1 ring-pink-500/30 scale-[1.02] ${cursorClass}`;
+    if (isIndigo) return `bg-zinc-900 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/30 scale-[1.02] ${cursorClass}`;
+    if (isPurple) return `bg-zinc-900 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/30 scale-[1.02] ${cursorClass}`;
+    if (isAmber) return `bg-zinc-900 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30 scale-[1.02] ${cursorClass}`;
+    return `bg-zinc-900 border-theme-primary shadow-[0_0_20px_rgba(251,191,36,0.2)] ring-1 ring-theme-primary/30 scale-[1.02] ${cursorClass}`;
+  }
+
+  // Hover states matching
+  if (isRed) return `bg-zinc-950/60 border-zinc-800/80 hover:border-red-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(239,68,68,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isGreen) return `bg-zinc-950/60 border-zinc-800/80 hover:border-green-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(34,197,94,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isBlue) return `bg-zinc-950/60 border-zinc-800/80 hover:border-blue-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(59,130,246,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isPink) return `bg-zinc-950/60 border-zinc-800/80 hover:border-pink-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(236,72,153,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isIndigo) return `bg-zinc-950/60 border-zinc-800/80 hover:border-indigo-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(99,102,241,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isPurple) return `bg-zinc-950/60 border-zinc-800/80 hover:border-purple-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(168,85,247,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isAmber) return `bg-zinc-950/60 border-zinc-800/80 hover:border-amber-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(245,158,11,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  
+  return `bg-zinc-950/60 border-zinc-800/80 hover:border-theme-primary/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(251,191,36,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+};
+
+const getIconBgClass = (colorClass: string | undefined, isSelected: boolean) => {
+  const c = colorClass || '';
+  const isRed = c.includes('red');
+  const isGreen = c.includes('green');
+  const isBlue = c.includes('blue');
+  const isPink = c.includes('pink');
+  const isIndigo = c.includes('indigo');
+  const isPurple = c.includes('purple');
+  const isAmber = c.includes('amber');
+
+  if (isSelected) {
+    if (isRed) return 'bg-red-500 text-black shadow-md shadow-red-500/20';
+    if (isGreen) return 'bg-green-500 text-black shadow-md shadow-green-500/20';
+    if (isBlue) return 'bg-blue-500 text-black shadow-md shadow-blue-500/20';
+    if (isPink) return 'bg-pink-500 text-black shadow-md shadow-pink-500/20';
+    if (isIndigo) return 'bg-indigo-500 text-black shadow-md shadow-indigo-500/20';
+    if (isPurple) return 'bg-purple-500 text-black shadow-md shadow-purple-500/20';
+    if (isAmber) return 'bg-amber-500 text-black shadow-md shadow-amber-500/20';
+    return 'bg-theme-primary text-black shadow-md shadow-theme-primary/20';
+  }
+
+  if (isRed) return 'bg-red-500/10 text-red-500 group-hover:bg-red-500 group-hover:text-black';
+  if (isGreen) return 'bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-black';
+  if (isBlue) return 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-black';
+  if (isPink) return 'bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-black';
+  if (isIndigo) return 'bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-black';
+  if (isPurple) return 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500 group-hover:text-black';
+  if (isAmber) return 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-black';
+
+  return 'bg-theme-primary/10 text-theme-primary group-hover:bg-theme-primary group-hover:text-black';
+};
+
 const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
   stats: any, 
   athletes: Athlete[], 
@@ -219,14 +286,23 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                     href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+                    className={cn(
+                      "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                      getCardColorClasses('text-pink-500', false)
+                    )}
                   >
-                    <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
-                      <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                    <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                      <Instagram size={110} />
+                    </div>
+                    <div className={cn(
+                      "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                      getIconBgClass('text-pink-500', false)
+                    )}>
+                      <Instagram className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                     </div>
                     <div className="space-y-1">
                       <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
-                      <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Siga @piruaec</p>
+                      <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#a1a1aa] opacity-60 group-hover:opacity-100 transition-opacity">Siga @piruaec</p>
                     </div>
                   </a>
                 );
@@ -238,14 +314,23 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                     href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-[2rem] transition-all group text-center gap-3 relative overflow-hidden"
+                    className={cn(
+                      "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                      getCardColorClasses('text-green-500', false)
+                    )}
                   >
-                    <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
-                      <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                    <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                      <MessageCircle size={110} />
+                    </div>
+                    <div className={cn(
+                      "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                      getIconBgClass('text-green-500', false)
+                    )}>
+                      <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                     </div>
                     <div className="space-y-1">
                       <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
-                      <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase">Fale Conosco</p>
+                      <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#a1a1aa] opacity-60 group-hover:opacity-100 transition-opacity">Fale Conosco</p>
                     </div>
                   </a>
                 );
@@ -261,21 +346,60 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   <h3 className="text-2xl font-black text-white uppercase tracking-tighter">{cat.label}</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                  {items.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
-                    >
-                      <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
-                        <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
-                        {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
-                      </div>
-                    </button>
-                  ))}
+                  {items.map((item) => {
+                    const isSelected = activeTab === item.id;
+                    const itemColor = item.color || 'text-theme-primary';
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                          getCardColorClasses(itemColor, isSelected)
+                        )}
+                      >
+                        {/* Ghost background icon */}
+                        <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                          <item.icon size={110} />
+                        </div>
+                        
+                        {/* Selected Indicator Dot */}
+                        {isSelected && (
+                          <div className={cn(
+                            "absolute top-3.5 right-3.5 w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
+                            itemColor
+                          )} />
+                        )}
+
+                        <div className={cn(
+                          "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                          getIconBgClass(itemColor, isSelected)
+                        )}>
+                          <item.icon className={cn(
+                            "w-7 h-7 sm:w-8 sm:h-8 transition-transform",
+                            isSelected ? "scale-110" : "group-hover:scale-110"
+                          )} />
+                        </div>
+                        <div className="space-y-1">
+                          <span className={cn(
+                            "text-base sm:text-lg font-black tracking-tight block leading-tight transition-colors duration-300",
+                            isSelected ? (itemColor.includes('theme-primary') ? 'text-theme-primary' : itemColor) : "text-white"
+                          )}>
+                            {item.label}
+                          </span>
+                          {item.description && (
+                            <p className={cn(
+                              "text-[10px] sm:text-xs font-black uppercase tracking-widest transition-opacity duration-300",
+                              isSelected ? `${itemColor.includes('theme-primary') ? 'text-theme-primary/80' : itemColor} opacity-90` : "text-[#a1a1aa] opacity-60 group-hover:opacity-100"
+                            )}>
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                   {additionalItems}
                 </div>
               </div>
@@ -352,15 +476,29 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
             additionalItems.push(
               <button 
                 key="new-athlete"
+                type="button"
                 onClick={() => setIsAthleteFormOpen(true)} 
-                className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-2xl border border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800 transition-all group text-center gap-4 relative overflow-hidden rounded-3xl"
+                className={cn(
+                  "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                  getCardColorClasses('text-theme-primary', false)
+                )}
               >
-                <div className="p-4 rounded-2xl bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black transition-all text-zinc-400">
+                <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                  <UserPlus size={110} />
+                </div>
+                <div className={cn(
+                  "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                  getIconBgClass('text-theme-primary', false)
+                )}>
                   <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Novo Atleta</span>
-                  <p className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">Matrícula</p>
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight transition-colors duration-300 group-hover:text-theme-primary">
+                    Novo Atleta
+                  </span>
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#a1a1aa] opacity-65 group-hover:opacity-100 transition-opacity">
+                    Matrícula
+                  </p>
                 </div>
               </button>
             );
@@ -374,14 +512,23 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-pink-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                    getCardColorClasses('text-pink-500', false)
+                  )}
                 >
-                  <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
-                    <Instagram className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                  <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                    <Instagram size={110} />
+                  </div>
+                  <div className={cn(
+                    "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                    getIconBgClass('text-pink-500', false)
+                  )}>
+                    <Instagram className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">Instagram</span>
-                    <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Social</p>
+                    <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">Instagram</span>
+                    <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#a1a1aa] opacity-65 group-hover:opacity-100 transition-opacity">Social</p>
                   </div>
                 </a>
               );
@@ -393,14 +540,23 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   href={`https://wa.me/55${settings.whatsapp?.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-900 shadow-xl border border-zinc-800 hover:border-green-500/50 hover:bg-zinc-800/80 rounded-3xl transition-all group text-center gap-3 relative overflow-hidden"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                    getCardColorClasses('text-green-500', false)
+                  )}
                 >
-                  <div className="p-4 rounded-2xl bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
-                    <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                  <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                    <MessageCircle size={110} />
+                  </div>
+                  <div className={cn(
+                    "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                    getIconBgClass('text-green-500', false)
+                  )}>
+                    <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-lg sm:text-xl font-black tracking-tight text-white block leading-tight">WhatsApp</span>
-                    <p className="text-sm sm:text-base text-zinc-500 font-medium tracking-tight opacity-70 group-hover:opacity-100 transition-opacity uppercase font-black tracking-widest text-[10px]">Suporte</p>
+                    <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">WhatsApp</span>
+                    <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#a1a1aa] opacity-65 group-hover:opacity-100 transition-opacity">Suporte</p>
                   </div>
                 </a>
               );
@@ -416,21 +572,60 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 <h4 className="text-xl font-black text-white uppercase tracking-tighter sm:text-2xl">{cat.label}</h4>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex flex-col items-center justify-center p-4 sm:p-6 shadow-2xl border transition-all group text-center gap-4 relative overflow-hidden rounded-3xl ${activeTab === item.id ? 'bg-zinc-800 border-theme-primary/50' : 'bg-zinc-900 border-zinc-800 hover:border-theme-primary/50 hover:bg-zinc-800'}`}
-                  >
-                    <div className={`p-4 sm:p-5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-theme-primary text-black' : `bg-zinc-800 group-hover:bg-theme-primary group-hover:text-black ${item.color || 'text-theme-primary'}`}`}>
-                      <item.icon className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    </div>
-                    <div className="space-y-1">
-                      <span className={`text-base sm:text-lg font-black tracking-tight block leading-tight ${activeTab === item.id ? 'text-theme-primary' : 'text-white'}`}>{item.label}</span>
-                      {item.description && <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-opacity ${activeTab === item.id ? 'text-theme-primary opacity-100' : 'text-zinc-500 opacity-60 group-hover:opacity-100'}`}>{item.description}</p>}
-                    </div>
-                  </button>
-                ))}
+                {items.map((item) => {
+                  const isSelected = activeTab === item.id;
+                  const itemColor = item.color || 'text-theme-primary';
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveTab(item.id)}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                        getCardColorClasses(itemColor, isSelected)
+                      )}
+                    >
+                      {/* Ghost background icon */}
+                      <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                        <item.icon size={110} />
+                      </div>
+                      
+                      {/* Selected Indicator Dot */}
+                      {isSelected && (
+                        <div className={cn(
+                          "absolute top-3.5 right-3.5 w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
+                          itemColor
+                        )} />
+                      )}
+
+                      <div className={cn(
+                        "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                        getIconBgClass(itemColor, isSelected)
+                      )}>
+                        <item.icon className={cn(
+                          "w-7 h-7 sm:w-8 sm:h-8 transition-transform",
+                          isSelected ? "scale-110" : "group-hover:scale-110"
+                        )} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className={cn(
+                          "text-base sm:text-lg font-black tracking-tight block leading-tight transition-colors duration-300",
+                          isSelected ? (itemColor.includes('theme-primary') ? 'text-theme-primary' : itemColor) : "text-white"
+                        )}>
+                          {item.label}
+                        </span>
+                        {item.description && (
+                          <p className={cn(
+                            "text-[10px] sm:text-xs font-black uppercase tracking-widest transition-opacity duration-300",
+                            isSelected ? `${itemColor.includes('theme-primary') ? 'text-theme-primary/80' : itemColor} opacity-90` : "text-[#a1a1aa] opacity-60 group-hover:opacity-100"
+                          )}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
                 {additionalItems}
               </div>
             </div>
