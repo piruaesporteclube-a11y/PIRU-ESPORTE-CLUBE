@@ -48,7 +48,11 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [showMainPhoto, setShowMainPhoto] = useState(true);
   const [bgScale, setBgScale] = useState(1);
   const [bgMirror, setBgMirror] = useState(false);
+  const [bgXOffset, setBgXOffset] = useState(0);
+  const [bgYOffset, setBgYOffset] = useState(0);
   const [supportPhotoScales, setSupportPhotoScales] = useState<number[]>([1, 1, 1, 1]);
+  const [supportPhotoXOffsets, setSupportPhotoXOffsets] = useState<number[]>([0, 0, 0, 0]);
+  const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -574,7 +578,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     alt="Soccer Stadium" 
                     className="w-full h-full object-cover opacity-50"
                     style={{
-                      transform: `scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
+                      transform: `translate(${bgXOffset}px, ${bgYOffset}px) scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
                       transformOrigin: 'center',
                       transition: 'transform 0.1s ease-out'
                     }}
@@ -599,7 +603,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       alt="Custom Background" 
                       className="w-full h-full object-cover"
                       style={{
-                        transform: `scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
+                        transform: `translate(${bgXOffset}px, ${bgYOffset}px) scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
                         transformOrigin: 'center',
                         transition: 'transform 0.1s ease-out'
                       }}
@@ -636,7 +640,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
                     )}
                     style={{
-                      transform: `rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
+                      transform: `translate(${supportPhotoXOffsets[0] ?? 0}px, ${supportPhotoYOffsets[0] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
@@ -654,7 +658,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
                     )}
                     style={{
-                      transform: `rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
+                      transform: `translate(${supportPhotoXOffsets[1] ?? 0}px, ${supportPhotoYOffsets[1] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
@@ -675,7 +679,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
                     )}
                     style={{
-                      transform: `rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
+                      transform: `translate(${supportPhotoXOffsets[2] ?? 0}px, ${supportPhotoYOffsets[2] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
@@ -693,7 +697,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
                     )}
                     style={{
-                      transform: `rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
+                      transform: `translate(${supportPhotoXOffsets[3] ?? 0}px, ${supportPhotoYOffsets[3] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
@@ -933,30 +937,83 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       {/* Individual Support Photo Size Sliders */}
                       {overlayImages.length > 0 && (
                         <div className="space-y-3 mt-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-800 animate-in fade-in duration-300 w-full pointer-events-auto">
-                          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Tamanho das Fotos de Apoio</p>
+                          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Ajustes das Fotos de Apoio</p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {overlayImages.map((_, idx) => (
-                              <div key={idx} className="space-y-1 bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-800/60">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Foto {idx + 1}</span>
-                                  <span className="text-[9px] font-bold text-theme-primary">{Math.round((supportPhotoScales[idx] ?? 1) * 100)}%</span>
+                              <div key={idx} className="space-y-3 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/60 font-sans">
+                                <div className="flex justify-between items-center pb-1 border-b border-zinc-800/60">
+                                  <span className="text-[9px] font-black text-theme-primary uppercase">Foto {idx + 1}</span>
                                 </div>
-                                <input 
-                                  type="range" 
-                                  min="0.4" 
-                                  max="2.0" 
-                                  step="0.05" 
-                                  value={supportPhotoScales[idx] ?? 1} 
-                                  onChange={e => {
-                                    const val = parseFloat(e.target.value);
-                                    setSupportPhotoScales(prev => {
-                                      const next = [...prev];
-                                      next[idx] = val;
-                                      return next;
-                                    });
-                                  }} 
-                                  className="w-full accent-theme-primary" 
-                                />
+
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-medium text-zinc-400 uppercase">Zoom</span>
+                                    <span className="text-[9px] font-mono font-bold text-theme-primary">{Math.round((supportPhotoScales[idx] ?? 1) * 100)}%</span>
+                                  </div>
+                                  <input 
+                                    type="range" 
+                                    min="0.4" 
+                                    max="2.0" 
+                                    step="0.05" 
+                                    value={supportPhotoScales[idx] ?? 1} 
+                                    onChange={e => {
+                                      const val = parseFloat(e.target.value);
+                                      setSupportPhotoScales(prev => {
+                                        const next = [...prev];
+                                        next[idx] = val;
+                                        return next;
+                                      });
+                                    }} 
+                                    className="w-full accent-theme-primary" 
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[8px] font-medium text-zinc-500 uppercase mb-0.5 block">Vertical</span>
+                                      <span className="text-[8px] font-mono text-zinc-400">{(supportPhotoYOffsets[idx] ?? 0)}px</span>
+                                    </div>
+                                    <input 
+                                      type="range" 
+                                      min="-150" 
+                                      max="150" 
+                                      step="5"
+                                      value={supportPhotoYOffsets[idx] ?? 0} 
+                                      onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setSupportPhotoYOffsets(prev => {
+                                          const next = [...prev];
+                                          next[idx] = val;
+                                          return next;
+                                        });
+                                      }} 
+                                      className="w-full accent-theme-primary" 
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[8px] font-medium text-zinc-500 uppercase mb-0.5 block">Horizontal</span>
+                                      <span className="text-[8px] font-mono text-zinc-400">{(supportPhotoXOffsets[idx] ?? 0)}px</span>
+                                    </div>
+                                    <input 
+                                      type="range" 
+                                      min="-150" 
+                                      max="150" 
+                                      step="5"
+                                      value={supportPhotoXOffsets[idx] ?? 0} 
+                                      onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setSupportPhotoXOffsets(prev => {
+                                          const next = [...prev];
+                                          next[idx] = val;
+                                          return next;
+                                        });
+                                      }} 
+                                      className="w-full accent-theme-primary" 
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1008,6 +1065,39 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                                 onChange={e => setBgScale(parseFloat(e.target.value))} 
                                 className="w-full accent-theme-primary" 
                               />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Vertical</span>
+                                  <span className="text-[9px] font-mono font-bold text-theme-primary">{bgYOffset}px</span>
+                                </div>
+                                <input 
+                                  type="range" 
+                                  min="-300" 
+                                  max="300" 
+                                  step="5"
+                                  value={bgYOffset} 
+                                  onChange={e => setBgYOffset(parseInt(e.target.value))} 
+                                  className="w-full accent-theme-primary" 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Horizontal</span>
+                                  <span className="text-[9px] font-mono font-bold text-theme-primary">{bgXOffset}px</span>
+                                </div>
+                                <input 
+                                  type="range" 
+                                  min="-300" 
+                                  max="300" 
+                                  step="5"
+                                  value={bgXOffset} 
+                                  onChange={e => setBgXOffset(parseInt(e.target.value))} 
+                                  className="w-full accent-theme-primary" 
+                                />
+                              </div>
                             </div>
                             
                             <div className="flex items-center justify-between py-1 bg-zinc-950 p-2 rounded-xl border border-zinc-800">
@@ -1263,7 +1353,11 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setShowMainPhoto(true);
                           setBgScale(1);
                           setBgMirror(false);
+                          setBgXOffset(0);
+                          setBgYOffset(0);
                           setSupportPhotoScales([1, 1, 1, 1]);
+                          setSupportPhotoXOffsets([0, 0, 0, 0]);
+                          setSupportPhotoYOffsets([0, 0, 0, 0]);
                           setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                         }}
                         className="py-2 px-6 bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
