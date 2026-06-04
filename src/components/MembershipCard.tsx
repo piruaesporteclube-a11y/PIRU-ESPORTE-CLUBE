@@ -194,8 +194,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         if (originalCanvas) {
           const qrImage = document.createElement('img');
           qrImage.src = (originalCanvas as HTMLCanvasElement).toDataURL();
-          qrImage.style.width = '26px';
-          qrImage.style.height = '26px';
+          qrImage.style.width = '22px';
+          qrImage.style.height = '22px';
           qrImage.style.display = 'block';
           qrContainer.innerHTML = '';
           qrContainer.appendChild(qrImage);
@@ -519,35 +519,35 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute inset-0 card-yellow-lines pointer-events-none"></div>
           
           {/* Main Layout Container */}
-          <div className="relative z-10 flex flex-col h-full p-2 pb-3.5">
+          <div className="relative z-10 flex flex-col h-full p-2 pb-[24px]">
             
             {/* Top Section: Header & Photo */}
             <div className="flex justify-between items-start mb-0.5">
               {/* Crest */}
-              <div className="w-14 h-14 flex-shrink-0">
+              <div className="w-[44px] h-[44px] flex-shrink-0">
                 {crestDataUrl ? (
                   <img src={crestDataUrl} className="w-full h-full object-contain filter drop-shadow-lg" data-type="crest" />
                 ) : (
-                  <div className="w-full h-full bg-theme-primary rounded-xl flex items-center justify-center text-black font-black text-lg">P</div>
+                  <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-sm">P</div>
                 )}
               </div>
 
               {/* Center Header Info */}
               <div className="flex-1 flex flex-col items-center text-center px-1">
-                <h1 className="text-lg font-black text-theme-primary tracking-tighter leading-none mb-0.5 italic">PIRUÁ E.C</h1>
-                <p className="text-[7px] font-black text-white tracking-[0.2em] mb-0.5">ESCOLINHA DE FUTEBOL</p>
+                <h1 className="text-base font-black text-theme-primary tracking-tighter leading-none mb-0.5 mt-0.5 italic">PIRUÁ E.C</h1>
+                <p className="text-[6.5px] font-black text-white tracking-[0.2em] mb-0.5">ESCOLINHA DE FUTEBOL</p>
                 
-                <div className="bg-theme-primary px-2 py-0.5 rounded-full mb-0.5">
-                  <p className="text-[6px] font-black text-black uppercase">
+                <div className="bg-theme-primary px-1.5 py-0.5 rounded-full mb-0.5">
+                  <p className="text-[5.5px] font-black text-black uppercase">
                     {isProfessor ? 'Carteirinha Oficial Comissão Técnica' : 'Carteirinha Oficial do Aluno'}
                   </p>
                 </div>
-                <p className="text-[7px] font-black text-theme-primary italic">TEMPORADA 2026</p>
+                <p className="text-[6.5px] font-black text-theme-primary italic">TEMPORADA 2026</p>
               </div>
 
               {/* Athlete Photo */}
-              <div className="w-[65px] h-[85px] bg-white p-0.5 rounded-lg shadow-2xl flex-shrink-0">
-                <div className="w-full h-full bg-zinc-200 rounded-md overflow-hidden relative">
+              <div className="w-[58px] h-[76px] bg-white p-0.5 rounded-md shadow-lg flex-shrink-0">
+                <div className="w-full h-full bg-zinc-200 rounded overflow-hidden relative">
                   {photoDataUrl ? (
                     <img 
                       src={photoDataUrl} 
@@ -557,7 +557,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-400">
-                      <UserCircle size={28} />
+                      <UserCircle size={24} />
                     </div>
                   )}
                 </div>
@@ -569,21 +569,21 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               {/* 1. Nome Completo */}
               <div className="col-span-12">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-2 !h-2 !text-[5px]">1</div>
-                  <span className="label-text !text-[6px]">
+                  <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">1</div>
+                  <span className="label-text !text-[7px]">
                     {isProfessor ? 'Nome do Integrante' : 'Nome Completo do Aluno'}
                   </span>
                 </div>
-                <div className="input-box text-[8px] !h-auto min-h-[15px] py-0.5 leading-none">{athlete.name}</div>
+                <div className="input-box text-[9.5px] !h-auto min-h-[17px] py-[1px] px-1.5 leading-none font-black text-black bg-white">{athlete.name}</div>
               </div>
 
               {/* 2. Data de Nascimento */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-2 !h-2 !text-[5px]">2</div>
-                  <span className="label-text !text-[6px]">Data de Nascimento</span>
+                  <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">2</div>
+                  <span className="label-text !text-[7px]">Data de Nascimento</span>
                 </div>
-                <div className="input-box h-[15px] text-[7px]">
+                <div className="input-box h-[16px] text-[9px] font-black px-1.5 text-black bg-white">
                   {athlete.birth_date ? new Date(athlete.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '--/--/----'}
                 </div>
               </div>
@@ -591,19 +591,19 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               {/* 3. RG / CPF */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-2 !h-2 !text-[5px]">3</div>
-                  <span className="label-text !text-[6px]">RG / CPF</span>
+                  <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">3</div>
+                  <span className="label-text !text-[7px]">RG / CPF</span>
                 </div>
-                <div className="input-box h-[15px] text-[7px]">{athlete.doc || '---.---.---/--'}</div>
+                <div className="input-box h-[16px] text-[9px] font-black px-1.5 text-black bg-white">{athlete.doc || '---.---.---/--'}</div>
               </div>
 
               {/* 4. Posição / Cargo */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-2 !h-2 !text-[5px]">4</div>
-                  <span className="label-text !text-[6px]">{isProfessor ? 'Cargo' : 'Posição'}</span>
+                  <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">4</div>
+                  <span className="label-text !text-[7px]">{isProfessor ? 'Cargo' : 'Posição'}</span>
                 </div>
-                <div className="input-box !h-auto min-h-[15px] py-0.5 px-2 text-[6px] leading-tight flex flex-wrap gap-1 whitespace-normal">
+                <div className="input-box !h-auto min-h-[16px] py-[1px] px-1.5 text-[8px] leading-tight flex flex-wrap gap-1 whitespace-normal font-black text-black bg-white">
                   {isProfessor ? (athlete as any).role : (athlete as Athlete).position || 'N/A'}
                 </div>
               </div>
@@ -611,52 +611,52 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               {/* 5. Sub / Modality */}
               <div className="col-span-6">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <div className="number-circle !w-2 !h-2 !text-[5px]">5</div>
-                  <span className="label-text !text-[6px]">{isProfessor ? 'Setor' : 'Sub'}</span>
+                  <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">5</div>
+                  <span className="label-text !text-[7px]">{isProfessor ? 'Setor' : 'Sub'}</span>
                 </div>
-                <div className="input-box h-[15px] text-[7px]">
+                <div className="input-box h-[16px] text-[9px] font-black px-1.5 text-black bg-white">
                   {isProfessor ? (athlete as any).modality : getSubCategory((athlete as Athlete).birth_date)}
                 </div>
               </div>
             </div>
 
             {/* Bottom Section: Responsável & QR Code */}
-            <div className="mt-auto border border-theme-primary/30 rounded-xl p-1 bg-black/40 backdrop-blur-sm relative overflow-hidden">
+            <div className="mt-auto border border-theme-primary/30 rounded-lg p-1 bg-black/40 backdrop-blur-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-full card-yellow-lines opacity-10 pointer-events-none"></div>
               
               <div className="flex gap-2 relative z-10">
                 {/* Left: Guardian Info */}
                 <div className="flex-1 space-y-0.5">
-                  <div className="bg-theme-primary/20 px-1 py-0.5 rounded inline-block mb-0.5">
-                    <p className="text-[5px] font-black text-theme-primary uppercase">
+                  <div className="bg-theme-primary/20 px-1 py-[1px] rounded inline-block mb-0.5">
+                    <p className="text-[7px] font-black text-theme-primary uppercase">
                       {isProfessor ? 'Instituição Vinculada' : 'Dados do Responsável'}
                     </p>
                   </div>
                   
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2 !h-2 !text-[4px]">7</div>
-                      <span className="label-text !text-[5px]">
+                      <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">7</div>
+                      <span className="label-text !text-[7px]">
                         {isProfessor ? 'Responsável Institucional' : 'Nome Completo do Responsável'}
                       </span>
                     </div>
-                    <div className="input-box !h-auto min-h-[14px] !text-[6px] py-0.5 leading-none">
+                    <div className="input-box !h-auto min-h-[16px] !text-[8px] py-[1px] px-1.5 leading-none font-black text-black bg-white">
                       {isProfessor ? 'DIRETORIA PIRUÁ E.C' : (athlete as Athlete).guardian_name}
                     </div>
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2 !h-2 !text-[4px]">8</div>
-                      <span className="label-text !text-[5px]">
+                      <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">8</div>
+                      <span className="label-text !text-[7px]">
                         {isProfessor ? 'Endereço Profissional / Residencial' : 'Endereço Completo'}
                       </span>
                     </div>
-                    <div className="input-box !h-auto min-h-[24px] !text-[6px] items-start py-1 px-2 leading-tight overflow-hidden break-words text-left block">
-                      <div className="truncate w-full font-black">
+                    <div className="input-box !h-auto min-h-[25px] !text-[6.5px] items-start py-0.5 px-1.5 leading-tight overflow-hidden break-words text-left block font-black text-black bg-white">
+                      <div className="font-black text-[7px] text-zinc-950">
                         {athlete.street ? `${athlete.street}, ${athlete.number || 'S/N'}` : 'Endereço não informado'}
                       </div>
-                      <div className="truncate w-full opacity-80 text-[5px]">
+                      <div className="opacity-85 text-[6px] font-black text-zinc-800 leading-tight">
                         {athlete.neighborhood ? `${athlete.neighborhood} • ` : ''}{athlete.city || 'Cidade'}/{athlete.uf || 'UF'}
                       </div>
                     </div>
@@ -664,13 +664,13 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                 </div>
 
                 {/* Right: Phone, Validity & QR */}
-                <div className="w-[100px] flex flex-col gap-0.5">
+                <div className="w-[96px] flex flex-col gap-0.5">
                   <div>
                     <div className="flex items-center gap-1 mb-0.5">
-                      <div className="number-circle !w-2 !h-2 !text-[4px]">10</div>
-                      <span className="label-text !text-[5px]">{isProfessor ? 'WhatsApp / Contato' : 'Contato de Emergência'}</span>
+                      <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">10</div>
+                      <span className="label-text !text-[6.5px]">{isProfessor ? 'WhatsApp / Contato' : 'Contato de Emergência'}</span>
                     </div>
-                    <div className="input-box !h-3.5 !text-[6px]">
+                    <div className="input-box h-[16px] !text-[8px] font-black px-1.5 text-black bg-white">
                       {isProfessor ? (athlete as any).phone : (athlete as Athlete).guardian_phone}
                     </div>
                   </div>
@@ -678,10 +678,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   {isProfessor && (athlete as any).email && (
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
-                        <div className="number-circle !w-2 !h-2 !text-[4px]">11</div>
-                        <span className="label-text !text-[5px]">E-mail Oficial</span>
+                        <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">11</div>
+                        <span className="label-text !text-[6.5px]">E-mail Oficial</span>
                       </div>
-                      <div className="input-box !h-3.5 !text-[5px] truncate px-1">
+                      <div className="input-box h-[16px] !text-[7px] font-black px-1.5 text-black bg-white truncate">
                         {(athlete as any).email}
                       </div>
                     </div>
@@ -690,20 +690,20 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                   <div className="flex gap-1">
                     <div className="flex-1">
                       <div className="flex items-center gap-1 mb-0.5">
-                        <div className="number-circle !w-2 !h-2 !text-[4px]">9</div>
-                        <span className="label-text !text-[5px]">Validade</span>
+                        <div className="number-circle !w-[10px] !h-[10px] !text-[6px]">9</div>
+                        <span className="label-text !text-[6.5px]">Validade</span>
                       </div>
-                      <div className="input-box !h-3.5 !text-[6px] justify-center">31/12/{new Date().getFullYear()}</div>
+                      <div className="input-box h-[16px] !text-[8px] font-black px-1.5 justify-center text-black bg-white">31/12/{new Date().getFullYear()}</div>
                     </div>
                     
-                    <div className="bg-white p-0.5 rounded-md flex flex-col items-center shadow-xl flex-shrink-0 qr-code-container">
+                    <div className="bg-white p-0.5 rounded flex flex-col items-center shadow-xl flex-shrink-0 qr-code-container">
                       <QRCodeCanvas 
                         value={isProfessor ? `PIRUA-PROF-${athlete.id}` : `PIRUA-ATHLETE-${athlete.id}`} 
                         size={128} 
                         level="H" 
-                        style={{ width: '26px', height: '26px', display: 'block' }}
+                        style={{ width: '22px', height: '22px', display: 'block' }}
                       />
-                      <p className="text-[2px] font-black text-black mt-0.5">PIRUÁ E.C</p>
+                      <p className="text-[2px] font-black text-black mt-[1px]">PIRUÁ E.C</p>
                     </div>
                   </div>
                 </div>
@@ -711,7 +711,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
             </div>
 
             {/* Motto */}
-            <div className="mt-1 text-center bg-theme-primary/5 py-1">
+            <div className="mt-0.5 text-center bg-theme-primary/5 py-[1px]">
               <p className="text-[5px] font-black text-theme-primary tracking-[0.3em] uppercase italic">
                 Formando Atletas, Cidadãos e Campeões • Excelência no Esporte
               </p>

@@ -40,15 +40,18 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
       const res = await api.loginWithGoogle();
       onLogin(res);
     } catch (err: any) {
-      console.error("Erro no login Google:", err);
-      if (err.message?.includes('unauthorized-domain')) {
-        setError('Este domínio não está autorizado no Firebase Console. Adicione este domínio em Authentication > Settings > Authorized domains.');
-      } else if (err.message?.includes('popup-closed-by-user')) {
-        setError('O login foi cancelado porque a janela foi fechada.');
-      } else if (err.message?.includes('operation-not-allowed')) {
-        setError('O login com Google não está ativado no Firebase Console.');
+      if (err.message?.includes('popup-closed-by-user')) {
+        console.warn("Google login cancelled or popup closed by user:", err);
+        setError('O login foi cancelado ou a janela foi fechada. Se o problema persistir, certifique-se de permitir pop-ups ou tente abrir o sistema em uma nova aba.');
       } else {
-        setError(err.message || 'Erro ao entrar com Google. Verifique sua conta.');
+        console.error("Erro no login Google:", err);
+        if (err.message?.includes('unauthorized-domain')) {
+          setError('Este domínio não está autorizado no Firebase Console. Adicione este domínio em Authentication > Settings > Authorized domains.');
+        } else if (err.message?.includes('operation-not-allowed')) {
+          setError('O login com Google não está ativado no Firebase Console.');
+        } else {
+          setError(err.message || 'Erro ao entrar com Google. Verifique sua conta.');
+        }
       }
     } finally {
       setLoading(false);

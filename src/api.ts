@@ -646,7 +646,6 @@ export const api = {
         throw new Error(`CPF ou senha incorretos. Suporte: ${SUPPORT_CONTACT}`);
       }
       api.logLoginError(normalizedUsername, error.message || "Erro desconhecido.");
-      handleFirestoreError(error, OperationType.GET, "auth/login");
       throw error;
     }
   },
@@ -709,7 +708,7 @@ export const api = {
       api.logAccess(userData);
       return { user: userData, token: await firebaseUser.getIdToken() };
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, "auth/google");
+      console.warn("Google sign-in failed or cancelled:", error);
       throw error;
     }
   },
@@ -856,7 +855,6 @@ export const api = {
       const guestUser: User = { id: firebaseUser.uid, name: "Visitante", doc: "", role: "student" };
       return { user: guestUser, token: await firebaseUser.getIdToken() };
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, "auth/guest");
       throw error;
     }
   },
