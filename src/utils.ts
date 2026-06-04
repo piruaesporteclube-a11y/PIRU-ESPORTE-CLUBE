@@ -8,7 +8,6 @@ export function cn(...inputs: ClassValue[]) {
 export function compressImage(base64Str: string, maxWidth = 1000, maxHeight = 1000, quality = 0.7): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.src = base64Str;
     img.onload = () => {
       const canvas = document.createElement('canvas');
       let width = img.width;
@@ -32,6 +31,11 @@ export function compressImage(base64Str: string, maxWidth = 1000, maxHeight = 10
       ctx?.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
+    img.onerror = () => {
+      console.warn("Image compression failed, returning original base64");
+      resolve(base64Str);
+    };
+    img.src = base64Str;
   });
 }
 

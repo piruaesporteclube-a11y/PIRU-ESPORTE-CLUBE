@@ -468,7 +468,9 @@ export const api = {
       }
     }
 
-    let email = username.includes("@") ? username : `${normalizedUsername}@pirua.com.br`;
+    const deterministicEmail = `${normalizedUsername}@pirua.com.br`;
+    let email = username.includes("@") ? username : deterministicEmail;
+    let foundEmailByCpf = false;
     
     // Try to find the real email if login is by CPF
     if (!username.includes("@") && normalizedUsername.length >= 11) {
@@ -479,6 +481,7 @@ export const api = {
           const userData = userSnapshot.docs[0].data();
           if (userData.email) {
             email = userData.email;
+            foundEmailByCpf = true;
           }
         }
       } catch (e) {
@@ -487,24 +490,30 @@ export const api = {
     }
     
     try {
-      // First try with the raw password (most likely if it's an email/custom password)
-      // Then fallback to normalized password (CPF only) if that fails
       let userCredential;
+      const tryLogin = async (loginEmail: string) => {
+        try {
+          return await signInWithEmailAndPassword(auth, loginEmail, password);
+        } catch (authErr: any) {
+          if (password !== normalizedPassword) {
+            return await signInWithEmailAndPassword(auth, loginEmail, normalizedPassword);
+          }
+          throw authErr;
+        }
+      };
+
       try {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
-      } catch (authErr: any) {
-        if (password !== normalizedPassword) {
+        userCredential = await tryLogin(email);
+      } catch (firstTryErr: any) {
+        // If it failed and we used a custom email found by CPF, fall back to the deterministic CPF email
+        if (foundEmailByCpf && email !== deterministicEmail) {
           try {
-            userCredential = await signInWithEmailAndPassword(auth, email, normalizedPassword);
-          } catch (secondAuthErr: any) {
-            // If both fail, and we have a user-not-found/invalid-credential, try auto-registration
-            if (secondAuthErr.code === 'auth/user-not-found' || secondAuthErr.code === 'auth/invalid-credential') {
-              throw secondAuthErr; // Re-throw to be caught by outer catch for lazy registration check
-            }
-            throw secondAuthErr;
+            userCredential = await tryLogin(deterministicEmail);
+          } catch (secondTryErr: any) {
+            throw firstTryErr; // Throw original error for better diagnostics
           }
         } else {
-          throw authErr;
+          throw firstTryErr;
         }
       }
       
@@ -713,12 +722,13 @@ export const api = {
       throw new Error("CPF inválido. Deve conter pelo menos 11 dígitos.");
     }
     
-    // Prefer real email if provided, otherwise fallback to generated one
-    const email = athleteData.email || `${normalizedDoc}@pirua.com.br`;
+    // Always use deterministic format for Auth to avoid conflicts with shared parental/sibling emails
+    const authEmail = `${normalizedDoc}@pirua.com.br`;
+    const emailForDoc = athleteData.email || authEmail;
     const password = normalizedDoc;
     
     try {
-      console.log("Starting registration for:", email);
+      console.log("Starting registration for:", authEmail);
       
       // 1. Check if CPF already exists in athletes collection
       const q = query(collection(db, "athletes"), where("doc", "==", normalizedDoc));
@@ -730,12 +740,29 @@ export const api = {
       // 2. Ensure we are signed out first to avoid conflicts
       await signOut(auth);
 
-      // 2. Create Auth User
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      console.log("Auth user created:", firebaseUser.uid);
+      // 3. Create or reuse Auth User
+      let firebaseUser;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, authEmail, password);
+        firebaseUser = userCredential.user;
+        console.log("Auth user created:", firebaseUser.uid);
+      } catch (authError: any) {
+        if (authError.code === 'auth/email-already-in-use') {
+          console.log("Auth user already exists, signing in to reuse credentials...");
+          try {
+            const userCredential = await signInWithEmailAndPassword(auth, authEmail, password);
+            firebaseUser = userCredential.user;
+            console.log("Auth user signed in successfully:", firebaseUser.uid);
+          } catch (signInErr: any) {
+            console.error("Sign in to existing credential failed:", signInErr);
+            throw new Error("Este CPF já está cadastrado no sistema.");
+          }
+        } else {
+          throw authError;
+        }
+      }
 
-      // 3. Prepare Batch for atomic write
+      // 4. Prepare Batch for atomic write
       const batch = writeBatch(db);
       
       const athleteId = doc(collection(db, "athletes")).id;
@@ -744,7 +771,7 @@ export const api = {
         ...athleteData,
         id: athleteId,
         doc: normalizedDoc,
-        email: email,
+        email: emailForDoc,
         status: "Inativo",
         confirmation: "Pendente",
         created_at: serverTimestamp(),
@@ -754,7 +781,7 @@ export const api = {
       const newUser: User = {
         id: firebaseUser.uid,
         name: athleteData.name || "Novo Aluno",
-        email: email,
+        email: emailForDoc,
         doc: normalizedDoc,
         role: "student",
         athlete_id: athleteId,
@@ -772,7 +799,7 @@ export const api = {
       batch.set(doc(db, "athletes", athleteId), sanitizeData(newAthlete));
       batch.set(doc(db, "users", firebaseUser.uid), sanitizeData(newUser));
       
-      // 4. Include Anamnesis in batch if provided
+      // 5. Include Anamnesis in batch if provided
       if (anamnesisData) {
         const anamnesisDoc = {
           ...anamnesisData,
@@ -787,7 +814,15 @@ export const api = {
       await batch.commit();
       console.log("Batch committed successfully");
       
-      // 5. Sign out the new user to ensure they have to log in properly
+      // 6. Invalidate caches immediately so lists and details update automatically
+      try {
+        invalidateCache("athletes");
+        invalidateCache("users");
+      } catch (cacheErr) {
+        console.warn("Error invalidating cache after registration:", cacheErr);
+      }
+      
+      // 7. Sign out the new user to ensure they have to log in properly
       await signOut(auth);
       
       return { athlete: newAthlete, user: newUser };
