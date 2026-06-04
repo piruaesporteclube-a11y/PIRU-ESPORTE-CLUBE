@@ -115,6 +115,71 @@ const getIconBgClass = (colorClass: string | undefined, isSelected: boolean) => 
   return 'bg-theme-primary/10 text-theme-primary group-hover:bg-theme-primary group-hover:text-black';
 };
 
+const getStatConfig = (label: string, statsVal: number) => {
+  switch (label) {
+    case 'Atletas Ativos':
+      return {
+        label: 'Atletas Ativos',
+        value: statsVal,
+        icon: UserCheck,
+        color: 'text-emerald-400',
+        bgGrad: 'rgba(16,185,129,0.06)',
+        borderColor: 'group-hover:border-emerald-500/40',
+        shadow: 'hover:shadow-[0_0_30px_rgba(16,185,129,0.08)]',
+        accentBorder: 'border-emerald-500/10 group-hover:border-emerald-500/30',
+        badge: 'Ativos',
+        badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        glowingDot: 'bg-emerald-500',
+        iconBg: 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black'
+      };
+    case 'Suspensos':
+      return {
+        label: 'Suspensos',
+        value: statsVal,
+        icon: AlertTriangle,
+        color: 'text-rose-400',
+        bgGrad: 'rgba(244,63,94,0.06)',
+        borderColor: 'group-hover:border-rose-500/40',
+        shadow: 'hover:shadow-[0_0_30px_rgba(244,63,94,0.08)]',
+        accentBorder: 'border-rose-500/10 group-hover:border-rose-500/30',
+        badge: 'Suspensões',
+        badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+        glowingDot: 'bg-rose-500',
+        iconBg: 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-black'
+      };
+    case 'Eventos':
+      return {
+        label: 'Eventos',
+        value: statsVal,
+        icon: Calendar,
+        color: 'text-sky-400',
+        bgGrad: 'rgba(14,165,233,0.06)',
+        borderColor: 'group-hover:border-sky-500/40',
+        shadow: 'hover:shadow-[0_0_30px_rgba(14,165,233,0.08)]',
+        accentBorder: 'border-sky-500/10 group-hover:border-sky-500/30',
+        badge: 'Eventos',
+        badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+        glowingDot: 'bg-sky-500',
+        iconBg: 'bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-black'
+      };
+    default:
+      return {
+        label: 'Atletas Totais',
+        value: statsVal,
+        icon: Users,
+        color: 'text-theme-primary',
+        bgGrad: 'rgba(251,191,36,0.06)',
+        borderColor: 'group-hover:border-theme-primary/40',
+        shadow: 'hover:shadow-[0_0_30px_rgba(251,191,36,0.08)]',
+        accentBorder: 'border-theme-primary/10 group-hover:border-theme-primary/30',
+        badge: 'Cadastros',
+        badgeColor: 'bg-theme-primary/10 text-theme-primary border-theme-primary/25',
+        glowingDot: 'bg-theme-primary',
+        iconBg: 'bg-theme-primary/10 text-theme-primary group-hover:bg-theme-primary group-hover:text-black'
+      };
+  }
+};
+
 const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
   stats: any, 
   athletes: Athlete[], 
@@ -444,19 +509,72 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
       </section>
 
       {/* Stats */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Atletas Totais', value: stats.athletes, icon: Users, color: 'text-theme-primary' },
-          { label: 'Atletas Ativos', value: stats.active, icon: UserCheck, color: 'text-green-500' },
-          { label: 'Suspensos', value: stats.suspended, icon: AlertTriangle, color: 'text-red-500' },
-          { label: 'Eventos', value: stats.events, icon: Calendar, color: 'text-blue-500' },
-        ].map((stat, idx) => (
-          <div key={idx} className="bg-zinc-900/40 border border-zinc-800 p-5 sm:p-6 rounded-[2rem] hover:border-theme-primary/30 transition-all group overflow-hidden relative">
-            <stat.icon size={32} className={`absolute -right-2 -bottom-2 opacity-5 ${stat.color} group-hover:scale-110 group-hover:opacity-10 transition-all sm:w-10 sm:h-10`} />
-            <p className="text-sm sm:text-base font-black text-zinc-500 uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className="text-2xl sm:text-3xl font-black text-white">{stat.value}</p>
-          </div>
-        ))}
+          { label: 'Atletas Totais', value: stats.athletes },
+          { label: 'Atletas Ativos', value: stats.active },
+          { label: 'Suspensos', value: stats.suspended },
+          { label: 'Eventos', value: stats.events },
+        ].map((item, idx) => {
+          const config = getStatConfig(item.label, item.value);
+          const IconComponent = config.icon;
+          
+          return (
+            <div 
+              key={idx} 
+              className={cn(
+                "group relative overflow-hidden rounded-[2rem] border bg-gradient-to-b from-zinc-900 to-zinc-950/90 p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] border-zinc-800/80 cursor-default",
+                config.borderColor,
+                config.shadow
+              )}
+            >
+              {/* Background ambient radial gradient */}
+              <div 
+                className="absolute -right-16 -top-16 w-32 h-32 rounded-full blur-[40px] pointer-events-none transition-all duration-500 opacity-60 group-hover:scale-150 group-hover:opacity-100"
+                style={{ background: config.bgGrad }}
+              />
+              
+              {/* Ghost background icon */}
+              <div className="absolute right-4 bottom-4 text-white opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
+                <IconComponent size={96} />
+              </div>
+
+              {/* Card Header (Badge & Glowing Dot) */}
+              <div className="flex items-center justify-between gap-2 z-10">
+                <span className={cn(
+                  "px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full border",
+                  config.badgeColor
+                )}>
+                  {config.badge}
+                </span>
+                <span className="flex h-2 w-2 relative">
+                  <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", config.glowingDot)} />
+                  <span className={cn("relative inline-flex rounded-full h-2 w-2", config.glowingDot)} />
+                </span>
+              </div>
+
+              {/* Card Body & Icon */}
+              <div className="flex items-end justify-between mt-6 sm:mt-8 z-10">
+                <div className="space-y-1 text-left">
+                  <p className="text-[10px] sm:text-xs font-black text-zinc-400 uppercase tracking-widest leading-none">
+                    {config.label}
+                  </p>
+                  <p className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
+                    {config.value}
+                  </p>
+                </div>
+                
+                <div className={cn(
+                  "p-3 rounded-2xl transition-all duration-300 border",
+                  config.iconBg,
+                  config.accentBorder
+                )}>
+                  <IconComponent size={20} className="sm:size-6" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {/* Central Hub - Grouped by Category */}
@@ -1513,6 +1631,7 @@ export default function App() {
       <Login 
         onLogin={handleLogin} 
         onRegisterClick={() => setIsRegistering(true)} 
+        onProfessorRegisterClick={() => setIsProfessorRegistration(true)}
       />
     );
   }
