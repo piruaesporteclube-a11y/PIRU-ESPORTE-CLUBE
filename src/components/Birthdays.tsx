@@ -46,6 +46,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [crestYOffset, setCrestYOffset] = useState(0);
   const [crestScale, setCrestScale] = useState(1);
   const [showMainPhoto, setShowMainPhoto] = useState(true);
+  const [showAthleteName, setShowAthleteName] = useState(true);
   const [bgScale, setBgScale] = useState(1);
   const [bgMirror, setBgMirror] = useState(false);
   const [bgXOffset, setBgXOffset] = useState(0);
@@ -755,7 +756,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 </div>
 
                   {/* CENTER: Athlete Photo (3x4 Portrait) with enhanced frame */}
-                  {showMainPhoto && (
+                  {(showMainPhoto || showAthleteName) && (
                     <div 
                       className="relative group z-20 transition-transform my-auto"
                       style={{ 
@@ -763,66 +764,75 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       }}
                     >
                       {/* Glowing background effect */}
-                      <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                      {showMainPhoto && (
+                        <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                      )}
                       
-                      <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
-                        {customMainPhoto ? (
-                          <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                        ) : selectedPerson.photo ? (
-                          <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
-                            <UserCircle size={80} strokeWidth={1} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
-                          </div>
-                        )}
-                        
-                        {/* Internal theme border */}
-                        <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
-                        
-                        {/* Technical corner accents */}
-                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
-                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
-                      </div>
+                      {showMainPhoto ? (
+                        <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
+                          {customMainPhoto ? (
+                            <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                          ) : selectedPerson.photo ? (
+                            <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
+                              <UserCircle size={80} strokeWidth={1} />
+                              <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                            </div>
+                          )}
+                          
+                          {/* Internal theme border */}
+                          <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
+                          
+                          {/* Technical corner accents */}
+                          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
+                          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
+                        </div>
+                      ) : (
+                        /* Structural layout filler of exact same size to maintain absolute position reference if name is shown but photo is hidden */
+                        <div className="w-[190px] aspect-[3/4] pointer-events-none" />
+                      )}
 
                       {/* Name Banner - Creative, high-visibility design */}
-                      <div 
-                        className="absolute z-40 transform"
-                        style={{ 
-                          bottom: `${-30 + nameYOffset}px`, 
-                          left: `${-15 + nameXOffset}%`, 
-                          right: `${-15 - nameXOffset}%`,
-                          rotate: '1.5deg',
-                          scale: `${bannerScale}`
-                        }}
-                      >
-                        <div className={cn(
-                          "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
-                          bannerStyle === 'yellow' && "bg-theme-primary border-black",
-                          bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
-                          bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
-                          bannerStyle === 'red' && "bg-red-600 border-black",
-                          bannerStyle === 'outline' && "bg-black/80 backdrop-blur-md border-theme-primary shadow-none"
-                        )}
-                        style={{ transform: `skewX(${bannerSkew}deg)` }}
+                      {showAthleteName && (
+                        <div 
+                          className="absolute z-40 transform"
+                          style={{ 
+                            bottom: `${-30 + nameYOffset}px`, 
+                            left: `${-15 + nameXOffset}%`, 
+                            right: `${-15 - nameXOffset}%`,
+                            rotate: '1.5deg',
+                            scale: `${bannerScale}`
+                          }}
                         >
-                          <h3 
-                            className={cn(
-                              "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
-                              (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
-                            )}
-                            style={{ 
-                              fontSize: `${nameFontSize}px`,
-                              transform: `skewX(${-bannerSkew}deg)`,
-                              maxWidth: '100%',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            }}
+                          <div className={cn(
+                            "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
+                            bannerStyle === 'yellow' && "bg-theme-primary border-black",
+                            bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
+                            bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
+                            bannerStyle === 'red' && "bg-red-600 border-black",
+                            bannerStyle === 'outline' && "bg-black/80 backdrop-blur-md border-theme-primary shadow-none"
+                          )}
+                          style={{ transform: `skewX(${bannerSkew}deg)` }}
                           >
-                            {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
-                          </h3>
+                            <h3 
+                              className={cn(
+                                "font-black uppercase tracking-tighter text-center leading-none italic drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
+                                (bannerStyle === 'yellow' || bannerStyle === 'white') ? "text-black" : "text-white"
+                              )}
+                              style={{ 
+                                fontSize: `${nameFontSize}px`,
+                                transform: `skewX(${-bannerSkew}deg)`,
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                            </h3>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -1140,15 +1150,26 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                             </div>
                           )}
                         </div>
-                        <button 
-                          onClick={() => setShowMainPhoto(!showMainPhoto)}
-                          className={cn(
-                            "w-full py-2 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
-                            showMainPhoto ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-theme-primary border-theme-primary text-black"
-                          )}
-                        >
-                          {showMainPhoto ? 'Ocultar Foto' : 'Mostrar Foto'}
-                        </button>
+                        <div className="flex flex-col gap-2 w-full">
+                          <button 
+                            onClick={() => setShowMainPhoto(!showMainPhoto)}
+                            className={cn(
+                              "w-full py-2 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                              showMainPhoto ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-theme-primary border-theme-primary text-black"
+                            )}
+                          >
+                            {showMainPhoto ? 'Ocultar Foto' : 'Mostrar Foto'}
+                          </button>
+                          <button 
+                            onClick={() => setShowAthleteName(!showAthleteName)}
+                            className={cn(
+                              "w-full py-2 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                              showAthleteName ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-theme-primary border-theme-primary text-black"
+                            )}
+                          >
+                            {showAthleteName ? 'Ocultar Nome' : 'Mostrar Nome'}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex-1 space-y-4">
@@ -1188,6 +1209,18 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
                 {activeControlTab === 'banner' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Nome do Atleta</span>
+                      <button
+                        onClick={() => setShowAthleteName(prev => !prev)}
+                        className={cn(
+                          "py-1.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                          showAthleteName ? "bg-theme-primary border-theme-primary text-black" : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:text-white"
+                        )}
+                      >
+                        {showAthleteName ? 'Ocultar Nome' : 'Mostrar Nome'}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Estilo do Nome</p>
@@ -1351,6 +1384,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setCrestYOffset(0);
                           setCrestScale(1);
                           setShowMainPhoto(true);
+                          setShowAthleteName(true);
                           setBgScale(1);
                           setBgMirror(false);
                           setBgXOffset(0);
