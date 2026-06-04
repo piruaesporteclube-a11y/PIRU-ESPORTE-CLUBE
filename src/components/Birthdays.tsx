@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, Professor } from '../types';
-import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, Upload, X, Plus } from 'lucide-react';
+import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, Upload, X, Plus, FlipHorizontal } from 'lucide-react';
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
@@ -46,6 +46,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [crestYOffset, setCrestYOffset] = useState(0);
   const [crestScale, setCrestScale] = useState(1);
   const [showMainPhoto, setShowMainPhoto] = useState(true);
+  const [bgScale, setBgScale] = useState(1);
+  const [bgMirror, setBgMirror] = useState(false);
+  const [supportPhotoScales, setSupportPhotoScales] = useState<number[]>([1, 1, 1, 1]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -565,11 +568,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
                 {/* Default Background */}
-                <div className="absolute inset-0 bg-black">
+                <div className="absolute inset-0 bg-black overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
                     alt="Soccer Stadium" 
                     className="w-full h-full object-cover opacity-50"
+                    style={{
+                      transform: `scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
+                      transformOrigin: 'center',
+                      transition: 'transform 0.1s ease-out'
+                    }}
                     referrerPolicy="no-referrer"
                     crossOrigin="anonymous"
                   />
@@ -585,13 +593,20 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
                 {/* Custom Uploaded Background */}
                 {bgImage && (
-                  <img 
-                    src={bgImage} 
-                    alt="Custom Background" 
-                    className="absolute inset-0 w-full h-full object-cover z-5"
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
-                  />
+                  <div className="absolute inset-0 z-5 overflow-hidden">
+                    <img 
+                      src={bgImage} 
+                      alt="Custom Background" 
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
+                        transformOrigin: 'center',
+                        transition: 'transform 0.1s ease-out'
+                      }}
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                    />
+                  </div>
                 )}
 
                 {/* Overlay Template Layer (User's provided image if it loads) */}
@@ -615,10 +630,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               {/* Grid of 4 Photos - 2 Top, 2 Bottom - Positioned behind content (z-10) */}
               <div className="absolute inset-0 z-10 p-4 flex flex-col justify-between pointer-events-none">
                 <div className="flex justify-between w-full">
-                  <div className={cn(
-                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
-                    !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                  )}>
+                  <div 
+                    className={cn(
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}
+                    style={{
+                      transform: `rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
+                      transformOrigin: 'center'
+                    }}
+                  >
                     {overlayImages[0] ? (
                       <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
                     ) : (
@@ -627,10 +648,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       </div>
                     )}
                   </div>
-                  <div className={cn(
-                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
-                    !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                  )}>
+                  <div 
+                    className={cn(
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}
+                    style={{
+                      transform: `rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
+                      transformOrigin: 'center'
+                    }}
+                  >
                     {overlayImages[1] ? (
                       <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
                     ) : (
@@ -642,10 +669,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 </div>
 
                 <div className="flex justify-between w-full mt-auto">
-                  <div className={cn(
-                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[4deg] overflow-hidden bg-zinc-800 transition-all",
-                    !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                  )}>
+                  <div 
+                    className={cn(
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}
+                    style={{
+                      transform: `rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
+                      transformOrigin: 'center'
+                    }}
+                  >
                     {overlayImages[2] ? (
                       <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
                     ) : (
@@ -654,10 +687,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       </div>
                     )}
                   </div>
-                  <div className={cn(
-                    "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] rotate-[-4deg] overflow-hidden bg-zinc-800 transition-all",
-                    !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
-                  )}>
+                  <div 
+                    className={cn(
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
+                      !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                    )}
+                    style={{
+                      transform: `rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
+                      transformOrigin: 'center'
+                    }}
+                  >
                     {overlayImages[3] ? (
                       <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
                     ) : (
@@ -890,12 +929,45 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           </label>
                         )}
                       </div>
+
+                      {/* Individual Support Photo Size Sliders */}
+                      {overlayImages.length > 0 && (
+                        <div className="space-y-3 mt-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-800 animate-in fade-in duration-300 w-full pointer-events-auto">
+                          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Tamanho das Fotos de Apoio</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {overlayImages.map((_, idx) => (
+                              <div key={idx} className="space-y-1 bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-800/60">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Foto {idx + 1}</span>
+                                  <span className="text-[9px] font-bold text-theme-primary">{Math.round((supportPhotoScales[idx] ?? 1) * 100)}%</span>
+                                </div>
+                                <input 
+                                  type="range" 
+                                  min="0.4" 
+                                  max="2.0" 
+                                  step="0.05" 
+                                  value={supportPhotoScales[idx] ?? 1} 
+                                  onChange={e => {
+                                    const val = parseFloat(e.target.value);
+                                    setSupportPhotoScales(prev => {
+                                      const next = [...prev];
+                                      next[idx] = val;
+                                      return next;
+                                    });
+                                  }} 
+                                  className="w-full accent-theme-primary" 
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t border-zinc-800">
                       <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Plano de Fundo</p>
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-28 rounded-lg overflow-hidden border border-zinc-700 bg-black">
+                      <div className="flex flex-col md:flex-row gap-6 items-start">
+                        <div className="w-16 h-28 rounded-lg overflow-hidden border border-zinc-700 bg-black flex-shrink-0">
                           {bgImage ? (
                             <img src={bgImage} className="w-full h-full object-cover" />
                           ) : (
@@ -904,20 +976,56 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="block w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white text-center rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors">
-                            <Upload size={14} className="inline mr-2" />
-                            Mudar Fundo
-                            <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
-                          </label>
-                          {bgImage && (
-                            <button 
-                              onClick={() => setBgImage(null)}
-                              className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                            >
-                              Resetar Fundo
-                            </button>
-                          )}
+                        <div className="flex-1 w-full space-y-4">
+                          <div className="flex gap-2">
+                            <label className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white text-center rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors block">
+                              <Upload size={14} className="inline mr-2" />
+                              Mudar Fundo
+                              <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+                            </label>
+                            {bgImage && (
+                              <button 
+                                onClick={() => setBgImage(null)}
+                                className="py-2 px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                              >
+                                Resetar
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="pt-2 border-t border-zinc-800/50 space-y-3">
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Zoom do Fundo</span>
+                                <span className="text-[9px] font-bold text-theme-primary">{Math.round(bgScale * 100)}%</span>
+                              </div>
+                              <input 
+                                type="range" 
+                                min="1.0" 
+                                max="3.0" 
+                                step="0.05" 
+                                value={bgScale} 
+                                onChange={e => setBgScale(parseFloat(e.target.value))} 
+                                className="w-full accent-theme-primary" 
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-between py-1 bg-zinc-950 p-2 rounded-xl border border-zinc-800">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Espelhar Foto de Fundo</span>
+                              <button
+                                onClick={() => setBgMirror(prev => !prev)}
+                                className={cn(
+                                  "flex items-center gap-2 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+                                  bgMirror 
+                                    ? "bg-theme-primary text-black border-theme-primary" 
+                                    : "bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                                )}
+                              >
+                                <FlipHorizontal size={12} />
+                                {bgMirror ? "Sim, Espelhada" : "Não, Normal"}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1153,6 +1261,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setCrestYOffset(0);
                           setCrestScale(1);
                           setShowMainPhoto(true);
+                          setBgScale(1);
+                          setBgMirror(false);
+                          setSupportPhotoScales([1, 1, 1, 1]);
                           setFooterMessage("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
                         }}
                         className="py-2 px-6 bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
