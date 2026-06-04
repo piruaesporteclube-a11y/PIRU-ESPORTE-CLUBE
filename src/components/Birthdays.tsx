@@ -14,6 +14,16 @@ interface BirthdaysProps {
   professors?: Professor[];
 }
 
+export const BORDER_THEMES = [
+  { id: 'neon-teal', label: 'Neon Teal', class: 'bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500', glow: 'rgba(20,184,166,0.35)', dotColor: '#14b8a6' },
+  { id: 'neon-yellow', label: 'Neon Ouro', class: 'bg-gradient-to-tr from-yellow-500 via-amber-400 to-orange-400', glow: 'rgba(245,158,11,0.35)', dotColor: '#f59e0b' },
+  { id: 'neon-purple', label: 'Neon Roxo', class: 'bg-gradient-to-tr from-purple-600 via-pink-400 to-rose-400', glow: 'rgba(168,85,247,0.35)', dotColor: '#a855f7' },
+  { id: 'neon-blue', label: 'Neon Azul', class: 'bg-gradient-to-tr from-blue-600 via-indigo-400 to-cyan-400', glow: 'rgba(59,130,246,0.35)', dotColor: '#3b82f6' },
+  { id: 'neon-green', label: 'Neon Verde', class: 'bg-gradient-to-tr from-green-600 via-emerald-400 to-lime-300', glow: 'rgba(34,197,94,0.35)', dotColor: '#22c55e' },
+  { id: 'neon-red', label: 'Neon Vermelho', class: 'bg-gradient-to-tr from-red-600 via-orange-500 to-rose-500', glow: 'rgba(239,68,68,0.35)', dotColor: '#ef4444' },
+  { id: 'plain-white', label: 'Branco Clean', class: 'bg-gradient-to-tr from-neutral-200 via-white to-neutral-400', glow: 'rgba(255,255,255,0.15)', dotColor: '#ffffff' }
+];
+
 export default function Birthdays({ athletes: athletesProp, professors: professorsProp }: BirthdaysProps) {
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
@@ -47,6 +57,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [crestScale, setCrestScale] = useState(1);
   const [showMainPhoto, setShowMainPhoto] = useState(true);
   const [showAthleteName, setShowAthleteName] = useState(true);
+  const [photoBorderTheme, setPhotoBorderTheme] = useState('neon-teal');
   const [bgScale, setBgScale] = useState(1);
   const [bgMirror, setBgMirror] = useState(false);
   const [bgXOffset, setBgXOffset] = useState(0);
@@ -54,6 +65,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [supportPhotoScales, setSupportPhotoScales] = useState<number[]>([1, 1, 1, 1]);
   const [supportPhotoXOffsets, setSupportPhotoXOffsets] = useState<number[]>([0, 0, 0, 0]);
   const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
+
+  const currentBorder = BORDER_THEMES.find(t => t.id === photoBorderTheme) || BORDER_THEMES[0];
 
   useEffect(() => {
     if (athletesProp) {
@@ -639,12 +652,13 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     className={cn(
                       "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
                       overlayImages[0] 
-                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
                         : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[0] ?? 0}px, ${supportPhotoYOffsets[0] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
-                      transformOrigin: 'center'
+                      transformOrigin: 'center',
+                      boxShadow: overlayImages[0] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
                     }}
                   >
                     <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
@@ -661,12 +675,13 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     className={cn(
                       "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
                       overlayImages[1] 
-                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
                         : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[1] ?? 0}px, ${supportPhotoYOffsets[1] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
-                      transformOrigin: 'center'
+                      transformOrigin: 'center',
+                      boxShadow: overlayImages[1] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
                     }}
                   >
                     <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
@@ -686,12 +701,13 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     className={cn(
                       "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
                       overlayImages[2] 
-                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
                         : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[2] ?? 0}px, ${supportPhotoYOffsets[2] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
-                      transformOrigin: 'center'
+                      transformOrigin: 'center',
+                      boxShadow: overlayImages[2] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
                     }}
                   >
                     <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
@@ -708,12 +724,13 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     className={cn(
                       "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
                       overlayImages[3] 
-                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
                         : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[3] ?? 0}px, ${supportPhotoYOffsets[3] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
-                      transformOrigin: 'center'
+                      transformOrigin: 'center',
+                      boxShadow: overlayImages[3] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
                     }}
                   >
                     <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
@@ -781,11 +798,22 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     >
                       {/* Glowing background effect */}
                       {showMainPhoto && (
-                        <div className="absolute -inset-6 bg-theme-primary opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"></div>
+                        <div 
+                          className="absolute -inset-6 opacity-20 blur-2xl group-hover:opacity-40 transition-opacity rounded-full"
+                          style={{ backgroundColor: currentBorder.dotColor }}
+                        ></div>
                       )}
                       
                       {showMainPhoto ? (
-                        <div className="w-[190px] aspect-[3/4] p-[4px] rounded-3xl bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(20,184,166,0.35)] overflow-hidden relative z-10">
+                        <div 
+                          className={cn(
+                            "w-[190px] aspect-[3/4] p-[4px] rounded-3xl overflow-hidden relative z-10",
+                            currentBorder.class
+                          )}
+                          style={{
+                            boxShadow: `0 20px 50px rgba(0,0,0,0.9), 0 0 25px ${currentBorder.glow}`
+                          }}
+                        >
                           <div className="w-full h-full bg-zinc-950 rounded-[20px] overflow-hidden relative">
                             {customMainPhoto ? (
                               <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
@@ -1049,6 +1077,32 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       )}
                     </div>
 
+                    <div className="pt-4 border-t border-zinc-800 space-y-4">
+                      <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Estilo da Borda das Fotos</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {BORDER_THEMES.map((theme) => (
+                          <button
+                            key={theme.id}
+                            onClick={() => setPhotoBorderTheme(theme.id)}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all relative group",
+                              photoBorderTheme === theme.id 
+                                ? "bg-zinc-800 border-theme-primary" 
+                                : "bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+                            )}
+                          >
+                            <div className={cn("w-6 h-6 rounded-full mb-1 sm:mb-2 shadow-inner", theme.class)} />
+                            <span className={cn(
+                              "text-[9px] font-bold tracking-tight",
+                              photoBorderTheme === theme.id ? "text-theme-primary" : "text-zinc-400 group-hover:text-white"
+                            )}>
+                              {theme.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="pt-4 border-t border-zinc-800">
                       <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Plano de Fundo</p>
                       <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -1217,6 +1271,32 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                                 <span className="text-[9px] font-bold text-zinc-500 uppercase">Horizontal</span>
                                 <input type="range" min="-200" max="200" value={photoXOffset} onChange={e => setPhotoXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
                               </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-zinc-800 space-y-3">
+                            <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Estilo da Borda das Fotos</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {BORDER_THEMES.map((theme) => (
+                                <button
+                                  key={theme.id}
+                                  onClick={() => setPhotoBorderTheme(theme.id)}
+                                  className={cn(
+                                    "flex flex-col items-center justify-center p-2.5 rounded-2xl border text-center transition-all relative group",
+                                    photoBorderTheme === theme.id 
+                                      ? "bg-zinc-800 border-theme-primary" 
+                                      : "bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+                                  )}
+                                >
+                                  <div className={cn("w-5 h-5 rounded-full mb-1 shadow-inner", theme.class)} />
+                                  <span className={cn(
+                                    "text-[8px] font-bold tracking-tight",
+                                    photoBorderTheme === theme.id ? "text-theme-primary" : "text-zinc-400 group-hover:text-white"
+                                  )}>
+                                    {theme.label}
+                                  </span>
+                                </button>
+                              ))}
                             </div>
                           </div>
                         </div>
