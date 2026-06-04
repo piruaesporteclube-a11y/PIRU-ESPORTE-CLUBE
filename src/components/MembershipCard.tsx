@@ -129,7 +129,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       clone.style.margin = '0';
       clone.style.padding = '0';
       clone.style.width = '440px';
-      clone.style.height = '320px';
+      clone.style.height = '340px';
       clone.style.position = 'relative';
       clone.style.left = '0';
       clone.style.top = '0';
@@ -194,8 +194,8 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         if (originalCanvas) {
           const qrImage = document.createElement('img');
           qrImage.src = (originalCanvas as HTMLCanvasElement).toDataURL();
-          qrImage.style.width = '22px';
-          qrImage.style.height = '22px';
+          qrImage.style.width = '26px';
+          qrImage.style.height = '26px';
           qrImage.style.display = 'block';
           qrContainer.innerHTML = '';
           qrContainer.appendChild(qrImage);
@@ -222,7 +222,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
         backgroundColor: '#000000',
         logging: false,
         width: 440,
-        height: 320,
+        height: 340,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -271,15 +271,15 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
       const imgData = await captureCard(3);
       if (!imgData) throw new Error('Failed to capture card');
       
-      // Create PDF with custom size (110mm x 80mm)
+      // Create PDF with custom size (110mm x 85mm)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [110, 80]
+        format: [110, 85]
       });
 
       const pdfWidth = 110;
-      const pdfHeight = 80;
+      const pdfHeight = 85;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       pdf.save(`carteirinha-${athlete.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
@@ -392,10 +392,10 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           </div>
         )}
 
-        {/* The Card Layout - Custom Size (11cm x 8cm ratio) */}
+        {/* The Card Layout - Custom Size (11cm x 8.5cm ratio) */}
         <div 
           ref={cardRef}
-          className="w-[440px] h-[320px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border-4 border-theme-primary transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500 antialiased"
+          className="w-[440px] h-[340px] min-w-[440px] bg-[#050505] text-white rounded-[20px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col relative card border-4 border-theme-primary transform scale-[0.7] xs:scale-[0.8] sm:scale-100 origin-center box-border transition-transform duration-500 antialiased"
           style={{ 
             fontFamily: "'Inter', sans-serif",
             WebkitPrintColorAdjust: 'exact',
@@ -438,7 +438,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
               }
               .card {
                 width: 110mm !important;
-                height: 80mm !important;
+                height: 85mm !important;
                 border: 1.5mm solid #eab308 !important;
                 border-radius: 4mm !important;
                 box-shadow: none !important;
@@ -519,7 +519,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
           <div className="absolute inset-0 card-yellow-lines pointer-events-none"></div>
           
           {/* Main Layout Container */}
-          <div className="relative z-10 flex flex-col h-full p-2 pb-[24px]">
+          <div className="relative z-10 flex flex-col h-full p-2 pb-[28px]">
             
             {/* Top Section: Header & Photo */}
             <div className="flex justify-between items-start mb-0.5">
@@ -701,7 +701,7 @@ export default function MembershipCard({ athlete }: MembershipCardProps) {
                         value={isProfessor ? `PIRUA-PROF-${athlete.id}` : `PIRUA-ATHLETE-${athlete.id}`} 
                         size={128} 
                         level="H" 
-                        style={{ width: '22px', height: '22px', display: 'block' }}
+                        style={{ width: '26px', height: '26px', display: 'block' }}
                       />
                       <p className="text-[2px] font-black text-black mt-[1px]">PIRUÁ E.C</p>
                     </div>
