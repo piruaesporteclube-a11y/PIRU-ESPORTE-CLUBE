@@ -637,78 +637,94 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 <div className="flex justify-between w-full">
                   <div 
                     className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[0] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
+                      overlayImages[0] 
+                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[0] ?? 0}px, ${supportPhotoYOffsets[0] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
-                    {overlayImages[0] ? (
-                      <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Plus size={20} className="text-zinc-500" />
-                      </div>
-                    )}
+                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
+                      {overlayImages[0] ? (
+                        <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div 
                     className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[1] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
+                      overlayImages[1] 
+                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[1] ?? 0}px, ${supportPhotoYOffsets[1] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
-                    {overlayImages[1] ? (
-                      <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Plus size={20} className="text-zinc-500" />
-                      </div>
-                    )}
+                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
+                      {overlayImages[1] ? (
+                        <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex justify-between w-full mt-auto">
                   <div 
                     className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[2] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
+                      overlayImages[2] 
+                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[2] ?? 0}px, ${supportPhotoYOffsets[2] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
-                    {overlayImages[2] ? (
-                      <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Plus size={20} className="text-zinc-500" />
-                      </div>
-                    )}
+                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
+                      {overlayImages[2] ? (
+                        <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div 
                     className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] border-4 border-theme-primary shadow-[0_10px_20px_rgba(0,0,0,0.8)] overflow-hidden bg-zinc-800 transition-all",
-                      !overlayImages[3] && "border-zinc-700 bg-zinc-900/50 opacity-20 border-dashed"
+                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
+                      overlayImages[3] 
+                        ? "rounded-2xl p-[3px] bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(20,184,166,0.35)]" 
+                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
                     )}
                     style={{
                       transform: `translate(${supportPhotoXOffsets[3] ?? 0}px, ${supportPhotoYOffsets[3] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
                       transformOrigin: 'center'
                     }}
                   >
-                    {overlayImages[3] ? (
-                      <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Plus size={20} className="text-zinc-500" />
-                      </div>
-                    )}
+                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
+                      {overlayImages[3] ? (
+                        <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Plus size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -769,24 +785,26 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       )}
                       
                       {showMainPhoto ? (
-                        <div className="w-[190px] aspect-[3/4] bg-zinc-900 border-[8px] border-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10">
-                          {customMainPhoto ? (
-                            <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                          ) : selectedPerson.photo ? (
-                            <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
-                              <UserCircle size={80} strokeWidth={1} />
-                              <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
-                            </div>
-                          )}
-                          
-                          {/* Internal theme border */}
-                          <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20" />
-                          
-                          {/* Technical corner accents */}
-                          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
-                          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
+                        <div className="w-[190px] aspect-[3/4] p-[4px] rounded-3xl bg-gradient-to-tr from-theme-primary via-teal-400 to-cyan-500 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(20,184,166,0.35)] overflow-hidden relative z-10">
+                          <div className="w-full h-full bg-zinc-950 rounded-[20px] overflow-hidden relative">
+                            {customMainPhoto ? (
+                              <img src={customMainPhoto} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                            ) : selectedPerson.photo ? (
+                              <img src={selectedPerson.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 bg-black gap-2">
+                                <UserCircle size={80} strokeWidth={1} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Foto do Atleta</span>
+                              </div>
+                            )}
+                            
+                            {/* Internal theme border */}
+                            <div className="absolute inset-0 border-2 border-theme-primary/30 pointer-events-none z-20 rounded-[20px]" />
+                            
+                            {/* Technical corner accents */}
+                            <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-theme-primary z-20" />
+                            <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-theme-primary z-20" />
+                          </div>
                         </div>
                       ) : (
                         /* Structural layout filler of exact same size to maintain absolute position reference if name is shown but photo is hidden */
