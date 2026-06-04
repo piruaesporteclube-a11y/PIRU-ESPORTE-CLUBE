@@ -34,6 +34,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [footerMessage, setFooterMessage] = useState("A escolinha Piruá Esporte Clube te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde.");
   const [footerYOffset, setFooterYOffset] = useState(0);
   const [footerXOffset, setFooterXOffset] = useState(0);
+  const [footerFontSize, setFooterFontSize] = useState(10);
   const [photoScale, setPhotoScale] = useState(1);
   const [photoYOffset, setPhotoYOffset] = useState(0);
   const [photoXOffset, setPhotoXOffset] = useState(0);
@@ -791,7 +792,10 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 >
                   <div className="max-w-[280px] text-center bg-black/85 backdrop-blur-md p-3 border-l-4 border-theme-primary shadow-2xl relative">
                     <div className="absolute top-0 right-0 w-2 h-2 bg-theme-primary"></div>
-                    <p className="text-white font-black leading-tight text-[10px] md:text-[11px] drop-shadow-md uppercase tracking-[0.05em] italic">
+                    <p 
+                      className="text-white font-black leading-tight drop-shadow-md uppercase tracking-[0.05em] italic"
+                      style={{ fontSize: `${footerFontSize}px` }}
+                    >
                       {footerMessage}
                     </p>
                   </div>
@@ -1110,6 +1114,20 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                               <input type="range" min="-100" max="100" value={footerXOffset} onChange={e => setFooterXOffset(parseInt(e.target.value))} className="w-full accent-theme-primary" />
                             </div>
                           </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Tamanho da Fonte</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{footerFontSize}px</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="6" 
+                              max="24" 
+                              value={footerFontSize} 
+                              onChange={e => setFooterFontSize(parseInt(e.target.value))} 
+                              className="w-full accent-theme-primary" 
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1124,6 +1142,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setBannerSkew(-15);
                           setFooterYOffset(0);
                           setFooterXOffset(0);
+                          setFooterFontSize(10);
                           setPhotoScale(1);
                           setPhotoYOffset(0);
                           setPhotoXOffset(0);
