@@ -48,71 +48,91 @@ import { format } from 'date-fns';
 import { navItems } from './navigation';
 import { cn } from './utils';
 
-const getCardColorClasses = (colorClass: string | undefined, isSelected: boolean) => {
+const getCardColorClasses = (colorClass: string | undefined, isSelected: boolean, catId?: string) => {
   const c = colorClass || '';
-  const isRed = c.includes('red');
-  const isGreen = c.includes('green');
-  const isBlue = c.includes('blue');
-  const isPink = c.includes('pink');
+  const isRed = c.includes('red') || c.includes('rose') || catId === 'office';
+  const isGreen = c.includes('green') || c.includes('emerald') || catId === 'arena';
+  const isBlue = c.includes('blue') || c.includes('sky') || catId === 'training';
+  const isPink = c.includes('pink') || catId === 'external';
   const isIndigo = c.includes('indigo');
-  const isPurple = c.includes('purple');
-  const isAmber = c.includes('amber');
+  const isPurple = c.includes('purple') || catId === 'community';
+  const isAmber = c.includes('amber') || c.includes('yellow') || c.includes('primary') || catId === 'command' || catId === 'student';
 
   const cursorClass = isSelected ? 'cursor-default' : 'cursor-pointer';
 
   if (isSelected) {
-    if (isRed) return `bg-zinc-900 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.15)] ring-1 ring-red-500/30 scale-[1.02] ${cursorClass}`;
-    if (isGreen) return `bg-zinc-900 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.15)] ring-1 ring-green-500/30 scale-[1.02] ${cursorClass}`;
-    if (isBlue) return `bg-zinc-900 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30 scale-[1.02] ${cursorClass}`;
-    if (isPink) return `bg-zinc-900 border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.15)] ring-1 ring-pink-500/30 scale-[1.02] ${cursorClass}`;
-    if (isIndigo) return `bg-zinc-900 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/30 scale-[1.02] ${cursorClass}`;
-    if (isPurple) return `bg-zinc-900 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/30 scale-[1.02] ${cursorClass}`;
-    if (isAmber) return `bg-zinc-900 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30 scale-[1.02] ${cursorClass}`;
-    return `bg-zinc-900 border-theme-primary shadow-[0_0_20px_rgba(251,191,36,0.2)] ring-1 ring-theme-primary/30 scale-[1.02] ${cursorClass}`;
+    if (isRed) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-rose-950/40 border-rose-500 shadow-[0_0_24px_rgba(244,63,94,0.25)] ring-1 ring-rose-500/40 scale-[1.03] ${cursorClass}`;
+    }
+    if (isGreen) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 border-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/30 scale-[1.03] ${cursorClass}`;
+    }
+    if (isBlue) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-sky-950/40 border-sky-500 shadow-[0_0_24px_rgba(14,165,233,0.25)] ring-1 ring-sky-500/30 scale-[1.03] ${cursorClass}`;
+    }
+    if (isPink) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-pink-950/40 border-pink-500 shadow-[0_0_24px_rgba(236,72,153,0.25)] ring-1 ring-pink-500/30 scale-[1.03] ${cursorClass}`;
+    }
+    if (isIndigo) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-indigo-950/40 border-indigo-500 shadow-[0_0_24px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/30 scale-[1.03] ${cursorClass}`;
+    }
+    if (isPurple) {
+      return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/40 border-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.25)] ring-1 ring-purple-500/30 scale-[1.03] ${cursorClass}`;
+    }
+    return `bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/45 border-amber-500 shadow-[0_0_25px_rgba(251,191,36,0.3)] ring-1 ring-amber-500/40 scale-[1.03] ${cursorClass}`;
   }
 
   // Hover states matching
-  if (isRed) return `bg-zinc-950/60 border-zinc-800/80 hover:border-red-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(239,68,68,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isGreen) return `bg-zinc-950/60 border-zinc-800/80 hover:border-green-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(34,197,94,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isBlue) return `bg-zinc-950/60 border-zinc-800/80 hover:border-blue-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(59,130,246,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isPink) return `bg-zinc-950/60 border-zinc-800/80 hover:border-pink-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(236,72,153,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isIndigo) return `bg-zinc-950/60 border-zinc-800/80 hover:border-indigo-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(99,102,241,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isPurple) return `bg-zinc-950/60 border-zinc-800/80 hover:border-purple-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(168,85,247,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
-  if (isAmber) return `bg-zinc-950/60 border-zinc-800/80 hover:border-amber-500/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(245,158,11,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  if (isRed) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-rose-950/20 hover:border-rose-500/50 hover:shadow-[0_8px_32px_rgba(244,63,94,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
+  if (isGreen) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-emerald-950/20 hover:border-emerald-400/50 hover:shadow-[0_8px_32px_rgba(16,185,129,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
+  if (isBlue) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-sky-950/20 hover:border-sky-400/50 hover:shadow-[0_8px_32px_rgba(14,165,233,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
+  if (isPink) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-pink-950/20 hover:border-pink-400/50 hover:shadow-[0_8px_32px_rgba(236,72,153,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
+  if (isIndigo) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-indigo-950/20 hover:border-indigo-400/50 hover:shadow-[0_8px_32px_rgba(99,102,241,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
+  if (isPurple) {
+    return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-purple-950/20 hover:border-purple-400/50 hover:shadow-[0_8px_32px_rgba(168,85,247,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
+  }
   
-  return `bg-zinc-950/60 border-zinc-800/80 hover:border-theme-primary/40 hover:bg-zinc-900/60 hover:shadow-[0_4px_24px_rgba(251,191,36,0.06)] hover:-translate-y-1.5 ${cursorClass}`;
+  return `bg-gradient-to-b from-zinc-950/80 to-zinc-900/60 border-zinc-800/80 hover:bg-gradient-to-tr hover:from-zinc-900 hover:to-amber-950/25 hover:border-amber-400/50 hover:shadow-[0_8px_32px_rgba(251,191,36,0.12)] hover:-translate-y-1.5 ${cursorClass}`;
 };
 
-const getIconBgClass = (colorClass: string | undefined, isSelected: boolean) => {
+const getIconBgClass = (colorClass: string | undefined, isSelected: boolean, catId?: string) => {
   const c = colorClass || '';
-  const isRed = c.includes('red');
-  const isGreen = c.includes('green');
-  const isBlue = c.includes('blue');
-  const isPink = c.includes('pink');
+  const isRed = c.includes('red') || c.includes('rose') || catId === 'office';
+  const isGreen = c.includes('green') || c.includes('emerald') || catId === 'arena';
+  const isBlue = c.includes('blue') || c.includes('sky') || catId === 'training';
+  const isPink = c.includes('pink') || catId === 'external';
   const isIndigo = c.includes('indigo');
-  const isPurple = c.includes('purple');
-  const isAmber = c.includes('amber');
+  const isPurple = c.includes('purple') || catId === 'community';
+  const isAmber = c.includes('amber') || c.includes('yellow') || c.includes('primary') || catId === 'command' || catId === 'student';
 
   if (isSelected) {
-    if (isRed) return 'bg-red-500 text-black shadow-md shadow-red-500/20';
-    if (isGreen) return 'bg-green-500 text-black shadow-md shadow-green-500/20';
-    if (isBlue) return 'bg-blue-500 text-black shadow-md shadow-blue-500/20';
-    if (isPink) return 'bg-pink-500 text-black shadow-md shadow-pink-500/20';
-    if (isIndigo) return 'bg-indigo-500 text-black shadow-md shadow-indigo-500/20';
-    if (isPurple) return 'bg-purple-500 text-black shadow-md shadow-purple-500/20';
-    if (isAmber) return 'bg-amber-500 text-black shadow-md shadow-amber-500/20';
-    return 'bg-theme-primary text-black shadow-md shadow-theme-primary/20';
+    if (isRed) return 'bg-gradient-to-br from-rose-500 to-amber-300 text-black shadow-md shadow-rose-500/30 font-black';
+    if (isGreen) return 'bg-gradient-to-br from-emerald-500 to-yellow-300 text-black shadow-md shadow-emerald-500/30 font-black';
+    if (isBlue) return 'bg-gradient-to-br from-sky-500 to-yellow-300 text-black shadow-md shadow-sky-500/30 font-black';
+    if (isPink) return 'bg-gradient-to-br from-pink-500 to-amber-300 text-black shadow-md shadow-pink-500/30 font-black';
+    if (isIndigo) return 'bg-gradient-to-br from-indigo-500 to-yellow-300 text-black shadow-md shadow-indigo-500/30 font-black';
+    if (isPurple) return 'bg-gradient-to-br from-purple-500 to-pink-300 text-white shadow-md shadow-purple-500/30 font-black';
+    return 'bg-gradient-to-br from-amber-500 to-yellow-300 text-black shadow-md shadow-theme-primary/35 font-black';
   }
 
-  if (isRed) return 'bg-red-500/10 text-red-500 group-hover:bg-red-500 group-hover:text-black';
-  if (isGreen) return 'bg-green-500/10 text-green-500 group-hover:bg-green-500 group-hover:text-black';
-  if (isBlue) return 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-black';
-  if (isPink) return 'bg-pink-500/10 text-pink-500 group-hover:bg-pink-500 group-hover:text-black';
-  if (isIndigo) return 'bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-black';
-  if (isPurple) return 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500 group-hover:text-black';
-  if (isAmber) return 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-black';
+  if (isRed) return 'bg-rose-500/10 text-rose-450 group-hover:bg-gradient-to-br group-hover:from-rose-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300';
+  if (isGreen) return 'bg-emerald-500/10 text-emerald-400 group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
+  if (isBlue) return 'bg-sky-500/10 text-sky-400 group-hover:bg-gradient-to-br group-hover:from-sky-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
+  if (isPink) return 'bg-pink-500/10 text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300';
+  if (isIndigo) return 'bg-indigo-500/10 text-indigo-400 group-hover:bg-gradient-to-br group-hover:from-indigo-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
+  if (isPurple) return 'bg-purple-500/10 text-purple-400 group-hover:bg-gradient-to-br group-hover:from-purple-500 group-hover:to-pink-300 group-hover:text-white transition-all duration-300';
 
-  return 'bg-theme-primary/10 text-theme-primary group-hover:bg-theme-primary group-hover:text-black';
+  return 'bg-amber-500/10 text-amber-400 group-hover:bg-gradient-to-br group-hover:from-amber-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
 };
 
 const getStatConfig = (label: string, statsVal: number) => {
@@ -420,7 +440,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   {items.map((item) => {
                     const isSelected = activeTab === item.id;
-                    const itemColor = cat.cardColor;
+                    const itemColor = item.color || cat.cardColor;
                     return (
                       <button
                         key={item.id}
@@ -428,7 +448,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                         onClick={() => setActiveTab(item.id)}
                         className={cn(
                           "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                          getCardColorClasses(itemColor, isSelected)
+                          getCardColorClasses(itemColor, isSelected, cat.id)
                         )}
                       >
                         {/* Ghost background icon */}
@@ -440,13 +460,13 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                         {isSelected && (
                           <div className={cn(
                             "absolute top-3.5 right-3.5 w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
-                            itemColor
+                            itemColor.replace('text-', 'bg-')
                           )} />
                         )}
 
                         <div className={cn(
                           "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                          getIconBgClass(itemColor, isSelected)
+                          getIconBgClass(itemColor, isSelected, cat.id)
                         )}>
                           <item.icon className={cn(
                             "w-7 h-7 sm:w-8 sm:h-8 transition-transform",
@@ -605,7 +625,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 onClick={() => setIsAthleteFormOpen(true)} 
                 className={cn(
                   "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                  getCardColorClasses('text-theme-primary', false)
+                  getCardColorClasses('text-theme-primary', false, 'command')
                 )}
               >
                 <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
@@ -613,7 +633,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 </div>
                 <div className={cn(
                   "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                  getIconBgClass('text-theme-primary', false)
+                  getIconBgClass('text-theme-primary', false, 'command')
                 )}>
                   <UserPlus className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                 </div>
@@ -639,7 +659,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   rel="noopener noreferrer"
                   className={cn(
                     "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                    getCardColorClasses('text-pink-500', false)
+                    getCardColorClasses('text-pink-500', false, 'community')
                   )}
                 >
                   <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
@@ -647,7 +667,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   </div>
                   <div className={cn(
                     "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                    getIconBgClass('text-pink-500', false)
+                    getIconBgClass('text-pink-500', false, 'community')
                   )}>
                     <Instagram className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                   </div>
@@ -667,7 +687,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   rel="noopener noreferrer"
                   className={cn(
                     "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                    getCardColorClasses('text-green-500', false)
+                    getCardColorClasses('text-green-500', false, 'community')
                   )}
                 >
                   <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
@@ -675,7 +695,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                   </div>
                   <div className={cn(
                     "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                    getIconBgClass('text-green-500', false)
+                    getIconBgClass('text-green-500', false, 'community')
                   )}>
                     <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                   </div>
@@ -706,7 +726,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {items.map((item) => {
                   const isSelected = activeTab === item.id;
-                  const itemColor = cat.cardColor;
+                  const itemColor = item.color || cat.cardColor;
                   return (
                     <button
                       key={item.id}
@@ -714,7 +734,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                       onClick={() => setActiveTab(item.id)}
                       className={cn(
                         "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                        getCardColorClasses(itemColor, isSelected)
+                        getCardColorClasses(itemColor, isSelected, cat.id)
                       )}
                     >
                       {/* Ghost background icon */}
@@ -726,13 +746,13 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                       {isSelected && (
                         <div className={cn(
                           "absolute top-3.5 right-3.5 w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
-                          itemColor
+                          itemColor.replace('text-', 'bg-')
                         )} />
                       )}
 
                       <div className={cn(
                         "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                        getIconBgClass(itemColor, isSelected)
+                        getIconBgClass(itemColor, isSelected, cat.id)
                       )}>
                         <item.icon className={cn(
                           "w-7 h-7 sm:w-8 sm:h-8 transition-transform",
@@ -786,7 +806,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 }}
                 className={cn(
                   "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
-                  getCardColorClasses('text-pink-500', false)
+                  getCardColorClasses('text-pink-500', false, 'external')
                 )}
               >
                 <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
@@ -794,7 +814,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                 </div>
                 <div className={cn(
                   "p-4 sm:p-5 rounded-2xl transition-all duration-300",
-                  getIconBgClass('text-pink-500', false)
+                  getIconBgClass('text-pink-500', false, 'external')
                 )}>
                   <link.icon className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-110" />
                 </div>
