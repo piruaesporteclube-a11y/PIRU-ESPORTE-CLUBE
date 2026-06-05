@@ -46,6 +46,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [playerMode, setPlayerMode] = useState<'foreground' | 'background'>('foreground');
   const [playerOpacity, setPlayerOpacity] = useState(0.4);
   const [timeFontSize, setTimeFontSize] = useState<number>(9);
+  const [colsCount, setColsCount] = useState<1 | 2>(1);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(114);
+  const [footerPos, setFooterPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (colsCount === 1) {
+      setSidebarWidth(114);
+    } else {
+      setSidebarWidth(228);
+    }
+  }, [colsCount]);
 
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
@@ -636,6 +647,73 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   onChange={e => setTimeFontSize(parseFloat(e.target.value))}
                 />
               </div>
+
+              {/* Colunas dos Treinos option and Sidebar Width */}
+              <div className="border-t border-zinc-800 pt-3 space-y-3">
+                <div>
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase block mb-2">Colunas dos Treinos</label>
+                  <div className="flex bg-black p-1 rounded-lg border border-zinc-700">
+                    <button 
+                      onClick={() => setColsCount(1)}
+                      className={cn(
+                        "flex-1 py-1.5 rounded text-[9px] font-black uppercase transition-all",
+                        colsCount === 1 ? "bg-theme-primary text-black" : "text-zinc-500"
+                      )}
+                    >
+                      1 Coluna
+                    </button>
+                    <button 
+                      onClick={() => setColsCount(2)}
+                      className={cn(
+                        "flex-1 py-1.5 rounded text-[9px] font-black uppercase transition-all",
+                        colsCount === 2 ? "bg-theme-primary text-black" : "text-zinc-500"
+                      )}
+                    >
+                      2 Colunas
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Largura da Área de Treinos</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{sidebarWidth}px</span>
+                  </div>
+                  <input 
+                    type="range" min="80" max="280" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={sidebarWidth}
+                    onChange={e => setSidebarWidth(parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              {/* Posição do Rodapé */}
+              <div className="border-t border-zinc-800 pt-3">
+                <div className="flex justify-between mb-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição do Rodapé (V/H)</label>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
+                    <input 
+                      type="range" min="-150" max="150" step="1"
+                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={footerPos.y}
+                      onChange={e => setFooterPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
+                    <input 
+                      type="range" min="-150" max="150" step="1"
+                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={footerPos.x}
+                      onChange={e => setFooterPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -990,12 +1068,13 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* Vertical Sidebar: Schedules */}
               <div 
                 className={cn(
-                  "absolute bottom-32 w-[114px] z-40 flex flex-col gap-3 py-4 transition-all duration-300",
+                  "absolute bottom-32 z-40 flex flex-col gap-3 py-4 transition-all duration-300",
                   infoAlign === 'left' ? "left-2" : "right-2"
                 )}
                 style={{ 
                   top: `${96 + infoPos.y}px`,
-                  transform: `translateX(${infoPos.x}px)`
+                  transform: `translateX(${infoPos.x}px)`,
+                  width: `${sidebarWidth}px`
                 }}
               >
                 {activeTrainings.map((t, idx) => (
@@ -1012,7 +1091,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       </h3>
                     </div>
                     
-                    <div className={cn("space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
+                    <div className={cn(colsCount === 2 ? "grid grid-cols-2 gap-1.5" : "space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
                       {!t.schedules || t.schedules.length === 0 ? (
                         <div className="relative group">
                           <div className={cn(
@@ -1084,10 +1163,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               {/* VS Slot Adjustment - Shifted right to account for sidebar */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
                 <div 
-                  className={cn(
-                    "absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all",
-                    infoAlign === 'left' ? "left-[120px] right-4" : "left-4 right-[120px]"
-                  )}
+                  className="absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all"
+                  style={{
+                    left: infoAlign === 'left' ? `${sidebarWidth + 12}px` : '16px',
+                    right: infoAlign === 'right' ? `${sidebarWidth + 12}px` : '16px',
+                  }}
                 >
                   <div className="relative w-full h-[280px] flex items-center justify-center">
                     <div className="absolute left-0 w-1/2 h-full flex items-center justify-center -translate-x-2">
@@ -1144,10 +1224,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               )}
 
               {/* Motivational Footer Tag */}
-              <div className={cn(
-                "absolute bottom-10 z-30 transition-all",
-                infoAlign === 'left' ? "left-[120px] right-6" : "left-6 right-[120px]"
-              )}>
+              <div 
+                className="absolute bottom-10 z-30 transition-all"
+                style={{
+                  left: infoAlign === 'left' ? `${sidebarWidth + 12}px` : '16px',
+                  right: infoAlign === 'right' ? `${sidebarWidth + 12}px` : '16px',
+                  transform: `translate(${footerPos.x}px, ${footerPos.y}px)`
+                }}
+              >
                 <div className={cn(
                   "bg-black/20 backdrop-blur-sm pl-3 py-2 italic",
                   infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right pr-3 pl-0"
@@ -1163,7 +1247,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               {/* Footer info */}
-              <div className="absolute bottom-6 left-0 right-0 z-30 text-center">
+              <div 
+                className="absolute bottom-6 left-0 right-0 z-30 text-center"
+                style={{
+                  transform: `translate(${footerPos.x}px, ${footerPos.y}px)`
+                }}
+              >
                 <p 
                   className="text-[7px] font-bold uppercase tracking-widest opacity-60"
                   style={{ color: '#71717a' }}
