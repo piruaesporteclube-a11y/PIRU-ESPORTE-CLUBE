@@ -31,7 +31,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [bgLayers, setBgLayers] = useState<Array<{
+    id: string;
+    url: string;
+    scale: number;
+    xOffset: number;
+    yOffset: number;
+    mirror: boolean;
+    opacity: number;
+  }>>([]);
   const [overlayImages, setOverlayImages] = useState<string[]>([]);
   const [nameYOffset, setNameYOffset] = useState(0);
   const [nameFontSize, setNameFontSize] = useState(32);
@@ -314,6 +322,24 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
     }
   };
 
+  const addBgLayer = (url: string) => {
+    if (bgLayers.length >= 4) {
+      toast.error("Limite máximo de 4 planos de fundo atingido.");
+      return;
+    }
+    const newLayer = {
+      id: Math.random().toString(36).substring(2, 9),
+      url,
+      scale: 1.0,
+      xOffset: 0,
+      yOffset: 0,
+      mirror: false,
+      opacity: 0.8,
+    };
+    setBgLayers(prev => [...prev, newLayer]);
+    toast.success("Plano de fundo carregado!");
+  };
+
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -326,10 +352,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         const base64 = reader.result as string;
         try {
           const compressed = await compressImage(base64, 1200, 1920, 0.8);
-          setBgImage(compressed);
-          toast.success("Plano de fundo personalizado carregado!");
+          addBgLayer(compressed);
         } catch (e) {
-          setBgImage(base64);
+          addBgLayer(base64);
         }
       };
       reader.readAsDataURL(file);
@@ -609,15 +634,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   />
                 </div>
 
-                {/* Custom Uploaded Background */}
-                {bgImage && (
-                  <div className="absolute inset-0 z-5 overflow-hidden">
+                {/* Custom Uploaded Backgrounds */}
+                {bgLayers.map((layer, idx) => (
+                  <div key={layer.id} className="absolute inset-0 z-5 overflow-hidden" style={{ opacity: layer.opacity }}>
                     <img 
-                      src={bgImage} 
-                      alt="Custom Background" 
+                      src={layer.url} 
+                      alt={`Custom Background ${idx + 1}`} 
                       className="w-full h-full object-cover"
                       style={{
-                        transform: `translate(${bgXOffset}px, ${bgYOffset}px) scale(${bgScale}) ${bgMirror ? 'scaleX(-1)' : ''}`,
+                        transform: `translate(${layer.xOffset}px, ${layer.yOffset}px) scale(${layer.scale}) ${layer.mirror ? 'scaleX(-1)' : ''}`,
                         transformOrigin: 'center',
                         transition: 'transform 0.1s ease-out'
                       }}
@@ -625,7 +650,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       crossOrigin="anonymous"
                     />
                   </div>
-                )}
+                ))}
 
                 {/* Overlay Template Layer (User's provided image if it loads) */}
                 <img 
@@ -1103,100 +1128,218 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-zinc-800">
-                      <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Plano de Fundo</p>
-                      <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <div className="w-16 h-28 rounded-lg overflow-hidden border border-zinc-700 bg-black flex-shrink-0">
-                          {bgImage ? (
-                            <img src={bgImage} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Calendar size={20} className="text-zinc-800" />
-                            </div>
-                          )}
+                    <div className="pt-4 border-t border-zinc-800 space-y-6">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                          <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Planos de Fundo Customizados ({bgLayers.length}/4)</p>
+                          <p className="text-[8px] text-zinc-500 uppercase">Coloque até 4 fotos decorativas ou texturas sob o flyer</p>
                         </div>
-                        <div className="flex-1 w-full space-y-4">
-                          <div className="flex gap-2">
-                            <label className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white text-center rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors block">
-                              <Upload size={14} className="inline mr-2" />
-                              Mudar Fundo
-                              <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
-                            </label>
-                            {bgImage && (
-                              <button 
-                                onClick={() => setBgImage(null)}
-                                className="py-2 px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                              >
-                                Resetar
-                              </button>
-                            )}
+                        {bgLayers.length < 4 && (
+                          <label className="py-2 px-3 bg-theme-primary hover:opacity-90 text-black text-[9px] font-black uppercase tracking-widest rounded-xl cursor-pointer transition-colors block shadow-[0_5px_15px_rgba(234,179,8,0.2)]">
+                            <Plus size={12} className="inline mr-1" />
+                            Carregar Fotos
+                            <input type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+                          </label>
+                        )}
+                      </div>
+
+                      {bgLayers.length === 0 ? (
+                        <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-center text-zinc-500 text-xs italic">
+                          Nenhum plano de fundo customizado adicionado. Ajuste o estádio padrão abaixo.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {bgLayers.map((layer, idx) => (
+                            <div key={layer.id} className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-4">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-20 rounded-lg overflow-hidden border border-zinc-800 bg-black flex-shrink-0">
+                                  <img src={layer.url} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-[10px] font-black text-theme-primary uppercase mb-1">Foto de Fundo #{idx + 1}</p>
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => {
+                                        setBgLayers(prev => prev.filter(l => l.id !== layer.id));
+                                        toast.success("Plano de fundo removido!");
+                                      }}
+                                      className="py-1 px-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                      Remover
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-zinc-800/50 space-y-3">
+                                {/* Opacity slider */}
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-bold text-zinc-500 uppercase">Opacidade / Mistura</span>
+                                    <span className="text-[9px] font-bold text-theme-primary">{Math.round(layer.opacity * 100)}%</span>
+                                  </div>
+                                  <input 
+                                    type="range" 
+                                    min="0.1" 
+                                    max="1.0" 
+                                    step="0.05" 
+                                    value={layer.opacity} 
+                                    onChange={e => {
+                                      const val = parseFloat(e.target.value);
+                                      setBgLayers(prev => prev.map(l => l.id === layer.id ? { ...l, opacity: val } : l));
+                                    }} 
+                                    className="w-full accent-theme-primary" 
+                                  />
+                                </div>
+
+                                {/* Zoom/Scale slider */}
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-bold text-zinc-500 uppercase">Zoom</span>
+                                    <span className="text-[9px] font-bold text-theme-primary">{Math.round(layer.scale * 100)}%</span>
+                                  </div>
+                                  <input 
+                                    type="range" 
+                                    min="1.0" 
+                                    max="5.0" 
+                                    step="0.05" 
+                                    value={layer.scale} 
+                                    onChange={e => {
+                                      const val = parseFloat(e.target.value);
+                                      setBgLayers(prev => prev.map(l => l.id === layer.id ? { ...l, scale: val } : l));
+                                    }} 
+                                    className="w-full accent-theme-primary" 
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[9px] font-bold text-zinc-500 uppercase">Vertical</span>
+                                      <span className="text-[9px] font-mono font-bold text-theme-primary">{layer.yOffset}px</span>
+                                    </div>
+                                    <input 
+                                      type="range" 
+                                      min="-500" 
+                                      max="500" 
+                                      step="5"
+                                      value={layer.yOffset} 
+                                      onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setBgLayers(prev => prev.map(l => l.id === layer.id ? { ...l, yOffset: val } : l));
+                                      }} 
+                                      className="w-full accent-theme-primary" 
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[9px] font-bold text-zinc-500 uppercase">Horizontal</span>
+                                      <span className="text-[9px] font-mono font-bold text-theme-primary">{layer.xOffset}px</span>
+                                    </div>
+                                    <input 
+                                      type="range" 
+                                      min="-500" 
+                                      max="500" 
+                                      step="5"
+                                      value={layer.xOffset} 
+                                      onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setBgLayers(prev => prev.map(l => l.id === layer.id ? { ...l, xOffset: val } : l));
+                                      }} 
+                                      className="w-full accent-theme-primary" 
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between py-1 bg-zinc-900 px-2 rounded-xl border border-zinc-800/40">
+                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Espelhar Foto</span>
+                                  <button
+                                    onClick={() => {
+                                      setBgLayers(prev => prev.map(l => l.id === layer.id ? { ...l, mirror: !l.mirror } : l));
+                                    }}
+                                    className={cn(
+                                      "flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+                                      layer.mirror 
+                                        ? "bg-theme-primary text-black border-theme-primary" 
+                                        : "bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                                    )}
+                                  >
+                                    <FlipHorizontal size={10} />
+                                    {layer.mirror ? "Espelhada" : "Normal"}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t border-zinc-800">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Ajustar Estádio de Fundo (Padrão)</p>
+                        <div className="pt-2 space-y-3">
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Zoom Padrão</span>
+                              <span className="text-[9px] font-bold text-theme-primary">{Math.round(bgScale * 100)}%</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="1.0" 
+                              max="3.0" 
+                              step="0.05" 
+                              value={bgScale} 
+                              onChange={e => setBgScale(parseFloat(e.target.value))} 
+                              className="w-full accent-theme-primary" 
+                            />
                           </div>
 
-                          <div className="pt-2 border-t border-zinc-800/50 space-y-3">
+                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <div className="flex justify-between items-center">
-                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Zoom do Fundo</span>
-                                <span className="text-[9px] font-bold text-theme-primary">{Math.round(bgScale * 100)}%</span>
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Vertical</span>
+                                <span className="text-[9px] font-mono font-bold text-theme-primary">{bgYOffset}px</span>
                               </div>
                               <input 
                                 type="range" 
-                                min="1.0" 
-                                max="3.0" 
-                                step="0.05" 
-                                value={bgScale} 
-                                onChange={e => setBgScale(parseFloat(e.target.value))} 
+                                min="-300" 
+                                max="300" 
+                                step="5"
+                                value={bgYOffset} 
+                                onChange={e => setBgYOffset(parseInt(e.target.value))} 
                                 className="w-full accent-theme-primary" 
                               />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Vertical</span>
-                                  <span className="text-[9px] font-mono font-bold text-theme-primary">{bgYOffset}px</span>
-                                </div>
-                                <input 
-                                  type="range" 
-                                  min="-300" 
-                                  max="300" 
-                                  step="5"
-                                  value={bgYOffset} 
-                                  onChange={e => setBgYOffset(parseInt(e.target.value))} 
-                                  className="w-full accent-theme-primary" 
-                                />
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Horizontal</span>
+                                <span className="text-[9px] font-mono font-bold text-theme-primary">{bgXOffset}px</span>
                               </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Fundo Horizontal</span>
-                                  <span className="text-[9px] font-mono font-bold text-theme-primary">{bgXOffset}px</span>
-                                </div>
-                                <input 
-                                  type="range" 
-                                  min="-300" 
-                                  max="300" 
-                                  step="5"
-                                  value={bgXOffset} 
-                                  onChange={e => setBgXOffset(parseInt(e.target.value))} 
-                                  className="w-full accent-theme-primary" 
-                                />
-                              </div>
+                              <input 
+                                type="range" 
+                                min="-300" 
+                                max="300" 
+                                step="5"
+                                value={bgXOffset} 
+                                onChange={e => setBgXOffset(parseInt(e.target.value))} 
+                                className="w-full accent-theme-primary" 
+                              />
                             </div>
-                            
-                            <div className="flex items-center justify-between py-1 bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                              <span className="text-[9px] font-bold text-zinc-500 uppercase">Espelhar Foto de Fundo</span>
-                              <button
-                                onClick={() => setBgMirror(prev => !prev)}
-                                className={cn(
-                                  "flex items-center gap-2 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
-                                  bgMirror 
-                                    ? "bg-theme-primary text-black border-theme-primary" 
-                                    : "bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
-                                )}
-                              >
-                                <FlipHorizontal size={12} />
-                                {bgMirror ? "Sim, Espelhada" : "Não, Normal"}
-                              </button>
-                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between py-1 bg-zinc-950 p-2 rounded-xl border border-zinc-800">
+                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Espelhar Estádio de Fundo</span>
+                            <button
+                              onClick={() => setBgMirror(prev => !prev)}
+                              className={cn(
+                                "flex items-center gap-2 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+                                bgMirror 
+                                  ? "bg-theme-primary text-black border-theme-primary" 
+                                  : "bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                              )}
+                            >
+                              <FlipHorizontal size={12} />
+                              {bgMirror ? "Sim, Espelhada" : "Não, Normal"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1487,6 +1630,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setBgMirror(false);
                           setBgXOffset(0);
                           setBgYOffset(0);
+                          setBgLayers([]);
                           setSupportPhotoScales([1, 1, 1, 1]);
                           setSupportPhotoXOffsets([0, 0, 0, 0]);
                           setSupportPhotoYOffsets([0, 0, 0, 0]);
