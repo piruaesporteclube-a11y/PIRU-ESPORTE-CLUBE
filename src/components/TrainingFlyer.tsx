@@ -49,6 +49,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [colsCount, setColsCount] = useState<1 | 2>(1);
   const [sidebarWidth, setSidebarWidth] = useState<number>(114);
   const [footerPos, setFooterPos] = useState({ x: 0, y: 0 });
+  const [footerWidth, setFooterWidth] = useState<number>(140);
 
   useEffect(() => {
     if (colsCount === 1) {
@@ -689,28 +690,43 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
 
               {/* Posição do Rodapé */}
-              <div className="border-t border-zinc-800 pt-3">
-                <div className="flex justify-between mb-1">
-                  <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição do Rodapé (V/H)</label>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
-                    <input 
-                      type="range" min="-150" max="150" step="1"
-                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                      value={footerPos.y}
-                      onChange={e => setFooterPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
-                    />
+              <div className="border-t border-zinc-800 pt-3 space-y-3">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Largura do rodapé</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{footerWidth}px</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
-                    <input 
-                      type="range" min="-150" max="150" step="1"
-                      className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                      value={footerPos.x}
-                      onChange={e => setFooterPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
-                    />
+                  <input 
+                    type="range" min="80" max="280" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={footerWidth}
+                    onChange={e => setFooterWidth(parseInt(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Posição do Rodapé (V/H)</label>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">V</span>
+                      <input 
+                        type="range" min="-150" max="150" step="1"
+                        className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        value={footerPos.y}
+                        onChange={e => setFooterPos(prev => ({ ...prev, y: parseInt(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] text-zinc-500 font-bold w-4 text-center">H</span>
+                      <input 
+                        type="range" min="-150" max="150" step="1"
+                        className="flex-1 accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        value={footerPos.x}
+                        onChange={e => setFooterPos(prev => ({ ...prev, x: parseInt(e.target.value) }))}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1227,8 +1243,9 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div 
                 className="absolute bottom-10 z-30 transition-all"
                 style={{
-                  left: infoAlign === 'left' ? `${sidebarWidth + 12}px` : '16px',
-                  right: infoAlign === 'right' ? `${sidebarWidth + 12}px` : '16px',
+                  left: infoAlign === 'left' ? 'auto' : '16px',
+                  right: infoAlign === 'right' ? 'auto' : '16px',
+                  width: `${footerWidth}px`,
                   transform: `translate(${footerPos.x}px, ${footerPos.y}px)`
                 }}
               >
