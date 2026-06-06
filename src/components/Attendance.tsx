@@ -3,7 +3,7 @@ import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
 import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
@@ -71,6 +71,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | 'geral'>(trainingId || 'geral');
   const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [forceUnlocked, setForceUnlocked] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [showConfigPreviewTarget, setShowConfigPreviewTarget] = useState<'parent' | 'athlete'>('parent');
   const lastScannedCode = useRef<string | null>(null);
@@ -306,7 +307,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             setTraining(found);
             
             // Calculate global lock (lock if older than 2 days ago, allowing today, yesterday and day before)
-            if (found.date < limitString && !isAdmin) {
+            if (found.date < limitString && !isAdmin && !forceUnlocked) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -320,7 +321,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           const found = await api.getEvent(eventId);
           if (found) {
             setEvent(found);
-            if (found.end_date < limitString && !isAdmin) {
+            if (found.end_date < limitString && !isAdmin && !forceUnlocked) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -331,7 +332,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         }
       } else {
         // General attendance: lock if date is older than 2 days ago
-        if (date < limitString && !isAdmin) {
+        if (date < limitString && !isAdmin && !forceUnlocked) {
           setIsLocked(true);
         } else {
           setIsLocked(false);
@@ -342,7 +343,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     checkLock();
     const interval = setInterval(checkLock, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [trainingId, eventId, date, selectedTrainingId, role, isAdmin]);
+  }, [trainingId, eventId, date, selectedTrainingId, role, isAdmin, forceUnlocked]);
 
   useEffect(() => {
     const fetchEventAthletes = async () => {
@@ -658,7 +659,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const isAthleteLocked = (athlete: Athlete) => {
-    if (isAdmin) return false;
+    if (isAdmin || forceUnlocked) return false;
     const now = new Date();
     const limit = new Date(now);
     limit.setDate(now.getDate() - 2);
@@ -1175,6 +1176,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     }).length
   };
 
+  // Dynamic dates based on actual current local time (2026-06-06)
+  const todayVal = format(new Date(), 'yyyy-MM-dd');
+  const d1 = new Date();
+  d1.setDate(d1.getDate() - 1);
+  const yesterdayVal = format(d1, 'yyyy-MM-dd');
+  const d2 = new Date();
+  d2.setDate(d2.getDate() - 2);
+  const anteontemVal = format(d2, 'yyyy-MM-dd');
+
+  const getDynamicBtnLabel = (offset: number, prefix: string) => {
+    try {
+      const d = offset === 0 ? new Date() : (offset === 1 ? d1 : d2);
+      const weekdayStr = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+      const cleanWeekday = weekdayStr.replace('.', '').toUpperCase();
+      return `${prefix} (${cleanWeekday} - ${format(d, 'dd/MM')})`;
+    } catch (e) {
+      return prefix;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {showHistory ? (
@@ -1309,42 +1330,42 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               <button
                 type="button"
-                onClick={() => setDate('2026-05-29')}
+                onClick={() => setDate(anteontemVal)}
                 className={cn(
                   "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
-                  date === '2026-05-29' 
+                  date === anteontemVal 
                     ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
                     : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
                 )}
-                title="Atuar na presença de Sexta-feira dia 29/05"
+                title={`Atuar na presença de Anteontem (${format(d2, 'dd/MM')})`}
               >
-                📅 Sex (29/05)
+                📅 {getDynamicBtnLabel(2, 'Anteontem')}
               </button>
               <button
                 type="button"
-                onClick={() => setDate('2026-05-30')}
+                onClick={() => setDate(yesterdayVal)}
                 className={cn(
                   "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
-                  date === '2026-05-30' 
+                  date === yesterdayVal 
                     ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
                     : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
                 )}
-                title="Atuar na presença de Sábado dia 30/05(Ontem)"
+                title={`Atuar na presença de Ontem (${format(d1, 'dd/MM')})`}
               >
-                📅 Sáb (30/05)
+                📅 {getDynamicBtnLabel(1, 'Ontem')}
               </button>
               <button
                 type="button"
-                onClick={() => setDate('2026-05-31')}
+                onClick={() => setDate(todayVal)}
                 className={cn(
                   "px-3 py-2 text-[10px] uppercase font-black tracking-tight rounded-xl transition-all cursor-pointer border shrink-0",
-                  date === '2026-05-31' 
+                  date === todayVal 
                     ? "bg-theme-primary text-black border-theme-primary font-black shadow-lg shadow-theme-primary/15" 
                     : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 border-zinc-800 hover:text-white"
                 )}
-                title="Atuar na presença de Hoje (31/05)"
+                title={`Atuar na presença de Hoje (${format(new Date(), 'dd/MM')})`}
               >
-                📅 Hoje (31/05)
+                📅 {getDynamicBtnLabel(0, 'Hoje')}
               </button>
             </div>
             
@@ -1361,6 +1382,56 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </div>
         </div>
       </div>
+
+      {isLocked && !forceUnlocked && (
+        <div id="retroactive-notice-locked" className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/15 text-amber-500 rounded-xl">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-amber-500 uppercase tracking-wider">Chamada Histórica (Apenas Visualização)</h4>
+              <p className="text-xs text-zinc-400 mt-0.5">Esta chamada está finalizada devido à data limite. Clique ao lado para liberar edições retroativas e corrigir presenças antigas.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setForceUnlocked(true);
+              toast.success("Modo de edição habilitado! Você já pode efetuar e salvar correções.");
+            }}
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-amber-500 text-black font-black text-xs uppercase tracking-wider rounded-2xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/15"
+          >
+            <Lock size={14} />
+            Liberar Edição para Correção
+          </button>
+        </div>
+      )}
+
+      {forceUnlocked && (
+        <div id="retroactive-notice-unlocked" className="p-5 bg-green-500/10 border border-green-500/20 rounded-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-green-500/15 text-green-500 rounded-xl animate-pulse">
+              <CheckCircle2 size={20} className="text-green-500" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-green-500 uppercase tracking-wider">Modo de Correção Ativo</h4>
+              <p className="text-xs text-zinc-400 mt-0.5">Você liberou a edição de chamadas antigas. Altere as presenças abaixo e depois clique no botão de "Salvar Chamada" para efetivar.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setForceUnlocked(false);
+              toast.info("A chamada voltou ao estado fechado de histórico.");
+            }}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition-all"
+          >
+            <Lock size={14} className="text-zinc-500" />
+            Reativar Bloqueio
+          </button>
+        </div>
+      )}
 
       {isScanning && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
