@@ -293,9 +293,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   useEffect(() => {
     const checkLock = async () => {
       const now = new Date();
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+      const limit = new Date(now);
+      limit.setDate(now.getDate() - 2);
+      const limitString = format(limit, 'yyyy-MM-dd');
 
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
 
@@ -305,8 +305,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           if (found) {
             setTraining(found);
             
-            // Calculate global lock (lock if older than yesterday)
-            if (found.date < yesterdayString && !isAdmin) {
+            // Calculate global lock (lock if older than 2 days ago, allowing today, yesterday and day before)
+            if (found.date < limitString && !isAdmin) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -320,7 +320,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           const found = await api.getEvent(eventId);
           if (found) {
             setEvent(found);
-            if (found.end_date < yesterdayString && !isAdmin) {
+            if (found.end_date < limitString && !isAdmin) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -330,8 +330,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           console.error("Error fetching event for lock check:", err);
         }
       } else {
-        // General attendance: lock if date is older than yesterday
-        if (date < yesterdayString && !isAdmin) {
+        // General attendance: lock if date is older than 2 days ago
+        if (date < limitString && !isAdmin) {
           setIsLocked(true);
         } else {
           setIsLocked(false);
@@ -342,7 +342,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     checkLock();
     const interval = setInterval(checkLock, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [trainingId, eventId, date, selectedTrainingId]);
+  }, [trainingId, eventId, date, selectedTrainingId, role, isAdmin]);
 
   useEffect(() => {
     const fetchEventAthletes = async () => {
@@ -660,19 +660,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const isAthleteLocked = (athlete: Athlete) => {
     if (isAdmin) return false;
     const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+    const limit = new Date(now);
+    limit.setDate(now.getDate() - 2);
+    const limitString = format(limit, 'yyyy-MM-dd');
 
     if (trainingId && training) {
-      if (training.date < yesterdayString) return true;
-      if (training.date >= yesterdayString) return false;
+      if (training.date < limitString) return true;
+      if (training.date >= limitString) return false;
     } else if (eventId && event) {
-      if (event.end_date < yesterdayString) return true;
-      if (event.end_date >= yesterdayString) return false;
+      if (event.end_date < limitString) return true;
+      if (event.end_date >= limitString) return false;
     }
 
-    if (date < yesterdayString) return true;
+    if (date < limitString) return true;
     return false;
   };
 
