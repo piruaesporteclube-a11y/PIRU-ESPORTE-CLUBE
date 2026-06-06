@@ -293,8 +293,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   useEffect(() => {
     const checkLock = async () => {
       const now = new Date();
-      const todayString = format(now, 'yyyy-MM-dd');
-      const currentTimeStr = format(now, 'HH:mm');
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const yesterdayString = format(yesterday, 'yyyy-MM-dd');
 
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
 
@@ -304,17 +305,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           if (found) {
             setTraining(found);
             
-            // Calculate global lock
-            if (found.date < todayString && !isAdmin) {
+            // Calculate global lock (lock if older than yesterday)
+            if (found.date < yesterdayString && !isAdmin) {
               setIsLocked(true);
-            } else if (found.date === todayString && !isAdmin) {
-              // If there are schedules, find the latest end time
-              if (found.schedules && found.schedules.length > 0) {
-                const latestEnd = found.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
-                setIsLocked(latestEnd < currentTimeStr);
-              } else {
-                setIsLocked((found.end_time || '00:00') < currentTimeStr);
-              }
             } else {
               setIsLocked(false);
             }
@@ -327,9 +320,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           const found = await api.getEvent(eventId);
           if (found) {
             setEvent(found);
-            if ((found.end_date < todayString && !isAdmin)) {
-              setIsLocked(true);
-            } else if (found.end_date === todayString && (found.end_time || '00:00') < currentTimeStr && !isAdmin) {
+            if (found.end_date < yesterdayString && !isAdmin) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -339,8 +330,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           console.error("Error fetching event for lock check:", err);
         }
       } else {
-        // General attendance: lock if date is in the past
-        if (date < todayString && !isAdmin) {
+        // General attendance: lock if date is older than yesterday
+        if (date < yesterdayString && !isAdmin) {
           setIsLocked(true);
         } else {
           setIsLocked(false);
@@ -669,35 +660,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const isAthleteLocked = (athlete: Athlete) => {
     if (isAdmin) return false;
     const now = new Date();
-    const todayString = format(now, 'yyyy-MM-dd');
-    const currentTimeStr = format(now, 'HH:mm');
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayString = format(yesterday, 'yyyy-MM-dd');
 
     if (trainingId && training) {
-      if (training.date < todayString) return true;
-      if (training.date > todayString) return false;
-      
-      if (training.date === todayString) {
-        if (training.schedules && training.schedules.length > 0) {
-          const sub = getSubCategory(athlete.birth_date);
-          const relevantSchedules = training.schedules.filter(s => 
-            s.categories.includes('Todos') || s.categories.includes(sub)
-          );
-          
-          if (relevantSchedules.length > 0) {
-            return relevantSchedules.every(s => s.end_time < currentTimeStr);
-          }
-        }
-        return training.end_time < currentTimeStr;
-      }
+      if (training.date < yesterdayString) return true;
+      if (training.date >= yesterdayString) return false;
     } else if (eventId && event) {
-      if (event.end_date < todayString) return true;
-      if (event.start_date > todayString) return false;
-      if (event.end_date === todayString) {
-        return event.end_time < currentTimeStr;
-      }
+      if (event.end_date < yesterdayString) return true;
+      if (event.end_date >= yesterdayString) return false;
     }
 
-    if (date < todayString) return true;
+    if (date < yesterdayString) return true;
     return false;
   };
 
