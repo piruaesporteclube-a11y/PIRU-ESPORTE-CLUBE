@@ -316,6 +316,36 @@ export default function SettingsComponent() {
                 <p className="text-[10px] text-zinc-500 italic mt-1 font-medium leading-tight">Gera profundidade tridimensional realçando os painéis com sombras ou leds.</p>
               </div>
             </div>
+
+            {/* Layout Quick Actions */}
+            <div className="md:col-span-2 pt-6 border-t border-zinc-800/60 mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <h5 className="text-xs font-black text-theme-primary uppercase tracking-wide">Ações Rápidas do Layout</h5>
+                <p className="text-[10px] text-zinc-500">Salve suas mudanças de design imediatamente ou resete para os padrões escuros originais.</p>
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleResetTheme}
+                  className="flex-1 sm:flex-none px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-zinc-700/80 cursor-pointer"
+                  title="Restaurar layout padrão (Preto e Amarelo)"
+                >
+                  <RotateCcw size={14} />
+                  Resetar Padrão
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await api.saveSettings(settings);
+                    toast.success('Design e visual salvos com sucesso!');
+                  }}
+                  className="flex-1 sm:flex-none px-5 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-theme-primary/15 cursor-pointer"
+                >
+                  <Save size={14} />
+                  Salvar Layout
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
