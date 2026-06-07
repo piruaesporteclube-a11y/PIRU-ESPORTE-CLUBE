@@ -14,7 +14,15 @@ export default function SettingsComponent() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setSettings(globalSettings);
+    setSettings({
+      ...globalSettings,
+      layoutBgColor: globalSettings.layoutBgColor || '#000000',
+      layoutCardColor: globalSettings.layoutCardColor || '#18181b',
+      layoutBorderColor: globalSettings.layoutBorderColor || '#27272a',
+      layoutBorderRadius: globalSettings.layoutBorderRadius || '3xl',
+      layoutBorderWidth: globalSettings.layoutBorderWidth || '1px',
+      layoutShadow: globalSettings.layoutShadow || 'xl'
+    });
   }, [globalSettings]);
 
   const handleCrestUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +47,13 @@ export default function SettingsComponent() {
     const defaultSettings = {
       ...settings,
       primaryColor: '#EAB308',
-      secondaryColor: '#000000'
+      secondaryColor: '#000000',
+      layoutBgColor: '#000000',
+      layoutCardColor: '#18181b',
+      layoutBorderColor: '#27272a',
+      layoutBorderRadius: '3xl' as const,
+      layoutBorderWidth: '1px' as const,
+      layoutShadow: 'xl' as const
     };
     setSettings(defaultSettings);
     await api.saveSettings(defaultSettings);
@@ -150,41 +164,156 @@ export default function SettingsComponent() {
               <p className="text-[10px] text-zinc-500 text-center">O brasão aparecerá em todos os documentos, carteirinhas e cadastros.</p>
             </div>
 
-            {/* Colors */}
+            {/* Colors & Custom Layout Design */}
             <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Cor Primária</label>
-                <div className="flex items-center gap-4">
-                  <input 
-                    type="color" 
-                    className="w-12 h-12 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer"
-                    value={settings.primaryColor}
-                    onChange={e => setSettings({...settings, primaryColor: e.target.value})}
-                  />
-                  <input 
-                    type="text" 
-                    className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase"
-                    value={settings.primaryColor}
-                    onChange={e => setSettings({...settings, primaryColor: e.target.value})}
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+                <div className="sm:col-span-2">
+                  <h4 className="text-[11px] font-bold text-theme-primary uppercase tracking-wider">Cores da Identidade</h4>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5">Cor Primária</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
+                      value={settings.primaryColor}
+                      onChange={e => setSettings({...settings, primaryColor: e.target.value})}
+                    />
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
+                      value={settings.primaryColor}
+                      onChange={e => setSettings({...settings, primaryColor: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5">Cor Secundária</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
+                      value={settings.secondaryColor}
+                      onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
+                    />
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
+                      value={settings.secondaryColor}
+                      onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 border-t border-zinc-800/60 pt-4 mt-2">
+                  <h4 className="text-[11px] font-bold text-theme-primary uppercase tracking-wider">Design e Fundo do Sistema</h4>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5">Cor de Fundo Geral</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
+                      value={settings.layoutBgColor || '#000000'}
+                      onChange={e => setSettings({...settings, layoutBgColor: e.target.value})}
+                    />
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
+                      value={settings.layoutBgColor || '#000000'}
+                      onChange={e => setSettings({...settings, layoutBgColor: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5">Fundo dos Painéis/Cards</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
+                      value={settings.layoutCardColor || '#18181b'}
+                      onChange={e => setSettings({...settings, layoutCardColor: e.target.value})}
+                    />
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
+                      value={settings.layoutCardColor || '#18181b'}
+                      onChange={e => setSettings({...settings, layoutCardColor: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5">Cor das Bordas (Divisórias)</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
+                      value={settings.layoutBorderColor || '#27272a'}
+                      onChange={e => setSettings({...settings, layoutBorderColor: e.target.value})}
+                    />
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
+                      value={settings.layoutBorderColor || '#27272a'}
+                      onChange={e => setSettings({...settings, layoutBorderColor: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Cor Secundária</label>
-                <div className="flex items-center gap-4">
-                  <input 
-                    type="color" 
-                    className="w-12 h-12 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer"
-                    value={settings.secondaryColor}
-                    onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
-                  />
-                  <input 
-                    type="text" 
-                    className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase"
-                    value={settings.secondaryColor}
-                    onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
-                  />
-                </div>
+            </div>
+
+            {/* Roundness, Border Width and Shadows */}
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-zinc-800/60 mt-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400 uppercase">Arredondamento das Bordas</label>
+                <select
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs cursor-pointer"
+                  value={settings.layoutBorderRadius || '3xl'}
+                  onChange={e => setSettings({...settings, layoutBorderRadius: e.target.value as any})}
+                >
+                  <option value="none">Reto (0px)</option>
+                  <option value="sm">Muito Sutil (2px-6px)</option>
+                  <option value="md">Suave (4px-8px)</option>
+                  <option value="lg">Moderado (6px-12px)</option>
+                  <option value="xl">Arredondado (12px-20px)</option>
+                  <option value="2xl">Bordas Redondas (16px-24px)</option>
+                  <option value="3xl">Estilo Piruá / Esferas (20px-32px)</option>
+                </select>
+                <p className="text-[10px] text-zinc-500 italic mt-1 font-medium leading-tight">Curvas suaves deixam painéis, bento-grids e formulários mais amigáveis.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400 uppercase">Espessura de Linhas/Bordas</label>
+                <select
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs cursor-pointer"
+                  value={settings.layoutBorderWidth || '1px'}
+                  onChange={e => setSettings({...settings, layoutBorderWidth: e.target.value as any})}
+                >
+                  <option value="0px">Sem Linha (0px)</option>
+                  <option value="1px">Fina (1px)</option>
+                  <option value="2px">Média (2px)</option>
+                  <option value="3px">Espessa (3px)</option>
+                </select>
+                <p className="text-[10px] text-zinc-500 italic mt-1 font-medium leading-tight">Espessura visual das decorações e contornos de botões na interface.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400 uppercase">Sombreamento (Efeito 3D)</label>
+                <select
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs cursor-pointer"
+                  value={settings.layoutShadow || 'xl'}
+                  onChange={e => setSettings({...settings, layoutShadow: e.target.value as any})}
+                >
+                  <option value="none">Totalmente Plano (Sem sombra)</option>
+                  <option value="sm">Extremamente Sutil (1D)</option>
+                  <option value="md">Esboço Sombreado (2D)</option>
+                  <option value="lg">Elevado Médio (3D)</option>
+                  <option value="xl">Intensa/Profissional (Aplicativo)</option>
+                  <option value="2xl">Super Profunda e Alta</option>
+                  <option value="heavy">Brutalismo Alto Contraste</option>
+                  <option value="neon">Brilho Aura Neon (Glow)</option>
+                </select>
+                <p className="text-[10px] text-zinc-500 italic mt-1 font-medium leading-tight">Gera profundidade tridimensional realçando os painéis com sombras ou leds.</p>
               </div>
             </div>
           </div>

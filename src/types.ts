@@ -151,6 +151,13 @@ export type Settings = {
   whatsapp: string;
   schoolCrest: string;
   themeColor?: string;
+  // Custom design and layout settings
+  layoutBgColor?: string;
+  layoutCardColor?: string;
+  layoutBorderColor?: string;
+  layoutBorderRadius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  layoutBorderWidth?: '0px' | '1px' | '2px' | '3px';
+  layoutShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'neon' | 'heavy';
   // Institutional/Registration Base
   president?: string;
   technicalDirector?: string;

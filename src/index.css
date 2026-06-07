@@ -3,13 +3,42 @@
 :root {
   --theme-primary: #EAB308;
   --theme-secondary: #000000;
+  --theme-bg: #000000;
+  --theme-card: #18181b;
+  --theme-card-hover: #202024;
+  --theme-border: #27272a;
+  --theme-border-accent: #3f3f46;
+  --theme-radius-xl: 0.75rem;
+  --theme-radius-2xl: 1rem;
+  --theme-radius-3xl: 1.5rem;
+  --theme-border-width: 1px;
 }
 
 @theme {
   --color-theme-primary: var(--theme-primary);
   --color-theme-secondary: var(--theme-secondary);
 
-  /* Legacy color fallbacks for html2canvas compatibility */
+  /* Dynamic system layout mapping */
+  --color-black: var(--theme-bg);
+  --color-zinc-950: var(--theme-bg);
+  --color-zinc-900: var(--theme-card);
+  --color-zinc-850: var(--theme-card-hover);
+  --color-zinc-800: var(--theme-border);
+  --color-zinc-700: var(--theme-border-accent);
+
+  /* Dynamic roundness styling mapping */
+  --radius-xl: var(--theme-radius-xl);
+  --radius-2xl: var(--theme-radius-2xl);
+  --radius-3xl: var(--theme-radius-3xl);
+
+  /* Dynamic shadow mapping */
+  --shadow-sm: var(--theme-shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  --shadow-md: var(--theme-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  --shadow-lg: var(--theme-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  --shadow-xl: var(--theme-shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+  --shadow-2xl: var(--theme-shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+
+  /* Legacy layout configurations for older integrations */
   --color-zinc-50: #fafafa;
   --color-zinc-100: #f4f4f5;
   --color-zinc-200: #e4e4e7;
@@ -17,15 +46,13 @@
   --color-zinc-400: #a1a1aa;
   --color-zinc-500: #71717a;
   --color-zinc-600: #52525b;
-  --color-zinc-700: #3f3f46;
-  --color-zinc-800: #27272a;
-  --color-zinc-900: #18181b;
-  --color-zinc-950: #09090b;
 }
 
 @layer base {
   body {
-    @apply bg-black text-white;
+    background-color: var(--theme-bg);
+    color: #ffffff;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 }
 
