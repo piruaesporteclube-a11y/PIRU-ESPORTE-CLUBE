@@ -563,7 +563,7 @@ export const api = {
                 name: professorData.name || "Professor",
                 email: email,
                 doc: normalizedUsername,
-                role: "professor",
+                role: professorData.systemRole || "professor",
                 professor_id: professorId,
                 updated_at: serverTimestamp() as any
               };
@@ -627,7 +627,7 @@ export const api = {
                 name: (personData as any).name || (isAthlete ? "Novo Aluno" : "Professor"),
                 email: email,
                 doc: normalizedUsername,
-                role: isAthlete ? "student" : "professor",
+                role: isAthlete ? "student" : ((personData as any).systemRole || "professor"),
                 athlete_id: isAthlete ? personId : undefined,
                 professor_id: isAthlete ? undefined : personId,
                 updated_at: serverTimestamp() as any
@@ -681,7 +681,7 @@ export const api = {
           name: firebaseUser.displayName || (isAdminEmail ? "Administrador Principal" : "Usuário Google"),
           doc: isAdminEmail ? "05504043689" : (isAthlete ? (athleteSnapshot.docs[0].data() as Athlete).doc : (isProfessor ? (professorSnapshot.docs[0].data() as Professor).doc : "")),
           email: firebaseUser.email || "",
-          role: isAdminEmail ? "admin" : (isProfessor ? "professor" : "student"),
+          role: isAdminEmail ? "admin" : (isProfessor ? ((professorSnapshot.docs[0].data() as Professor).systemRole || "professor") : "student"),
           athlete_id: isAthlete ? athleteSnapshot.docs[0].id : undefined,
           professor_id: isProfessor ? professorSnapshot.docs[0].id : undefined,
           updated_at: serverTimestamp() as any

@@ -17,6 +17,7 @@ export default function PublicProfessorRegistration() {
     phone: '',
     role: 'Treinador',
     modality: 'Comissão Técnica',
+    systemRole: 'professor',
     street: '',
     number: '',
     neighborhood: '',

@@ -36,7 +36,8 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
     email: '',
     photo: '',
     role: 'Treinador',
-    modality: 'Comissão Técnica'
+    modality: 'Comissão Técnica',
+    systemRole: 'professor'
   });
 
   useEffect(() => {
@@ -246,7 +247,8 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
         uf: '', 
         photo: '',
         role: 'Treinador',
-        modality: 'Comissão Técnica'
+        modality: 'Comissão Técnica',
+        systemRole: 'professor'
       });
       loadProfessors();
     } catch (err: any) {
@@ -342,7 +344,14 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                 </div>
               )}
             </div>
-            <h3 className="text-lg font-bold text-white uppercase">{p.name}</h3>
+            <h3 className="text-lg font-bold text-white uppercase flex items-center justify-center gap-2 flex-wrap">
+              {p.name}
+              {p.systemRole === 'admin' && (
+                <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-red-500/10 text-red-500 border border-red-500/20">
+                  ADM
+                </span>
+              )}
+            </h3>
             {p.role && <p className="text-xs text-theme-primary font-black uppercase mb-1">{p.role}</p>}
             <p className="text-xs text-zinc-300 font-bold mb-1">{p.email}</p>
             <p className="text-xs text-zinc-500 mb-1">{p.doc}</p>
@@ -410,7 +419,8 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   uf: '', 
                   photo: '',
                   role: 'Treinador',
-                  modality: 'Comissão Técnica'
+                  modality: 'Comissão Técnica',
+                  systemRole: 'professor'
                 }); 
               }} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                 <X size={18} className="group-hover:rotate-90 transition-transform" />
@@ -460,6 +470,18 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     <option value="Diretoria">Diretoria</option>
                     <option value="Saúde">Saúde</option>
                     <option value="Administrativo">Administrativo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Permissão / Nível de Acesso</label>
+                  <select 
+                    required
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+                    value={formData.systemRole || 'professor'}
+                    onChange={e => setFormData({...formData, systemRole: e.target.value as any})}
+                  >
+                    <option value="professor">Comissão Técnica (Professor / Auxiliar)</option>
+                    <option value="admin">Administrador Geral (Acesso Total)</option>
                   </select>
                 </div>
                 <div className="md:col-span-2">

@@ -45,6 +45,7 @@ export type Professor = {
   uf: string;
   photo: string;
   role?: string; // Can be comma-separated for multi-role
+  systemRole?: "admin" | "professor";
   modality?: string;
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field

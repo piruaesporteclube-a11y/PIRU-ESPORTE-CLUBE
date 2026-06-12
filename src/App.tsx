@@ -266,7 +266,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
     { label: 'Link Equipes', icon: Trophy, color: 'text-purple-500', url: `${window.location.origin}/?team_registration=true` },
   ];
 
-  if (user.role === 'student' || user.role === 'professor') {
+  if (user.role === 'student') {
     return (
       <div className="space-y-12">
         <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -274,7 +274,7 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
             <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">
               Olá, {user.name.split(' ')[0]}
             </h2>
-            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial {user.role === 'professor' ? 'da comissão' : 'de atleta'}.</p>
+            <p className="text-zinc-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis text-sm sm:text-base">Bem-vindo ao seu portal oficial de atleta.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <button 
@@ -1195,7 +1195,7 @@ export default function App() {
     }
     setUser(auth.user);
     localStorage.setItem('pirua_user', JSON.stringify(auth.user));
-    setActiveTab((auth.user.role === 'student' || auth.user.role === 'professor') ? 'my-card' : 'dashboard');
+    setActiveTab(auth.user.role === 'student' ? 'my-card' : 'dashboard');
   };
 
   const handleLogout = async () => {
