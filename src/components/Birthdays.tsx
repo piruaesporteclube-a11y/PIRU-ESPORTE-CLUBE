@@ -29,6 +29,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
   const { settings } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<Athlete | Professor | null>(null);
+  const [athleteName, setAthleteName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [bgLayers, setBgLayers] = useState<Array<{
@@ -75,6 +76,14 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
 
   const currentBorder = BORDER_THEMES.find(t => t.id === photoBorderTheme) || BORDER_THEMES[0];
+
+  useEffect(() => {
+    if (selectedPerson) {
+      setAthleteName(selectedPerson.name.split(' ').slice(0, 2).join(' '));
+    } else {
+      setAthleteName('');
+    }
+  }, [selectedPerson]);
 
   useEffect(() => {
     if (athletesProp) {
@@ -877,7 +886,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           }}
                         >
                           <div className={cn(
-                            "py-4 px-6 border-[4px] shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
+                            "py-4 px-6 border-[4px] rounded-2xl shadow-[8px_8px_0_rgba(0,0,0,1)] flex items-center justify-center min-h-[60px]",
                             bannerStyle === 'yellow' && "bg-theme-primary border-black",
                             bannerStyle === 'white' && "bg-white border-theme-primary shadow-[8px_8px_0_rgba(0,0,0,0.5)]",
                             bannerStyle === 'black' && "bg-black border-theme-primary shadow-[8px_8px_0_rgba(255,255,255,0.2)]",
@@ -899,7 +908,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                                 textOverflow: 'ellipsis'
                               }}
                             >
-                              {selectedPerson.name.split(' ').slice(0, 2).join(' ')}
+                              {athleteName || selectedPerson.name}
                             </h3>
                           </div>
                         </div>
@@ -1461,6 +1470,17 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                       >
                         {showAthleteName ? 'Ocultar Nome' : 'Mostrar Nome'}
                       </button>
+                    </div>
+
+                    <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-2">
+                      <label className="block text-[10px] font-black uppercase text-theme-primary tracking-widest">Escrever / Alterar Nome no Encarte</label>
+                      <input
+                        type="text"
+                        value={athleteName}
+                        onChange={(e) => setAthleteName(e.target.value)}
+                        placeholder="Nome personalizado..."
+                        className="w-full px-4 py-2.5 bg-black border border-zinc-800 rounded-xl text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-theme-primary/50 transition-all"
+                      />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div className="space-y-4">
