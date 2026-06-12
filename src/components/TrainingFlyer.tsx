@@ -27,6 +27,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedTrainingId, setSelectedTrainingId] = useState<string>('all');
+  const [customTimes, setCustomTimes] = useState<{ [key: string]: string }>({});
+  const [customCategories, setCustomCategories] = useState<{ [key: string]: string }>({});
 
   const activeTrainings = selectedTrainingId === 'all' 
     ? trainings 
@@ -733,6 +735,92 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             </div>
           </div>
 
+          {/* Custom Time and Text Inputs */}
+          <div className="bg-black/40 p-5 rounded-[2rem] border border-zinc-800 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-3.5 bg-theme-primary rounded-full" />
+              <label className="text-[10px] font-black text-zinc-300 uppercase tracking-widest block font-sans">
+                Personalizar Horários e Textos
+              </label>
+            </div>
+            <p className="text-[9px] text-zinc-500 font-bold uppercase leading-normal">
+              Edite os horários ou adicione textos e notas para aparecerem nos blocos do encarte.
+            </p>
+            <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+              {activeTrainings.map((t, idx) => {
+                const hasSchedules = t.schedules && t.schedules.length > 0;
+                if (!hasSchedules) {
+                  const timeKey = `${t.id}-time`;
+                  const catKey = `${t.id}-cat`;
+                  return (
+                    <div key={t.id} className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-3">
+                      <div className="text-[9px] font-black text-theme-primary uppercase italic">
+                        {t.modality}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Horário / Texto</label>
+                          <input
+                            type="text"
+                            value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : t.start_time}
+                            onChange={(e) => setCustomTimes(prev => ({ ...prev, [timeKey]: e.target.value }))}
+                            className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Categoria / Rótulo</label>
+                          <input
+                            type="text"
+                            value={customCategories[catKey] !== undefined ? customCategories[catKey] : t.category}
+                            onChange={(e) => setCustomCategories(prev => ({ ...prev, [catKey]: e.target.value }))}
+                            className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div key={t.id} className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-3">
+                      <div className="text-[9px] font-black text-theme-primary uppercase italic mb-1">
+                        {t.modality} ({t.schedules?.length} horários)
+                      </div>
+                      {t.schedules?.map((s, si) => {
+                        const timeKey = `${t.id}-${si}-time`;
+                        const catKey = `${t.id}-${si}-cat`;
+                        return (
+                          <div key={si} className="p-2 bg-black/60 rounded-lg border border-zinc-800 space-y-2">
+                            <div className="text-[8px] font-bold text-zinc-400">Horário {si+1}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Horário / Texto</label>
+                                <input
+                                  type="text"
+                                  value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : s.start_time}
+                                  onChange={(e) => setCustomTimes(prev => ({ ...prev, [timeKey]: e.target.value }))}
+                                  className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Categorias / Tags</label>
+                                <input
+                                  type="text"
+                                  value={customCategories[catKey] !== undefined ? customCategories[catKey] : s.categories.join(', ')}
+                                  onChange={(e) => setCustomCategories(prev => ({ ...prev, [catKey]: e.target.value }))}
+                                  className="w-full px-2 py-1.5 bg-black border border-zinc-855 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </div>
+
           {/* Image Upload / Athlete Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -1115,23 +1203,23 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                             infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
                           )}>
                             {/* Time Slot */}
-                            <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
+                            <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
                               {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                               <span 
-                                className="text-theme-primary font-mono font-black tracking-tighter"
+                                className="text-theme-primary font-mono font-black tracking-tighter text-center"
                                 style={{ fontSize: `${timeFontSize}px` }}
                               >
-                                {t.start_time}
+                                {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : t.start_time}
                               </span>
                               {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                             </div>
 
                             {/* Categories Stacks */}
                             <div className="flex flex-col gap-0.5 mt-0.5">
-                              {t.category && (
+                              {(customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category) && (
                                 <div className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
-                                  <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
-                                    {t.category}
+                                  <span className="text-[7px] font-black uppercase italic leading-none text-center">
+                                    {customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category}
                                   </span>
                                 </div>
                               )}
@@ -1146,26 +1234,36 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                               infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
                             )}>
                               {/* Time Slot */}
-                              <div className={cn("flex items-center gap-1", infoAlign === 'right' && "justify-end")}>
+                              <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
                                 {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                                 <span 
-                                  className="text-theme-primary font-mono font-black tracking-tighter"
+                                  className="text-theme-primary font-mono font-black tracking-tighter text-center"
                                   style={{ fontSize: `${timeFontSize}px` }}
                                 >
-                                  {s.start_time}
+                                  {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : s.start_time}
                                 </span>
                                 {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                               </div>
 
                               {/* Categories Stacks */}
                               <div className="flex flex-col gap-0.5 mt-0.5">
-                                {s.categories.map((c, ci) => (
-                                  <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
-                                    <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
-                                      {c}
-                                    </span>
-                                  </div>
-                                ))}
+                                {customCategories[`${t.id}-${si}-cat`] !== undefined ? (
+                                  customCategories[`${t.id}-${si}-cat`] && (
+                                    <div className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
+                                      <span className="text-[7px] font-black uppercase italic leading-none text-center">
+                                        {customCategories[`${t.id}-${si}-cat`]}
+                                      </span>
+                                    </div>
+                                  )
+                                ) : (
+                                  s.categories.map((c, ci) => (
+                                    <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
+                                      <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
+                                        {c}
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
                               </div>
                             </div>
                           </div>
