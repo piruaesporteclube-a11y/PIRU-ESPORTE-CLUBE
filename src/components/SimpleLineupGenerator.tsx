@@ -349,15 +349,22 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map((a, idx) => (
                                     <li key={a.id} className="flex justify-between items-center text-xs text-zinc-350 hover:text-white py-0.5 border-b border-zinc-900/45 last:border-0">
-                                      <span className="font-bold truncate max-w-[200px] uppercase">
-                                        <span className="text-[10px] text-zinc-600 font-medium mr-4">
+                                      <div className="flex items-center gap-2 truncate max-w-[240px]">
+                                        <span className="text-[10px] text-zinc-600 font-medium shrink-0">
                                           {(idx + 1).toString().padStart(2, '0')}
                                         </span>
-                                        {a.name} {a.nickname ? `"${a.nickname}"` : ''}
-                                      </span>
-                                      <span className="font-mono text-[10px] text-zinc-500 font-extrabold bg-zinc-900 px-1.5 py-0.5 rounded">
-                                        #{a.jersey_number || 'S/N'}
-                                      </span>
+                                        <span className="font-bold uppercase truncate">
+                                          {a.name} {a.nickname ? `"${a.nickname}"` : ''}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-[9px] font-bold text-zinc-500 uppercase px-1.5 py-0.5 bg-zinc-950 rounded border border-zinc-800">
+                                          {getSubCategory(a.birth_date)}
+                                        </span>
+                                        <span className="font-mono text-[10px] text-zinc-500 font-extrabold bg-zinc-900 px-1.5 py-0.5 rounded">
+                                          #{a.jersey_number || 'S/N'}
+                                        </span>
+                                      </div>
                                     </li>
                                   ))}
                               </ul>

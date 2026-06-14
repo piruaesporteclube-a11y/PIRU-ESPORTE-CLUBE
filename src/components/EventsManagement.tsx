@@ -331,7 +331,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       // Header
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('PIRUÁ ESPORTE CLUBE', pageWidth / 2, 15, { align: 'center' });
+      doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
@@ -367,10 +367,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       
       // Display current Match or Category if applicable
       let matchY = 52;
+      if (lineupName) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(`NOME DA LISTA DO SUB: ${lineupName.toUpperCase()}`, 15, matchY);
+        matchY += 5;
+      }
       if (lineupCategory) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text(`CATEGORIA DA ESCOLA / SUB: ${lineupCategory.toUpperCase()}`, 15, matchY);
+        doc.text(`CATEGORIAS VINCULADAS: ${lineupCategory.toUpperCase()}`, 15, matchY);
         matchY += 5;
       }
 
@@ -2346,12 +2352,21 @@ Contamos com sua presença!`;
                   ) : null}
                   <div className="text-left">
                     <h1 className="text-2xl font-black uppercase leading-tight">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
-                    <h2 className="text-sm font-extrabold uppercase text-zinc-700 mt-1">CONVOCAÇÃO EXTRAOFICIAL / RELATÓRIO DE SQUAD DE SUB</h2>
-                    {lineupCategory && (
-                      <div className="mt-2 text-xs font-black text-black border-2 border-dashed border-black px-3 py-1 bg-zinc-50 inline-block rounded-lg uppercase tracking-wider">
-                        CATEGORIA DO SUB: {lineupCategory.toUpperCase()}
-                      </div>
-                    )}
+                    <h2 className="text-sm font-extrabold uppercase text-zinc-700 mt-1">
+                      CONVOCAÇÃO EXTRAOFICIAL / RELATÓRIO DE SQUAD {lineupName ? ` - ${lineupName.toUpperCase()}` : (lineupCategory ? ` - ${lineupCategory.split(',')[0].toUpperCase()}` : 'DE SUB')}
+                    </h2>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {lineupName && (
+                        <div className="text-xs font-black text-black border-2 border-dashed border-black px-3 py-1 bg-zinc-50 inline-block rounded-lg uppercase tracking-wider">
+                          LISTA DO SUB: {lineupName.toUpperCase()}
+                        </div>
+                      )}
+                      {lineupCategory && (
+                        <div className="text-xs font-black text-black border-2 border-dashed border-black px-3 py-1 bg-zinc-50 inline-block rounded-lg uppercase tracking-wider">
+                          CATEGORIAS: {lineupCategory.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -2408,6 +2423,7 @@ Contamos com sua presença!`;
                         <th className="border border-black p-1 text-left">Nome Completo</th>
                         <th className="border border-black p-1 text-center w-24">Nasc.</th>
                         <th className="border border-black p-1 text-center w-32">RG/CPF</th>
+                        <th className="border border-black p-1 text-center w-20">SUB</th>
                         <th className="border border-black p-1 text-center w-16">Uniforme</th>
                       </tr>
                     </thead>
@@ -2418,12 +2434,14 @@ Contamos com sua presença!`;
                           <td className="border border-black p-1 font-bold uppercase">{a.name}</td>
                           <td className="border border-black p-1 text-center">{a.birth_date}</td>
                           <td className="border border-black p-1 text-center">{a.doc}</td>
+                          <td className="border border-black p-1 text-center font-bold uppercase">{getSubCategory(a.birth_date)}</td>
                           <td className="border border-black p-1 text-center font-bold">#{a.jersey_number}</td>
                         </tr>
                       ))}
                       {Array.from({ length: Math.max(0, 22 - lineupAthletes.length) }).map((_, i) => (
                         <tr key={`empty-athlete-${i}`} className="h-6">
                           <td className="border border-black p-1 text-center">{lineupAthletes.length + i + 1}</td>
+                          <td className="border border-black p-1"></td>
                           <td className="border border-black p-1"></td>
                           <td className="border border-black p-1"></td>
                           <td className="border border-black p-1"></td>
