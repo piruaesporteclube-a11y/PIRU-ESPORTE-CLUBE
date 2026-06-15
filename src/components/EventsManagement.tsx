@@ -219,7 +219,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(settings?.schoolName || 'Piruá Esporte Clube', 28, 12);
+      const schoolTitle = settings?.schoolName || 'Piruá Esporte Clube';
+      const splitSchoolTitle = pdf.splitTextToSize(schoolTitle, pageWidth - 28 - margin);
+      pdf.text(splitSchoolTitle, 28, 11);
+      
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.text('COMPROVANTE OFICIAL DE PARTICIPAÇÃO', 28, 17);
@@ -245,8 +248,11 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(0, 0, 0);
-        pdf.text(value.toUpperCase(), margin, currentY + 6);
-        currentY += 20;
+
+        const maxValWidth = pageWidth - (margin * 2);
+        const splitVal = pdf.splitTextToSize(value.toUpperCase(), maxValWidth);
+        pdf.text(splitVal, margin, currentY + 6);
+        currentY += (splitVal.length - 1) * 5 + 18;
       };
 
       addField('NOME COMPLETO:', data.name);
@@ -258,23 +264,26 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(0, 0, 0);
-      pdf.text('DADOS DA INSTITUIÇÃO:', margin, currentY + 10);
+      pdf.text('DADOS DA INSTITUIÇÃO:', margin, currentY + 5);
       
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(80, 80, 80);
-      let contactY = currentY + 15;
+      let contactY = currentY + 10;
       if (settings?.address) {
-        pdf.text(`Endereço: ${settings.address}`, margin, contactY);
-        contactY += 4;
+        const splitAddress = pdf.splitTextToSize(`Endereço: ${settings.address}`, pageWidth - (margin * 2));
+        pdf.text(splitAddress, margin, contactY);
+        contactY += (splitAddress.length * 3.5);
       }
       const contactPhone = settings?.whatsapp || settings?.phone;
       if (contactPhone) {
-        pdf.text(`Contato: ${contactPhone}`, margin, contactY);
-        contactY += 4;
+        const splitPhone = pdf.splitTextToSize(`Contato: ${contactPhone}`, pageWidth - (margin * 2));
+        pdf.text(splitPhone, margin, contactY);
+        contactY += (splitPhone.length * 3.5);
       }
       if (settings?.instagram) {
-        pdf.text(`Instagram: @${settings.instagram.replace('@', '')}`, margin, contactY);
+        const splitInstagram = pdf.splitTextToSize(`Instagram: @${settings.instagram.replace('@', '')}`, pageWidth - (margin * 2));
+        pdf.text(splitInstagram, margin, contactY);
       }
 
       // Footer
@@ -403,8 +412,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         pdf.setFontSize(11);
         pdf.setTextColor(0, 0, 0);
       }
-      const lines = pdf.splitTextToSize(textStr, contentWidth);
-      pdf.text(lines, margin, currentY, { align: 'justify' });
+      // Use splitWidth slightly shorter than contentWidth (with safety padding of 5mm) to guarantee no right boundary cut off on any browser
+      const splitWidth = contentWidth - 5;
+      const lines = pdf.splitTextToSize(textStr, splitWidth);
+      pdf.text(lines, margin, currentY, { align: 'justify', maxWidth: splitWidth });
       currentY += (lines.length * 6) + 7;
     };
 
@@ -431,19 +442,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     pdf.line(margin, currentY, margin + 70, currentY);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
-    pdf.text((athlete.guardian_name || 'Assinatura do Responsável').toUpperCase(), margin, currentY + 4);
+    const leftGuardianName = (athlete.guardian_name || 'Assinatura do Responsável').toUpperCase();
+    const splitLeftName = pdf.splitTextToSize(leftGuardianName, 70);
+    pdf.text(splitLeftName, margin, currentY + 4);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
-    pdf.text('Responsável Legal', margin, currentY + 8);
+    const leftTitleY = currentY + 4 + (splitLeftName.length * 4);
+    pdf.text('Responsável Legal', margin, leftTitleY);
 
     // Right Signature - Board / PEC
     pdf.line(pageWidth - margin - 70, currentY, pageWidth - margin, currentY);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
-    pdf.text((settings?.schoolName || 'Piruá Esporte Clube').toUpperCase(), pageWidth - margin - 70, currentY + 4);
+    const rightSchoolName = (settings?.schoolName || 'Piruá Esporte Clube').toUpperCase();
+    const splitRightName = pdf.splitTextToSize(rightSchoolName, 70);
+    pdf.text(splitRightName, pageWidth - margin - 70, currentY + 4);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
-    pdf.text('Assinatura e Carimbo da Diretoria', pageWidth - margin - 70, currentY + 8);
+    const rightTitleY = currentY + 4 + (splitRightName.length * 4);
+    pdf.text('Assinatura e Carimbo da Diretoria', pageWidth - margin - 70, rightTitleY);
 
     // Footer lines
     pdf.setFontSize(7);
@@ -617,21 +634,39 @@ Muito obrigado!
       doc.setFillColor(0, 0, 0);
       doc.rect(15, 26, pageWidth - 30, 8, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
+      
+      // Auto-shrink font size to prevent label clipping inside banner
+      let bannerFontSize = 11;
+      doc.setFontSize(bannerFontSize);
+      while (doc.getTextWidth(currentLineupLabel) > (pageWidth - 40) && bannerFontSize > 6) {
+        bannerFontSize -= 0.5;
+        doc.setFontSize(bannerFontSize);
+      }
+      
       doc.text(currentLineupLabel, pageWidth / 2, 31, { align: 'center' });
       
       // Event Details
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(8);
-      doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, 15, 40);
-      doc.text(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), 15, 44);
-      doc.text(`DATA: ${formatDateSafe(selectedEvent.start_date)}`, 15, 48);
+      
+      const maxLeftWidth = pageWidth / 2 - 20;
+      const splitEventName = doc.splitTextToSize(`EVENTO: ${selectedEvent.name.toUpperCase()}`, maxLeftWidth);
+      doc.text(splitEventName, 15, 40);
+      
+      const splitDest = doc.splitTextToSize(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), maxLeftWidth);
+      const destY = 40 + (splitEventName.length * 4);
+      doc.text(splitDest, 15, destY);
+      
+      const dateY = destY + (splitDest.length * 4);
+      doc.text(`DATA: ${formatDateSafe(selectedEvent.start_date)}`, 15, dateY);
+      
+      doc.setFont('helvetica', 'normal');
       doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40, { align: 'right' });
       doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
       
       // Display current Match or Category if applicable
-      let matchY = 52;
+      let matchY = dateY + 6;
       if (lineupName) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
