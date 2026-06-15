@@ -465,20 +465,25 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       return;
     }
     setIsGeneratingTravelPDF(true);
-    const loadingToast = toast.loading(`Gerando autorizações em lote (${list.length} atletas)...`);
+    const loadingToast = toast.loading(`Iniciando geração de ${list.length} autorizações individuais...`);
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      list.forEach((athlete, index) => {
-        if (index > 0) {
-          pdf.addPage();
-        }
+      for (let i = 0; i < list.length; i++) {
+        const athlete = list[i];
+        toast.loading(`Gerando (${i + 1}/${list.length}): ${athlete.name}...`, { id: loadingToast });
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
         drawSingleTravelPage(pdf, event, athlete);
-      });
-      pdf.save(`Autorizacoes_Viagem_Lote_${event.name.replace(/\s+/g, '_')}.pdf`);
-      toast.success(`${list.length} autorizações em lote geradas com sucesso!`, { id: loadingToast });
+        pdf.save(`Autorizacao_Viagem_${athlete.name.replace(/\s+/g, '_')}.pdf`);
+        
+        // Wait 300ms between downloads to allow the browser to register each download cleanly
+        if (i < list.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+      toast.success(`${list.length} autorizações individuais geradas e salvas com sucesso!`, { id: loadingToast });
     } catch (error: any) {
-      console.error('Error generating batch travel authorizations:', error);
-      toast.error(`Erro ao gerar lote: ${error.message}`, { id: loadingToast });
+      console.error('Error generating separate travel authorizations:', error);
+      toast.error(`Erro ao gerar autorizações individuais: ${error.message}`, { id: loadingToast });
     } finally {
       setIsGeneratingTravelPDF(false);
     }
