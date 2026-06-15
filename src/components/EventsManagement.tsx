@@ -412,10 +412,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
         pdf.setFontSize(11);
         pdf.setTextColor(0, 0, 0);
       }
-      // Use splitWidth slightly shorter than contentWidth (with safety padding of 5mm) to guarantee no right boundary cut off on any browser
-      const splitWidth = contentWidth - 5;
+      // Use splitWidth slightly shorter than contentWidth (with safety padding of 8mm) to guarantee no right boundary cut off on any browser
+      const splitWidth = contentWidth - 8;
       const lines = pdf.splitTextToSize(textStr, splitWidth);
-      pdf.text(lines, margin, currentY, { align: 'justify', maxWidth: splitWidth });
+      pdf.text(lines, margin, currentY, { align: 'left' });
       currentY += (lines.length * 6) + 7;
     };
 
