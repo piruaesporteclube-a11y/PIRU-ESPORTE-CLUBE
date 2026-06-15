@@ -968,17 +968,34 @@ Muito obrigado!
   const handleNotifyAllLineup = () => {
     if (!selectedEvent) return;
     
-    const message = `Olá! Você foi escalado para o evento *${selectedEvent.name}* em *${selectedEvent.start_date}* às *${selectedEvent.start_time}*.
-    
-Por favor, confirme sua participação acessando o portal: ${window.location.origin}
+    // Format date beautifully
+    const formatDateSafe = (dateStr: string | undefined | null) => {
+      if (!dateStr) return '---';
+      try {
+        const parts = dateStr.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return `${day}/${month}/${year}`;
+        }
+      } catch (e) {}
+      return dateStr || '---';
+    };
 
-Contamos com sua presença!`;
+    const dateFormatted = formatDateSafe(selectedEvent.start_date);
+    const timeFormatted = selectedEvent.start_time ? ` às ${selectedEvent.start_time}h` : '';
     
-    // Create a encoded message
-    const encodedMessage = encodeURIComponent(message);
-    
+    const departureStr = selectedEvent.departure_location 
+      ? `\n📍 *Partida:* ${selectedEvent.departure_location}` 
+      : '';
+    const departureTimeStr = selectedEvent.departure_time 
+      ? `\n⏰ *Horário de Partida:* ${selectedEvent.departure_time}`
+      : '';
+    const arrivalStr = selectedEvent.arrival_location 
+      ? `\n📌 *Destino:* ${selectedEvent.arrival_location}`
+      : '';
+
     // Find all selected whose phone is available
-    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && (a as any).contact || (a as any).phone);
+    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && ((a as any).contact || (a as any).phone));
     const staffWithPhone = professors.filter(p => selectedStaff.includes(p.id) && p.phone);
     
     if (athletesWithPhone.length === 0 && staffWithPhone.length === 0) {
@@ -988,20 +1005,57 @@ Contamos com sua presença!`;
 
     toast.info(`Iniciando notificações para ${athletesWithPhone.length + staffWithPhone.length} pessoas...`);
     
-    // We can't batch send WhatsApp, but we can provide links or open them one by one (browser might block popups)
-    // For now, let's open the first one and show a list or just open them in sequence with a delay if allowed
-    // Better: Open a small helper list/modal to click one by one efficiently
+    const generalMessage = `Olá! Você foi escalado para o evento *${selectedEvent.name}*. \n📅 *Data:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}\n\nPor favor, confirme sua participação acessando o portal: ${window.location.origin}\n\nContamos com sua presença!`;
+
     setNotificationBatch({
-      message: message,
+      message: generalMessage,
       recipients: [
-        ...athletesWithPhone.map(a => ({ id: a.id, name: a.name, phone: (a as any).contact || (a as any).phone || '', type: 'Atleta' })),
-        ...staffWithPhone.map(p => ({ id: p.id, name: p.name, phone: p.phone!, type: 'Comissão' }))
+        ...athletesWithPhone.map(a => {
+          const athleteMsg = `Olá, tudo bem? ⚽
+
+Foi gerado o documento de *Autorização de Viagem* para o atleta *${a.name}* referente ao evento *${selectedEvent.name}*.
+
+📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
+
+📁 O arquivo PDF da autorização foi baixado automaticamente em seu aparelho. Por favor, faça a impressão, assine e nos envie de volta.
+
+Ah, e não se esqueça de confirmar sua participação pelo link: ${window.location.origin}
+
+Muito obrigado!
+*Piruá Esporte Clube*`;
+          return { 
+            id: a.id, 
+            name: a.name, 
+            phone: (a as any).contact || (a as any).phone || '', 
+            type: 'Atleta',
+            customMessage: athleteMsg
+          };
+        }),
+        ...staffWithPhone.map(p => {
+          const staffMsg = `Olá, tudo bem? ⚽
+
+Você foi escalado como membro da Comissão Técnica para o evento *${selectedEvent.name}*.
+
+📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
+
+Confirme sua presença no link: ${window.location.origin}
+
+Muito obrigado!
+*Piruá Esporte Clube*`;
+          return { 
+            id: p.id, 
+            name: p.name, 
+            phone: p.phone!, 
+            type: 'Comissão',
+            customMessage: staffMsg
+          };
+        })
       ]
     });
     setIsNotificationModalOpen(true);
   };
 
-  const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, type: string }[] } | null>(null);
+  const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, type: string, customMessage?: string }[] } | null>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   const handleSaveLineup = async () => {
@@ -2401,9 +2455,9 @@ Contamos com sua presença!`;
                                         <div className="flex-1 flex min-w-0">
                                           <button 
                                             onClick={() => {
-                                              const phone = (a as any).contact || (a as any).phone || '';
-                                              const msg = encodeURIComponent(`Olá ${a.name}! Você foi escalado para o evento *${selectedEvent?.name}*. Por favor, confirme sua presença no portal: ${window.location.origin}`);
-                                              window.open(`https://wa.me/55${phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                                              // const phone = (a as any).contact || (a as any).phone || '';
+                                              // const msg = encodeURIComponent(`Olá ${a.name}! Você foi escalado para o evento *${selectedEvent?.name}*. Por favor, confirme sua presença no portal: ${window.location.origin}`);
+                                              handleSendWhatsAppTravelAuthorization(selectedEvent!, a);
                                             }}
                                             className="p-1.5 mr-1 rounded-lg bg-zinc-900 border border-zinc-800 text-green-500 hover:bg-green-500/10 transition-all flex items-center justify-center flex-shrink-0"
                                             title="Notificar por WhatsApp"
@@ -2907,8 +2961,15 @@ Contamos com sua presença!`;
                 <button
                   key={i}
                   onClick={() => {
-                    const msg = encodeURIComponent(notificationBatch.message);
+                    const finalMsg = r.customMessage || notificationBatch.message;
+                    const msg = encodeURIComponent(finalMsg);
                     window.open(`https://wa.me/55${r.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                    if (r.type === 'Atleta' && selectedEvent) {
+                      const athleteObj = athletes.find(ath => ath.id === r.id);
+                      if (athleteObj) {
+                        handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
+                      }
+                    }
                   }}
                   className="w-full p-4 bg-zinc-800 hover:bg-theme-primary/10 border border-zinc-700 hover:border-theme-primary/30 rounded-2xl flex items-center justify-between group transition-all"
                 >
