@@ -468,7 +468,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
-  const handleSendWhatsAppTravelAuthorization = async (event: Event, athlete: Athlete) => {
+  const handleSendWhatsAppTravelAuthorization = async (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
     // Generate the PDF first so client gets it downloaded immediately
     await handleGenerateTravelAuthorizationPDF(event, athlete);
 
@@ -485,7 +485,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     };
 
     const dateFormatted = formatDateSafe(event.start_date);
-    const timeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
+    const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
+    const timeFormatted = event.start_time ? ` àS ${event.start_time}h` : '';
     
     const departureStr = event.departure_location 
       ? `\n📍 *Partida:* ${event.departure_location}` 
@@ -499,29 +500,37 @@ export default function EventsManagement({ athletes: athletesProp, events: event
 
     const text = `Olá, tudo bem? ⚽
 
-Foi gerado o documento de *Autorização de Viagem* do atleta *${athlete.name}* para o evento *${event.name}*.
+Foi gerado o documento de *Autorização de Viagem* para o atleta *${athlete.name}* referente ao evento *${event.name}*.
 
 📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
 
-📁 O arquivo PDF da autorização foi baixado em seu aparelho. Por favor, faça a impressão, assine e envie uma foto legível do papel assinado de volta.
+📁 O arquivo PDF da autorização foi baixado automaticamente em seu aparelho. Por favor, faça a impressão, assine e envie uma foto legível do papel assinado de volta.
 
 Muito obrigado!
 *Piruá Esporte Clube*`;
 
     const encodedText = encodeURIComponent(text);
     
-    // Choose phone number: prioritize guardian_phone if available, fall back to contact or phone
-    const rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    // Choose phone number based on targeted selection
+    let rawPhone = '';
+    if (target === 'parent') {
+      rawPhone = athlete.guardian_phone || '';
+    } else if (target === 'athlete') {
+      rawPhone = athlete.contact || (athlete as any).phone || '';
+    } else {
+      rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    }
+    
     const cleanPhone = rawPhone.replace(/\D/g, '');
 
     if (!cleanPhone) {
-      toast.error(`Atleta sem contato ou telefone de responsável cadastrado!`);
+      toast.error(`Contato ou telefone do destino selecionado (${textTargetName}) não cadastrado!`);
       return;
     }
 
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
-    toast.success('Direcionando para o WhatsApp do responsável/atleta...', { icon: '💬' });
+    toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
   };
 
   const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
@@ -994,8 +1003,8 @@ Muito obrigado!
       ? `\n📌 *Destino:* ${selectedEvent.arrival_location}`
       : '';
 
-    // Find all selected whose phone is available
-    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && ((a as any).contact || (a as any).phone));
+     // Find all selected whose phone is available
+    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && (a.contact || a.guardian_phone || (a as any).phone));
     const staffWithPhone = professors.filter(p => selectedStaff.includes(p.id) && p.phone);
     
     if (athletesWithPhone.length === 0 && staffWithPhone.length === 0) {
@@ -1026,7 +1035,9 @@ Muito obrigado!
           return { 
             id: a.id, 
             name: a.name, 
-            phone: (a as any).contact || (a as any).phone || '', 
+            phone: a.guardian_phone || a.contact || (a as any).phone || '', 
+            guardianPhone: a.guardian_phone || '',
+            contactPhone: a.contact || (a as any).phone || '',
             type: 'Atleta',
             customMessage: athleteMsg
           };
@@ -1055,7 +1066,7 @@ Muito obrigado!
     setIsNotificationModalOpen(true);
   };
 
-  const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, type: string, customMessage?: string }[] } | null>(null);
+  const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, guardianPhone?: string, contactPhone?: string, type: string, customMessage?: string }[] } | null>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   const handleSaveLineup = async () => {
@@ -2452,18 +2463,34 @@ Muito obrigado!
                                     
                                     <div className="flex items-center gap-1">
                                       {savedAthlete ? (
-                                        <div className="flex-1 flex min-w-0">
-                                          <button 
-                                            onClick={() => {
-                                              // const phone = (a as any).contact || (a as any).phone || '';
-                                              // const msg = encodeURIComponent(`Olá ${a.name}! Você foi escalado para o evento *${selectedEvent?.name}*. Por favor, confirme sua presença no portal: ${window.location.origin}`);
-                                              handleSendWhatsAppTravelAuthorization(selectedEvent!, a);
-                                            }}
-                                            className="p-1.5 mr-1 rounded-lg bg-zinc-900 border border-zinc-800 text-green-500 hover:bg-green-500/10 transition-all flex items-center justify-center flex-shrink-0"
-                                            title="Notificar por WhatsApp"
-                                          >
-                                            <MessageCircle size={14} />
-                                          </button>
+                                        <div className="flex-1 flex min-w-0 items-center">
+                                          <div className="flex flex-col gap-1 mr-2 shrink-0">
+                                            {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
+                                              <button 
+                                                onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'parent')}
+                                                className="p-1 px-1.5 rounded-lg bg-zinc-900 border border-green-800/30 text-green-500 hover:bg-green-500/10 transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
+                                                title="Chamar Pais (WhatsApp) + Baixar PDF"
+                                              >
+                                                <MessageCircle size={12} />
+                                                <span className="text-[8px] font-black uppercase">Pais</span>
+                                              </button>
+                                            ) : null}
+
+                                            {((a as any).contact || (a as any).phone) ? (
+                                              <button 
+                                                onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'athlete')}
+                                                className="p-1 px-1.5 rounded-lg bg-zinc-900 border border-theme-primary/30 text-theme-primary hover:bg-theme-primary/10 transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
+                                                title="Chamar Aluno (WhatsApp) + Baixar PDF"
+                                              >
+                                                <MessageCircle size={12} />
+                                                <span className="text-[8px] font-black uppercase">Aluno</span>
+                                              </button>
+                                            ) : null}
+
+                                            {!a.guardian_phone && !((a as any).contact || (a as any).phone) && (
+                                              <span className="text-[7px] text-red-500 font-bold uppercase italic p-1 bg-red-500/10 rounded">Sem Tel.</span>
+                                            )}
+                                          </div>
                                           <div className="flex-1 flex flex-col gap-1">
                                           <div className="flex gap-1">
                                             <button 
@@ -2523,8 +2550,30 @@ Muito obrigado!
                                           className="p-2 ml-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-blue-400 hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
                                           title="Gerar Autorização de Viagem"
                                         >
-                                          <MapPin size={14} /> </button> <button onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a)} className="p-2 ml-1 rounded-lg bg-zinc-900 border border-emerald-800 text-emerald-500 hover:bg-emerald-500/10 transition-all flex items-center justify-center flex-shrink-0" title="Enviar Autorização por WhatsApp"><MessageCircle size={14} /></button> <button className="hidden" style={{display: "none"}}>
-                                        </button>
+                                          <MapPin size={14} />
+                                         </button>
+                                         
+                                         {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
+                                           <button 
+                                             onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'parent')}
+                                             className="p-2 ml-1 rounded-lg bg-zinc-900 border border-green-800/40 text-green-500 hover:bg-green-500/15 transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+                                             title="Enviar Autorização WhatsApp Responsável (Pais) + Baixar PDF"
+                                           >
+                                             <MessageCircle size={14} />
+                                             <span className="text-[7.5px] font-black uppercase ml-0.5 text-green-500">Pais</span>
+                                           </button>
+                                         ) : null}
+
+                                         {((a as any).contact || (a as any).phone) ? (
+                                           <button 
+                                             onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'athlete')}
+                                             className="p-2 ml-1 rounded-lg bg-zinc-900 border border-theme-primary/40 text-theme-primary hover:bg-theme-primary/15 transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+                                             title="Enviar Autorização WhatsApp Aluno + Baixar PDF"
+                                           >
+                                             <MessageCircle size={14} />
+                                             <span className="text-[7.5px] font-black uppercase ml-0.5 text-theme-primary">Aluno</span>
+                                           </button>
+                                         ) : null}
                                       </div>
                                       ) : (
                                         <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
@@ -2957,29 +3006,89 @@ Muito obrigado!
                 <p className="text-xs text-zinc-300 italic whitespace-pre-wrap">{notificationBatch.message}</p>
               </div>
               
-              {notificationBatch.recipients.map((r, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    const finalMsg = r.customMessage || notificationBatch.message;
-                    const msg = encodeURIComponent(finalMsg);
-                    window.open(`https://wa.me/55${r.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
-                    if (r.type === 'Atleta' && selectedEvent) {
-                      const athleteObj = athletes.find(ath => ath.id === r.id);
-                      if (athleteObj) {
-                        handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
-                      }
-                    }
-                  }}
-                  className="w-full p-4 bg-zinc-800 hover:bg-theme-primary/10 border border-zinc-700 hover:border-theme-primary/30 rounded-2xl flex items-center justify-between group transition-all"
-                >
-                  <div className="text-left">
-                    <p className="font-bold text-white group-hover:text-theme-primary transition-colors uppercase text-sm">{r.name}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase">{r.type} • {r.phone}</p>
+              {notificationBatch.recipients.map((r, i) => {
+                const hasParent = r.type === 'Atleta' && r.guardianPhone && r.guardianPhone.trim() !== '';
+                const hasAthlete = r.type === 'Atleta' && r.contactPhone && r.contactPhone.trim() !== '';
+                const isStaff = r.type === 'Comissão';
+
+                return (
+                  <div
+                    key={i}
+                    className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+                  >
+                    <div className="text-left">
+                      <p className="font-bold text-white uppercase text-xs md:text-sm">{r.name}</p>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase">
+                        {r.type} {r.type === 'Atleta' ? `• POSSUI: ${[hasParent && 'PAIS', hasAthlete && 'ALUNO'].filter(Boolean).join(' e ')}` : `• ${r.phone}`}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+                      {isStaff && (
+                        <button
+                          onClick={() => {
+                            const finalMsg = r.customMessage || notificationBatch.message;
+                            const msg = encodeURIComponent(finalMsg);
+                            window.open(`https://wa.me/55${r.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                          }}
+                          className="py-1.5 px-3 bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500 hover:text-black rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <MessageCircle size={12} />
+                          Enviar WhatsApp
+                        </button>
+                      )}
+                      
+                      {hasParent && (
+                        <button
+                          onClick={async () => {
+                            const finalMsg = r.customMessage || notificationBatch.message;
+                            const msg = encodeURIComponent(finalMsg);
+                            if (selectedEvent) {
+                              const athleteObj = athletes.find(ath => ath.id === r.id);
+                              if (athleteObj) {
+                                await handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
+                              }
+                            }
+                            window.open(`https://wa.me/55${r.guardianPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                          }}
+                          className="py-1.5 px-3 bg-green-500 hover:bg-green-600 text-black rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          title="Enviar para Responsável/Pais"
+                        >
+                          <MessageCircle size={12} />
+                          Pais
+                        </button>
+                      )}
+                      
+                      {hasAthlete && (
+                        <button
+                          onClick={async () => {
+                            const finalMsg = r.customMessage || notificationBatch.message;
+                            const msg = encodeURIComponent(finalMsg);
+                            if (selectedEvent) {
+                              const athleteObj = athletes.find(ath => ath.id === r.id);
+                              if (athleteObj) {
+                                await handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
+                              }
+                            }
+                            window.open(`https://wa.me/55${r.contactPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                          }}
+                          className="py-1.5 px-3 bg-theme-primary/10 border border-theme-primary/30 text-theme-primary hover:bg-theme-primary hover:text-black rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          title="Enviar para Atleta/Aluno"
+                        >
+                          <MessageCircle size={12} />
+                          Aluno
+                        </button>
+                      )}
+                      
+                      {!hasParent && !hasAthlete && r.type === 'Atleta' && (
+                        <span className="text-[9px] text-red-500 font-bold uppercase italic p-1.5 bg-red-500/10 border border-red-500/25 rounded-lg">
+                          Sem Contato Cadastrado
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <MessageCircle className="text-green-500 group-hover:scale-125 transition-transform" />
-                </button>
-              ))}
+                );
+              })}
             </div>
             
             <div className="p-6 border-t border-zinc-800 bg-black/20">
