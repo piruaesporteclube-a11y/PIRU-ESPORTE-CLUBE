@@ -2121,6 +2121,36 @@ Contamos com sua presença!`;
                             <span className="text-[10px] font-black text-theme-primary uppercase">Total Escalados:</span>
                             <span className="text-sm font-black text-white">{selectedAthletes.length + selectedStaff.length}</span>
                           </div>
+
+                          {/* Travel Authorization by SUB Category */}
+                          {selectedAthletes.length > 0 && (
+                            <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-2xl space-y-2">
+                              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1 shadow-sm leading-none">
+                                Autorizações de Viagem por SUB:
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(() => {
+                                  const selectedAthletesData = athletes.filter(ath => selectedAthletes.includes(ath.id));
+                                  // Get unique SUB categories present and sort them naturally
+                                  const subs = Array.from(new Set(selectedAthletesData.map(a => getSubCategory(a.birth_date)))).sort((a, b) => a.localeCompare(b));
+                                  return subs.map(subName => {
+                                    const subAthletes = selectedAthletesData.filter(a => getSubCategory(a.birth_date) === subName);
+                                    return (
+                                      <button
+                                        key={subName}
+                                        onClick={() => handleGenerateBatchTravelAuthorizationsPDF(selectedEvent!, subAthletes)}
+                                        className="p-1.5 px-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/25 text-[9px] font-bold uppercase transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 shrink-0"
+                                        title={`Gerar lote de autorizações para os ${subAthletes.length} atletas do ${subName}`}
+                                      >
+                                        <FileDown size={11} className="text-blue-400/80" />
+                                        {subName} ({subAthletes.length})
+                                      </button>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-4">
                           {(selectedAthletes.length === 0 && selectedStaff.length === 0) ? (
