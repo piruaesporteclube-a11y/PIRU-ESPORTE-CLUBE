@@ -974,7 +974,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         </div>
 
         {/* Right: Preview (Flyer Content) */}
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-4 max-w-full overflow-x-auto no-scrollbar">
           <p className="text-xs font-black text-zinc-500 uppercase tracking-widest lg:hidden">Visualização</p>
           <div className="relative shadow-[0_0_100px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
             {/* The actual Flyer target */}

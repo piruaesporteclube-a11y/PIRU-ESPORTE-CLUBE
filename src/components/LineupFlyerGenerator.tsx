@@ -1137,7 +1137,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
         </div>
 
         {/* RIGHT COLUMN: Real-Time Render Preview Screen - Span 5 */}
-        <div className="lg:col-span-12 xl:col-span-5 flex flex-col items-center justify-center p-2">
+        <div className="lg:col-span-12 xl:col-span-5 flex flex-col items-center justify-center p-2 max-w-full overflow-x-auto no-scrollbar">
           
           <span className="text-[10px] font-black text-zinc-455 uppercase tracking-widest block mb-3 text-center">
             Pressione e Baixe para a Arte Final ficar em 1080x1920 (HD)

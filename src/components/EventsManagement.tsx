@@ -1456,8 +1456,8 @@ Contamos com sua presença!`;
       {isLineupOpen && selectedEvent && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-black border border-theme-primary/20 w-full max-w-5xl rounded-3xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-zinc-800 no-print">
-              <div className="space-y-2">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 p-6 border-b border-zinc-800 no-print">
+              <div className="space-y-2 w-full lg:w-auto">
                 <h2 className="text-xl font-bold text-white uppercase">
                   Evento: {selectedEvent.name}
                   {activeMatchId && eventMatches.find(m => m.id === activeMatchId) && (
@@ -1466,7 +1466,7 @@ Contamos com sua presença!`;
                     </span>
                   )}
                 </h2>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mt-2">
                   <button
                     onClick={() => {
                       setModalTab('lineup');
@@ -1619,7 +1619,7 @@ Contamos com sua presença!`;
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start lg:self-center mt-2 lg:mt-0">
                 <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
                 {isAdmin && (
                   <>
@@ -2079,9 +2079,9 @@ Contamos com sua presença!`;
                       {/* Confirmation Area */}
                       <div className="space-y-6 lg:border-l lg:border-zinc-800 lg:pl-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
                         <div className="flex flex-col gap-4">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <button 
                                 onClick={handleNotifyAllLineup}
                                 className="p-1 px-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
