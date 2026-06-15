@@ -82,7 +82,10 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     start_date: '',
     end_date: '',
     start_time: '',
-    end_time: ''
+    end_time: '',
+    departure_time: '',
+    departure_location: '',
+    arrival_location: ''
   });
 
   useEffect(() => {
@@ -376,10 +379,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       event.city ? `${event.city}-${event.uf || 'MG'}` : ''
     ].filter(Boolean).join(', ') || '____________________________________________________';
 
-    const p2 = `O referido evento realizar-se-á na cidade de ${event.city ? `${event.city}-${event.uf || 'MG'}` : '__________________'}, no endereço ${eventAddress}, com início previsto para o dia ${formatTravelDate(event.start_date)} e término em ${formatTravelDate(event.end_date)}.`;
+    const eventStartTimeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
+    const eventEndTimeFormatted = event.end_time ? ` às ${event.end_time}h` : '';
+    const p2 = `O referido evento realizar-se-á na cidade de ${event.city ? `${event.city}-${event.uf || 'MG'}` : '__________________'}, no endereço ${eventAddress}, com início previsto para o dia ${formatTravelDate(event.start_date)}${eventStartTimeFormatted} e término em ${formatTravelDate(event.end_date)}${eventEndTimeFormatted}.`;
 
-    // Paragraph 3: Transportation Authorization
-    const p3 = `Autorizo ainda que o atleta seja transportado em veículo gentilmente cedido pela Prefeitura Municipal de Campos Altos, através da Secretaria de Esporte e Lazer juntamente com a Secretaria de Administração do Município, ou por outros meios de transporte designados pela coordenação ou diretoria do Piruá Esporte Clube.`;
+    // Paragraph 3: Transportation Authorization with dynamic logistics coordinates
+    const hasTravelDetails = event.departure_location || event.departure_time || event.arrival_location;
+    const travelDetailsText = hasTravelDetails 
+      ? ` Ficam definidos para o deslocamento os seguintes detalhes: Viagem com partida de ${event.departure_location || '_______________'}${event.departure_time ? ` prevista para às ${event.departure_time}h` : ''}, tendo como destino ${event.arrival_location || `${event.city || '_______'}-${event.uf || '___'}`}.`
+      : '';
+    const p3 = `Autorizo ainda que o atleta seja transportado em veículo gentilmente cedido pela Prefeitura Municipal de Campos Altos, através da Secretaria de Esporte e Lazer juntamente com a Secretaria de Administração do Município, ou por outros meios de transporte designados pela coordenação ou diretoria do Piruá Esporte Clube.${travelDetailsText}`;
 
     // Paragraph 4: Isenção text block
     const p4 = `"Isento os organizadores do Evento de qualquer responsabilidade por danos eventualmente causados ao menor acima citado no decorrer da competição. Ressaltamos que prestaremos toda atenção necessária durante a viagem, como também durante os jogos. No caso de lesões ou até mesmo fraturas, enfatizamos que prestaremos todo apoio necessário ao atleta de acordo com as nossas condições."`;
@@ -457,6 +466,62 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     } finally {
       setIsGeneratingTravelPDF(false);
     }
+  };
+
+  const handleSendWhatsAppTravelAuthorization = async (event: Event, athlete: Athlete) => {
+    // Generate the PDF first so client gets it downloaded immediately
+    await handleGenerateTravelAuthorizationPDF(event, athlete);
+
+    const formatDateSafe = (dateStr: string | undefined | null) => {
+      if (!dateStr) return '---';
+      try {
+        const parts = dateStr.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return `${day}/${month}/${year}`;
+        }
+      } catch (e) {}
+      return dateStr || '---';
+    };
+
+    const dateFormatted = formatDateSafe(event.start_date);
+    const timeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
+    
+    const departureStr = event.departure_location 
+      ? `\n📍 *Partida:* ${event.departure_location}` 
+      : '';
+    const departureTimeStr = event.departure_time 
+      ? `\n⏰ *Horário de Partida:* ${event.departure_time}`
+      : '';
+    const arrivalStr = event.arrival_location 
+      ? `\n📌 *Destino:* ${event.arrival_location}`
+      : '';
+
+    const text = `Olá, tudo bem? ⚽
+
+Foi gerado o documento de *Autorização de Viagem* do atleta *${athlete.name}* para o evento *${event.name}*.
+
+📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
+
+📁 O arquivo PDF da autorização foi baixado em seu aparelho. Por favor, faça a impressão, assine e envie uma foto legível do papel assinado de volta.
+
+Muito obrigado!
+*Piruá Esporte Clube*`;
+
+    const encodedText = encodeURIComponent(text);
+    
+    // Choose phone number: prioritize guardian_phone if available, fall back to contact or phone
+    const rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+
+    if (!cleanPhone) {
+      toast.error(`Atleta sem contato ou telefone de responsável cadastrado!`);
+      return;
+    }
+
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success('Direcionando para o WhatsApp do responsável/atleta...', { icon: '💬' });
   };
 
   const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
@@ -680,7 +745,21 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       await api.saveEvent(formData);
       toast.success(formData.id ? "Evento atualizado com sucesso!" : "Evento criado com sucesso!");
       setIsFormOpen(false);
-      setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
+      setFormData({ 
+        name: '', 
+        street: '', 
+        number: '', 
+        neighborhood: '', 
+        city: '', 
+        uf: '', 
+        start_date: '', 
+        end_date: '', 
+        start_time: '', 
+        end_time: '',
+        departure_time: '',
+        departure_location: '',
+        arrival_location: ''
+      });
       loadEvents();
     } catch (err: any) {
       toast.error(`Erro ao salvar evento: ${err.message}`);
@@ -1377,7 +1456,21 @@ Contamos com sua presença!`;
               <button 
                 onClick={() => {
                   setIsFormOpen(false);
-                  setFormData({ name: '', street: '', number: '', neighborhood: '', city: '', uf: '', start_date: '', end_date: '', start_time: '', end_time: '' });
+                  setFormData({ 
+                    name: '', 
+                    street: '', 
+                    number: '', 
+                    neighborhood: '', 
+                    city: '', 
+                    uf: '', 
+                    start_date: '', 
+                    end_date: '', 
+                    start_time: '', 
+                    end_time: '',
+                    departure_time: '',
+                    departure_location: '',
+                    arrival_location: ''
+                  });
                 }} 
                 className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group"
               >
@@ -1397,7 +1490,7 @@ Contamos com sua presença!`;
                     <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário Início</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário de Início do Evento</label>
                     <input required type="time" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.start_time} onChange={e => setFormData({...formData, start_time: e.target.value})} />
                   </div>
                 </div>
@@ -1407,13 +1500,13 @@ Contamos com sua presença!`;
                     <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário Fim</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário de Fim do Evento</label>
                     <input required type="time" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.end_time} onChange={e => setFormData({...formData, end_time: e.target.value})} />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Rua</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Rua (Local do Evento)</label>
                     <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
                   </div>
                   <div>
@@ -1431,6 +1524,45 @@ Contamos com sua presença!`;
                     <input type="text" maxLength={2} className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase" value={formData.uf} onChange={e => setFormData({...formData, uf: e.target.value})} />
                   </div>
                 </div>
+
+                {/* Transportation / Travel configurations */}
+                <div className="pt-2 border-t border-zinc-800 space-y-4">
+                  <p className="text-[10px] font-black text-theme-primary uppercase tracking-[0.2em]">Detalhes de Transporte / Viagem</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Local de Partida (Viagem)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: Sede do Clube, Ginásio..."
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" 
+                        value={formData.departure_location || ''} 
+                        onChange={e => setFormData({...formData, departure_location: e.target.value})} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário de Partida (Viagem)</label>
+                      <input 
+                        type="time" 
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" 
+                        value={formData.departure_time || ''} 
+                        onChange={e => setFormData({...formData, departure_time: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Local de Chegada / Destino Final</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Estádio Municipal de Lagoa, Campo do Oponente..."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" 
+                      value={formData.arrival_location || ''} 
+                      onChange={e => setFormData({...formData, arrival_location: e.target.value})} 
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Link do Grupo WhatsApp (Comunicação)</label>
                   <input 
@@ -2337,7 +2469,7 @@ Contamos com sua presença!`;
                                           className="p-2 ml-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-blue-400 hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
                                           title="Gerar Autorização de Viagem"
                                         >
-                                          <MapPin size={14} />
+                                          <MapPin size={14} /> </button> <button onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a)} className="p-2 ml-1 rounded-lg bg-zinc-900 border border-emerald-800 text-emerald-500 hover:bg-emerald-500/10 transition-all flex items-center justify-center flex-shrink-0" title="Enviar Autorização por WhatsApp"><MessageCircle size={14} /></button> <button className="hidden" style={{display: "none"}}>
                                         </button>
                                       </div>
                                       ) : (
