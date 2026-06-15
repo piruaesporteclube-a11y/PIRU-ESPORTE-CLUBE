@@ -181,6 +181,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const lineupRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+  const [isGeneratingTravelPDF, setIsGeneratingTravelPDF] = useState(false);
   const [isManualReceiptModalOpen, setIsManualReceiptModalOpen] = useState(false);
   const [manualReceiptData, setManualReceiptData] = useState({ name: '', event: '', date: '' });
   const [showLineupResetConfirm, setShowLineupResetConfirm] = useState(false);
@@ -295,6 +296,191 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       toast.error(`Erro ao gerar comprovante: ${error.message}`, { id: loadingToast });
     } finally {
       setIsGeneratingReceipt(false);
+    }
+  };
+
+  const drawSingleTravelPage = (pdf: any, event: Event, athlete: Athlete) => {
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+
+    const formatTravelDate = (dateStr?: string) => {
+      if (!dateStr) return '___/___/_____';
+      try {
+        const parts = dateStr.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return `${day}/${month}/${year}`;
+        }
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('pt-BR');
+        }
+      } catch (e) {}
+      return dateStr;
+    };
+
+    // Crest at y=15, centered
+    if (crestDataUrl) {
+      try {
+        pdf.addImage(crestDataUrl, 'PNG', pageWidth / 2 - 12.5, 15, 25, 25);
+      } catch (e) {
+        console.warn("Could not draw crest on travel PDF:", e);
+      }
+    }
+
+    // Title / Institution
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 47, { align: 'center' });
+    
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.text('DEPARTAMENTO DE FUTEBOL E BASE', pageWidth / 2, 52, { align: 'center' });
+
+    // Divider line
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, 56, pageWidth - margin, 56);
+
+    // Document Subtitle
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    const subTitle = 'AUTORIZAÇÃO DE VIAGEM E PARTICIPAÇÃO EM EVENTO';
+    pdf.text(subTitle, pageWidth / 2, 66, { align: 'center' });
+
+    // Double underline under subtitle
+    pdf.setLineWidth(0.2);
+    pdf.line(pageWidth / 2 - 60, 68, pageWidth / 2 + 60, 68);
+
+    // Paragraph 1: Guardian Authorizes Candidate
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+    
+    const athleteAddress = [
+      athlete.street ? `${athlete.street}` : '',
+      athlete.number ? `nº ${athlete.number}` : '',
+      athlete.neighborhood ? `${athlete.neighborhood}` : '',
+      athlete.city ? `${athlete.city}-${athlete.uf || 'MG'}` : ''
+    ].filter(Boolean).join(', ') || '____________________________________________________';
+
+    const p1 = `Eu, ${athlete.guardian_name || '________________________'}, portador(a) do RG/CPF nº ${athlete.guardian_doc || '________________________'}, na qualidade de responsável legal pelo atleta menor ${athlete.name || '________________________'}, nascido em ${formatTravelDate(athlete.birth_date)}, inscrito sob o RG/CPF nº ${athlete.doc || '________________________'}, residente e domiciliado em ${athleteAddress}, venho por meio desta AUTORIZAR sua participação no evento denominado ${(event.name || '______').toUpperCase()}.`;
+
+    // Paragraph 2: Location and details of local event
+    const eventAddress = [
+      event.street ? `${event.street}` : '',
+      event.number ? `nº ${event.number}` : '',
+      event.neighborhood ? `${event.neighborhood}` : '',
+      event.city ? `${event.city}-${event.uf || 'MG'}` : ''
+    ].filter(Boolean).join(', ') || '____________________________________________________';
+
+    const p2 = `O referido evento realizar-se-á na cidade de ${event.city ? `${event.city}-${event.uf || 'MG'}` : '__________________'}, no endereço ${eventAddress}, com início previsto para o dia ${formatTravelDate(event.start_date)} e término em ${formatTravelDate(event.end_date)}.`;
+
+    // Paragraph 3: Transportation Authorization
+    const p3 = `Autorizo ainda que o atleta seja transportado em veículo gentilmente cedido pela Prefeitura Municipal de Campos Altos, através da Secretaria de Esporte e Lazer juntamente com a Secretaria de Administração do Município, ou por outros meios de transporte designados pela coordenação ou diretoria do Piruá Esporte Clube.`;
+
+    // Paragraph 4: Isenção text block
+    const p4 = `"Isento os organizadores do Evento de qualquer responsabilidade por danos eventualmente causados ao menor acima citado no decorrer da competição. Ressaltamos que prestaremos toda atenção necessária durante a viagem, como também durante os jogos. No caso de lesões ou até mesmo fraturas, enfatizamos que prestaremos todo apoio necessário ao atleta de acordo com as nossas condições."`;
+
+    let currentY = 80;
+    const writeParagraph = (textStr: string, isItalic = false) => {
+      pdf.setFont('helvetica', isItalic ? 'italic' : 'normal');
+      if (isItalic) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(60, 60, 60);
+      } else {
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+      }
+      const lines = pdf.splitTextToSize(textStr, contentWidth);
+      pdf.text(lines, margin, currentY, { align: 'justify' });
+      currentY += (lines.length * 6) + 7;
+    };
+
+    writeParagraph(p1);
+    writeParagraph(p2);
+    writeParagraph(p3);
+    writeParagraph(p4, true);
+
+    // Local & date at signature time
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    const today = new Date();
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const dateText = `Campos Altos - MG, ${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}.`;
+    pdf.text(dateText, margin, currentY);
+    currentY += 25;
+
+    // Signature templates
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.5);
+
+    // Left Signature - Guardian
+    pdf.line(margin, currentY, margin + 70, currentY);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text((athlete.guardian_name || 'Assinatura do Responsável').toUpperCase(), margin, currentY + 4);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.text('Responsável Legal', margin, currentY + 8);
+
+    // Right Signature - Board / PEC
+    pdf.line(pageWidth - margin - 70, currentY, pageWidth - margin, currentY);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text((settings?.schoolName || 'Piruá Esporte Clube').toUpperCase(), pageWidth - margin - 70, currentY + 4);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.text('Assinatura e Carimbo da Diretoria', pageWidth - margin - 70, currentY + 8);
+
+    // Footer lines
+    pdf.setFontSize(7);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text(`Documento gerado eletronicamente em: ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR')}`, margin, pageHeight - 15);
+    pdf.text(`Sistema de Gestão Piruá E.C. - Todos os direitos reservados.`, margin, pageHeight - 11);
+  };
+
+  const handleGenerateTravelAuthorizationPDF = async (event: Event, athlete: Athlete) => {
+    setIsGeneratingTravelPDF(true);
+    const loadingToast = toast.loading(`Gerando autorização de viagem para ${athlete.name}...`);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      drawSingleTravelPage(pdf, event, athlete);
+      pdf.save(`Autorizacao_Viagem_${athlete.name.replace(/\s+/g, '_')}.pdf`);
+      toast.success('Autorização gerada com sucesso!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('Error generating travel authorization:', error);
+      toast.error(`Erro ao gerar documento: ${error.message}`, { id: loadingToast });
+    } finally {
+      setIsGeneratingTravelPDF(false);
+    }
+  };
+
+  const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
+    if (list.length === 0) {
+      toast.error('Nenhum atleta selecionado para gerar autorizações.');
+      return;
+    }
+    setIsGeneratingTravelPDF(true);
+    const loadingToast = toast.loading(`Gerando autorizações em lote (${list.length} atletas)...`);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      list.forEach((athlete, index) => {
+        if (index > 0) {
+          pdf.addPage();
+        }
+        drawSingleTravelPage(pdf, event, athlete);
+      });
+      pdf.save(`Autorizacoes_Viagem_Lote_${event.name.replace(/\s+/g, '_')}.pdf`);
+      toast.success(`${list.length} autorizações em lote geradas com sucesso!`, { id: loadingToast });
+    } catch (error: any) {
+      console.error('Error generating batch travel authorizations:', error);
+      toast.error(`Erro ao gerar lote: ${error.message}`, { id: loadingToast });
+    } finally {
+      setIsGeneratingTravelPDF(false);
     }
   };
 
@@ -1899,6 +2085,19 @@ Contamos com sua presença!`;
                                 <MessageCircle size={10} />
                                 Notificar Todos
                               </button>
+                              {selectedAthletes.length > 0 && (
+                                <button 
+                                  onClick={() => {
+                                    const selectedAthletesData = athletes.filter(ath => selectedAthletes.includes(ath.id));
+                                    handleGenerateBatchTravelAuthorizationsPDF(selectedEvent!, selectedAthletesData);
+                                  }}
+                                  className="p-1 px-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
+                                  title="Gerar autorizações de viagem em lote para todos os atletas escalados"
+                                >
+                                  <FileDown size={10} />
+                                  Aut. Viagem (Lote)
+                                </button>
+                              )}
                               <button 
                                 onClick={() => {
                                   setManualReceiptData({ 
@@ -2098,6 +2297,13 @@ Contamos com sua presença!`;
                                         >
                                           <FileText size={14} />
                                         </button>
+                                        <button 
+                                          onClick={() => handleGenerateTravelAuthorizationPDF(selectedEvent!, a)}
+                                          className="p-2 ml-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-blue-400 hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
+                                          title="Gerar Autorização de Viagem"
+                                        >
+                                          <MapPin size={14} />
+                                        </button>
                                       </div>
                                       ) : (
                                         <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
@@ -2204,18 +2410,30 @@ Contamos com sua presença!`;
                                 )}>
                                   Status: {a.confirmation || 'Pendente'}
                                 </span>
-                                {isSelf && a.confirmation === 'Pendente' && (
-                                   <div className="flex gap-2">
-                                     <button 
-                                       onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
-                                       className="px-3 py-1 bg-green-500 text-black text-[10px] font-black rounded-lg uppercase"
-                                     >Confirmar</button>
-                                     <button 
-                                       onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
-                                       className="px-3 py-1 bg-red-500 text-black text-[10px] font-black rounded-lg uppercase"
-                                     >Recusar</button>
-                                   </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {isSelf && (
+                                    <button 
+                                      onClick={() => handleGenerateTravelAuthorizationPDF(selectedEvent!, a)}
+                                      className="p-1 px-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-[8px] font-bold rounded-lg uppercase flex items-center gap-1 transition-all"
+                                      title="Gerar minha Autorização de Viagem"
+                                    >
+                                      <MapPin size={10} />
+                                      Doc Viagem
+                                    </button>
+                                  )}
+                                  {isSelf && a.confirmation === 'Pendente' && (
+                                     <div className="flex gap-2">
+                                       <button 
+                                         onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                         className="px-3 py-1 bg-green-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                       >Confirmar</button>
+                                       <button 
+                                         onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                         className="px-3 py-1 bg-red-500 text-black text-[10px] font-black rounded-lg uppercase"
+                                       >Recusar</button>
+                                     </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           );
