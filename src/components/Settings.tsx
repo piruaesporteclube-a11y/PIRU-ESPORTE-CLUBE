@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Settings, Athlete } from '../types';
-import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin, Database } from 'lucide-react';
+import { Save, Instagram, MessageCircle, Palette, Image as ImageIcon, CheckCircle2, Download, RotateCcw, UserPlus, Link as LinkIcon, Heart, Shirt, Building2, Facebook, Youtube, Phone, Mail, MapPin, Database, Pause, ShieldAlert } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import SponsorManager from './SponsorManager';
@@ -667,6 +667,58 @@ export default function SettingsComponent() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Controle de Acesso dos Alunos */}
+        <div className="bg-black border border-theme-primary/20 rounded-3xl p-8 shadow-xl space-y-6">
+          <div className="flex items-center gap-3 text-theme-primary">
+            <Pause size={24} />
+            <h3 className="text-lg font-bold uppercase tracking-widest">Controle de Acesso (Alunos)</h3>
+          </div>
+          
+          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-3">
+            <ShieldAlert className="text-amber-500 shrink-0 mt-0.5" size={18} />
+            <div className="text-xs text-zinc-400 space-y-1">
+              <p className="font-bold text-white uppercase tracking-wider">Atenção - Economia de Recursos (Quota)</p>
+              <p>
+                Ativar o bloqueio abaixo irá suspender imediatamente o acesso de todos os alunos ao portal.
+                Enquanto o bloqueio estiver ativo, eles não conseguirão fazer login nem visualizar os dados (carteirinha, treinos, etc.).
+                Isso interrompe as conexões em tempo real desses usuários, <strong className="text-amber-400">reduzindo drasticamente as leituras do banco de dados (Firestore)</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-2xl border border-zinc-800">
+              <div>
+                <label className="text-sm font-bold text-white uppercase tracking-wide block">Pausar Painel dos Alunos</label>
+                <span className="text-xs text-zinc-500">Suspender temporariamente o portal para todos os atletas.</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={!!settings.studentAccessPaused}
+                  onChange={e => setSettings({...settings, studentAccessPaused: e.target.checked})}
+                />
+                <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-primary peer-checked:after:bg-black peer-checked:after:border-black"></div>
+              </label>
+            </div>
+
+            {settings.studentAccessPaused && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-xs font-bold text-zinc-400 uppercase">Mensagem de Bloqueio Personalizada (Opcional)</label>
+                <textarea 
+                  rows={3}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                  placeholder="Ex: O acesso ao portal está suspenso temporariamente pela administração do clube para manutenção de final de ano ou economia de recursos. Voltaremos em breve!"
+                  value={settings.studentAccessPauseMessage || ''}
+                  onChange={e => setSettings({...settings, studentAccessPauseMessage: e.target.value})}
+                />
+                <p className="text-[10px] text-zinc-500 italic">Deixe em branco para exibir a mensagem padrão do sistema.</p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -22,7 +22,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     layoutBorderColor: '#27272a',
     layoutBorderRadius: '3xl',
     layoutBorderWidth: '1px',
-    layoutShadow: 'xl'
+    layoutShadow: 'xl',
+    studentAccessPaused: false,
+    studentAccessPauseMessage: ''
   });
 
   const loadSettings = async () => {

@@ -41,7 +41,7 @@ import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestor
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
 import { api, clearCache } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
@@ -1043,7 +1043,7 @@ export default function App() {
         };
         loadProfessorData();
       }
-    } else if (user.role === 'student' && user.athlete_id) {
+    } else if (user.role === 'student' && user.athlete_id && !settings?.studentAccessPaused) {
       // Students only subscribe to their own document, which is very efficient
         const unsubscribe = api.subscribeToAthlete(user.athlete_id, (data) => {
           if (data) {
@@ -1053,7 +1053,7 @@ export default function App() {
         });
       return () => unsubscribe();
     }
-  }, [user?.id, user?.role, user?.athlete_id, user?.professor_id]); // Re-subscribe if user changes
+  }, [user?.id, user?.role, user?.athlete_id, user?.professor_id, settings?.studentAccessPaused]); // Re-subscribe if user changes
 
   useEffect(() => {
     if (user?.role === 'student' && user.athlete_id && athletes.length > 0) {
@@ -1063,7 +1063,7 @@ export default function App() {
   }, [user, athletes]);
 
   useEffect(() => {
-    if (user?.role === 'student' && user.athlete_id) {
+    if (user?.role === 'student' && user.athlete_id && !settings?.studentAccessPaused) {
       let previousCount = -1;
       const unsubscribe = api.subscribeToAthleteLineups(user.athlete_id, (events) => {
         // Only show toast if count increased (new escalation)
@@ -1087,7 +1087,7 @@ export default function App() {
       });
       return () => unsubscribe();
     }
-  }, [user?.id, user?.athlete_id, setActiveTab]);
+  }, [user?.id, user?.athlete_id, setActiveTab, settings?.studentAccessPaused]);
 
   useEffect(() => {
     // Listen for login errors and notify admin
@@ -1682,6 +1682,34 @@ export default function App() {
         onRegisterClick={() => setIsRegistering(true)} 
         onProfessorRegisterClick={() => setIsProfessorRegistration(true)}
       />
+    );
+  }
+
+  if (user?.role === 'student' && settings?.studentAccessPaused) {
+    return (
+      <ErrorBoundary>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center select-none font-sans">
+          <div className="max-w-md w-full bg-zinc-950 border border-amber-500/30 rounded-3xl p-8 shadow-2xl shadow-amber-500/5 space-y-6 flex flex-col items-center">
+            <div className="p-4 bg-amber-500/10 text-amber-500 rounded-full animate-pulse border border-amber-500/20">
+              <Pause size={48} />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-white uppercase tracking-tight">Portal Temporariamente Pausado</h1>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                {settings.studentAccessPauseMessage || "Olá! O acesso do portal para alunos foi temporariamente suspenso pela administração do clube para otimização do sistema e economia de leitura de dados. Retornaremos em breve!"}
+              </p>
+            </div>
+            <div className="w-full pt-4 border-t border-zinc-900">
+              <button 
+                onClick={handleLogout}
+                className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl font-bold uppercase tracking-widest text-xs transition-all border border-zinc-800 cursor-pointer"
+              >
+                Sair do Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      </ErrorBoundary>
     );
   }
 

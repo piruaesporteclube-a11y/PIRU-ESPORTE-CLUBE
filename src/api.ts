@@ -578,6 +578,19 @@ export const api = {
 
       const userData = userDocSnap.data() as User;
 
+      // Check if student access is paused
+      if (userData.role === 'student') {
+        const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
+        if (settingsSnap.exists()) {
+          const settingsData = settingsSnap.data() as Settings;
+          if (settingsData?.studentAccessPaused) {
+            await signOut(auth);
+            const msg = settingsData.studentAccessPauseMessage || "O acesso ao portal do aluno está temporariamente suspenso pela administração do clube para otimização de recursos.";
+            throw new Error(msg);
+          }
+        }
+      }
+
       // Check if athlete is pending before allowing login
       if (userData.role === 'student' && userData.athlete_id) {
         const athleteSnap = await getDoc(doc(db, "athletes", userData.athlete_id));
@@ -687,6 +700,19 @@ export const api = {
           updated_at: serverTimestamp() as any
         };
         await setDoc(userDocRef, sanitizeData(userData));
+      }
+
+      // Check if student access is paused
+      if (userData.role === 'student') {
+        const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
+        if (settingsSnap.exists()) {
+          const settingsData = settingsSnap.data() as Settings;
+          if (settingsData?.studentAccessPaused) {
+            await signOut(auth);
+            const msg = settingsData.studentAccessPauseMessage || "O acesso ao portal do aluno está temporariamente suspenso pela administração do clube para otimização de recursos.";
+            throw new Error(msg);
+          }
+        }
       }
 
       // Check if athlete is pending before allowing login

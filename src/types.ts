@@ -180,6 +180,8 @@ export type Settings = {
   tiktok?: string;
   coaches?: string;
   assistants?: string;
+  studentAccessPaused?: boolean;
+  studentAccessPauseMessage?: string;
 };
 
 export type User = {
