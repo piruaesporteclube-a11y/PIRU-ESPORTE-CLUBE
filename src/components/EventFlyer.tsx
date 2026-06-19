@@ -38,6 +38,27 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [schoolName, setSchoolName] = useState(settings?.schoolName || 'Piruá Esporte Clube');
   const [showVS, setShowVS] = useState(true);
 
+  // Auto-detecção de confronto versus para separar o título em 3 blocos (cima, vs, baixo)
+  const getInitialVersusSplit = () => {
+    const match = event.name.match(/\s+(vs|VS|Vs|vS|x|X|versus|Versus)\s+/);
+    const parts = event.name.split(/\s+(?:vs|VS|Vs|vS|x|X|versus|Versus)\s+/i);
+    if (parts.length >= 2) {
+      return { 
+        teamA: parts[0].trim(), 
+        middle: match ? match[1].trim().toUpperCase() : 'VS', 
+        teamB: parts.slice(1).join(' VS ').trim(), 
+        hasVs: true 
+      };
+    }
+    return { teamA: event.name, middle: 'VS', teamB: '', hasVs: false };
+  };
+
+  const initialVersus = getInitialVersusSplit();
+  const [isVersusMode, setIsVersusMode] = useState(initialVersus.hasVs);
+  const [versusTeamA, setVersusTeamA] = useState(initialVersus.teamA);
+  const [versusMiddle, setVersusMiddle] = useState(initialVersus.middle);
+  const [versusTeamB, setVersusTeamB] = useState(initialVersus.teamB);
+
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
       if (prev.includes(id)) {
@@ -184,7 +205,10 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       toast.dismiss(loadingToast);
       
       const link = document.createElement('a');
-      link.download = `EVENTO_${eventName.replace(/\s+/g, '_')}.png`;
+      const filename = isVersusMode 
+        ? `EVENTO_${versusTeamA}_${versusMiddle}_${versusTeamB}`.replace(/\s+/g, '_')
+        : `EVENTO_${eventName}`.replace(/\s+/g, '_');
+      link.download = `${filename}.png`;
       link.href = dataUrl;
       link.click();
       
@@ -305,16 +329,85 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 />
               </div>
 
-              <div>
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Nome do Evento (Placa Principal)</label>
-                <textarea 
-                  rows={2}
-                  value={eventName}
-                  onChange={e => setEventName(e.target.value)}
-                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none resize-none"
-                  placeholder="Ex: Sub-13 vs Sub-14, Nome do Jogo..."
-                />
+              {/* Seletor de Formato do Nome */}
+              <div className="pt-2 border-t border-zinc-900">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Formato da Placa do Jogo</label>
+                <div className="grid grid-cols-2 gap-2 bg-black p-1 rounded-xl border border-zinc-850">
+                  <button 
+                    type="button"
+                    onClick={() => setIsVersusMode(false)}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider text-center flex items-center justify-center cursor-pointer",
+                      !isVersusMode ? "bg-theme-primary text-black font-black" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Linha Única
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsVersusMode(true)}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider text-center flex items-center justify-center cursor-pointer",
+                      isVersusMode ? "bg-theme-primary text-black font-black" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Cima (VS) Baixo
+                  </button>
+                </div>
               </div>
+
+              {!isVersusMode ? (
+                <div className="animate-in fade-in duration-200">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Nome do Evento (Placa Principal)</label>
+                  <textarea 
+                    rows={2}
+                    value={eventName}
+                    onChange={e => setEventName(e.target.value)}
+                    className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none resize-none"
+                    placeholder="Ex: Sub-13 vs Sub-14, Nome do Jogo..."
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3 animate-in fade-in duration-200">
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Time A / Nome de Cima</label>
+                    <input 
+                      type="text"
+                      value={versusTeamA}
+                      onChange={e => setVersusTeamA(e.target.value)}
+                      className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                      placeholder="Ex: Piruá E.C."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 items-center">
+                    <div className="col-span-1">
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Divisor</label>
+                      <input 
+                        type="text"
+                        value={versusMiddle}
+                        onChange={e => setVersusMiddle(e.target.value)}
+                        className="w-full bg-black border border-zinc-750 p-2 text-center rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none font-black"
+                        placeholder="VS"
+                      />
+                    </div>
+                    <div className="col-span-2 text-[10px] text-zinc-500 italic mt-3 pl-1 leading-tight">
+                      Ficará estilizado no centro.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Time B / Nome de Baixo</label>
+                    <input 
+                      type="text"
+                      value={versusTeamB}
+                      onChange={e => setVersusTeamB(e.target.value)}
+                      className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                      placeholder="Ex: Adversário"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -626,10 +719,25 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               <div className="w-10 h-0.5 bg-theme-primary rounded-full mb-6 opacity-80"></div>
 
               {/* Event Title Card */}
-              <div className="w-full bg-theme-primary p-2 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
+              <div className="w-full bg-theme-primary p-2.5 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
                 <div className="transform skew-x-6 text-center">
                   <p className="text-[9px] font-black text-black uppercase tracking-widest leading-none mb-1 opacity-60">{flyerTitle}</p>
-                  <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{eventName}</h2>
+                  
+                  {isVersusMode ? (
+                    <div className="flex flex-col items-center justify-center w-full leading-none py-0.5">
+                      <span className="text-sm font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none">
+                        {versusTeamA || 'NOME DE CIMA'}
+                      </span>
+                      <span className="text-[9px] font-black italic bg-black text-theme-primary px-2 py-0.5 rounded-md my-1 inline-block uppercase tracking-wider scale-90 leading-none">
+                        {versusMiddle || 'VS'}
+                      </span>
+                      <span className="text-sm font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none">
+                        {versusTeamB || 'NOME DE BAIXO'}
+                      </span>
+                    </div>
+                  ) : (
+                    <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{eventName}</h2>
+                  )}
                 </div>
               </div>
 
