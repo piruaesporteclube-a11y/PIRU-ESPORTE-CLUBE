@@ -94,10 +94,28 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const activeId = selectedBackgrounds[selectedBackgrounds.length - 1] || 'stadium';
+        const dataUrl = event.target?.result as string;
+        
+        // Find which background base option to replace (preferably 'stadium' or 'grass')
+        let activeId = 'stadium';
+        if (selectedBackgrounds.includes('grass')) {
+          activeId = 'grass';
+        } else if (selectedBackgrounds.includes('stadium')) {
+          activeId = 'stadium';
+        } else {
+          // If neither stadium nor grass is active, activate 'stadium' alongside whatever's active
+          setSelectedBackgrounds(prev => {
+            if (!prev.includes('stadium')) {
+              return [...prev, 'stadium'];
+            }
+            return prev;
+          });
+          activeId = 'stadium';
+        }
+
         setCustomBackgrounds(prev => ({
           ...prev,
-          [activeId]: event.target?.result as string
+          [activeId]: dataUrl
         }));
       };
       reader.readAsDataURL(file);
@@ -118,12 +136,10 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
         try {
-          const cacheBustedUrl = url.includes('?') 
-            ? `${url}&cb=${Date.now()}` 
-            : `${url}?cb=${Date.now()}`;
+          // Direct fetch FIRST - most reliable as it keeps official signatures intact
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(cacheBustedUrl, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+          const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -133,26 +149,43 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
             reader.readAsDataURL(blob);
           });
         } catch (e) {
-          console.warn('Fetch failed, falling back to canvas/proxy method', e);
-          return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) { resolve(url); return; }
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/png', 1.0));
-              } catch (err) { resolve(url); }
-            };
-            img.onerror = () => resolve(url);
-            const proxyUrl = url.includes('?') ? `${url}&nc=${Date.now()}` : `${url}?nc=${Date.now()}`;
-            img.src = proxyUrl;
-            setTimeout(() => resolve(url), 8000);
-          });
+          console.warn('Direct fetch failed, trying proxy/cache-busted method', e);
+          try {
+            const cacheBustedUrl = url.includes('?') 
+              ? `${url}&cb=${Date.now()}` 
+              : `${url}?cb=${Date.now()}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const response = await fetch(cacheBustedUrl, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+            clearTimeout(timeoutId);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => resolve(url);
+              reader.readAsDataURL(blob);
+            });
+          } catch (err) {
+            console.warn('All fetches failed, falling back to canvas/proxy method', err);
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              img.onload = () => {
+                try {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) { resolve(url); return; }
+                  ctx.drawImage(img, 0, 0);
+                  resolve(canvas.toDataURL('image/png', 1.0));
+                } catch (canvasErr) { resolve(url); }
+              };
+              img.onerror = () => resolve(url);
+              img.src = url;
+              setTimeout(() => resolve(url), 8000);
+            });
+          }
         }
       };
 
@@ -174,9 +207,10 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
 
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.getAttribute('src');
+        const currentSrc = img.src; // Resolved absolute URL, extremely reliable
         if (currentSrc) {
           const b64 = await toBase64(currentSrc);
+          img.src = b64;
           img.setAttribute('src', b64);
         }
       }));
@@ -197,7 +231,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
-        pixelRatio: 2,
+        pixelRatio: 2.5, // slightly higher resolution for print/share quality
         backgroundColor: '#000000',
       });
 
@@ -292,7 +326,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                     )}
                   >
                     <div className="absolute inset-0" style={{ backgroundColor: c }} />
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-40" />
+                    <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.5'/%3E%3C/svg%3E\")" }} />
                   </button>
                 ))}
               </div>
@@ -641,7 +675,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               )}
               {selectedBackgrounds.includes('carbon') && (
                 <div className={cn("absolute inset-0 z-[2]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
-                  <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/carbon-fibre.png')" }} />
+                  <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
                 </div>
               )}
               <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
@@ -779,7 +813,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 <p className="text-zinc-500 text-[8px] font-bold uppercase tracking-[0.2em]">{settings.schoolName} • 2026</p>
               </div>
             </div>
-            <div className="absolute inset-0 z-[-1] bg-[url('https://www.transparenttextures.com/patterns/halftone-yellow.png')] opacity-[0.05]" />
+            <div className="absolute inset-0 z-[-1] opacity-[0.05]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='1.5' fill='%23eab308' fill-opacity='0.5'/%3E%3C/svg%3E\")" }} />
           </div>
         </div>
       </div>
