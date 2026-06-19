@@ -97,9 +97,12 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
         try {
+          const cacheBustedUrl = url.includes('?') 
+            ? `${url}&cb=${Date.now()}` 
+            : `${url}?cb=${Date.now()}`;
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+          const response = await fetch(cacheBustedUrl, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -545,7 +548,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               )}
               {selectedBackgrounds.includes('carbon') && (
                 <div className={cn("absolute inset-0 z-[2]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-60 mix-blend-overlay" />
+                  <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/carbon-fibre.png')" }} />
                 </div>
               )}
               <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
