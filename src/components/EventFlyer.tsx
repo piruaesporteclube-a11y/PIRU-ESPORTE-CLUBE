@@ -34,6 +34,8 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
   const [flyerTitle, setFlyerTitle] = useState('Grande Evento');
+  const [eventName, setEventName] = useState(event.name);
+  const [schoolName, setSchoolName] = useState(settings?.schoolName || 'Piruá Esporte Clube');
   const [showVS, setShowVS] = useState(true);
 
   const toggleBackground = (id: string) => {
@@ -179,7 +181,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       toast.dismiss(loadingToast);
       
       const link = document.createElement('a');
-      link.download = `EVENTO_${event.name.replace(/\s+/g, '_')}.png`;
+      link.download = `EVENTO_${eventName.replace(/\s+/g, '_')}.png`;
       link.href = dataUrl;
       link.click();
       
@@ -270,16 +272,47 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
             </div>
           )}
 
-          {/* Title Customization */}
-          <div className="space-y-4">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">Título do Encarte</label>
-            <input 
-              type="text"
-              value={flyerTitle}
-              onChange={e => setFlyerTitle(e.target.value)}
-              className="w-full bg-black border border-zinc-700 p-3 rounded-xl text-white text-sm focus:ring-2 focus:ring-theme-primary/50 outline-none"
-              placeholder="Ex: Grande Evento, Final de Campeonato..."
-            />
+          {/* Title and Texts Customization */}
+          <div className="space-y-4 p-4 bg-black/40 rounded-2xl border border-zinc-800">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-3 bg-theme-primary rounded-full" />
+              <label className="text-[10px] font-black text-zinc-300 uppercase tracking-widest block font-sans">Textos do Encarte</label>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Nome do Time (Cabeçalho)</label>
+                <input 
+                  type="text"
+                  value={schoolName}
+                  onChange={e => setSchoolName(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                  placeholder="Nome do Time/Clube..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Título/Categoria do Encarte</label>
+                <input 
+                  type="text"
+                  value={flyerTitle}
+                  onChange={e => setFlyerTitle(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                  placeholder="Ex: Grande Evento, Amistoso, Final..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Nome do Evento (Placa Principal)</label>
+                <textarea 
+                  rows={2}
+                  value={eventName}
+                  onChange={e => setEventName(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none resize-none"
+                  placeholder="Ex: Sub-13 vs Sub-14, Nome do Jogo..."
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -585,7 +618,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 {settings?.schoolCrest ? <img src={settings.schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" /> : <Trophy size={40} className="text-theme-primary" />}
               </div>
               <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg mb-1">
-                {settings.schoolName || 'Piruá Esporte Clube'}
+                {schoolName}
               </h1>
               <div className="w-10 h-0.5 bg-theme-primary rounded-full mb-6 opacity-80"></div>
 
@@ -593,7 +626,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               <div className="w-full bg-theme-primary p-2 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
                 <div className="transform skew-x-6 text-center">
                   <p className="text-[9px] font-black text-black uppercase tracking-widest leading-none mb-1 opacity-60">{flyerTitle}</p>
-                  <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{event.name}</h2>
+                  <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{eventName}</h2>
                 </div>
               </div>
 
