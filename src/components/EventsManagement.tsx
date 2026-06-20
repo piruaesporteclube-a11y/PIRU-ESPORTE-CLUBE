@@ -828,10 +828,31 @@ Muito obrigado!
     }
   };
 
-  const handleOpenScores = (event: Event) => {
-    setSelectedEvent(event);
-    setModalTab('scores');
-    setIsLineupOpen(true);
+  const handleOpenScores = async (event: Event) => {
+    try {
+      setSelectedEvent(event);
+      setModalTab('scores');
+      setIsLineupOpen(true);
+      setEventMatches([]); // Limpa para mostrar estado de carregamento fresco
+      
+      const matches = await api.getEventMatches(event.id);
+      setEventMatches(matches);
+      
+      let isFinished = false;
+      if (event.end_date) {
+        const dateParts = event.end_date.split('-');
+        if (dateParts.length === 3) {
+          const [year, month, day] = dateParts.map(Number);
+          const timeParts = (event.end_time || '23:59').split(':');
+          const [hours, minutes] = timeParts.map(Number);
+          const eventEnd = new Date(year, month - 1, day, hours || 0, minutes || 0);
+          isFinished = eventEnd < new Date() && !isAdmin;
+        }
+      }
+      setIsEventFinished(isFinished);
+    } catch (err: any) {
+      toast.error(`Erro ao carregar jogos: ${err.message}`);
+    }
   };
 
   const handleOpenLineup = async (event: Event, index: number = 0, matchId?: string) => {
@@ -918,23 +939,7 @@ Muito obrigado!
     }
   };
   const handleOpenMatches = async (event: Event) => {
-    try {
-      setSelectedEvent(event);
-      setModalTab('scores');
-      
-      const matches = await api.getEventMatches(event.id);
-      setEventMatches(matches);
-      
-      const now = new Date();
-      const [year, month, day] = event.end_date.split('-').map(Number);
-      const [hours, minutes] = event.end_time.split(':').map(Number);
-      const eventEnd = new Date(year, month - 1, day, hours, minutes);
-      
-      setIsEventFinished(eventEnd < now && !isAdmin);
-      setIsLineupOpen(true);
-    } catch (err: any) {
-      toast.error(`Erro ao carregar jogos: ${err.message}`);
-    }
+    await handleOpenScores(event);
   };
   const handleUpdateAthleteStatus = async (athleteId: string, status: "Titular" | "Reserva") => {
     if (isEventFinished) {
