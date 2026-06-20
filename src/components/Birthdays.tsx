@@ -167,12 +167,11 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       // 1. Ultra-robust Base64 conversion
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
-        
-        // Try fetch first (better for CORS usually)
         try {
+          // Direct fetch FIRST - most reliable as it keeps official signatures intact
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-          const response = await fetch(url, { mode: 'cors', signal: controller.signal });
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -182,25 +181,43 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
             reader.readAsDataURL(blob);
           });
         } catch (e) {
-          // Fallback to Image + Canvas
-          return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) { resolve(url); return; }
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/png'));
-              } catch (err) { resolve(url); }
-            };
-            img.onerror = () => resolve(url);
-            img.src = `${url}${url.includes('?') ? '&' : '?'}nc=${Date.now()}`;
-            setTimeout(() => resolve(url), 5000);
-          });
+          console.warn('Direct fetch failed, trying proxy/cache-busted method', e);
+          try {
+            const cacheBustedUrl = url.includes('?') 
+              ? `${url}&cb=${Date.now()}` 
+              : `${url}?cb=${Date.now()}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const response = await fetch(cacheBustedUrl, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+            clearTimeout(timeoutId);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => resolve(url);
+              reader.readAsDataURL(blob);
+            });
+          } catch (err) {
+            console.warn('All fetches failed, falling back to canvas/proxy method', err);
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              img.onload = () => {
+                try {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) { resolve(url); return; }
+                  ctx.drawImage(img, 0, 0);
+                  resolve(canvas.toDataURL('image/png', 1.0));
+                } catch (canvasErr) { resolve(url); }
+              };
+              img.onerror = () => resolve(url);
+              img.src = url;
+              setTimeout(() => resolve(url), 8000);
+            });
+          }
         }
       };
 
@@ -248,9 +265,10 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       // 4. Convert all images to Base64
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.getAttribute('src');
+        const currentSrc = img.src; // Resolved absolute URL, extremely reliable
         if (currentSrc) {
           const b64 = await toBase64(currentSrc);
+          img.src = b64;
           img.setAttribute('src', b64);
         }
       }));
@@ -273,9 +291,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
-        pixelRatio: 3, // 1080x1920 (Exact IG Story Size)
-        canvasWidth: 1080,
-        canvasHeight: 1920,
+        pixelRatio: 3, // 1080x1920 (Exact IG Story Size with 3x scale)
         backgroundColor: '#09090b',
         cacheBust: false
       });
