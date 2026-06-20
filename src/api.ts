@@ -261,8 +261,8 @@ const isQuotaError = (error: any): boolean => {
   return message.includes('quota exceeded') || message.includes('quota limit exceeded') || message.includes('resource exhausted');
 };
 
-const getDocsWithCacheFallback = async (q: any) => {
-  const key = `docs_${getCacheKey(q)}`;
+const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
+  const key = customCacheKey ? `docs_${customCacheKey}` : `docs_${getCacheKey(q)}`;
   const cached = getCachedData(key);
   
   // If quota was already exceeded today, or we have very fresh data, return cached
@@ -349,8 +349,9 @@ const getCacheKey = (q: any) => {
     if (typeof q === 'string') return q;
     if (q.path) return q.path;
     
+    let parts: string[] = [];
+    
     if (q._query) {
-      const parts: string[] = [];
       const queryInfo = q._query;
       
       if (queryInfo.path) {
@@ -400,10 +401,40 @@ const getCacheKey = (q: any) => {
       if (queryInfo.limit !== undefined && queryInfo.limit !== null) {
         parts.push(`limit:${queryInfo.limit}`);
       }
+    }
+    
+    // Fallback: If we couldn't parse filters or serialize properly (e.g. key is empty due to mangled/minified properties),
+    // use a custom deep serialization of the query's non-circular fields to guarantee a unique, stable cache key.
+    if (parts.length === 0 || parts.join('|') === '') {
+      const serializeQuery = (obj: any): string => {
+        try {
+          const seen = new Set();
+          const replacer = (k: string, v: any) => {
+            if (v && typeof v === 'object') {
+              if (seen.has(v)) return '[Circular]';
+              seen.add(v);
+              if (v.constructor && (v.constructor.name === 'Firestore' || v.constructor.name === 'FirebaseApp')) {
+                return '[Firestore]';
+              }
+              if (v.segments && Array.isArray(v.segments)) {
+                return v.segments.join('/');
+              }
+            }
+            if (typeof v === 'function') return undefined;
+            return v;
+          };
+          return JSON.stringify(obj, replacer);
+        } catch (e) {
+          return '';
+        }
+      };
       
-      if (parts.length > 0) {
-        return parts.join('|');
+      const qSerialized = serializeQuery(q);
+      if (qSerialized) {
+        return qSerialized;
       }
+    } else {
+      return parts.join('|');
     }
   } catch (e) {
     console.warn("Error serializing Firestore query in getCacheKey:", e);
@@ -2194,7 +2225,7 @@ export const api = {
   getEventMatches: async (eventId: string): Promise<EventMatch[]> => {
     try {
       const q = query(collection(db, "event_matches"), where("event_id", "==", eventId));
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocsWithCacheFallback(q, `event_matches_${eventId}`);
       const matches = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as EventMatch));
       return matches.sort((a, b) => {
         const timeA = a.created_at?.seconds || (a.created_at?.toMillis ? a.created_at.toMillis() : 0);
