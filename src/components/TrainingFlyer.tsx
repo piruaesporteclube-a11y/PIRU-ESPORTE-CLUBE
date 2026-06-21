@@ -155,40 +155,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
         
-        let fetchUrl = url;
-        if (url.startsWith('http') && !url.includes(window.location.host)) {
-          fetchUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
-        }
-
+        // Try direct client-side fetch FIRST (much faster, handles CORS-enabled domains like Unsplash and Firebase Storage natively)
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000); 
-          const response = await fetch(fetchUrl, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (!response.ok) {
-            throw new Error(`Proxy response error status: ${response.status}`);
-          }
-          const blob = await response.blob();
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = () => resolve(url);
-            reader.readAsDataURL(blob);
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const response = await fetch(url, { 
+            mode: 'cors', 
+            signal: controller.signal,
+            credentials: 'omit'
           });
-        } catch (e) {
-          console.warn('Proxy fetch failed, falling back to direct fetch method', e);
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const response = await fetch(url, { 
-              mode: 'cors', 
-              signal: controller.signal,
-              credentials: 'omit'
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-              throw new Error(`Direct fetch response error status: ${response.status}`);
-            }
+          clearTimeout(timeoutId);
+          if (response.ok) {
             const blob = await response.blob();
             return new Promise((resolve) => {
               const reader = new FileReader();
@@ -196,35 +173,54 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               reader.onerror = () => resolve(url);
               reader.readAsDataURL(blob);
             });
-          } catch (err) {
-            console.warn('All direct fetches failed, falling back to canvas/proxy method', err);
-            return new Promise((resolve) => {
-              const img = new Image();
-              img.crossOrigin = 'Anonymous';
-              img.onload = () => {
-                try {
-                  const canvas = document.createElement('canvas');
-                  canvas.width = img.width;
-                  canvas.height = img.height;
-                  const ctx = canvas.getContext('2d');
-                  if (!ctx) { resolve(url); return; }
-                  ctx.drawImage(img, 0, 0);
-                  resolve(canvas.toDataURL('image/png'));
-                } catch (canvasErr) { 
-                  console.error('Canvas conversion failed', canvasErr);
-                  resolve(url); 
-                }
-              };
-              img.onerror = () => {
-                console.error('Image load failed for toBase64', url);
-                resolve(url);
-              };
-              const proxyUrl = url.includes('?') ? `${url}&nc=${Date.now()}` : `${url}?nc=${Date.now()}`;
-              img.src = proxyUrl;
-              setTimeout(() => resolve(url), 8000);
-            });
+          }
+        } catch (e) {
+          console.warn('Direct fetch failed or was blocked by CORS, trying proxy...', e);
+        }
+
+        // Fallback to Server Proxy
+        if (url.startsWith('http') && !url.includes(window.location.host)) {
+          const fetchUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const response = await fetch(fetchUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (response.ok) {
+              const blob = await response.blob();
+              return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => resolve(url);
+                reader.readAsDataURL(blob);
+              });
+            }
+          } catch (e) {
+            console.warn('Proxy fetch failed too', e);
           }
         }
+
+        // Last resort: Canvas conversion
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) { resolve(url); return; }
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL('image/png'));
+            } catch (err) { 
+              resolve(url); 
+            }
+          };
+          img.onerror = () => resolve(url);
+          img.src = url;
+          setTimeout(() => resolve(url), 5000);
+        });
       };
 
       // 2. Clone and prepare
@@ -272,6 +268,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
           // Increase resilience for Vercel/CORS
           try {
             const b64 = await toBase64(currentSrc);
+            img.src = b64;
             img.setAttribute('src', b64);
             img.setAttribute('crossorigin', 'anonymous');
           } catch (e) {
