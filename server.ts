@@ -394,6 +394,33 @@ export async function createExpressApp() {
     }
   });
 
+  // Image proxy route to bypass CORS for flyer generation
+  app.get("/api/image-proxy", async (req, res) => {
+    const targetUrl = req.query.url as string;
+    if (!targetUrl) {
+      return res.status(400).json({ error: "Parâmetro URL é obrigatório." });
+    }
+
+    try {
+      const response = await fetch(targetUrl);
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Falha ao carregar a imagem remota." });
+      }
+
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.send(buffer);
+    } catch (error: any) {
+      console.error("[Image Proxy Error]", error);
+      res.status(500).json({ error: "Erro ao obter imagem pelo proxy." });
+    }
+  });
+
   // API 404 handler
   app.all("/api/*", (req, res) => {
     res.status(404).json({ success: false, error: `Rota da API não encontrada: ${req.path}` });

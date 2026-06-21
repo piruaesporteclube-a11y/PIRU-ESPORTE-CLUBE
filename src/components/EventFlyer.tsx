@@ -135,11 +135,16 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
     try {
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
+        
+        let fetchUrl = url;
+        if (url.startsWith('http') && !url.includes(window.location.host)) {
+          fetchUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+        }
+
         try {
-          // Direct fetch FIRST - most reliable as it keeps official signatures intact
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const response = await fetch(fetchUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -149,14 +154,12 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
             reader.readAsDataURL(blob);
           });
         } catch (e) {
-          console.warn('Direct fetch failed, trying proxy/cache-busted method', e);
+          console.warn('Proxy fetch failed, trying direct fetch method', e);
           try {
-            const cacheBustedUrl = url.includes('?') 
-              ? `${url}&cb=${Date.now()}` 
-              : `${url}?cb=${Date.now()}`;
+            // Direct fetch as fallback
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 6000);
-            const response = await fetch(cacheBustedUrl, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
+            const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
             clearTimeout(timeoutId);
             const blob = await response.blob();
             return new Promise((resolve) => {
@@ -166,7 +169,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               reader.readAsDataURL(blob);
             });
           } catch (err) {
-            console.warn('All fetches failed, falling back to canvas/proxy method', err);
+            console.warn('All direct fetches failed, falling back to canvas/proxy method', err);
             return new Promise((resolve) => {
               const img = new Image();
               img.crossOrigin = 'Anonymous';

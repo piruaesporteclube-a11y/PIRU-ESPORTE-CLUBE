@@ -151,19 +151,19 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const loadingToast = toast.loading('Gerando seu encarte... Aguarde um momento.');
     
     try {
-      // 1. Ultra-robust Base64 conversion
+       // 1. Ultra-robust Base64 conversion
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
+        
+        let fetchUrl = url;
+        if (url.startsWith('http') && !url.includes(window.location.host)) {
+          fetchUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+        }
+
         try {
-          // Add cache buster and crossOrigin if possible
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000); // Increased timeout
-          
-          const response = await fetch(url, { 
-            mode: 'cors', 
-            signal: controller.signal,
-            credentials: 'omit'
-          });
+          const timeoutId = setTimeout(() => controller.abort(), 8000); 
+          const response = await fetch(fetchUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
           const blob = await response.blob();
           return new Promise((resolve) => {
@@ -173,33 +173,51 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             reader.readAsDataURL(blob);
           });
         } catch (e) {
-          console.warn('Fetch failed, falling back to canvas/proxy method', e);
-          return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) { resolve(url); return; }
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/png'));
-              } catch (err) { 
-                console.error('Canvas conversion failed', err);
-                resolve(url); 
-              }
-            };
-            img.onerror = () => {
-              console.error('Image load failed for toBase64', url);
-              resolve(url);
-            };
-            // Try with a different proxy or cache buster
-            const proxyUrl = url.includes('?') ? `${url}&nc=${Date.now()}` : `${url}?nc=${Date.now()}`;
-            img.src = proxyUrl;
-            setTimeout(() => resolve(url), 8000);
-          });
+          console.warn('Proxy fetch failed, falling back to direct fetch method', e);
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const response = await fetch(url, { 
+              mode: 'cors', 
+              signal: controller.signal,
+              credentials: 'omit'
+            });
+            clearTimeout(timeoutId);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => resolve(url);
+              reader.readAsDataURL(blob);
+            });
+          } catch (err) {
+            console.warn('All direct fetches failed, falling back to canvas/proxy method', err);
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              img.onload = () => {
+                try {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) { resolve(url); return; }
+                  ctx.drawImage(img, 0, 0);
+                  resolve(canvas.toDataURL('image/png'));
+                } catch (canvasErr) { 
+                  console.error('Canvas conversion failed', canvasErr);
+                  resolve(url); 
+                }
+              };
+              img.onerror = () => {
+                console.error('Image load failed for toBase64', url);
+                resolve(url);
+              };
+              const proxyUrl = url.includes('?') ? `${url}&nc=${Date.now()}` : `${url}?nc=${Date.now()}`;
+              img.src = proxyUrl;
+              setTimeout(() => resolve(url), 8000);
+            });
+          }
         }
       };
 
