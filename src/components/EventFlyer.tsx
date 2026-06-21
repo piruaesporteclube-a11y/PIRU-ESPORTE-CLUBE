@@ -200,21 +200,44 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
         left: '0',
         width: '360px',
         height: '640px',
+        transition: 'none',
         zIndex: '-9999',
         opacity: '1',
+        pointerEvents: 'none',
+        borderRadius: '0',
+        margin: '0',
+        padding: '0'
       });
       document.body.appendChild(clone);
 
       // Apply color fixes for oklch support
       fixHtml2CanvasColors(clone);
 
+      // Clean Styles (No animations, no blurs, no transitions)
+      const allCloneElements = clone.querySelectorAll('*');
+      allCloneElements.forEach((el: any) => {
+        if (el.style) {
+          el.style.animation = 'none';
+          el.style.transition = 'none';
+          el.style.backdropFilter = 'none';
+          if (el.style.filter && el.style.filter.includes('blur')) {
+            el.style.filter = 'none';
+          }
+        }
+      });
+
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.src; // Resolved absolute URL, extremely reliable
+        const currentSrc = img.src || img.getAttribute('src');
         if (currentSrc) {
-          const b64 = await toBase64(currentSrc);
-          img.src = b64;
-          img.setAttribute('src', b64);
+          try {
+            const b64 = await toBase64(currentSrc);
+            img.src = b64;
+            img.setAttribute('src', b64);
+            img.setAttribute('crossorigin', 'anonymous');
+          } catch (e) {
+            console.warn('Failed to convert image to base64, sticking with original', currentSrc);
+          }
         }
       }));
 
@@ -223,13 +246,27 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
         const bg = (el as HTMLElement).style.backgroundImage;
         const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
         if (match && match[1]) {
-          const b64 = await toBase64(match[1]);
-          (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
+          try {
+            const b64 = await toBase64(match[1]);
+            (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
+          } catch (e) {
+            console.warn('Failed to convert bg page image to base64', match[1], e);
+          }
         }
       }));
 
+      // Ensure all images are completely loaded in the clone DOM
+      const images = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
