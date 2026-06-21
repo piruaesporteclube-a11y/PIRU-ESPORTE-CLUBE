@@ -146,6 +146,9 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
           const timeoutId = setTimeout(() => controller.abort(), 8000);
           const response = await fetch(fetchUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
+          if (!response.ok) {
+            throw new Error(`Proxy response error status: ${response.status}`);
+          }
           const blob = await response.blob();
           return new Promise((resolve) => {
             const reader = new FileReader();
@@ -158,9 +161,12 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
           try {
             // Direct fetch as fallback
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
             clearTimeout(timeoutId);
+            if (!response.ok) {
+              throw new Error(`Direct fetch response error status: ${response.status}`);
+            }
             const blob = await response.blob();
             return new Promise((resolve) => {
               const reader = new FileReader();
@@ -200,6 +206,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
         left: '0',
         width: '360px',
         height: '640px',
+        transform: 'none',
         transition: 'none',
         zIndex: '-9999',
         opacity: '1',
@@ -228,7 +235,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
 
       const cloneImages = Array.from(clone.querySelectorAll('img'));
       await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.src || img.getAttribute('src');
+        const currentSrc = img.getAttribute('src');
         if (currentSrc) {
           try {
             const b64 = await toBase64(currentSrc);
@@ -266,13 +273,15 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
       }));
 
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const dataUrl = await htmlToImage.toPng(clone, {
         width: 360,
         height: 640,
-        pixelRatio: 2.5, // slightly higher resolution for print/share quality
+        pixelRatio: 2,
         backgroundColor: '#000000',
+        cacheBust: true,
+        skipFonts: false
       });
 
       document.body.removeChild(clone);

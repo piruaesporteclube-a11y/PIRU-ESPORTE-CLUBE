@@ -165,6 +165,9 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
           const timeoutId = setTimeout(() => controller.abort(), 8000); 
           const response = await fetch(fetchUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
+          if (!response.ok) {
+            throw new Error(`Proxy response error status: ${response.status}`);
+          }
           const blob = await response.blob();
           return new Promise((resolve) => {
             const reader = new FileReader();
@@ -176,13 +179,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
           console.warn('Proxy fetch failed, falling back to direct fetch method', e);
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             const response = await fetch(url, { 
               mode: 'cors', 
               signal: controller.signal,
               credentials: 'omit'
             });
             clearTimeout(timeoutId);
+            if (!response.ok) {
+              throw new Error(`Direct fetch response error status: ${response.status}`);
+            }
             const blob = await response.blob();
             return new Promise((resolve) => {
               const reader = new FileReader();
