@@ -738,7 +738,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       // AUTO-SYNC: If marking general as present, also sync to matching day trainings
       if (!activeTrainingId && !eventId && availableTrainings.length > 0) {
         const athleteSub = getSubCategory(athlete.birth_date);
-        const matchingTrainings = availableTrainings.filter(t => t.category === 'Todos' || t.category === athleteSub);
+        const matchingTrainings = availableTrainings.filter(t => {
+          const categoryMatches = (t.category === 'Todos' || t.category === athleteSub);
+          if (!categoryMatches) return false;
+          if (t.modality) {
+            const trainingMod = t.modality.trim().toLowerCase();
+            const athleteMods = (athlete.modality || '').split(',').map(m => m.trim().toLowerCase());
+            return athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
+          }
+          return true;
+        });
         
         matchingTrainings.forEach(t => {
           const trainingAttId = `${athlete.id}_training_${t.id}`;
@@ -828,6 +837,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     if (!activeTrainingId && !eventId && status === 'Presente' && availableTrainings.length > 0 && athlete) {
       const athleteSub = getSubCategory(athlete.birth_date);
       const matchingTrainings = availableTrainings.filter(t => {
+        // First check modality
+        if (t.modality) {
+          const trainingMod = t.modality.trim().toLowerCase();
+          const athleteMods = (athlete.modality || '').split(',').map(m => m.trim().toLowerCase());
+          const matchesModality = athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
+          if (!matchesModality) return false;
+        }
+
         // Check main category
         if (t.category === 'Todos' || t.category === athleteSub) return true;
         
@@ -953,6 +970,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
            const athleteSub = getSubCategory(a.birth_date);
            const isEligible = selTraining.category === 'Todos' || selTraining.category === athleteSub;
            if (!isEligible) return false;
+
+           if (selTraining.modality) {
+             const trainingMod = selTraining.modality.trim().toLowerCase();
+             const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase());
+             const matchesModality = athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
+             if (!matchesModality) return false;
+           }
         }
       }
 

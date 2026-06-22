@@ -12,6 +12,14 @@ interface PublicRegistrationProps {
   onComplete: () => void;
 }
 
+const POSITIONS_BY_MODALITY: Record<string, string[]> = {
+  "Futebol de Campo": ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"],
+  "Futsal": ["Goleiro", "Fixo", "Ala", "Pivô"],
+  "Volêi": ["Levantador", "Ponteiro", "Oposto", "Central", "Líbero"],
+  "Corrida de Rua": ["Velocista", "Meio-Fundista", "Fundista", "Maratonista"],
+  "Outros": ["Atleta", "Competidor", "Amador", "Outros"]
+};
+
 export default function PublicRegistration({ onCancel, onComplete }: PublicRegistrationProps) {
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [loading, setLoading] = useState(false);
@@ -43,6 +51,19 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
   const [newUser, setNewUser] = useState<User | null>(null);
+
+  const getAvailablePositions = () => {
+    const selectedModalities = athleteData.modality ? athleteData.modality.split(', ').filter(Boolean) : [];
+    if (selectedModalities.length === 0) {
+      return Array.from(new Set(Object.values(POSITIONS_BY_MODALITY).flat()));
+    }
+    const positions = new Set<string>();
+    selectedModalities.forEach(mod => {
+      const list = POSITIONS_BY_MODALITY[mod] || [];
+      list.forEach(pos => positions.add(pos));
+    });
+    return Array.from(positions);
+  };
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   React.useEffect(() => {
@@ -461,9 +482,12 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Posições / Funções (Selecione uma ou mais)</label>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">
+                        Posições / Funções (Selecione uma ou mais)
+                        {athleteData.modality && <span className="text-[9px] text-zinc-500 font-normal normal-case block mt-0.5">(Filtradas com base nas modalidades selecionadas)</span>}
+                      </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"].map(p => {
+                        {getAvailablePositions().map(p => {
                           const isSelected = athleteData.position?.split(', ').includes(p);
                           return (
                             <button

@@ -85,7 +85,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     end_time: '',
     departure_time: '',
     departure_location: '',
-    arrival_location: ''
+    arrival_location: '',
+    modality: 'Futebol de Campo'
   });
 
   useEffect(() => {
@@ -802,7 +803,8 @@ Muito obrigado!
         end_time: '',
         departure_time: '',
         departure_location: '',
-        arrival_location: ''
+        arrival_location: '',
+        modality: 'Futebol de Campo'
       });
       loadEvents();
     } catch (err: any) {
@@ -1414,6 +1416,13 @@ Muito obrigado!
                 )}
               </div>
             </div>
+            {event.modality && (
+              <div className="mb-2">
+                <span className="inline-block text-[9px] font-black uppercase text-theme-primary bg-theme-primary/10 border border-theme-primary/20 px-2.5 py-0.5 rounded-full tracking-wider">
+                  {event.modality}
+                </span>
+              </div>
+            )}
             <h3 className="text-xl font-bold text-white mb-2 uppercase">{event.name}</h3>
             
             {eventScoresSummary[event.id] && eventScoresSummary[event.id].length > 0 && (
@@ -1574,7 +1583,8 @@ Muito obrigado!
                     end_time: '',
                     departure_time: '',
                     departure_location: '',
-                    arrival_location: ''
+                    arrival_location: '',
+                    modality: 'Futebol de Campo'
                   });
                 }} 
                 className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group"
@@ -1588,6 +1598,21 @@ Muito obrigado!
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Nome do Evento</label>
                   <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Modalidade</label>
+                  <select 
+                    required
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-bold text-xs"
+                    value={formData.modality || 'Futebol de Campo'}
+                    onChange={e => setFormData({...formData, modality: e.target.value})}
+                  >
+                    <option value="Futebol de Campo">Futebol de Campo</option>
+                    <option value="Futsal">Futsal</option>
+                    <option value="Volêi">Volêi</option>
+                    <option value="Corrida de Rua">Corrida de Rua</option>
+                    <option value="Outros">Outros</option>
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

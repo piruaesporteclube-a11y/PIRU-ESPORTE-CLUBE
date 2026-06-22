@@ -36,6 +36,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [flyerTitle, setFlyerTitle] = useState('Grande Evento');
   const [eventName, setEventName] = useState(event.name);
   const [schoolName, setSchoolName] = useState(settings?.schoolName || 'Piruá Esporte Clube');
+  const [flyerModality, setFlyerModality] = useState(event.modality || '');
   const [showVS, setShowVS] = useState(true);
 
   // Auto-detecção de confronto versus para separar o título em 3 blocos (cima, vs, baixo)
@@ -415,6 +416,17 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   onChange={e => setFlyerTitle(e.target.value)}
                   className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
                   placeholder="Ex: Grande Evento, Amistoso, Final..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Modalidade no Encarte</label>
+                <input 
+                  type="text"
+                  value={flyerModality}
+                  onChange={e => setFlyerModality(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase font-bold"
+                  placeholder="Ex: Futebol de Campo, Futsal..."
                 />
               </div>
 
@@ -805,7 +817,12 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg mb-1">
                 {schoolName}
               </h1>
-              <div className="w-10 h-0.5 bg-theme-primary rounded-full mb-6 opacity-80"></div>
+              {flyerModality && (
+                <p className="text-[9px] font-black tracking-widest text-theme-primary uppercase mb-1.5 pt-0.5">
+                  • {flyerModality} •
+                </p>
+              )}
+              <div className="w-10 h-0.5 bg-theme-primary rounded-full mb-5 opacity-80"></div>
 
               {/* Event Title Card */}
               <div className="w-full bg-theme-primary p-2.5 rounded-xl transform -skew-x-6 shadow-2xl mb-4">

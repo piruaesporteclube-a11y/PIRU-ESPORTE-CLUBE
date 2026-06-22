@@ -70,6 +70,7 @@ export type Event = {
   departure_time?: string;
   departure_location?: string;
   arrival_location?: string;
+  modality?: string;
   created_at?: any;
   updated_at?: any;
 };

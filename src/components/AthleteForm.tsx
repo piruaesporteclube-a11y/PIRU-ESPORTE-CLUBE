@@ -19,6 +19,14 @@ interface AthleteFormProps {
   userRole?: 'admin' | 'student' | 'professor';
 }
 
+const POSITIONS_BY_MODALITY: Record<string, string[]> = {
+  "Futebol de Campo": ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"],
+  "Futsal": ["Goleiro", "Fixo", "Ala", "Pivô"],
+  "Volêi": ["Levantador", "Ponteiro", "Oposto", "Central", "Líbero"],
+  "Corrida de Rua": ["Velocista", "Meio-Fundista", "Fundista", "Maratonista"],
+  "Outros": ["Atleta", "Competidor", "Amador", "Outros"]
+};
+
 export default function AthleteForm({ athlete, onClose, onSave, isRegistration, onRegisterSuccess, standalone, userRole }: AthleteFormProps) {
   const { settings } = useTheme();
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
@@ -48,6 +56,19 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     confirmation: 'Pendente'
   });
   const [loading, setLoading] = useState(false);
+
+  const getAvailablePositions = () => {
+    const selectedModalities = formData.modality ? formData.modality.split(', ').filter(Boolean) : [];
+    if (selectedModalities.length === 0) {
+      return Array.from(new Set(Object.values(POSITIONS_BY_MODALITY).flat()));
+    }
+    const positions = new Set<string>();
+    selectedModalities.forEach(mod => {
+      const list = POSITIONS_BY_MODALITY[mod] || [];
+      list.forEach(pos => positions.add(pos));
+    });
+    return Array.from(positions);
+  };
 
   useEffect(() => {
     if (athlete) setFormData(prev => ({ ...prev, ...athlete }));
@@ -510,9 +531,12 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Posições / Funções (Selecione uma ou mais)</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">
+                      Posições / Funções (Selecione uma ou mais)
+                      {formData.modality && <span className="text-[10px] text-zinc-500 font-normal normal-case block mt-0.5">(Filtradas com base nas modalidades selecionadas)</span>}
+                    </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante", "Ponta", "Líbero"].map(p => {
+                      {getAvailablePositions().map(p => {
                         const isSelected = formData.position?.split(', ').includes(p);
                         return (
                           <button
