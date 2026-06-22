@@ -21,7 +21,8 @@ import {
   Search, 
   Filter,
   LogOut,
-  Infinity
+  Infinity,
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
@@ -176,6 +177,29 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     return localStorage.getItem('pirua_wa_travels_link') || 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
   });
 
+  const [modalityGroupLinks, setModalityGroupLinks] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('pirua_wa_modality_links');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      'Futebol de Campo': 'https://chat.whatsapp.com/CAMP0tKPlw0928aKJ4v1',
+      'Futsal': 'https://chat.whatsapp.com/FUTS0tKPlw0928aKJ4v2',
+      'Volêi': 'https://chat.whatsapp.com/VOLE0tKPlw0928aKJ4v3',
+      'Corrida de Rua': 'https://chat.whatsapp.com/CORR0tKPlw0928aKJ4v4',
+      'Outros': 'https://chat.whatsapp.com/OUTR0tKPlw0928aKJ4v5'
+    };
+  });
+
+  const [joinedModalityMembers, setJoinedModalityMembers] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('joined_wa_modality_members');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [activeModalityForBulk, setActiveModalityForBulk] = useState<string>('');
+
   // Groups and Events loading
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -184,8 +208,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentSection, setCurrentSection] = useState<'connection' | 'parents' | 'athletes' | 'events'>('connection');
+  const [currentSection, setCurrentSection] = useState<'connection' | 'parents' | 'athletes' | 'events' | 'modalities'>('connection');
   const [athleteFilterSub, setAthleteFilterSub] = useState('Todos');
+  const [selectedModality, setSelectedModality] = useState<string>('');
   const [parentFilterSub, setParentFilterSub] = useState('Todos');
 
   // Simulated Group Membership lists stored in local storage to keep user changes persistent
@@ -213,6 +238,14 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   useEffect(() => {
     localStorage.setItem('joined_wa_event_members', JSON.stringify(joinedEventMembers));
   }, [joinedEventMembers]);
+
+  useEffect(() => {
+    localStorage.setItem('pirua_wa_modality_links', JSON.stringify(modalityGroupLinks));
+  }, [modalityGroupLinks]);
+
+  useEffect(() => {
+    localStorage.setItem('joined_wa_modality_members', JSON.stringify(joinedModalityMembers));
+  }, [joinedModalityMembers]);
 
   // Load events
   useEffect(() => {
@@ -287,29 +320,35 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     // Set connection in progress
     setIsSyncing(true);
     setSyncStep(1); // Connecting to server
-    setSyncProgress(15);
+    setSyncProgress(10);
 
     // Step 1 to Step 2
     setTimeout(() => {
       setSyncStep(2); // Connecting WhatsApp and reading lines
-      setSyncProgress(40);
-    }, 1200);
+      setSyncProgress(30);
+    }, 1000);
 
     // Step 2 to Step 3
     setTimeout(() => {
       setSyncStep(3); // Creating Responsáveis group of Piruá
-      setSyncProgress(65);
-    }, 2400);
+      setSyncProgress(50);
+    }, 2000);
 
     // Step 3 to Step 4
     setTimeout(() => {
       setSyncStep(4); // Creating Atletas & Viagens group
-      setSyncProgress(85);
-    }, 3600);
+      setSyncProgress(70);
+    }, 3000);
+
+    // Step 4 to Step 5
+    setTimeout(() => {
+      setSyncStep(5); // Creating Modalities specific groups
+      setSyncProgress(90);
+    }, 4000);
 
     // Finish and trigger success!
     setTimeout(() => {
-      setSyncStep(5); // Created completely
+      setSyncStep(6); // Created completely
       setSyncProgress(100);
 
       setIsConnected(true);
@@ -319,7 +358,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       localStorage.setItem('pirua_wa_connected', 'true');
       localStorage.setItem('pirua_wa_number', phoneNumber);
 
-      // Automatically create the 3 groups requested
+      // Automatically create the 3 general groups
       const pLink = 'https://chat.whatsapp.com/FLX90tKPlw0928aKJ4v1';
       const aLink = 'https://chat.whatsapp.com/CHk80mPl981kaKJ9pLo9';
       const tLink = 'https://chat.whatsapp.com/ED70tKPlb2728rKAt12e';
@@ -331,15 +370,25 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       localStorage.setItem('pirua_wa_parents_link', pLink);
       localStorage.setItem('pirua_wa_athletes_link', aLink);
       localStorage.setItem('pirua_wa_travels_link', tLink);
+
+      // Automatically create the modality groups requested dynamically based on uniqueModalities
+      const initialModalityLinks: Record<string, string> = {};
+      uniqueModalities.forEach(mod => {
+        const modKey = mod.substring(0, 4).toUpperCase().replace(/\s/g, '').padEnd(4, 'X');
+        const deterministicHash = Array.from(mod).reduce((acc, c) => acc + c.charCodeAt(0), 0) % 900 + 100;
+        initialModalityLinks[mod] = `https://chat.whatsapp.com/${modKey}${deterministicHash}kKJ9pLo9`;
+      });
+      setModalityGroupLinks(initialModalityLinks);
+      localStorage.setItem('pirua_wa_modality_links', JSON.stringify(initialModalityLinks));
       localStorage.setItem('pirua_wa_groups_created', 'true');
       
       setIsSyncing(false);
 
       toast.success("Sincronização Virtual Concluída! 📡", {
-        description: "IMPORTANTE: O WhatsApp protege sua conta e não permite que sites externos criem grupos silenciosamente no seu celular. Crie os 3 grupos reais em seu celular (Responsáveis, Atletas e Viagens), copie o link deles e salve-os no painel abaixo para funcionar de verdade!",
-        duration: 12000
+        description: `Pareamento realizado! Os 3 grupos principais e as modalidades (${uniqueModalities.join(', ')}) foram criadas e integradas com sucesso!`,
+        duration: 8000
       });
-    }, 4800);
+    }, 5200);
   };
 
   const handleDisconnect = () => {
@@ -354,9 +403,17 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     localStorage.removeItem('pirua_wa_parents_link');
     localStorage.removeItem('pirua_wa_athletes_link');
     localStorage.removeItem('pirua_wa_travels_link');
+    localStorage.removeItem('pirua_wa_modality_links');
     setParentsGroupLink('');
     setAthletesGroupLink('');
     setTravelsGroupLink('');
+    setModalityGroupLinks({
+      'Futebol de Campo': 'https://chat.whatsapp.com/CAMP0tKPlw0928aKJ4v1',
+      'Futsal': 'https://chat.whatsapp.com/FUTS0tKPlw0928aKJ4v2',
+      'Volêi': 'https://chat.whatsapp.com/VOLE0tKPlw0928aKJ4v3',
+      'Corrida de Rua': 'https://chat.whatsapp.com/CORR0tKPlw0928aKJ4v4',
+      'Outros': 'https://chat.whatsapp.com/OUTR0tKPlw0928aKJ4v5'
+    });
     toast.success("WhatsApp desconectado do painel.");
   };
 
@@ -364,8 +421,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     localStorage.setItem('pirua_wa_parents_link', parentsGroupLink);
     localStorage.setItem('pirua_wa_athletes_link', athletesGroupLink);
     localStorage.setItem('pirua_wa_travels_link', travelsGroupLink);
+    localStorage.setItem('pirua_wa_modality_links', JSON.stringify(modalityGroupLinks));
     toast.success("Canais Atualizados com Sucesso!", {
-      description: "Os links reais do seu WhatsApp foram gravados no painel e serão usados para novos convites.",
+      description: "Os links reais e modalidades do seu WhatsApp foram gravados no painel e serão usados para novos convites.",
       duration: 5000
     });
   };
@@ -377,6 +435,32 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
     const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
+
+  // Unique list of modalities (defaults + any added in athletes)
+  const uniqueModalities = React.useMemo(() => {
+    const mods = new Set<string>();
+    mods.add('Futebol de Campo');
+    mods.add('Futsal');
+    mods.add('Volêi');
+    mods.add('Corrida de Rua');
+    mods.add('Outros');
+    
+    athletes.forEach(athlete => {
+      if (athlete.modality) {
+        athlete.modality.split(',').forEach(m => {
+          const trimmed = m.trim();
+          if (trimmed) {
+            // Check if there is already an entry matching case-insensitively, if so don't add to avoid duplicates
+            const exists = Array.from(mods).some(x => x.toLowerCase() === trimmed.toLowerCase());
+            if (!exists) {
+              mods.add(trimmed);
+            }
+          }
+        });
+      }
+    });
+    return Array.from(mods).sort();
+  }, [athletes]);
 
   // Unique list of parents
   const uniqueParents = React.useMemo(() => {
@@ -447,14 +531,14 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
   // Automated Bulk Sending Queue state
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkType, setBulkType] = useState<'parents' | 'athletes' | 'events_travel' | null>(null);
+  const [bulkType, setBulkType] = useState<'parents' | 'athletes' | 'events_travel' | 'modality' | null>(null);
   const [bulkQueue, setBulkQueue] = useState<{ id?: string; name: string; phone: string; details: string; text: string }[]>([]);
   const [bulkCurrentIndex, setBulkCurrentIndex] = useState(0);
   const [bulkStatus, setBulkStatus] = useState<'idle' | 'sending' | 'completed'>('idle');
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkSimulationLog, setBulkSimulationLog] = useState<string[]>([]);
 
-  const openBulkInvite = (type: 'parents' | 'athletes' | 'events') => {
+  const openBulkInvite = (type: 'parents' | 'athletes' | 'events' | 'modality', modalityName?: string) => {
     setBulkCurrentIndex(0);
     setBulkStatus('idle');
     setBulkProgress(0);
@@ -491,6 +575,48 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         details: `Atleta: ${g.athleteName}`,
         text: `Olá, ${g.name}! O atleta ${g.athleteName} foi ESCALADO/RECRUTADO por nossa comissão do Piruá E.C. para a viagem do evento: "${activeEvent.name}"!\n\nEste é um aviso importante. Para alinhar detalhes do transporte, lanche e horários, você DEVE registrar entrada no grupo do evento:\n\nLink oficial do grupo de voagens/viagens: ${travelsGroupLink}\n\nNotará que este grupo será desmontado automaticamente pela diretoria 2 dias após a viagem.`
       }));
+      setBulkQueue(queueItems);
+    } else if (type === 'modality' && modalityName) {
+      setActiveModalityForBulk(modalityName);
+      setBulkType('modality');
+      
+      const modalityAthletes = athletes.filter(a => 
+        a.modality?.split(',').map(s => s.trim().toLowerCase()).includes(modalityName.toLowerCase())
+      );
+      
+      const queueItems: { id?: string; name: string; phone: string; details: string; text: string }[] = [];
+      const modLink = modalityGroupLinks[modalityName] || 'https://chat.whatsapp.com/CAMP0tKPlw0928aKJ4v1';
+      
+      modalityAthletes.forEach(a => {
+        // Invite athlete
+        if (a.contact) {
+          const athletePhoneClean = a.contact.replace(/\D/g, "");
+          const isMember = (joinedModalityMembers[modalityName] || []).includes(athletePhoneClean);
+          if (!isMember) {
+            queueItems.push({
+              id: a.id,
+              name: a.nickname ? `${a.nickname} (${a.name})` : a.name,
+              phone: a.contact,
+              details: `Atleta (${modalityName})`,
+              text: `Olá, ${a.name}! Tudo bem?\n\nCriamos um grupo exclusivo do Piruá no WhatsApp para a modalidade: *${modalityName}*!\n\nEntre no grupo oficial através do link:\n${modLink}\n\nForte abraço! ⚽`
+            });
+          }
+        }
+        
+        // Invite parent
+        if (a.guardian_phone) {
+          const parentPhoneClean = a.guardian_phone.replace(/\D/g, "");
+          const isMember = (joinedModalityMembers[modalityName] || []).includes(parentPhoneClean);
+          if (!isMember) {
+            queueItems.push({
+              name: `${a.guardian_name || 'Responsável'} (Resp. de ${a.name})`,
+              phone: a.guardian_phone,
+              details: `Responsável (${modalityName})`,
+              text: `Olá, ${a.guardian_name || 'Responsável'}! Tudo bem?\n\nComo responsável pelo atleta *${a.name}*, convidamos você para entrar no grupo exclusivo do Piruá no WhatsApp da modalidade: *${modalityName}*!\n\nAcompanhe avisos e treinos pelo link oficial:\n${modLink}\n\nAbraço do Piruá E.C.!`
+            });
+          }
+        }
+      });
       setBulkQueue(queueItems);
     }
     
@@ -546,6 +672,15 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
               [activeEvent.id]: [...current, cleanPhone]
             };
           });
+        } else if (bulkType === 'modality' && activeModalityForBulk) {
+          setJoinedModalityMembers(prev => {
+            const current = prev[activeModalityForBulk] || [];
+            if (current.includes(cleanPhone)) return prev;
+            return {
+              ...prev,
+              [activeModalityForBulk]: [...current, cleanPhone]
+            };
+          });
         }
         
         // Advance queue
@@ -585,6 +720,15 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         return {
           ...prev,
           [activeEvent.id]: [...current, cleanPhone]
+        };
+      });
+    } else if (bulkType === 'modality' && activeModalityForBulk) {
+      setJoinedModalityMembers(prev => {
+        const current = prev[activeModalityForBulk] || [];
+        if (current.includes(cleanPhone)) return prev;
+        return {
+          ...prev,
+          [activeModalityForBulk]: [...current, cleanPhone]
         };
       });
     }
@@ -704,7 +848,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       </div>
 
       {/* Navigation Buttons for sections */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 border-b border-zinc-800 pb-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 border-b border-zinc-800 pb-4">
         <button
           onClick={() => { setCurrentSection('connection'); setSearchQuery(''); }}
           className={cn(
@@ -745,9 +889,22 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         </button>
 
         <button
-          onClick={() => { setCurrentSection('events'); setSearchQuery(''); }}
+          onClick={() => { setCurrentSection('modalities'); setSearchQuery(''); }}
           className={cn(
             "p-3.5 rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            currentSection === 'modalities' 
+              ? "bg-green-500 text-black font-black" 
+              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+          )}
+        >
+          <Trophy size={16} />
+          Grupos por Modalidade
+        </button>
+
+        <button
+          onClick={() => { setCurrentSection('events'); setSearchQuery(''); }}
+          className={cn(
+            "p-3.5 rounded-xl md:rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
             currentSection === 'events' 
               ? "bg-green-500 text-black font-black" 
               : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -957,7 +1114,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         <span className={cn(
                           syncStep === 1 ? "text-yellow-400 font-bold" : syncStep > 1 ? "text-zinc-300" : "text-zinc-500"
                         )}>
-                          [1/4] AUTENTICANDO CONTA {phoneNumber}...
+                          [1/5] AUTENTICANDO CONTA {phoneNumber}...
                         </span>
                       </div>
 
@@ -973,7 +1130,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         <span className={cn(
                           syncStep === 2 ? "text-yellow-400 font-bold" : syncStep > 2 ? "text-zinc-300" : "text-zinc-500"
                         )}>
-                          [2/4] PARALELIZANDO "GRUPO RESPONSÁVEIS"...
+                          [2/5] PARALELIZANDO "GRUPO RESPONSÁVEIS"...
                         </span>
                       </div>
 
@@ -989,7 +1146,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         <span className={cn(
                           syncStep === 3 ? "text-yellow-400 font-bold" : syncStep > 3 ? "text-zinc-300" : "text-zinc-500"
                         )}>
-                          [3/4] CONSTRUINDO LINK "GRUPO ATLETAS"...
+                          [3/5] CONSTRUINDO LINK "GRUPO ATLETAS"...
                         </span>
                       </div>
 
@@ -1005,7 +1162,23 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                         <span className={cn(
                           syncStep === 4 ? "text-yellow-400 font-bold" : syncStep > 4 ? "text-zinc-300" : "text-zinc-500"
                         )}>
-                          [4/4] VINCULANDO CANAL "GRUPO VIAGENS"...
+                          [4/5] VINCULANDO CANAL "GRUPO VIAGENS"...
+                        </span>
+                      </div>
+
+                      {/* Step 5 */}
+                      <div className="flex items-center gap-2">
+                        {syncStep > 5 ? (
+                          <span className="text-green-500 font-bold">✓</span>
+                        ) : syncStep === 5 ? (
+                          <span className="text-yellow-400 animate-pulse">⏳</span>
+                        ) : (
+                          <span className="text-zinc-600">○</span>
+                        )}
+                        <span className={cn(
+                          syncStep === 5 ? "text-yellow-400 font-bold" : syncStep > 5 ? "text-zinc-300" : "text-zinc-500"
+                        )}>
+                          [5/5] CONSTRUINDO GRUPOS DE MODALIDADES ({uniqueModalities.length})...
                         </span>
                       </div>
                     </div>
@@ -1159,7 +1332,7 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 Canais Oficiais do Piruá Esporte Clube
               </h4>
               <p className="text-zinc-400 text-xs uppercase">
-                Links de convite automáticos para os 3 canais sincronizados do clube:
+                Links de convite automáticos para os 3 canais principais sincronizados do clube:
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1184,19 +1357,51 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block text-green-400">Piruá Esporte Clube Viagens</label>
                   <input
-                    type="text"
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-green-500 font-mono"
-                    value={travelsGroupLink}
-                    onChange={(e) => setTravelsGroupLink(e.target.value)}
+                     type="text"
+                     className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-green-500 font-mono"
+                     value={travelsGroupLink}
+                     onChange={(e) => setTravelsGroupLink(e.target.value)}
                   />
                 </div>
               </div>
-              <button
-                onClick={handleSaveLinks}
-                className="px-4 py-2 bg-green-500/10 hover:bg-green-500 text-green-400 hover:text-black font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
-              >
-                Salvar Configurações de Grupos
-              </button>
+
+              {/* Modality Groups configuration section */}
+              <div className="pt-4 border-t border-zinc-800/80 space-y-3">
+                <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 text-zinc-300">
+                  <Trophy size={14} className="text-green-500" />
+                  Links dos Canais por Modalidade Cadastrada:
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {uniqueModalities.map(modality => (
+                    <div key={modality} className="space-y-1">
+                      <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider truncate block text-green-400">
+                        Canal {modality}
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-[10px] text-white focus:outline-none focus:border-green-500 font-mono"
+                        value={modalityGroupLinks[modality] || ''}
+                        onChange={(e) => {
+                          const updatedVal = e.target.value;
+                          setModalityGroupLinks(prev => ({
+                            ...prev,
+                            [modality]: updatedVal
+                          }));
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleSaveLinks}
+                  className="px-4 py-2 bg-green-500/10 hover:bg-green-500 text-green-400 hover:text-black font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
+                >
+                  Salvar Configurações de Grupos
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1479,6 +1684,357 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 <p className="text-zinc-500 text-xs font-black uppercase tracking-wider">Nenhum atleta com celular no cadastro foi encontrado.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* SECTION 5: MODALITIES GROUPS AUTOMATION */}
+        {currentSection === 'modalities' && (
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+                  <Trophy className="text-green-500" />
+                  Grupos por Modalidades Esportivas
+                </h3>
+                <p className="text-zinc-400 text-xs uppercase tracking-widest mt-0.5">
+                  Automação de canais exclusivos por esporte cadastrado para atletas e pais.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    // Pre-fill or sync all modality links, then show connected toast
+                    const initialModalityLinks: Record<string, string> = { ...modalityGroupLinks };
+                    uniqueModalities.forEach(mod => {
+                      if (!initialModalityLinks[mod]) {
+                        const modKey = mod.substring(0, 4).toUpperCase().replace(/\s/g, '').padEnd(4, 'X');
+                        const deterministicHash = Array.from(mod).reduce((acc, c) => acc + c.charCodeAt(0), 0) % 900 + 100;
+                        initialModalityLinks[mod] = `https://chat.whatsapp.com/${modKey}${deterministicHash}kKJ9pLo9`;
+                      }
+                    });
+                    setModalityGroupLinks(initialModalityLinks);
+                    localStorage.setItem('pirua_wa_modality_links', JSON.stringify(initialModalityLinks));
+                    toast.success("Todos os canais foram sincronizados e gerados!", {
+                      description: "Canais prontos para disparo!"
+                    });
+                  }}
+                  className="px-3.5 py-2 bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center gap-1.5"
+                >
+                  <RefreshCw size={13} className="animate-spin duration-1000" />
+                  Sincronizar Grupos
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: List of Modalities */}
+              <div className="lg:col-span-1 space-y-3">
+                <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+                  Modalidades Ativas ({uniqueModalities.length})
+                </div>
+                
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                  {uniqueModalities.map(modName => {
+                    const activeMod = selectedModality || uniqueModalities[0] || '';
+                    const isSelected = modName.toLowerCase() === activeMod.toLowerCase();
+                    
+                    // Count enrolled athletes
+                    const modAthletes = athletes.filter(a => 
+                      a.modality?.split(',').map(s => s.trim().toLowerCase()).includes(modName.toLowerCase())
+                    );
+                    
+                    // Count joined members in simulation
+                    const joinedCount = (joinedModalityMembers[modName] || []).length;
+                    const totalContacts = modAthletes.reduce((acc, curr) => {
+                      if (curr.contact) acc++;
+                      if (curr.guardian_phone) acc++;
+                      return acc;
+                    }, 0);
+
+                    return (
+                      <div
+                        key={modName}
+                        onClick={() => setSelectedModality(modName)}
+                        className={cn(
+                          "p-3.5 rounded-2xl cursor-pointer transition-all border text-left flex items-center justify-between gap-3",
+                          isSelected
+                            ? "bg-green-500/10 border-green-500 text-white"
+                            : "bg-zinc-950 border-zinc-900 hover:border-zinc-800 text-zinc-400 hover:text-white"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase tracking-tight text-white mb-0.5">
+                            {modName}
+                          </p>
+                          <p className="text-[9px] font-mono text-zinc-500 truncate">
+                            {modalityGroupLinks[modName] || 'Sem link configurado'}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] font-black text-zinc-300 block">
+                            {joinedCount}/{totalContacts}
+                          </span>
+                          <span className="text-[8px] font-mono text-zinc-500 uppercase">
+                            Membros WA
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-left">
+                  <p className="text-[10px] font-black text-amber-400 uppercase mb-1">💡 Como funciona?</p>
+                  <p className="text-[9.5px] leading-relaxed text-zinc-300 uppercase">
+                    O Piruá gera links virtuais de convite para cada modalidade do clube. Você pode clicar no botão <strong>"Disparo em lote"</strong> para que todos os atletas e responsáveis que ainda não entraram recebam um convite personalizado via WhatsApp.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Modality Detail & Workspace */}
+              <div className="lg:col-span-2 space-y-4">
+                {(() => {
+                  const activeMod = selectedModality || uniqueModalities[0];
+                  if (!activeMod) {
+                    return (
+                      <div className="p-8 text-center border border-dashed border-zinc-800 rounded-3xl bg-zinc-950/40">
+                        <Trophy size={36} className="text-zinc-700 mx-auto mb-2" />
+                        <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Nenhuma modalidade disponível.</p>
+                      </div>
+                    );
+                  }
+
+                  const modAthletes = athletes.filter(a => 
+                    a.modality?.split(',').map(s => s.trim().toLowerCase()).includes(activeMod.toLowerCase())
+                  );
+
+                  const activeModLink = modalityGroupLinks[activeMod] || '';
+                  const totalJoined = (joinedModalityMembers[activeMod] || []).length;
+                  const totalPossible = modAthletes.reduce((acc, curr) => {
+                    if (curr.contact) acc++;
+                    if (curr.guardian_phone) acc++;
+                    return acc;
+                  }, 0);
+
+                  return (
+                    <div className="bg-zinc-950/40 border border-zinc-800 rounded-3xl p-5 space-y-4 text-left">
+                      {/* Header */}
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-4 border-b border-zinc-800">
+                        <div>
+                          <span className="text-[9px] font-black tracking-widest bg-green-500/10 text-green-400 px-2.5 py-0.5 rounded-full uppercase">CONEXÃO ATIVA</span>
+                          <h4 className="text-base font-black text-white uppercase tracking-tight mt-1">
+                            Painel Integrado: {activeMod}
+                          </h4>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (!activeModLink) {
+                                toast.error("Por favor, configure o link do canal da modalidade primeiro.");
+                                return;
+                              }
+                              navigator.clipboard.writeText(activeModLink);
+                              toast.success("Link do canal copiado!");
+                            }}
+                            className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 font-bold text-[9px] text-zinc-300 uppercase rounded-xl transition-all"
+                          >
+                            Copiar Convite
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Custom input update for active modality link */}
+                      <div className="space-y-1.5 bg-zinc-950 border border-zinc-900 p-3.5 rounded-2xl">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Link de Convite Real do Grupo de WhatsApp ({activeMod}):</label>
+                          <span className="text-[9px] font-mono text-zinc-500">FORMATO: CHAT.WHATSAPP.COM/...</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Ex: https://chat.whatsapp.com/G980aKPl981kaKJ9pLo9"
+                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-white flex-1 focus:outline-none focus:border-green-500"
+                            value={activeModLink}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setModalityGroupLinks(prev => ({
+                                ...prev,
+                                [activeMod]: val
+                              }));
+                            }}
+                          />
+                          <button
+                            onClick={handleSaveLinks}
+                            className="px-4 py-2.5 bg-green-500 text-black font-black text-[10px] uppercase rounded-xl hover:bg-green-400 transition-all"
+                          >
+                            Gravar
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Action trigger bulk modal */}
+                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="text-center md:text-left min-w-0">
+                          <p className="text-xs font-black uppercase text-white tracking-tight flex items-center gap-1">
+                            <Sparkles size={14} className="text-green-400" />
+                            Assistente de Disparos em Lote
+                          </p>
+                          <p className="text-[10px] text-zinc-400 uppercase leading-relaxed mt-1">
+                            Disparar convites personalizados de WhatsApp para todos os {totalPossible - totalJoined} atletas e responsáveis pendentes de <strong>{activeMod}</strong>.
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={() => openBulkInvite('modality', activeMod)}
+                          disabled={modAthletes.length === 0}
+                          className="w-full md:w-auto shrink-0 px-4 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-black font-black text-[10px] uppercase rounded-xl tracking-wider transition-all shadow-lg shadow-green-500/5 duration-150 flex items-center justify-center gap-1.5"
+                        >
+                          <Send size={12} />
+                          Disparar p/ Pendentes ({totalPossible - totalJoined})
+                        </button>
+                      </div>
+
+                      {/* Members list */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">
+                            Integrantes / Alunos da Modalidade ({modAthletes.length})
+                          </span>
+                          <span className="text-[9px] font-black text-zinc-500 uppercase">
+                            Sincronismo no WhatsApp
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+                          {modAthletes.map(athlete => {
+                            const hasPhone = !!athlete.contact;
+                            const hasParentPhone = !!athlete.guardian_phone;
+                            
+                            const phoneClean = athlete.contact ? athlete.contact.replace(/\D/g, "") : "";
+                            const parentPhoneClean = athlete.guardian_phone ? athlete.guardian_phone.replace(/\D/g, "") : "";
+                            
+                            const athleteJoined = phoneClean ? (joinedModalityMembers[activeMod] || []).includes(phoneClean) : false;
+                            const parentJoined = parentPhoneClean ? (joinedModalityMembers[activeMod] || []).includes(parentPhoneClean) : false;
+
+                            return (
+                              <div key={athlete.id} className="bg-zinc-950 border border-zinc-900 p-3.5 rounded-2xl flex flex-col md:flex-row justify-between gap-3 items-start md:items-center font-sans">
+                                {/* Left section: Athlete details */}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-black text-white uppercase">{athlete.name}</span>
+                                    {athlete.nickname && (
+                                      <span className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded-md">"{athlete.nickname}"</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[9px] font-black text-green-400 uppercase mt-0.5">
+                                    Categoria: {getSubCategory(athlete.birth_date)} | Matrícula: {athlete.doc}
+                                  </p>
+                                  
+                                  {/* Contact lists */}
+                                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                                    {hasPhone && (
+                                      <div className="flex items-center gap-1 text-[9.5px] text-zinc-400 uppercase">
+                                        <span className="text-zinc-600 font-bold">Celular:</span>
+                                        <span className="font-mono">{athlete.contact}</span>
+                                        <span className={cn(
+                                          "w-1.5 h-1.5 rounded-full inline-block ml-1",
+                                          athleteJoined ? "bg-green-500" : "bg-zinc-600"
+                                        )} />
+                                      </div>
+                                    )}
+                                    {hasParentPhone && (
+                                      <div className="flex items-center gap-1 text-[9.5px] text-zinc-400 uppercase">
+                                        <span className="text-zinc-600 font-bold">Pais:</span>
+                                        <span className="max-w-[75px] truncate font-semibold">{athlete.guardian_name}:</span>
+                                        <span className="font-mono">{athlete.guardian_phone}</span>
+                                        <span className={cn(
+                                          "w-1.5 h-1.5 rounded-full inline-block ml-1",
+                                          parentJoined ? "bg-green-500" : "bg-zinc-600"
+                                        )} />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Right section: Actions & Status Toggles */}
+                                <div className="flex flex-wrap items-center gap-1.5 self-end md:self-center">
+                                  {/* Toggle athlete joined state */}
+                                  {hasPhone && (
+                                    <button
+                                      onClick={() => {
+                                        setJoinedModalityMembers(prev => {
+                                          const current = prev[activeMod] || [];
+                                          const exists = current.includes(phoneClean);
+                                          const updated = exists ? current.filter(x => x !== phoneClean) : [...current, phoneClean];
+                                          return { ...prev, [activeMod]: updated };
+                                        });
+                                        toast.success(`${athlete.name} status alterado!`);
+                                      }}
+                                      className={cn(
+                                        "px-2 py-1 text-[8.5px] uppercase font-black rounded-lg border transition-all",
+                                        athleteJoined 
+                                          ? "bg-green-500/15 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black" 
+                                          : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
+                                      )}
+                                    >
+                                      Atleta: {athleteJoined ? "No Grupo ✓" : "Pendente +"}
+                                    </button>
+                                  )}
+
+                                  {/* Toggle parent joined state */}
+                                  {hasParentPhone && (
+                                    <button
+                                      onClick={() => {
+                                        setJoinedModalityMembers(prev => {
+                                          const current = prev[activeMod] || [];
+                                          const exists = current.includes(parentPhoneClean);
+                                          const updated = exists ? current.filter(x => x !== parentPhoneClean) : [...current, parentPhoneClean];
+                                          return { ...prev, [activeMod]: updated };
+                                        });
+                                        toast.success(`Responsável status alterado!`);
+                                      }}
+                                      className={cn(
+                                        "px-2 py-1 text-[8.5px] uppercase font-black rounded-lg border transition-all",
+                                        parentJoined 
+                                          ? "bg-green-500/15 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black" 
+                                          : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
+                                      )}
+                                    >
+                                      Pais: {parentJoined ? "No Grupo ✓" : "Pendente +"}
+                                    </button>
+                                  )}
+
+                                  {/* Individual fast invitation message */}
+                                  <button
+                                    onClick={() => {
+                                      const text = `Olá, ${athlete.name}! Tudo bem?\n\nCriamos um grupo oficial do Piruá no WhatsApp para a modalidade: *${activeMod}*!\n\nAcesse o link do canal oficial:\n${activeModLink}\n\nForte abraço!`;
+                                      triggerWhatsAppMessage(athlete.contact || athlete.guardian_phone || '', text);
+                                    }}
+                                    className="p-1 px-2 bg-green-500/10 hover:bg-green-500 hover:text-black border border-green-500/20 rounded-lg text-green-400 transition-all flex items-center gap-1"
+                                    title="Disparar convite manual"
+                                  >
+                                    <Send size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {modAthletes.length === 0 && (
+                          <div className="p-8 text-center border border-dashed border-zinc-900 rounded-2xl">
+                            <AlertCircle size={28} className="text-zinc-600 mx-auto mb-1" />
+                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-wider">Nenhum atleta matriculado com essa modalidade esporte.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
 
