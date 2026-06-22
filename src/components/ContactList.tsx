@@ -12,6 +12,16 @@ export default function ContactList({ athletes }: ContactListProps) {
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
   const [filterSub, setFilterSub] = useState('Todos');
+  const [filterModality, setFilterModality] = useState('Todos');
+
+  const uniqueModalities = Array.from(
+    new Set(
+      athletes
+        .map(a => a.modality)
+        .filter(Boolean)
+        .flatMap(m => m!.split(',').map(s => s.trim()))
+    )
+  ).sort();
 
   const filteredAthletes = athletes
     .filter(a => {
@@ -19,7 +29,8 @@ export default function ContactList({ athletes }: ContactListProps) {
                            a.doc.includes(search) ||
                            (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase()));
       const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-      return matchesSearch && matchesSub;
+      const matchesModality = filterModality === 'Todos' || (a.modality && a.modality.split(',').map(s => s.trim().toLowerCase()).includes(filterModality.toLowerCase()));
+      return matchesSearch && matchesSub && matchesModality;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -39,7 +50,7 @@ export default function ContactList({ athletes }: ContactListProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
@@ -59,6 +70,17 @@ export default function ContactList({ athletes }: ContactListProps) {
           >
             <option value="Todos">TODAS AS CATEGORIAS</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <select 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none uppercase font-bold text-sm"
+            value={filterModality}
+            onChange={(e) => setFilterModality(e.target.value)}
+          >
+            <option value="Todos">TODAS AS MODALIDADES</option>
+            {uniqueModalities.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
           </select>
         </div>
       </div>
