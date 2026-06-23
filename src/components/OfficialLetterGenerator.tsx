@@ -20,7 +20,7 @@ export default function OfficialLetterGenerator() {
   const [marginBottom, setMarginBottom] = useState<number>(2.5);
   const [marginLeft, setMarginLeft] = useState<number>(3.0);
   const [marginRight, setMarginRight] = useState<number>(3.0);
-  const [marginPreset, setMarginPreset] = useState<string>('abnt');
+  const [marginPreset, setMarginPreset] = useState<string>('word_normal');
   const [fontSize, setFontSize] = useState<number>(11);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -140,11 +140,16 @@ export default function OfficialLetterGenerator() {
 
   const applyPreset = (preset: string) => {
     setMarginPreset(preset);
-    if (preset === 'abnt') {
+    if (preset === 'word_normal') {
       setMarginTop(2.5);
       setMarginBottom(2.5);
       setMarginLeft(3.0);
       setMarginRight(3.0);
+    } else if (preset === 'abnt') {
+      setMarginTop(3.0);
+      setMarginBottom(2.0);
+      setMarginLeft(3.0);
+      setMarginRight(2.0);
     } else if (preset === 'normal_us') {
       setMarginTop(2.54);
       setMarginBottom(2.54);
@@ -186,7 +191,7 @@ export default function OfficialLetterGenerator() {
         {settings?.schoolCrest && (
           <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain mb-3" referrerPolicy="no-referrer" />
         )}
-        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable style={{ fontSize: `${fontSize + 2}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable suppressContentEditableWarning={true} style={{ fontSize: `${fontSize + 2}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
 
       {/* Title & Date */}
@@ -280,17 +285,41 @@ export default function OfficialLetterGenerator() {
           
           <div className="flex gap-2">
             <button 
-              onClick={() => window.print()}
-              className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all"
+              onClick={() => {
+                toast.info("Dica: Para Imprimir fisicamente, escolha a sua impressora conectada no painel que se abrirá.", {
+                  duration: 6000,
+                  position: 'top-center'
+                });
+                window.print();
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-zinc-700/50 text-xs uppercase tracking-tight"
+              type="button"
             >
-              <Printer size={20} />
+              <Printer size={16} />
               Imprimir
             </button>
             <button 
-              onClick={handleSave}
-              className="flex items-center gap-2 px-8 py-3 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20"
+              onClick={() => {
+                toast.info("Dica: Para gerar o arquivo PDF, altere o campo 'Destino' para 'Salvar como PDF' na tela a seguir.", {
+                  duration: 7000,
+                  position: 'top-center'
+                });
+                setTimeout(() => {
+                  window.print();
+                }, 800);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-zinc-700/50 text-xs uppercase tracking-tight"
+              type="button"
             >
-              <Save size={20} />
+              <Download size={16} />
+              Salvar PDF
+            </button>
+            <button 
+              onClick={handleSave}
+              className="flex items-center gap-2 px-6 py-2.5 bg-theme-primary hover:opacity-90 text-black rounded-xl font-black transition-all shadow-lg shadow-theme-primary/20 text-xs uppercase tracking-tight"
+              type="button"
+            >
+              <Save size={16} />
               Salvar Ofício
             </button>
           </div>
@@ -334,7 +363,8 @@ export default function OfficialLetterGenerator() {
                 onChange={(e) => applyPreset(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 font-bold text-xs uppercase focus:outline-none focus:ring-1 focus:ring-theme-primary"
               >
-                <option value="abnt">Margem Normal ABNT (Sup: 2,5 | Inf: 2,5 | Esq: 3 | Dir: 3 cm)</option>
+                <option value="word_normal">Margem Normal Word BR (Sup: 2,5 | Inf: 2,5 | Esq: 3 | Dir: 3 cm)</option>
+                <option value="abnt">Margem Padrão ABNT Oficial (Sup: 3 | Inf: 2 | Esq: 3 | Dir: 2 cm)</option>
                 <option value="normal_us">Margem Normal Word US (2,54 cm todas as faces)</option>
                 <option value="narrow">Margem Estreita (1,27 cm todas as faces)</option>
                 <option value="moderate">Margem Moderada (Sup/Inf: 2,54 | Esq/Dir: 1,91 cm)</option>
@@ -685,12 +715,12 @@ export default function OfficialLetterGenerator() {
           </form>
 
           {/* Preview */}
-          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none print:overflow-visible print:block">
+          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none print:overflow-visible print:block print:scale-100 print:transform-none official-letter-preview-container">
             <style>{`
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm;
+                  margin: 0 !important;
                 }
                 
                 * {
@@ -729,14 +759,29 @@ export default function OfficialLetterGenerator() {
                   float: none !important;
                 }
 
+                .official-letter-preview-container, .print-letter-container, .print-letter-content {
+                  transform: none !important;
+                  scale: none !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  max-width: none !important;
+                  max-height: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  position: static !important;
+                  overflow: visible !important;
+                  box-sizing: border-box !important;
+                }
+
                 .print-sheet {
                   display: flex !important;
                   flex-direction: column !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  max-height: 100% !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
+                  width: ${pageSize === 'A4' ? '210mm' : '215.9mm'} !important;
+                  height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                  min-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                  max-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                  padding: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm !important;
+                  margin: 0 auto !important;
                   background: white !important;
                   font-size: ${fontSize}pt !important;
                   page-break-after: always;
@@ -831,17 +876,35 @@ export default function OfficialLetterGenerator() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => handleEdit(letter)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all font-bold text-xs uppercase"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all font-bold text-xs uppercase"
                   >
-                    <Edit size={16} />
+                    <Edit size={14} />
                     Editar
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setEditingLetter(letter);
+                      setIsFormOpen(true);
+                      toast.info("Dica: Para gerar o arquivo PDF, altere o campo 'Destino' para 'Salvar como PDF' na tela a seguir.", {
+                        duration: 7000,
+                        position: 'top-center'
+                      });
+                      setTimeout(() => {
+                        window.print();
+                      }, 500);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-theme-primary/10 hover:bg-theme-primary text-theme-primary hover:text-black rounded-xl transition-all font-bold text-xs uppercase"
+                  >
+                    <Printer size={14} />
+                    PDF
                   </button>
                   <button 
                     onClick={() => handleDelete(letter.id)}
                     className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                     title="Excluir"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
