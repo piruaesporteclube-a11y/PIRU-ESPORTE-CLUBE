@@ -16,7 +16,11 @@ export default function OfficialLetterGenerator() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
-  const [marginSize, setMarginSize] = useState<number>(2.5);
+  const [marginTop, setMarginTop] = useState<number>(2.5);
+  const [marginBottom, setMarginBottom] = useState<number>(2.5);
+  const [marginLeft, setMarginLeft] = useState<number>(3.0);
+  const [marginRight, setMarginRight] = useState<number>(3.0);
+  const [marginPreset, setMarginPreset] = useState<string>('abnt');
   const [fontSize, setFontSize] = useState<number>(11);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -134,11 +138,41 @@ export default function OfficialLetterGenerator() {
     l.number.includes(searchTerm)
   );
 
+  const applyPreset = (preset: string) => {
+    setMarginPreset(preset);
+    if (preset === 'abnt') {
+      setMarginTop(2.5);
+      setMarginBottom(2.5);
+      setMarginLeft(3.0);
+      setMarginRight(3.0);
+    } else if (preset === 'normal_us') {
+      setMarginTop(2.54);
+      setMarginBottom(2.54);
+      setMarginLeft(2.54);
+      setMarginRight(2.54);
+    } else if (preset === 'narrow') {
+      setMarginTop(1.27);
+      setMarginBottom(1.27);
+      setMarginLeft(1.27);
+      setMarginRight(1.27);
+    } else if (preset === 'moderate') {
+      setMarginTop(2.54);
+      setMarginBottom(2.54);
+      setMarginLeft(1.91);
+      setMarginRight(1.91);
+    } else if (preset === 'wide') {
+      setMarginTop(2.54);
+      setMarginBottom(2.54);
+      setMarginLeft(5.08);
+      setMarginRight(5.08);
+    }
+  };
+
   const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
     <div 
       className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print-sheet" 
       style={{ 
-        padding: `${marginSize}cm`,
+        padding: `${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm`,
         fontSize: `${fontSize}pt`, 
         lineHeight: '1.6',
         width: pageSize === 'A4' ? '210mm' : '215.9mm',
@@ -263,61 +297,147 @@ export default function OfficialLetterGenerator() {
         </div>
 
         {/* Page & Margin Controls */}
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem] no-print flex flex-wrap items-center gap-8">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Tamanho do Papel</label>
-            <div className="flex bg-zinc-800 p-1 rounded-xl">
-              <button 
-                onClick={() => setPageSize('A4')}
-                className={cn(
-                  "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
-                  pageSize === 'A4' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
-                )}
+        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem] no-print space-y-6">
+          <div className="flex flex-wrap items-center gap-6">
+            {/* Paper Size */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Tamanho do Papel</label>
+              <div className="flex bg-zinc-800 p-1 rounded-xl">
+                <button 
+                  onClick={() => setPageSize('A4')}
+                  className={cn(
+                    "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
+                    pageSize === 'A4' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
+                  )}
+                  type="button"
+                >
+                  A4
+                </button>
+                <button 
+                  onClick={() => setPageSize('Letter')}
+                  className={cn(
+                    "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
+                    pageSize === 'Letter' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
+                  )}
+                  type="button"
+                >
+                  Ofício (Letter)
+                </button>
+              </div>
+            </div>
+
+            {/* Presets */}
+            <div className="flex-1 space-y-2 min-w-[200px]">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Margens Padrão (Estilo Word)</label>
+              <select
+                value={marginPreset}
+                onChange={(e) => applyPreset(e.target.value)}
+                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 font-bold text-xs uppercase focus:outline-none focus:ring-1 focus:ring-theme-primary"
               >
-                A4
-              </button>
-              <button 
-                onClick={() => setPageSize('Letter')}
-                className={cn(
-                  "px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all",
-                  pageSize === 'Letter' ? "bg-theme-primary text-black shadow-lg" : "text-zinc-500 hover:text-white"
-                )}
-              >
-                Ofício (Letter)
-              </button>
+                <option value="abnt">Margem Normal ABNT (Sup: 2,5 | Inf: 2,5 | Esq: 3 | Dir: 3 cm)</option>
+                <option value="normal_us">Margem Normal Word US (2,54 cm todas as faces)</option>
+                <option value="narrow">Margem Estreita (1,27 cm todas as faces)</option>
+                <option value="moderate">Margem Moderada (Sup/Inf: 2,54 | Esq/Dir: 1,91 cm)</option>
+                <option value="wide">Margem Larga (Sup/Inf: 2,54 | Esq/Dir: 5,08 cm)</option>
+                <option value="custom">Margens Personalizadas...</option>
+              </select>
+            </div>
+
+            {/* Font Size */}
+            <div className="space-y-2 min-w-[150px]">
+              <div className="flex justify-between items-center px-1">
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tamanho da Fonte</label>
+                <span className="text-[10px] font-black text-theme-primary uppercase">{fontSize} pt</span>
+              </div>
+              <input 
+                type="range" 
+                min="8" 
+                max="20" 
+                step="0.5"
+                value={fontSize}
+                onChange={(e) => setFontSize(parseFloat(e.target.value))}
+                className="w-full accent-theme-primary mt-1"
+              />
             </div>
           </div>
 
-          <div className="flex-1 space-y-2 min-w-[200px]">
-            <div className="flex justify-between items-center px-1">
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Largura das Margens</label>
-              <span className="text-[10px] font-black text-theme-primary uppercase">{marginSize} cm</span>
+          {/* Individual Margins */}
+          <div className="pt-4 border-t border-zinc-800/60">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1 mb-3">Ajuste Fino de Margens (cm)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                  <span>Superior</span>
+                  <span className="text-theme-primary">{marginTop} cm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="6" 
+                  step="0.1"
+                  value={marginTop}
+                  onChange={(e) => {
+                    setMarginTop(parseFloat(e.target.value));
+                    setMarginPreset('custom');
+                  }}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                  <span>Inferior</span>
+                  <span className="text-theme-primary">{marginBottom} cm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="6" 
+                  step="0.1"
+                  value={marginBottom}
+                  onChange={(e) => {
+                    setMarginBottom(parseFloat(e.target.value));
+                    setMarginPreset('custom');
+                  }}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                  <span>Esquerda</span>
+                  <span className="text-theme-primary">{marginLeft} cm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="6" 
+                  step="0.1"
+                  value={marginLeft}
+                  onChange={(e) => {
+                    setMarginLeft(parseFloat(e.target.value));
+                    setMarginPreset('custom');
+                  }}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                  <span>Direita</span>
+                  <span className="text-theme-primary">{marginRight} cm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="6" 
+                  step="0.1"
+                  value={marginRight}
+                  onChange={(e) => {
+                    setMarginRight(parseFloat(e.target.value));
+                    setMarginPreset('custom');
+                  }}
+                  className="w-full accent-theme-primary"
+                />
+              </div>
             </div>
-            <input 
-              type="range" 
-              min="1" 
-              max="5" 
-              step="0.1"
-              value={marginSize}
-              onChange={(e) => setMarginSize(parseFloat(e.target.value))}
-              className="w-full accent-theme-primary"
-            />
-          </div>
-
-          <div className="flex-1 space-y-2 min-w-[200px]">
-            <div className="flex justify-between items-center px-1">
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tamanho da Fonte</label>
-              <span className="text-[10px] font-black text-theme-primary uppercase">{fontSize} pt</span>
-            </div>
-            <input 
-              type="range" 
-              min="8" 
-              max="20" 
-              step="0.5"
-              value={fontSize}
-              onChange={(e) => setFontSize(parseFloat(e.target.value))}
-              className="w-full accent-theme-primary"
-            />
           </div>
         </div>
 
@@ -570,7 +690,7 @@ export default function OfficialLetterGenerator() {
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: ${marginSize}cm;
+                  margin: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm;
                 }
                 
                 * {
@@ -599,7 +719,7 @@ export default function OfficialLetterGenerator() {
                   margin: 0 !important;
                   width: 100% !important;
                   max-width: none !important;
-                  height: auto !important;
+                  height: 100% !important;
                   min-height: 0 !important;
                   background: white !important;
                   border: none !important;
@@ -613,7 +733,8 @@ export default function OfficialLetterGenerator() {
                   display: flex !important;
                   flex-direction: column !important;
                   width: 100% !important;
-                  height: calc(100vh - 1mm) !important;
+                  height: 100% !important;
+                  max-height: 100% !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   background: white !important;
@@ -621,6 +742,7 @@ export default function OfficialLetterGenerator() {
                   page-break-after: always;
                   page-break-inside: avoid;
                   box-shadow: none !important;
+                  box-sizing: border-box !important;
                 }
 
                 .print-sheet * {
