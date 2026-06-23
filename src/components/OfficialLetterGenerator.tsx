@@ -148,21 +148,21 @@ export default function OfficialLetterGenerator() {
       }}
     >
       {/* Header */}
-      <div className="flex flex-col items-center mb-10 border-b-2 border-black pb-6">
+      <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
         {settings?.schoolCrest && (
-          <img src={settings.schoolCrest} alt="Crest" className="w-24 h-24 object-contain mb-4" referrerPolicy="no-referrer" />
+          <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain mb-3" referrerPolicy="no-referrer" />
         )}
-        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable style={{ fontSize: `${fontSize + 3}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable style={{ fontSize: `${fontSize + 2}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
 
       {/* Title & Date */}
-      <div className="flex justify-between mb-8" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="flex justify-between mb-4" style={{ fontSize: `${fontSize}pt` }}>
         <p className="font-bold">OFÍCIO Nº {letter.number}/{letter.year}</p>
         <p>{letter.date ? new Date(letter.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
       </div>
 
       {/* Recipient */}
-      <div className="mb-8" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
         <p>Ao Sr(a).</p>
         <p className="font-bold uppercase leading-tight">{letter.recipient_name}</p>
         <p className="italic leading-tight">{letter.recipient_role}</p>
@@ -170,7 +170,7 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Subject */}
-      <div className="mb-6" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
         <p><span className="font-bold">Assunto:</span> {letter.subject}</p>
       </div>
       
@@ -196,7 +196,7 @@ export default function OfficialLetterGenerator() {
       )}
 
       {/* Salutation */}
-      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="mb-3" style={{ fontSize: `${fontSize}pt` }}>
         <p>Prezado(a) Senhor(a),</p>
       </div>
 
@@ -206,8 +206,8 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Closing */}
-      <div className="mt-8 text-center" style={{ fontSize: `${fontSize}pt` }}>
-        <p className="mb-8">{letter.closing}</p>
+      <div className="mt-4 text-center" style={{ fontSize: `${fontSize}pt` }}>
+        <p className="mb-6">{letter.closing}</p>
         <div className="flex flex-col items-center">
           <div className="w-64 border-t border-black mb-1"></div>
           <p className="font-bold uppercase leading-tight">{letter.sender_name}</p>
@@ -223,7 +223,7 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-4 border-t border-black/10 text-zinc-500 text-center uppercase tracking-widest leading-relaxed" style={{ fontSize: `${fontSize - 3}pt` }}>
+      <div className="mt-auto pt-3 border-t border-black/10 text-zinc-500 text-center uppercase tracking-widest leading-relaxed" style={{ fontSize: `${fontSize - 3}pt` }}>
         {letter.school_info && (
           <p className="mb-1 text-black font-bold uppercase tracking-tight">{letter.school_info}</p>
         )}
@@ -570,7 +570,7 @@ export default function OfficialLetterGenerator() {
               @media print {
                 @page {
                   size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: 0;
+                  margin: ${marginSize}cm;
                 }
                 
                 * {
@@ -585,7 +585,7 @@ export default function OfficialLetterGenerator() {
                   margin: 0 !important;
                   padding: 0 !important;
                   width: 100% !important;
-                  height: auto !important;
+                  height: 100% !important;
                   overflow: visible !important;
                 }
 
@@ -612,13 +612,14 @@ export default function OfficialLetterGenerator() {
                 .print-sheet {
                   display: flex !important;
                   flex-direction: column !important;
-                  width: ${pageSize === 'A4' ? '210mm' : '215.9mm'} !important;
-                  min-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
-                  padding: ${marginSize}cm !important;
-                  margin: 0 auto !important;
+                  width: 100% !important;
+                  height: calc(100vh - 1mm) !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
                   background: white !important;
                   font-size: ${fontSize}pt !important;
                   page-break-after: always;
+                  page-break-inside: avoid;
                   box-shadow: none !important;
                 }
 
