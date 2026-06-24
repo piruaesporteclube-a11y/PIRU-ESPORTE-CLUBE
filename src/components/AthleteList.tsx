@@ -66,6 +66,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const [filterSub, setFilterSub] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [filterModality, setFilterModality] = useState('Todos');
+  const [filterGender, setFilterGender] = useState('Todos');
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'created_new' | 'created_old'>('name_asc');
 
   const uniqueModalities = Array.from(
@@ -155,10 +156,11 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         a.doc.includes(search) ||
         (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase()));
         
-      const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-      const matchesStatus = isSearching || filterStatus === 'Todos' || a.status === filterStatus;
-      const matchesModality = isSearching || filterModality === 'Todos' || (a.modality && a.modality.split(',').map(s => s.trim().toLowerCase()).includes(filterModality.toLowerCase()));
-      return matchesSearch && matchesSub && matchesStatus && matchesModality;
+      const matchesSub = filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
+      const matchesModality = filterModality === 'Todos' || (a.modality && a.modality.split(',').map(s => s.trim().toLowerCase()).includes(filterModality.toLowerCase()));
+      const matchesGender = filterGender === 'Todos' || a.gender === filterGender;
+      return matchesSearch && matchesSub && matchesStatus && matchesModality && matchesGender;
     })
     .sort((a, b) => {
       // Sorting Logic - For "recent" viewMode, if the sort is default 'name_asc', default to 'created_new' (newest first)
@@ -322,9 +324,9 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 no-print">
         {viewMode === 'recent' && (
-          <div className="sm:col-span-2 lg:col-span-5 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
+          <div className="sm:col-span-2 md:col-span-3 xl:col-span-6 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
             <div className="p-3 bg-theme-primary/20 rounded-full text-theme-primary">
               <Clock size={24} />
             </div>
@@ -366,6 +368,18 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             {uniqueModalities.map(m => (
               <option key={m} value={m}>{m}</option>
             ))}
+          </select>
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <select 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            value={filterGender}
+            onChange={(e) => setFilterGender(e.target.value)}
+          >
+            <option value="Todos">Todos os Sexos</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
           </select>
         </div>
         <div className="relative">
