@@ -698,101 +698,87 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
               {/* Grid of 4 Photos - 2 Top, 2 Bottom - Positioned behind content (z-10) */}
               <div className="absolute inset-0 z-10 p-4 flex flex-col justify-between pointer-events-none">
                 <div className="flex justify-between w-full">
-                  <div 
-                    className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
-                      overlayImages[0] 
-                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
-                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
-                    )}
-                    style={{
-                      transform: `translate(${supportPhotoXOffsets[0] ?? 0}px, ${supportPhotoYOffsets[0] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
-                      transformOrigin: 'center',
-                      boxShadow: overlayImages[0] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
-                    }}
-                  >
-                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
-                      {overlayImages[0] ? (
+                  {overlayImages[0] ? (
+                    <div 
+                      className={cn(
+                        "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative rounded-2xl p-[3px]",
+                        currentBorder.class
+                      )}
+                      style={{
+                        transform: `translate(${supportPhotoXOffsets[0] ?? 0}px, ${supportPhotoYOffsets[0] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[0] ?? 1})`,
+                        transformOrigin: 'center',
+                        boxShadow: `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}`
+                      }}
+                    >
+                      <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
                         <img src={overlayImages[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                  <div 
-                    className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
-                      overlayImages[1] 
-                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
-                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
-                    )}
-                    style={{
-                      transform: `translate(${supportPhotoXOffsets[1] ?? 0}px, ${supportPhotoYOffsets[1] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
-                      transformOrigin: 'center',
-                      boxShadow: overlayImages[1] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
-                    }}
-                  >
-                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
-                      {overlayImages[1] ? (
+                  ) : (
+                    <div className="w-[90px] h-[120px] md:w-[130px] md:h-[170px]" />
+                  )}
+
+                  {overlayImages[1] ? (
+                    <div 
+                      className={cn(
+                        "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative rounded-2xl p-[3px]",
+                        currentBorder.class
+                      )}
+                      style={{
+                        transform: `translate(${supportPhotoXOffsets[1] ?? 0}px, ${supportPhotoYOffsets[1] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[1] ?? 1})`,
+                        transformOrigin: 'center',
+                        boxShadow: `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}`
+                      }}
+                    >
+                      <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
                         <img src={overlayImages[1]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="w-[90px] h-[120px] md:w-[130px] md:h-[170px]" />
+                  )}
                 </div>
 
                 <div className="flex justify-between w-full mt-auto">
-                  <div 
-                    className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
-                      overlayImages[2] 
-                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
-                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
-                    )}
-                    style={{
-                      transform: `translate(${supportPhotoXOffsets[2] ?? 0}px, ${supportPhotoYOffsets[2] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
-                      transformOrigin: 'center',
-                      boxShadow: overlayImages[2] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
-                    }}
-                  >
-                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
-                      {overlayImages[2] ? (
+                  {overlayImages[2] ? (
+                    <div 
+                      className={cn(
+                        "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative rounded-2xl p-[3px]",
+                        currentBorder.class
+                      )}
+                      style={{
+                        transform: `translate(${supportPhotoXOffsets[2] ?? 0}px, ${supportPhotoYOffsets[2] ?? 0}px) rotate(4deg) scale(${supportPhotoScales[2] ?? 1})`,
+                        transformOrigin: 'center',
+                        boxShadow: `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}`
+                      }}
+                    >
+                      <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
                         <img src={overlayImages[2]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                  <div 
-                    className={cn(
-                      "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative",
-                      overlayImages[3] 
-                        ? `rounded-2xl p-[3px] ${currentBorder.class}` 
-                        : "rounded-2xl border-2 border-dashed border-zinc-700/60 bg-zinc-900/35 opacity-25"
-                    )}
-                    style={{
-                      transform: `translate(${supportPhotoXOffsets[3] ?? 0}px, ${supportPhotoYOffsets[3] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
-                      transformOrigin: 'center',
-                      boxShadow: overlayImages[3] ? `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}` : undefined
-                    }}
-                  >
-                    <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
-                      {overlayImages[3] ? (
+                  ) : (
+                    <div className="w-[90px] h-[120px] md:w-[130px] md:h-[170px]" />
+                  )}
+
+                  {overlayImages[3] ? (
+                    <div 
+                      className={cn(
+                        "w-[90px] h-[120px] md:w-[130px] md:h-[170px] transition-all overflow-hidden relative rounded-2xl p-[3px]",
+                        currentBorder.class
+                      )}
+                      style={{
+                        transform: `translate(${supportPhotoXOffsets[3] ?? 0}px, ${supportPhotoYOffsets[3] ?? 0}px) rotate(-4deg) scale(${supportPhotoScales[3] ?? 1})`,
+                        transformOrigin: 'center',
+                        boxShadow: `0 10px 25px rgba(0,0,0,0.8), 0 0 15px ${currentBorder.glow}`
+                      }}
+                    >
+                      <div className="w-full h-full bg-zinc-950 rounded-[13px] overflow-hidden relative">
                         <img src={overlayImages[3]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Plus size={20} className="text-zinc-500" />
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="w-[90px] h-[120px] md:w-[130px] md:h-[170px]" />
+                  )}
                 </div>
               </div>
 
