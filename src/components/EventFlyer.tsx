@@ -38,6 +38,9 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [schoolName, setSchoolName] = useState(settings?.schoolName || 'Piruá Esporte Clube');
   const [flyerModality, setFlyerModality] = useState(event.modality || '');
   const [showVS, setShowVS] = useState(true);
+  const [categoryType, setCategoryType] = useState<'Adulto' | 'Categoria de Base' | 'Ambos' | ''>('');
+  const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
+  const [customSub, setCustomSub] = useState('');
 
   // Auto-detecção de confronto versus para separar o título em 3 blocos (cima, vs, baixo)
   const getInitialVersusSplit = () => {
@@ -428,6 +431,97 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase font-bold"
                   placeholder="Ex: Futebol de Campo, Futsal..."
                 />
+              </div>
+
+              {/* Categoria do Evento & SUBs Section */}
+              <div className="space-y-4 pt-3 border-t border-zinc-900">
+                <div>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider block mb-1.5">Faixa Etária / Tipo de Categoria</label>
+                  <div className="grid grid-cols-4 gap-1 bg-black p-1 rounded-xl border border-zinc-850">
+                    {([
+                      { id: '', label: 'Nenhum' },
+                      { id: 'Adulto', label: 'Adulto' },
+                      { id: 'Categoria de Base', label: 'Base' },
+                      { id: 'Ambos', label: 'Ambos' }
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCategoryType(opt.id)}
+                        className={cn(
+                          "py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider text-center cursor-pointer",
+                          categoryType === opt.id ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Categorias SUB (Selecione ou adicione)</label>
+                  <div className="flex flex-wrap gap-1 bg-black/40 p-2 rounded-xl border border-zinc-850">
+                    {['SUB 7', 'SUB 9', 'SUB 11', 'SUB 13', 'SUB 15', 'SUB 17', 'SUB 20'].map(sub => {
+                      const isSelected = selectedSubs.includes(sub);
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedSubs(selectedSubs.filter(s => s !== sub));
+                            } else {
+                              setSelectedSubs([...selectedSubs, sub]);
+                            }
+                          }}
+                          className={cn(
+                            "px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer",
+                            isSelected 
+                              ? "bg-theme-primary border-theme-primary text-black" 
+                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                          )}
+                        >
+                          {sub}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Custom Sub Input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Outro SUB (ex: SUB 14, SUB 16)..."
+                      value={customSub}
+                      onChange={e => setCustomSub(e.target.value)}
+                      className="flex-1 bg-black border border-zinc-750 px-2.5 py-1.5 rounded-xl text-white text-[10px] uppercase outline-none focus:ring-1 focus:ring-theme-primary/50"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = customSub.trim().toUpperCase();
+                          if (val && !selectedSubs.includes(val)) {
+                            setSelectedSubs([...selectedSubs, val]);
+                            setCustomSub('');
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = customSub.trim().toUpperCase();
+                        if (val && !selectedSubs.includes(val)) {
+                          setSelectedSubs([...selectedSubs, val]);
+                          setCustomSub('');
+                        }
+                      }}
+                      className="px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Seletor de Formato do Nome */}
@@ -827,7 +921,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               {/* Event Title Card */}
               <div className="w-full bg-theme-primary p-2.5 rounded-xl transform -skew-x-6 shadow-2xl mb-4">
                 <div className="transform skew-x-6 text-center">
-                  <p className="text-[9px] font-black text-black uppercase tracking-widest leading-none mb-1 opacity-60">{flyerTitle}</p>
+                  <p className="text-[12px] font-black text-black uppercase tracking-widest leading-none mb-1.5 opacity-80">{flyerTitle}</p>
                   
                   {isVersusMode ? (
                     <div className="flex flex-col items-center justify-center w-full leading-none py-0.5">
@@ -846,6 +940,37 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   )}
                 </div>
               </div>
+
+              {/* Category & SUBs Badges */}
+              {(categoryType || selectedSubs.length > 0) && (
+                <div className="flex flex-wrap items-center justify-center gap-1.5 mb-4 max-w-full px-2">
+                  {categoryType === 'Adulto' && (
+                    <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
+                      Adulto
+                    </span>
+                  )}
+                  {categoryType === 'Categoria de Base' && (
+                    <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
+                      Base
+                    </span>
+                  )}
+                  {categoryType === 'Ambos' && (
+                    <>
+                      <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
+                        Adulto
+                      </span>
+                      <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
+                        Base
+                      </span>
+                    </>
+                  )}
+                  {selectedSubs.map(sub => (
+                    <span key={sub} className="bg-theme-primary/20 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
+                      {sub}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Date & Time - Positionable via translateY */}
               <div 
