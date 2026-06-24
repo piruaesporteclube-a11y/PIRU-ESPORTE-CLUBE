@@ -347,6 +347,9 @@ export type OfficialLetter = {
   arrival_location?: string;
   departure_time?: string;
   arrival_time?: string;
+  return_departure_location?: string;
+  return_arrival_location?: string;
+  return_time?: string;
   created_at?: any;
 };
 

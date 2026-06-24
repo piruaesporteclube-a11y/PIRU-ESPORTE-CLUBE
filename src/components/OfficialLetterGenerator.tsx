@@ -74,7 +74,10 @@ export default function OfficialLetterGenerator() {
       departure_location: '',
       arrival_location: '',
       departure_time: '',
-      arrival_time: ''
+      arrival_time: '',
+      return_departure_location: '',
+      return_arrival_location: '',
+      return_time: ''
     });
     setIsFormOpen(true);
   };
@@ -126,6 +129,9 @@ export default function OfficialLetterGenerator() {
       arrival_location: address,
       departure_time: event.start_time,
       arrival_time: event.end_time,
+      return_departure_location: address,
+      return_arrival_location: settings?.schoolName || 'SEDE DO CLUBE',
+      return_time: event.end_time,
       body: `Vimos por meio deste solicitar apoio para a participação de nossos atletas no evento "${event.name.toUpperCase()}", que será realizado na data de ${eventDate}, com destino a ${event.city}/${event.uf}.\n\nNestes termos, solicitamos a vossa atenção para este pedido que visa incentivar a prática esportiva de nossos jovens jogadores.\n\nAbaixo enviamos os dados referentes ao evento para vossa análise:\n\nEvento: ${event.name}\nData: ${eventDate}\nLocal: ${address}\n\nFicamos à disposição para maiores esclarecimentos.`
     });
     
@@ -214,20 +220,33 @@ export default function OfficialLetterGenerator() {
       </div>
       
       {/* Travel Info (Optional) */}
-      {(letter.departure_location || letter.arrival_location) && (
-        <div className="mb-6 p-3 border border-black/10 bg-zinc-50 rounded-lg">
-          <h4 className="font-bold mb-1 uppercase border-b border-black/20 pb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Informações de Logística / Viagem</h4>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 italic" style={{ fontSize: `${fontSize - 1}pt` }}>
-            {letter.departure_location && (
+      {(letter.departure_location || letter.arrival_location || letter.return_departure_location || letter.return_arrival_location) && (
+        <div className="mb-6 p-3 border border-black/15 bg-zinc-50/50 rounded-lg">
+          <h4 className="font-bold mb-2 uppercase border-b border-black/20 pb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Informações de Logística / Viagem</h4>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3" style={{ fontSize: `${fontSize - 1}pt` }}>
+            {/* Ida */}
+            {(letter.departure_location || letter.arrival_location || letter.departure_time) && (
               <div>
-                <p className="leading-tight"><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
-                {letter.departure_time && <p className="leading-tight"><span className="font-bold not-italic">Horário de Saída:</span> {letter.departure_time}</p>}
+                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Início da Viagem (Ida)</p>
+                {letter.departure_location && (
+                  <p className="leading-tight italic"><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
+                )}
+                {letter.arrival_location && (
+                  <p className="leading-tight italic"><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
+                )}
+                {letter.departure_time && (
+                  <p className="leading-tight italic"><span className="font-bold not-italic">Previsão de Saída:</span> {letter.departure_time}</p>
+                )}
               </div>
             )}
-            {letter.arrival_location && (
+            
+            {/* Volta */}
+            {(letter.return_departure_location || letter.return_arrival_location || letter.return_time || letter.arrival_time) && (
               <div>
-                <p className="leading-tight"><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
-                {letter.arrival_time && <p className="leading-tight"><span className="font-bold not-italic">Horário de Retorno:</span> {letter.arrival_time}</p>}
+                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Retorno da Viagem (Volta)</p>
+                <p className="leading-tight italic"><span className="font-bold not-italic">Local de Partida:</span> {letter.return_departure_location || letter.arrival_location || 'LOCAL DO EVENTO'}</p>
+                <p className="leading-tight italic"><span className="font-bold not-italic">Local de Chegada:</span> {letter.return_arrival_location || letter.departure_location || 'SEDE DO CLUBE'}</p>
+                <p className="leading-tight italic"><span className="font-bold not-italic">Previsão de Retorno:</span> {letter.return_time || letter.arrival_time || ''}</p>
               </div>
             )}
           </div>
@@ -619,46 +638,80 @@ export default function OfficialLetterGenerator() {
                 <MapPin size={16} /> 
                 Logística de Viagem (Opcional)
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
+                {/* Outbound Section */}
                 <div className="space-y-4">
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider border-b border-zinc-800 pb-1.5">
+                    1. Início da Viagem (Ida)
+                  </h4>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Local de Partida</label>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Local de Partida (Onde se inicia a viagem)</label>
                     <input 
                       type="text" 
                       placeholder="EX: SEDE DO CLUBE"
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-sm"
                       value={editingLetter.departure_location || ''}
                       onChange={e => setEditingLetter({...editingLetter, departure_location: e.target.value.toUpperCase()})}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Horário de Saída</label>
-                    <input 
-                      type="time" 
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                      value={editingLetter.departure_time || ''}
-                      onChange={e => setEditingLetter({...editingLetter, departure_time: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Local de Chegada</label>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Local de Chegada (Aonde será o evento)</label>
                     <input 
                       type="text" 
                       placeholder="EX: ESTÁDIO MUNICIPAL"
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase"
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-sm"
                       value={editingLetter.arrival_location || ''}
                       onChange={e => setEditingLetter({...editingLetter, arrival_location: e.target.value.toUpperCase()})}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Horário de Retorno</label>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Previsão de Horário (Partida Ida)</label>
                     <input 
                       type="time" 
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                      value={editingLetter.arrival_time || ''}
-                      onChange={e => setEditingLetter({...editingLetter, arrival_time: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                      value={editingLetter.departure_time || ''}
+                      onChange={e => setEditingLetter({...editingLetter, departure_time: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Inbound Section */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider border-b border-zinc-800 pb-1.5">
+                    2. Retorno da Viagem (Volta)
+                  </h4>
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Local de Partida (Aonde se inicia o retorno)</label>
+                    <input 
+                      type="text" 
+                      placeholder="EX: ESTÁDIO MUNICIPAL (OU LOCAL DO EVENTO)"
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-sm"
+                      value={editingLetter.return_departure_location || ''}
+                      onChange={e => setEditingLetter({...editingLetter, return_departure_location: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Local de Chegada (Onde se iniciou a viagem)</label>
+                    <input 
+                      type="text" 
+                      placeholder="EX: SEDE DO CLUBE"
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase text-sm"
+                      value={editingLetter.return_arrival_location || ''}
+                      onChange={e => setEditingLetter({...editingLetter, return_arrival_location: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-450 uppercase mb-1.5">Previsão de Horário (Retorno Volta)</label>
+                    <input 
+                      type="time" 
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-sm"
+                      value={editingLetter.return_time || editingLetter.arrival_time || ''}
+                      onChange={e => setEditingLetter({
+                        ...editingLetter, 
+                        return_time: e.target.value,
+                        arrival_time: e.target.value // keep arrival_time synced for backward compatibility
+                      })}
                     />
                   </div>
                 </div>
