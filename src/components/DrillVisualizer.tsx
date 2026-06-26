@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow, Star } from 'react-konva';
-import { MousePointer2, Plus, Trash2, Save, Move, Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff } from 'lucide-react';
+import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow } from 'react-konva';
+import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout } from 'lucide-react';
 import { TrainingActivity } from '../types';
 import { cn } from '../utils';
 
@@ -25,29 +25,78 @@ interface VisualObject {
 }
 
 const FIELD_COLORS = {
-  Futebol: '#14532d',
-  Futsal: '#1e3a8a',
-  Vôlei: '#f97316',
-  Basquete: '#c2410c',
-  'Futebol de Areia': '#eab308',
-  Outros: '#27272a'
+  Futebol: '#14532d', // Deep grass green
+  Futsal: '#0f172a',  // High-contrast dark blue court
+  Vôlei: '#d97706',   // Classic court orange
+  Basquete: '#7c2d12', // Hardwood reddish-brown
+  'Futebol de Areia': '#eab308', // Sandy gold
+  Outros: '#18181b'   // Modern matte dark gray
 };
 
 const TEAM_COLORS = {
-  A: '#3b82f6', // Team A: Vibrant Blue
-  B: '#ef4444', // Team B: Vibrant Red
-  C: '#f59e0b', // Team C: Yellow (Brazil style)
-  D: '#ffffff'  // Team D: White
+  A: '#2563eb', // Team A: Vibrant Royal Blue
+  B: '#dc2626', // Team B: Intense Red
+  C: '#16a34a', // Team C: Forest Green
+  D: '#facc15'  // Team D: Gold Yellow
+};
+
+// Preset plays to showcase Globo-style tactical animation instantly!
+const PRESET_PLAYS: Record<string, { name: string, description: string, modality: string, objects: VisualObject[] }> = {
+  tikitaka: {
+    name: 'Triangulação Tiki-Taka',
+    description: 'Troca de passes rápidos em aproximação abrindo espaço na defesa.',
+    modality: 'Futebol',
+    objects: [
+      { id: 'p1', type: 'player', x: 30, y: 65, team: 'A', label: '8', animate: true, toX: 42, toY: 55 },
+      { id: 'p2', type: 'player', x: 45, y: 30, team: 'A', label: '10', animate: true, toX: 58, toY: 40 },
+      { id: 'p3', type: 'player', x: 55, y: 70, team: 'A', label: '9', animate: true, toX: 70, toY: 52 },
+      { id: 'b1', type: 'ball', x: 32, y: 65, animate: true, toX: 68, toY: 52 },
+      { id: 'd1', type: 'player', x: 52, y: 48, team: 'B', label: '3', animate: true, toX: 60, toY: 52 }
+    ]
+  },
+  cruzamento: {
+    name: 'Cruzamento Fatal',
+    description: 'Apoio lateral faz corrida de linha de fundo e cruza para cabeceio.',
+    modality: 'Futebol',
+    objects: [
+      { id: 'p1', type: 'player', x: 45, y: 15, team: 'A', label: '7', animate: true, toX: 82, toY: 15 },
+      { id: 'p2', type: 'player', x: 50, y: 50, team: 'A', label: '9', animate: true, toX: 82, toY: 48 },
+      { id: 'd1', type: 'player', x: 70, y: 46, team: 'B', label: '4', animate: true, toX: 80, toY: 47 },
+      { id: 'b1', type: 'ball', x: 47, y: 15, animate: true, toX: 82, toY: 48 }
+    ]
+  },
+  contraataque: {
+    name: 'Contra-Ataque Relâmpago',
+    description: 'Lançamento longo em profundidade para atacante veloz isolar o goleiro.',
+    modality: 'Futebol',
+    objects: [
+      { id: 'gk', type: 'player', x: 92, y: 50, team: 'B', label: 'GK', animate: false },
+      { id: 'p1', type: 'player', x: 30, y: 50, team: 'A', label: '10', animate: true, toX: 45, toY: 50 },
+      { id: 'p2', type: 'player', x: 40, y: 25, team: 'A', label: '11', animate: true, toX: 80, toY: 35 },
+      { id: 'b1', type: 'ball', x: 32, y: 50, animate: true, toX: 78, toY: 35 }
+    ]
+  },
+  saida_tres: {
+    name: 'Saída de Três (Futsal)',
+    description: 'Rodízio dinâmico com movimentação em losango abrindo ala oposto.',
+    modality: 'Futsal',
+    objects: [
+      { id: 'p1', type: 'player', x: 20, y: 50, team: 'A', label: 'F', animate: true, toX: 35, toY: 30 },
+      { id: 'p2', type: 'player', x: 35, y: 20, team: 'A', label: 'A1', animate: true, toX: 65, toY: 25 },
+      { id: 'p3', type: 'player', x: 35, y: 80, team: 'A', label: 'A2', animate: true, toX: 65, toY: 75 },
+      { id: 'b1', type: 'ball', x: 22, y: 50, animate: true, toX: 63, toY: 75 }
+    ]
+  }
 };
 
 export default function DrillVisualizer({ activity, onChange, isEditable = false }: DrillVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
   
-  // Interactive Timeline / Playback state (Rede Globo Mesa Tática style)
+  // Timeline playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0); // 0 to 100
-  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1, 1.5, 2
+  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x, 1.5x, 2x
   const [isLooping, setIsLooping] = useState(true);
   const [showTrails, setShowTrails] = useState(true);
 
@@ -55,11 +104,10 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const t = useMemo(() => {
-    // Return the progress factor (0 to 1)
     return currentTime / 100;
   }, [currentTime]);
 
-  // Smooth playhead updater using requestAnimationFrame
+  // Smooth playhead updater
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -97,33 +145,33 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     const formations: Record<string, {x: number, y: number, label: string, team: 'A' | 'B'}[]> = {
       '4-4-2': [
         // Team A (Attack - Blue)
-        {x: 10, y: 50, label: 'GK', team: 'A'},
-        {x: 25, y: 20, label: 'LD', team: 'A'}, {x: 25, y: 40, label: 'ZAD', team: 'A'}, {x: 25, y: 60, label: 'ZAE', team: 'A'}, {x: 25, y: 80, label: 'LE', team: 'A'},
-        {x: 45, y: 20, label: 'MD', team: 'A'}, {x: 45, y: 40, label: 'VOL', team: 'A'}, {x: 45, y: 60, label: 'VOL', team: 'A'}, {x: 45, y: 80, label: 'ME', team: 'A'},
-        {x: 70, y: 35, label: 'ATD', team: 'A'}, {x: 70, y: 65, label: 'ATE', team: 'A'},
+        {x: 12, y: 50, label: 'GK', team: 'A'},
+        {x: 28, y: 20, label: 'LD', team: 'A'}, {x: 25, y: 40, label: 'ZA', team: 'A'}, {x: 25, y: 60, label: 'ZA', team: 'A'}, {x: 28, y: 80, label: 'LE', team: 'A'},
+        {x: 45, y: 20, label: 'MD', team: 'A'}, {x: 45, y: 38, label: 'VO', team: 'A'}, {x: 45, y: 62, label: 'VO', team: 'A'}, {x: 45, y: 80, label: 'ME', team: 'A'},
+        {x: 68, y: 35, label: 'AT', team: 'A'}, {x: 68, y: 65, label: 'AT', team: 'A'},
         // Opponent Team B (Defense - Red)
         {x: 88, y: 50, label: 'GK', team: 'B'},
-        {x: 78, y: 25, label: 'LD', team: 'B'}, {x: 78, y: 45, label: 'ZA', team: 'B'}, {x: 78, y: 55, label: 'ZA', team: 'B'}, {x: 78, y: 75, label: 'LE', team: 'B'}
+        {x: 78, y: 25, label: 'LD', team: 'B'}, {x: 75, y: 45, label: 'ZA', team: 'B'}, {x: 75, y: 55, label: 'ZA', team: 'B'}, {x: 78, y: 75, label: 'LE', team: 'B'}
       ],
       '4-3-3': [
         // Team A (Attack - Blue)
-        {x: 10, y: 50, label: 'GK', team: 'A'},
-        {x: 25, y: 20, label: 'LD', team: 'A'}, {x: 25, y: 40, label: 'ZAD', team: 'A'}, {x: 25, y: 60, label: 'ZAE', team: 'A'}, {x: 25, y: 80, label: 'LE', team: 'A'},
-        {x: 45, y: 30, label: 'VOL', team: 'A'}, {x: 45, y: 50, label: 'MC', team: 'A'}, {x: 45, y: 70, label: 'VOL', team: 'A'},
-        {x: 68, y: 20, label: 'PD', team: 'A'}, {x: 72, y: 50, label: 'CA', team: 'A'}, {x: 68, y: 80, label: 'PE', team: 'A'},
+        {x: 12, y: 50, label: 'GK', team: 'A'},
+        {x: 28, y: 20, label: 'LD', team: 'A'}, {x: 25, y: 40, label: 'ZA', team: 'A'}, {x: 25, y: 60, label: 'ZA', team: 'A'}, {x: 28, y: 80, label: 'LE', team: 'A'},
+        {x: 45, y: 30, label: 'VO', team: 'A'}, {x: 48, y: 50, label: 'MC', team: 'A'}, {x: 45, y: 70, label: 'VO', team: 'A'},
+        {x: 72, y: 20, label: 'PD', team: 'A'}, {x: 75, y: 50, label: 'CA', team: 'A'}, {x: 72, y: 80, label: 'PE', team: 'A'},
         // Opponent Team B (Defense - Red)
         {x: 88, y: 50, label: 'GK', team: 'B'},
-        {x: 78, y: 20, label: 'LD', team: 'B'}, {x: 78, y: 40, label: 'ZA', team: 'B'}, {x: 78, y: 60, label: 'ZA', team: 'B'}, {x: 78, y: 80, label: 'LE', team: 'B'}
+        {x: 78, y: 20, label: 'LD', team: 'B'}, {x: 76, y: 40, label: 'ZA', team: 'B'}, {x: 76, y: 60, label: 'ZA', team: 'B'}, {x: 78, y: 80, label: 'LE', team: 'B'}
       ],
       '3-5-2': [
         // Team A (Attack - Blue)
-        {x: 10, y: 50, label: 'GK', team: 'A'},
-        {x: 25, y: 30, label: 'ZAD', team: 'A'}, {x: 25, y: 50, label: 'ZAC', team: 'A'}, {x: 25, y: 70, label: 'ZAE', team: 'A'},
-        {x: 42, y: 15, label: 'ALA', team: 'A'}, {x: 45, y: 35, label: 'VOL', team: 'A'}, {x: 45, y: 50, label: 'MC', team: 'A'}, {x: 45, y: 65, label: 'VOL', team: 'A'}, {x: 42, y: 85, label: 'ALA', team: 'A'},
-        {x: 68, y: 40, label: 'ATD', team: 'A'}, {x: 68, y: 60, label: 'ATE', team: 'A'},
+        {x: 12, y: 50, label: 'GK', team: 'A'},
+        {x: 25, y: 30, label: 'ZA', team: 'A'}, {x: 23, y: 50, label: 'ZC', team: 'A'}, {x: 25, y: 70, label: 'ZA', team: 'A'},
+        {x: 42, y: 15, label: 'AL', team: 'A'}, {x: 45, y: 35, label: 'VO', team: 'A'}, {x: 48, y: 50, label: 'MC', team: 'A'}, {x: 45, y: 65, label: 'VO', team: 'A'}, {x: 42, y: 85, label: 'AL', team: 'A'},
+        {x: 68, y: 38, label: 'AT', team: 'A'}, {x: 68, y: 62, label: 'AT', team: 'A'},
         // Opponent Team B (Defense - Red)
         {x: 88, y: 50, label: 'GK', team: 'B'},
-        {x: 78, y: 30, label: 'ZA', team: 'B'}, {x: 78, y: 50, label: 'ZA', team: 'B'}, {x: 78, y: 70, label: 'ZA', team: 'B'}
+        {x: 78, y: 30, label: 'ZA', team: 'B'}, {x: 75, y: 50, label: 'ZA', team: 'B'}, {x: 78, y: 70, label: 'ZA', team: 'B'}
       ]
     };
 
@@ -141,14 +189,23 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
     const nextObjects = [...objects.filter(o => o.type !== 'player'), ...newPlayers];
     handleUpdate(nextObjects);
-    toast.success(`Esquema ${formation} aplicado com adversários!`);
+    toast.success(`Esquema ${formation} com adversários aplicado!`);
+  };
+
+  const loadPreset = (presetKey: string) => {
+    const preset = PRESET_PLAYS[presetKey];
+    if (!preset) return;
+    handleUpdate(preset.objects);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    toast.success(`Jogada "${preset.name}" carregada com sucesso! Clique em Play.`);
   };
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width } = entry.contentRect;
-        const h = (width * 2) / 3;
+        const h = Math.max(380, (width * 2) / 3.2); // Maintain nice aspect ratio
         setDimensions({ width, height: h });
       }
     });
@@ -160,7 +217,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     return () => observer.disconnect();
   }, []);
 
-  // Track the last value sent to onChange to prevent loops
+  // Track updates to prevent recursive loops
   const lastUpdateRef = useRef<string>('');
 
   useEffect(() => {
@@ -183,23 +240,36 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   };
 
   const { width: w, height: h } = dimensions;
-  const fieldBorder = 20;
+  const fieldBorder = 24;
   const fw = w - fieldBorder * 2;
   const fh = h - fieldBorder * 2;
 
+  // Mathematically correct coordinate mapping (SOLVES DRAG-JUMPING BUG)
   const handleDragEnd = (id: string, isTarget: boolean, e: any) => {
     if (!isEditable) return;
     const { x, y } = e.target.position();
     
-    const nx = ((x - fieldBorder) / fw) * 100;
-    const ny = ((y - fieldBorder) / fh) * 100;
+    // Map absolute stage coordinates back to 0-100 percentages
+    const nx = Math.max(0, Math.min(100, ((x - fieldBorder) / fw) * 100));
+    const ny = Math.max(0, Math.min(100, ((y - fieldBorder) / fh) * 100));
 
     const newObjects = objects.map(obj => {
       if (obj.id === id) {
         if (isTarget) {
           return { ...obj, toX: nx, toY: ny, animate: true };
         } else {
-          return { ...obj, x: nx, y: ny };
+          // If starting position moves, we shift the destination as well to maintain vector offset
+          const dx = nx - obj.x;
+          const dy = ny - obj.y;
+          const updatedToX = obj.toX !== undefined ? Math.max(0, Math.min(100, obj.toX + dx)) : nx;
+          const updatedToY = obj.toY !== undefined ? Math.max(0, Math.min(100, obj.toY + dy)) : ny;
+          return { 
+            ...obj, 
+            x: nx, 
+            y: ny, 
+            toX: obj.toX !== undefined ? updatedToX : undefined, 
+            toY: obj.toY !== undefined ? updatedToY : undefined 
+          };
         }
       }
       return obj;
@@ -228,7 +298,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     handleUpdate(newObjects);
     setSelectedId(newObj.id);
     
-    // Stop playing and reset playback to 0 during design to align coordinates
+    // Reset playhead for precise visual alignments
     setIsPlaying(false);
     setCurrentTime(0);
   };
@@ -247,42 +317,168 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
   const renderField = () => {
     const bgColor = FIELD_COLORS[activity.modality as keyof typeof FIELD_COLORS] || FIELD_COLORS.Outros;
+    const lineStroke = "#ffffff";
     
     return (
       <Group>
-        <Rect x={0} y={0} width={w} height={h} fill={bgColor} />
-        <Rect x={fieldBorder} y={fieldBorder} width={fw} height={fh} stroke="#fff" strokeWidth={2} opacity={0.6} />
+        {/* Pitch outer canvas */}
+        <Rect x={0} y={0} width={w} height={h} fill="#0b0f17" cornerRadius={16} />
         
+        {/* Pitch boundary with glowing color */}
+        <Rect x={fieldBorder} y={fieldBorder} width={fw} height={fh} fill={bgColor} stroke={lineStroke} strokeWidth={2.5} opacity={0.95} shadowBlur={8} shadowColor="#000" />
+        
+        {/* Tactical grid markings for elite Globo TV style */}
+        <Group opacity={0.1}>
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Line key={`v-${i}`} points={[fieldBorder + fw * ((i + 1) * 0.1), fieldBorder, fieldBorder + fw * ((i + 1) * 0.1), fieldBorder + fh]} stroke={lineStroke} strokeWidth={1} dash={[5, 5]} />
+          ))}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Line key={`h-${i}`} points={[fieldBorder, fieldBorder + fh * ((i + 1) * 0.2), fieldBorder + fw, fieldBorder + fh * ((i + 1) * 0.2)]} stroke={lineStroke} strokeWidth={1} dash={[5, 5]} />
+          ))}
+        </Group>
+
         {activity.modality === 'Futebol' && (
-          <Group opacity={0.3}>
-            <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke="#fff" strokeWidth={2} />
-            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.1} stroke="#fff" strokeWidth={2} />
-            <Rect x={fieldBorder} y={fieldBorder + fh * 0.25} width={fw * 0.15} height={fh * 0.5} stroke="#fff" strokeWidth={2} />
-            <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.25} width={fw * 0.15} height={fh * 0.5} stroke="#fff" strokeWidth={2} />
+          <Group opacity={0.45}>
+            {/* Center line and circle */}
+            <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} />
+            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.09} stroke={lineStroke} strokeWidth={2} />
+            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={3} fill={lineStroke} />
+            
+            {/* Left penalty box */}
+            <Rect x={fieldBorder} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2} />
+            <Rect x={fieldBorder} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2} />
+            <Circle x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radius={3} fill={lineStroke} />
+            
+            {/* Right penalty box */}
+            <Rect x={fieldBorder + fw - fw * 0.165} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2} />
+            <Rect x={fieldBorder + fw - fw * 0.055} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2} />
+            <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={3} fill={lineStroke} />
+
+            {/* Penalty arcs */}
+            <Ellipse x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radiusX={fw * 0.07} radiusY={fh * 0.12} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
+              ctx.rect(fieldBorder + fw * 0.165, fieldBorder, fw, fh);
+            }} />
+            <Ellipse x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radiusX={fw * 0.07} radiusY={fh * 0.12} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
+              ctx.rect(0, fieldBorder, fieldBorder + fw - fw * 0.165, fh);
+            }} />
           </Group>
         )}
 
         {activity.modality === 'Futsal' && (
-           <Group opacity={0.3}>
-             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke="#fff" strokeWidth={2} />
-             <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.15} stroke="#fff" strokeWidth={2} />
-             <Rect x={fieldBorder} y={fieldBorder + fh * 0.35} width={fw * 0.15} height={fh * 0.3} stroke="#fff" strokeWidth={2} />
-             <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.35} width={fw * 0.15} height={fh * 0.3} stroke="#fff" strokeWidth={2} />
+           <Group opacity={0.45}>
+             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} />
+             <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.12} stroke={lineStroke} strokeWidth={2} />
+             {/* Six-meter lines */}
+             <Rect x={fieldBorder} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2} cornerRadius={[0, 40, 40, 0]} />
+             <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2} cornerRadius={[40, 0, 0, 40]} />
            </Group>
         )}
 
         {activity.modality === 'Vôlei' && (
-           <Group opacity={0.3}>
-             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke="#fff" strokeWidth={4} />
-             <Line points={[fieldBorder + fw * 0.33, fieldBorder, fieldBorder + fw * 0.33, fieldBorder + fh]} stroke="#fff" strokeWidth={1} />
-             <Line points={[fieldBorder + fw * 0.66, fieldBorder, fieldBorder + fw * 0.66, fieldBorder + fh]} stroke="#fff" strokeWidth={1} />
+           <Group opacity={0.45}>
+             {/* Center Net Line */}
+             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={4} />
+             {/* Attack lines (3-meter lines) */}
+             <Line points={[fieldBorder + fw * 0.33, fieldBorder, fieldBorder + fw * 0.33, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} dash={[4, 2]} />
+             <Line points={[fieldBorder + fw * 0.66, fieldBorder, fieldBorder + fw * 0.66, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} dash={[4, 2]} />
+           </Group>
+        )}
+
+        {activity.modality === 'Basquete' && (
+           <Group opacity={0.45}>
+             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} />
+             <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.1} stroke={lineStroke} strokeWidth={2} />
+             
+             {/* 3-Point Arcs */}
+             <Ellipse x={fieldBorder} y={fieldBorder + fh * 0.5} radiusX={fw * 0.25} radiusY={fh * 0.42} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
+               ctx.rect(fieldBorder, fieldBorder, fw * 0.25, fh);
+             }} />
+             <Ellipse x={fieldBorder + fw} y={fieldBorder + fh * 0.5} radiusX={fw * 0.25} radiusY={fh * 0.42} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
+               ctx.rect(fieldBorder + fw - fw * 0.25, fieldBorder, fw * 0.25, fh);
+             }} />
+
+             {/* Keys */}
+             <Rect x={fieldBorder} y={fieldBorder + fh * 0.38} width={fw * 0.15} height={fh * 0.24} stroke={lineStroke} strokeWidth={2} />
+             <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.38} width={fw * 0.15} height={fh * 0.24} stroke={lineStroke} strokeWidth={2} />
            </Group>
         )}
       </Group>
     );
   };
 
-  const renderDrill = () => {
+  const renderTrailsAndTargets = () => {
+    const trails: React.ReactNode[] = [];
+
+    objects.forEach((obj) => {
+      const ox = fieldBorder + (obj.x / 100) * fw;
+      const oy = fieldBorder + (obj.y / 100) * fh;
+      const isSelected = selectedId === obj.id;
+      const teamColor = obj.type === 'player' ? TEAM_COLORS[obj.team || 'A'] : (obj.type === 'ball' ? '#ffffff' : '#fb923c');
+
+      const hasPath = obj.animate && obj.toX !== undefined && obj.toY !== undefined;
+
+      // 1. Draw static background movement trail
+      if (hasPath && showTrails) {
+        const tx = fieldBorder + (Number(obj.toX) / 100) * fw;
+        const ty = fieldBorder + (Number(obj.toY) / 100) * fh;
+
+        trails.push(
+          <Group key={`trail-${obj.id}`}>
+            <Arrow 
+              points={[ox, oy, tx, ty]} 
+              stroke={teamColor} 
+              strokeWidth={obj.type === 'ball' ? 1.5 : 2.5} 
+              opacity={0.35} 
+              dash={obj.type === 'ball' ? [4, 4] : [8, 4]} 
+              pointerLength={7}
+              pointerWidth={7}
+              fill={teamColor}
+            />
+          </Group>
+        );
+      }
+
+      // 2. Draw destination interactive handles (when selected & editable)
+      if (isSelected && isEditable && hasPath && obj.toX !== undefined && obj.toY !== undefined) {
+        const tox = fieldBorder + (obj.toX / 100) * fw;
+        const toy = fieldBorder + (obj.toY / 100) * fh;
+
+        trails.push(
+          <Group 
+            key={`target-handle-${obj.id}`} 
+            x={tox} 
+            y={toy}
+            draggable 
+            onDragStart={() => {
+              setIsPlaying(false);
+              setCurrentTime(0);
+            }}
+            onDragEnd={(e) => handleDragEnd(obj.id, true, e)}
+          >
+            {/* Glowing target halo */}
+            <Circle x={0} y={0} radius={fw * 0.024} fill={teamColor} opacity={0.2} stroke="#fff" strokeWidth={1} dash={[3, 3]} />
+            <Circle x={0} y={0} radius={fw * 0.015} fill="#0f172a" stroke={teamColor} strokeWidth={2} />
+            
+            {/* Target flag letter */}
+            <Text 
+              x={-10} 
+              y={-4} 
+              text="FIM" 
+              fontSize={fw * 0.012} 
+              fill={teamColor} 
+              fontStyle="bold" 
+              align="center" 
+              width={20} 
+            />
+          </Group>
+        );
+      }
+    });
+
+    return trails;
+  };
+
+  const renderDrillObjects = () => {
     const result: React.ReactNode[] = [];
 
     objects.forEach((obj) => {
@@ -313,53 +509,63 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         case 'cone':
           element = (
             <Group>
-              {/* Cone Base */}
+              {/* Cone Shadow */}
               <Ellipse 
-                x={currentX} 
-                y={currentY + 6} 
-                radiusX={fw * 0.015} 
-                radiusY={fw * 0.006} 
-                fill="#ea580c" 
-                stroke="#fff" 
-                strokeWidth={0.5} 
+                x={0} 
+                y={6} 
+                radiusX={fw * 0.016} 
+                radiusY={fw * 0.007} 
+                fill="#000" 
+                opacity={0.3}
               />
               {/* Cone Body */}
               <Line 
                 points={[
-                  currentX - (fw * 0.01), currentY + 5,
-                  currentX, currentY - (fw * 0.018),
-                  currentX + (fw * 0.01), currentY + 5
+                  -(fw * 0.012), 4,
+                  0, -(fw * 0.022),
+                  (fw * 0.012), 4
                 ]} 
                 fill="#f97316" 
                 stroke="#fff" 
                 strokeWidth={0.5} 
                 closed 
               />
-              {/* Reflective Stripe */}
+              {/* White stripe */}
               <Line 
                 points={[
-                  currentX - (fw * 0.005), currentY - (fw * 0.002),
-                  currentX + (fw * 0.005), currentY - (fw * 0.002),
-                  currentX + (fw * 0.003), currentY - (fw * 0.008),
-                  currentX - (fw * 0.003), currentY - (fw * 0.008)
+                  -(fw * 0.006), -2,
+                  (fw * 0.006), -2,
+                  (fw * 0.004), -9,
+                  -(fw * 0.004), -9
                 ]} 
                 fill="#ffffff" 
                 closed 
-                opacity={0.85} 
+                opacity={0.9} 
               />
             </Group>
           );
           break;
         case 'barrier':
-          element = <Rect x={currentX - 15} y={currentY - 5} width={30} height={10} fill="#f8fafc" stroke="#64748b" cornerRadius={2} strokeWidth={1} />;
+          element = (
+            <Group>
+              <Rect x={-15} y={-4} width={30} height={8} fill="#f1f5f9" stroke="#475569" strokeWidth={1.5} cornerRadius={2} />
+              <Line points={[-12, -4, -12, 6]} stroke="#475569" strokeWidth={1.5} />
+              <Line points={[12, -4, 12, 6]} stroke="#475569" strokeWidth={1.5} />
+            </Group>
+          );
           break;
         case 'stake':
-          element = <Circle x={currentX} y={currentY} radius={5} fill="#fbbf24" stroke="#fff" strokeWidth={1} />;
+          element = (
+            <Group>
+              <Circle x={0} y={0} radius={fw * 0.01} fill="#eab308" stroke="#1e293b" strokeWidth={1.5} />
+              <Circle x={0} y={0} radius={2} fill="#ffffff" />
+            </Group>
+          );
           break;
         case 'player':
           const teamColor = TEAM_COLORS[obj.team || 'A'];
           
-          // Calculate movement angle for directional wedge
+          // Rotate player wedge indicating moving direction
           let playerAngle = 0;
           if (hasPath) {
             const tx = fieldBorder + (Number(obj.toX) / 100) * fw;
@@ -369,102 +575,74 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
           element = (
             <Group>
-              {/* Movement Trail / Dashed Arrow showing path */}
-              {hasPath && showTrails && (
-                <Arrow 
-                  points={[ox, oy, fieldBorder + (Number(obj.toX) / 100) * fw, fieldBorder + (Number(obj.toY!) / 100) * fh]} 
-                  stroke={teamColor} 
-                  strokeWidth={2} 
-                  opacity={0.4} 
-                  dash={[6, 3]} 
-                  pointerLength={6}
-                  pointerWidth={6}
-                  fill={teamColor}
-                />
-              )}
-              
-              {/* Directional pointer wedge indicating movement direction */}
+              {/* Direction wedge */}
               {hasPath && (
-                <Group x={currentX} y={currentY} rotation={playerAngle}>
+                <Group rotation={playerAngle}>
                   <Line
-                    points={[fw * 0.022, -4, fw * 0.035, 0, fw * 0.022, 4]}
+                    points={[fw * 0.024, -4, fw * 0.038, 0, fw * 0.024, 4]}
                     fill={teamColor}
                     closed
-                    opacity={0.8}
+                    opacity={0.9}
                   />
                 </Group>
               )}
 
-              {/* Jersey circular token */}
-              {/* Glowing active outline */}
+              {/* Jersey circular token with professional glow */}
               <Circle 
-                x={currentX} 
-                y={currentY} 
-                radius={fw * 0.025} 
+                x={0} 
+                y={0} 
+                radius={fw * 0.024} 
                 fill={teamColor} 
-                stroke={isSelected ? '#fff' : '#1e293b'} 
-                strokeWidth={isSelected ? 3 : 1.5} 
-                shadowBlur={isSelected ? 12 : 3} 
-                shadowColor={isSelected ? '#fff' : '#000'}
-                shadowOpacity={0.6}
+                stroke={isSelected ? '#ffffff' : '#0f172a'} 
+                strokeWidth={isSelected ? 3 : 1.8} 
+                shadowBlur={isSelected ? 10 : 4} 
+                shadowColor={isSelected ? '#ffffff' : '#000000'}
+                shadowOpacity={0.65}
               />
               
-              {/* Shirt Stripes Design inside the Circle token */}
-              <Group x={currentX} y={currentY} clipFunc={(ctx) => {
-                ctx.arc(0, 0, (fw * 0.025) - 1, 0, Math.PI * 2, false);
+              {/* Inner details to feel like a real tactic board chip */}
+              <Group clipFunc={(ctx) => {
+                ctx.arc(0, 0, (fw * 0.024) - 1.5, 0, Math.PI * 2, false);
               }}>
-                {/* Draw team specific pattern */}
+                {/* Visual patterns depending on team */}
                 {obj.team === 'A' && (
-                  // Team A (Blue): Vertical white stripes
                   <Group>
-                    <Line points={[-12, -20, -12, 20]} stroke="#ffffff" strokeWidth={3} opacity={0.3} />
-                    <Line points={[-4, -20, -4, 20]} stroke="#ffffff" strokeWidth={3} opacity={0.3} />
-                    <Line points={[4, -20, 4, 20]} stroke="#ffffff" strokeWidth={3} opacity={0.3} />
-                    <Line points={[12, -20, 12, 20]} stroke="#ffffff" strokeWidth={3} opacity={0.3} />
+                    <Line points={[-10, -20, -10, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
+                    <Line points={[0, -20, 0, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
+                    <Line points={[10, -20, 10, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
                   </Group>
                 )}
                 {obj.team === 'B' && (
-                  // Team B (Red): Horizontal black/white stripes or sash
-                  <Group>
-                    <Line points={[-25, -25, 25, 25]} stroke="#ffffff" strokeWidth={5} opacity={0.4} />
-                  </Group>
+                  <Line points={[-20, -20, 20, 20]} stroke="#ffffff" strokeWidth={4} opacity={0.3} />
                 )}
                 {obj.team === 'C' && (
-                  // Team C (Yellow): Green collar and shoulder accents
-                  <Group>
-                    <Circle x={0} y={-15} radius={8} fill="#22c55e" opacity={0.4} />
-                  </Group>
+                  <Circle x={0} y={-12} radius={8} fill="#ffffff" opacity={0.25} />
                 )}
                 {obj.team === 'D' && (
-                  // Team D (White): Black vertical stripes
-                  <Group>
-                    <Line points={[-10, -20, -10, 20]} stroke="#000000" strokeWidth={2.5} opacity={0.4} />
-                    <Line points={[0, -20, 0, 20]} stroke="#000000" strokeWidth={2.5} opacity={0.4} />
-                    <Line points={[10, -20, 10, 20]} stroke="#000000" strokeWidth={2.5} opacity={0.4} />
-                  </Group>
+                  <Line points={[-20, 0, 20, 0]} stroke="#000000" strokeWidth={3} opacity={0.2} />
                 )}
                 
-                {/* V-neck collar overlay */}
+                {/* Subtle shirt collar highlight */}
                 <Line
-                  points={[-6, -(fw * 0.025), 0, -(fw * 0.01), 6, -(fw * 0.025)]}
+                  points={[-5, -(fw * 0.024), 0, -(fw * 0.01), 5, -(fw * 0.024)]}
                   stroke="#ffffff"
                   strokeWidth={1.5}
-                  opacity={0.6}
+                  opacity={0.5}
                 />
               </Group>
 
-              {/* Player Number Text */}
+              {/* Player Number text */}
               <Text 
-                x={currentX - 10} 
-                y={currentY - 6} 
+                x={-15} 
+                y={-6} 
                 text={obj.label || ''} 
                 fontSize={fw * 0.018} 
-                fill={obj.team === 'D' || obj.team === 'C' ? '#000' : '#fff'} 
+                fill={obj.team === 'D' ? '#0f172a' : '#ffffff'} 
                 fontStyle="bold" 
                 align="center" 
-                width={20} 
-                shadowBlur={2}
-                shadowColor={obj.team === 'D' || obj.team === 'C' ? '#fff' : '#000'}
+                width={30} 
+                shadowBlur={1}
+                shadowColor={obj.team === 'D' ? '#ffffff' : '#000000'}
               />
             </Group>
           );
@@ -472,48 +650,55 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         case 'ball':
           element = (
             <Group>
-              {hasPath && showTrails && (
-                <Line 
-                  points={[ox, oy, fieldBorder + (Number(obj.toX) / 100) * fw, fieldBorder + (Number(obj.toY!) / 100) * fh]} 
-                  stroke="#ffffff" 
-                  strokeWidth={1.5} 
-                  opacity={0.4} 
-                  dash={[3, 3]} 
-                />
-              )}
+              {/* Shadow */}
+              <Circle x={1} y={2} radius={fw * 0.015} fill="#000000" opacity={0.3} />
+              
               {/* Ball Body */}
               <Circle 
-                x={currentX} 
-                y={currentY} 
-                radius={fw * 0.014} 
+                x={0} 
+                y={0} 
+                radius={fw * 0.015} 
                 fill="#ffffff" 
-                stroke="#1e293b" 
-                strokeWidth={1} 
-                shadowBlur={4} 
+                stroke="#0f172a" 
+                strokeWidth={1.5} 
+                shadowBlur={3} 
                 shadowColor="#000"
-                shadowOpacity={0.4}
+                shadowOpacity={0.3}
               />
-              {/* Soccer Ball Pentagon Clusters */}
-              <Circle x={currentX} y={currentY} radius={fw * 0.004} fill="#000000" />
-              <Line points={[currentX, currentY - (fw * 0.004), currentX, currentY - (fw * 0.014)]} stroke="#000" strokeWidth={1} />
-              <Line points={[currentX - (fw * 0.003), currentY + (fw * 0.002), currentX - (fw * 0.011), currentY + (fw * 0.008)]} stroke="#000" strokeWidth={1} />
-              <Line points={[currentX + (fw * 0.003), currentY + (fw * 0.002), currentX + (fw * 0.011), currentY + (fw * 0.008)]} stroke="#000" strokeWidth={1} />
+              {/* Classic football hexagons */}
+              <Circle x={0} y={0} radius={fw * 0.005} fill="#000000" />
+              <Line points={[0, -(fw * 0.005), 0, -(fw * 0.015)]} stroke="#000" strokeWidth={1} />
+              <Line points={[-(fw * 0.004), (fw * 0.002), -(fw * 0.012), (fw * 0.009)]} stroke="#000" strokeWidth={1} />
+              <Line points={[(fw * 0.004), (fw * 0.002), (fw * 0.012), (fw * 0.009)]} stroke="#000" strokeWidth={1} />
             </Group>
           );
           break;
         case 'arrow':
-          const tx = fieldBorder + (obj.toX! / 100) * fw;
-          const ty = fieldBorder + (obj.toY! / 100) * fh;
-          element = <Arrow points={[ox, oy, tx, ty]} stroke={obj.color || '#fff'} fill={obj.color || '#fff'} strokeWidth={3} pointerLength={10} pointerWidth={10} opacity={0.6} />;
+          const dx = (obj.toX! - obj.x) / 100 * fw;
+          const dy = (obj.toY! - obj.y) / 100 * fh;
+          element = (
+            <Arrow 
+              points={[0, 0, dx, dy]} 
+              stroke={obj.color || '#3b82f6'} 
+              fill={obj.color || '#3b82f6'} 
+              strokeWidth={3.5} 
+              pointerLength={10} 
+              pointerWidth={10} 
+              opacity={0.75} 
+            />
+          );
           break;
       }
 
+      // Render the draggable element (SOLVES DRAG-JUMPING BUG BY DRAGGING GROUP DIRECTLY)
       result.push(
         <Group 
           key={obj.id} 
+          x={currentX}
+          y={currentY}
           draggable={isEditable} 
           onDragStart={() => {
-            // Pause and reset playback during any editing drag to align base coordinates
+            // Force reset timelines on drag start to prevent offsets
             setIsPlaying(false);
             setCurrentTime(0);
           }}
@@ -527,35 +712,17 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
           {element}
           {isSelected && isEditable && (
             <Circle 
-              x={currentX} 
-              y={currentY} 
+              x={0} 
+              y={0} 
               radius={fw * 0.04} 
-              stroke="#fff" 
+              stroke="#ffffff" 
               strokeWidth={1.5} 
               dash={[4, 2]} 
+              opacity={0.8}
             />
           )}
         </Group>
       );
-
-      if (isSelected && isEditable && obj.animate && obj.toX !== undefined && obj.toY !== undefined) {
-        const tox = fieldBorder + (obj.toX / 100) * fw;
-        const toy = fieldBorder + (obj.toY / 100) * fh;
-        result.push(
-          <Group 
-            key={`${obj.id}-target`} 
-            draggable 
-            onDragStart={() => {
-              setIsPlaying(false);
-              setCurrentTime(0);
-            }}
-            onDragEnd={(e) => handleDragEnd(obj.id, true, e)}
-          >
-            <Circle x={tox} y={toy} radius={fw * 0.02} fill="white" opacity={0.5} stroke="#000" strokeWidth={1.5} />
-            <Text x={tox - 12} y={toy - 16} text={obj.type === 'arrow' ? 'FIM' : 'DESTINO'} fontSize={fw * 0.013} fill="#fff" fontStyle="black" />
-          </Group>
-        );
-      }
     });
 
     return result;
@@ -566,10 +733,9 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col gap-4">
       {isEditable && (
-        <div className="flex flex-col md:flex-row gap-4 mb-2">
+        <div className="flex flex-col gap-3">
           {/* Main Toolbar */}
           <div className="flex items-center gap-1.5 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-x-auto no-scrollbar">
-            {/* Added Outbound (A) and Inbound (B) player buttons directly to fulfill "jogador nas posições" */}
             <button type="button" onClick={() => addObject('player', 'A')} className="p-2.5 bg-blue-600/15 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
               <User size={14} className="fill-current" /> Azul (A)
             </button>
@@ -579,7 +745,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
             <button type="button" onClick={() => addObject('ball')} className="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
               <Disc size={14} /> Bola
             </button>
-            <div className="w-px h-6 bg-zinc-800 mx-1" />
+            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
             <button type="button" onClick={() => addObject('cone')} className="p-2.5 bg-orange-600/10 text-orange-400 rounded-xl hover:bg-orange-600 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
               <Hexagon size={14} /> Cone
             </button>
@@ -589,9 +755,12 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
             <button type="button" onClick={() => addObject('arrow')} className="p-2.5 bg-indigo-600/10 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
               <ArrowRight size={14} /> Vetor
             </button>
-            <div className="w-px h-6 bg-zinc-800 mx-1" />
-            <div className="flex items-center gap-1.5 px-2">
-              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest hidden lg:block">Modelos:</span>
+            
+            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
+            
+            {/* Standard tactics schemas */}
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest hidden lg:block mr-1">Táticas:</span>
               {(['4-4-2', '4-3-3', '3-5-2'] as const).map(f => (
                 <button
                   key={f}
@@ -603,77 +772,112 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
                 </button>
               ))}
             </div>
-            <div className="w-px h-6 bg-zinc-800 mx-1" />
+
+            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
+
+            {/* Clear Board */}
             <button 
               type="button" 
               onClick={() => { if(confirm("Limpar esquema tático?")) { handleUpdate([]); setSelectedId(null); } }} 
-              className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+              className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
               title="Limpar Tudo"
             >
               <RotateCcw size={16} />
             </button>
           </div>
 
-          {/* Property Editor */}
-          <div className="flex-1 flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl min-h-[52px]">
-            {selectedObject ? (
-              <div className="flex items-center gap-3 w-full animate-in fade-in slide-in-from-left-2 transition-all">
-                <Settings2 size={16} className="text-theme-primary ml-2 hidden sm:block" />
-                
-                {selectedObject.type === 'player' && (
-                  <>
-                    <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl">
-                      {(['A', 'B', 'C', 'D'] as const).map(team => (
-                        <button
-                          key={team}
-                          type="button"
-                          onClick={() => updateObject(selectedObject.id, { team })}
-                          className={cn(
-                            "w-6 h-6 rounded-lg transition-all border-2",
-                            selectedObject.team === team ? "border-white scale-110" : "border-transparent opacity-50"
-                          )}
-                          style={{ backgroundColor: TEAM_COLORS[team] }}
-                        />
-                      ))}
-                    </div>
-                    <input 
-                      type="text" 
-                      maxLength={3}
-                      placeholder="Nº"
-                      value={selectedObject.label || ''}
-                      onChange={(e) => updateObject(selectedObject.id, { label: e.target.value.toUpperCase() })}
-                      className="w-12 h-8 bg-black/40 border border-zinc-800 rounded-lg text-center text-xs font-bold text-white focus:ring-1 focus:ring-theme-primary"
-                    />
-                  </>
-                )}
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            {/* Globo TV pre-loaded plays selector (Very cool!) */}
+            <div className="flex-1 flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl">
+              <Layout size={16} className="text-emerald-500 ml-1 shrink-0" />
+              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest shrink-0">Jogadas Globo:</span>
+              <div className="flex gap-1 overflow-x-auto no-scrollbar w-full">
+                {Object.keys(PRESET_PLAYS).map((key) => {
+                  const preset = PRESET_PLAYS[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => loadPreset(key)}
+                      className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-[9px] font-bold whitespace-nowrap border border-zinc-700 transition-all cursor-pointer"
+                      title={preset.description}
+                    >
+                      {preset.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-                {(selectedObject.type === 'player' || selectedObject.type === 'ball') && (
-                  <button
+            {/* Property Editor */}
+            <div className="flex-1 flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl min-h-[52px]">
+              {selectedObject ? (
+                <div className="flex items-center gap-3 w-full animate-in fade-in slide-in-from-left-2 transition-all">
+                  <Settings2 size={16} className="text-theme-primary ml-1 shrink-0" />
+                  
+                  {selectedObject.type === 'player' && (
+                    <>
+                      <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg shrink-0">
+                        {(['A', 'B', 'C', 'D'] as const).map(team => (
+                          <button
+                            key={team}
+                            type="button"
+                            onClick={() => updateObject(selectedObject.id, { team })}
+                            className={cn(
+                              "w-5 h-5 rounded-md transition-all border",
+                              selectedObject.team === team ? "border-white scale-110" : "border-transparent opacity-40"
+                            )}
+                            style={{ backgroundColor: TEAM_COLORS[team] }}
+                          />
+                        ))}
+                      </div>
+                      <input 
+                        type="text" 
+                        maxLength={3}
+                        placeholder="Nº"
+                        value={selectedObject.label || ''}
+                        onChange={(e) => updateObject(selectedObject.id, { label: e.target.value.toUpperCase() })}
+                        className="w-10 h-7 bg-black/40 border border-zinc-800 rounded-lg text-center text-xs font-bold text-white focus:ring-1 focus:ring-theme-primary"
+                      />
+                    </>
+                  )}
+
+                  {(selectedObject.type === 'player' || selectedObject.type === 'ball') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextAnimate = !selectedObject.animate;
+                        updateObject(selectedObject.id, { 
+                          animate: nextAnimate,
+                          toX: nextAnimate ? selectedObject.x + 10 : undefined,
+                          toY: nextAnimate ? selectedObject.y + 10 : undefined
+                        });
+                      }}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5",
+                        selectedObject.animate ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-500"
+                      )}
+                    >
+                      <Play size={10} fill={selectedObject.animate ? "currentColor" : "none"} />
+                      {selectedObject.animate ? "Móvel" : "Fixo"}
+                    </button>
+                  )}
+
+                  <button 
                     type="button"
-                    onClick={() => updateObject(selectedObject.id, { animate: !selectedObject.animate })}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all flex items-center gap-1.5",
-                      selectedObject.animate ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-500"
-                    )}
+                    onClick={removeSelected}
+                    className="ml-auto p-1.5 text-red-400 hover:bg-red-500/15 rounded-lg transition-all cursor-pointer"
+                    title="Excluir item"
                   >
-                    <Play size={12} fill={selectedObject.animate ? "currentColor" : "none"} />
-                    {selectedObject.animate ? "Ativo" : "Estático"}
+                    Excluir
                   </button>
-                )}
-
-                <button 
-                  type="button"
-                  onClick={removeSelected}
-                  className="ml-auto p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 px-3 text-zinc-600 italic text-[10px] uppercase font-bold tracking-widest">
-                <Info size={14} /> Clique em um jogador ou item para configurar
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2 text-zinc-500 italic text-[9px] uppercase font-bold tracking-widest">
+                  <Info size={13} /> Selecione um item na lousa para configurar
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -683,71 +887,76 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         <Stage 
           width={w} 
           height={h} 
-          className="rounded-[2.5rem] overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950"
+          className="rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950"
           onClick={() => isEditable && setSelectedId(null)}
         >
           <Layer>
             {renderField()}
-            {renderDrill()}
+            {renderTrailsAndTargets()}
+            {renderDrillObjects()}
           </Layer>
         </Stage>
         
         {objects.length === 0 && (
-           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-[2.5rem]">
-              <Zap size={40} className="text-zinc-700 mb-2" />
-              <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">Nenhum esquema configurado</p>
+           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[1.5px] rounded-3xl">
+              <Zap size={36} className="text-zinc-600 mb-2 animate-bounce" />
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic text-center px-4">
+                Lousa Tática Vazia.<br/>Adicione jogadores, cones ou clique em "Jogadas Globo"!
+              </p>
            </div>
         )}
 
         {isEditable && (
-          <div className="absolute top-6 left-6 pointer-events-none flex flex-col gap-2">
-            <div className="bg-black/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2 shadow-2xl">
-              <Move size={12} className="text-theme-primary animate-pulse" />
-              <span className="text-[9px] font-black text-white uppercase tracking-widest">Mesa Tática Interativa</span>
+          <div className="absolute top-4 left-4 pointer-events-none flex flex-col gap-2">
+            <div className="bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-2xl">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-[8px] font-black text-white uppercase tracking-widest">Mesa Tática Interativa</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Globo-Style Interactive Playback Control Deck */}
-      <div className="bg-zinc-950/85 backdrop-blur-md border border-zinc-800/80 p-4 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+      <div className="bg-zinc-950/90 backdrop-blur-md border border-zinc-800 p-3.5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
         {/* Left Controls: Play / Pause / Reset */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsPlaying(!isPlaying)}
-            className={cn(
-              "p-3 rounded-2xl transition-all flex items-center justify-center cursor-pointer shadow-lg",
-              isPlaying 
-                ? "bg-emerald-500 text-black hover:bg-emerald-400 shadow-emerald-500/20" 
-                : "bg-theme-primary text-black hover:bg-theme-primary/80 shadow-theme-primary/20"
-            )}
-            title={isPlaying ? "Pausar" : "Iniciar Movimentação"}
-          >
-            {isPlaying ? <Pause size={16} className="fill-current" /> : <Play size={16} className="fill-current" />}
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => {
-              setIsPlaying(false);
-              setCurrentTime(0);
-            }}
-            className="p-3 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-2xl transition-all cursor-pointer flex items-center justify-center"
-            title="Reiniciar Posicionamento"
-          >
-            <RotateCcw size={16} />
-          </button>
+        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPlaying(!isPlaying)}
+              className={cn(
+                "p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-lg",
+                isPlaying 
+                  ? "bg-emerald-500 text-black hover:bg-emerald-400 shadow-emerald-500/20" 
+                  : "bg-theme-primary text-black hover:bg-theme-primary/80 shadow-theme-primary/20"
+              )}
+              title={isPlaying ? "Pausar" : "Iniciar Movimentação"}
+            >
+              {isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current" />}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setIsPlaying(false);
+                setCurrentTime(0);
+              }}
+              className="p-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+              title="Reiniciar Posicionamento"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
 
           {/* Speed Selectors */}
-          <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800 ml-1">
+          <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-lg border border-zinc-800 ml-1">
             {([1, 1.5, 2] as const).map(speed => (
               <button
                 key={speed}
                 type="button"
                 onClick={() => setPlaybackSpeed(speed)}
                 className={cn(
-                  "px-2 py-1 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                  "px-2 py-1 rounded-md text-[8px] font-black transition-all cursor-pointer",
                   playbackSpeed === speed 
                     ? "bg-theme-primary text-black font-black" 
                     : "text-zinc-500 hover:text-white"
@@ -760,8 +969,8 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         </div>
 
         {/* Center Control: Scrubber (Timeline) */}
-        <div className="flex-1 w-full flex items-center gap-3">
-          <span className="text-[9px] font-mono text-zinc-500 w-8 text-right font-bold">
+        <div className="flex-1 w-full flex items-center gap-2.5">
+          <span className="text-[9px] font-mono text-zinc-500 w-8 text-right font-bold shrink-0">
             {(currentTime / 20).toFixed(1)}s
           </span>
           
@@ -776,34 +985,34 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
                 setIsPlaying(false); // Pause on manual scrub
                 setCurrentTime(parseFloat(e.target.value));
               }}
-              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-theme-primary focus:outline-none"
+              className="w-full h-1 bg-zinc-850 rounded-lg appearance-none cursor-pointer accent-theme-primary focus:outline-none"
             />
             {/* Custom glowing track progress overlay */}
             <div 
-              className="absolute left-0 top-[15px] h-1.5 bg-theme-primary/40 rounded-lg pointer-events-none" 
+              className="absolute left-0 top-[14px] h-1 bg-theme-primary/50 rounded-lg pointer-events-none" 
               style={{ width: `${currentTime}%` }}
             />
           </div>
 
-          <span className="text-[9px] font-mono text-zinc-500 w-8 text-left font-bold">
+          <span className="text-[9px] font-mono text-zinc-500 w-8 text-left font-bold shrink-0">
             5.0s
           </span>
         </div>
 
         {/* Right Controls: Trails and Looping Toggles */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
           {/* Trails Toggle */}
           <button
             type="button"
             onClick={() => setShowTrails(!showTrails)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all cursor-pointer",
-              showTrails ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer",
+              showTrails ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
             )}
             title="Mostrar trajetos desenhados"
           >
-            {showTrails ? <Eye size={12} /> : <EyeOff size={12} />}
-            Trajetos
+            {showTrails ? <Eye size={10} /> : <EyeOff size={10} />}
+            Linhas
           </button>
 
           {/* Looping Toggle */}
@@ -811,11 +1020,11 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
             type="button"
             onClick={() => setIsLooping(!isLooping)}
             className={cn(
-              "px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all cursor-pointer border",
+              "px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
               isLooping ? "bg-theme-primary/10 text-theme-primary border-theme-primary/30" : "bg-zinc-900 text-zinc-500 border-zinc-800"
             )}
           >
-            {isLooping ? "Loop Ativo" : "Única Vez"}
+            {isLooping ? "Loop" : "Manual"}
           </button>
         </div>
       </div>
