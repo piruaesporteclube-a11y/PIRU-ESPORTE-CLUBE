@@ -783,7 +783,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Horário / Texto</label>
                           <input
                             type="text"
-                            value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : t.start_time}
+                            value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time)}
                             onChange={(e) => setCustomTimes(prev => ({ ...prev, [timeKey]: e.target.value }))}
                             className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
                           />
@@ -817,7 +817,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                                 <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Horário / Texto</label>
                                 <input
                                   type="text"
-                                  value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : s.start_time}
+                                  value={customTimes[timeKey] !== undefined ? customTimes[timeKey] : (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)}
                                   onChange={(e) => setCustomTimes(prev => ({ ...prev, [timeKey]: e.target.value }))}
                                   className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
                                 />
@@ -1230,11 +1230,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                                 className="text-theme-primary font-mono font-black tracking-tighter text-center"
                                 style={{ fontSize: `${timeFontSize}px` }}
                               >
-                                {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : t.start_time}
+                                {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time)}
                               </span>
                               {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                             </div>
-
+                            
                             {/* Categories Stacks */}
                             <div className="flex flex-col gap-0.5 mt-0.5">
                               {(customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category) && (
@@ -1261,7 +1261,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                                   className="text-theme-primary font-mono font-black tracking-tighter text-center"
                                   style={{ fontSize: `${timeFontSize}px` }}
                                 >
-                                  {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : s.start_time}
+                                  {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)}
                                 </span>
                                 {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
                               </div>
