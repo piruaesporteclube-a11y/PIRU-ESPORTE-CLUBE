@@ -57,6 +57,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [filterSub, setFilterSub] = useState(filterCategory);
+  const [filterModality, setFilterModality] = useState<string>('Todos');
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -396,8 +397,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   useEffect(() => {
     if (selectedTrainingId !== 'geral') {
       const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
-      if (selTraining && selTraining.category !== 'Todos') {
-        setFilterSub(selTraining.category);
+      if (selTraining) {
+        if (selTraining.category && selTraining.category !== 'Todos') {
+          setFilterSub(selTraining.category);
+        }
+        if (selTraining.modality && selTraining.modality !== 'Todos') {
+          setFilterModality(selTraining.modality);
+        }
       }
     }
   }, [selectedTrainingId, availableTrainings]);
@@ -958,6 +964,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const isSearching = search.trim().length > 0;
       
       const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
+      const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase());
+      const matchesModality = isSearching || filterModality === 'Todos' || athleteMods.includes(filterModality.toLowerCase());
       const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
                           (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
                           a.doc.includes(search);
@@ -1002,7 +1010,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         if (tabFilter === 'observation' && att) return false;
       }
 
-      return matchesSub && matchesSearch;
+      return matchesSub && matchesModality && matchesSearch;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1561,7 +1569,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="relative md:col-span-2 lg:col-span-1 border-2 border-theme-primary/30 rounded-xl overflow-hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
@@ -1615,12 +1623,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none"
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none cursor-pointer"
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
             <option value="Todos">Categorias</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <select 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none cursor-pointer"
+            value={filterModality}
+            onChange={(e) => setFilterModality(e.target.value)}
+          >
+            <option value="Todos">Modalidades</option>
+            {["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"].map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
           </select>
         </div>
 
@@ -2721,7 +2743,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             <div className="flex items-center justify-between p-6 border-b border-zinc-200 no-print">
               <div>
                 <h2 className="text-xl font-bold uppercase">Relatório de Chamada</h2>
-                <p className="text-xs text-zinc-500">Data: {format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')} | Categoria: {filterSub}</p>
+                <p className="text-xs text-zinc-500">
+                  Data: {format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy')}
+                  {filterSub !== 'Todos' && ` | Categoria: ${filterSub}`}
+                  {filterModality !== 'Todos' && ` | Modalidade: ${filterModality}`}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -2786,7 +2812,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-black uppercase mb-2 border-b border-black pb-1">Lista de Presença - {filterSub}</h3>
+                  <h3 className="text-sm font-black uppercase mb-2 border-b border-black pb-1">
+                    Lista de Presença
+                    {filterSub !== 'Todos' ? ` - ${filterSub}` : ''}
+                    {filterModality !== 'Todos' ? ` (${filterModality})` : ''}
+                  </h3>
                   <table className="w-full border-collapse border border-black text-xs">
                     <thead>
                       <tr className="bg-zinc-100">
