@@ -30,6 +30,9 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [pos2, setPos2] = useState({ scale: 1, x: 0, y: 0 });
   const [infoPos, setInfoPos] = useState({ y: 0 });
   const [photoPos, setPhotoPos] = useState({ y: 0 });
+  const [topCrestSize, setTopCrestSize] = useState<number>(48);
+  const [topFontSize, setTopFontSize] = useState<number>(20);
+  const [yellowTextSize, setYellowTextSize] = useState<number>(14);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
@@ -37,6 +40,8 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [eventName, setEventName] = useState(event.name);
   const [schoolName, setSchoolName] = useState(settings?.schoolName || 'Piruá Esporte Clube');
   const [flyerModality, setFlyerModality] = useState(event.modality || '');
+  const [customLocationLine1, setCustomLocationLine1] = useState(`${event.street || ''}${event.number ? ', ' + event.number : ''}`);
+  const [customLocationLine2, setCustomLocationLine2] = useState(`${event.neighborhood || ''}${event.neighborhood && (event.city || event.uf) ? ' • ' : ''}${event.city || ''}${event.city && event.uf ? '/' : ''}${event.uf || ''}`);
   const [showVS, setShowVS] = useState(true);
   const [categoryType, setCategoryType] = useState<'Adulto' | 'Categoria de Base' | 'Ambos' | ''>('');
   const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
@@ -433,6 +438,28 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 />
               </div>
 
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Local (Rua, Nº ou Nome da Quadra)</label>
+                <input 
+                  type="text"
+                  value={customLocationLine1}
+                  onChange={e => setCustomLocationLine1(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                  placeholder="Ex: Ginásio Municipal, 120..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Bairro • Cidade/UF</label>
+                <input 
+                  type="text"
+                  value={customLocationLine2}
+                  onChange={e => setCustomLocationLine2(e.target.value)}
+                  className="w-full bg-black border border-zinc-750 p-2.5 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none"
+                  placeholder="Ex: Centro • Campos Altos/MG..."
+                />
+              </div>
+
               {/* Categoria do Evento & SUBs Section */}
               <div className="space-y-4 pt-3 border-t border-zinc-900">
                 <div>
@@ -752,6 +779,49 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               </div>
             </div>
 
+            {/* Element Sizes Controls */}
+            <div className="bg-black/60 p-4 rounded-2xl border border-zinc-800 space-y-4">
+              <span className="text-[10px] font-black text-zinc-500 uppercase">Ajustar Tamanhos do Encarte</span>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Tamanho do Nome no Topo</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{topFontSize}px</span>
+                  </div>
+                  <input 
+                    type="range" min="12" max="40" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={topFontSize}
+                    onChange={e => setTopFontSize(parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Tamanho do Escudo no Topo</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{topCrestSize}px</span>
+                  </div>
+                  <input 
+                    type="range" min="20" max="120" step="2"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={topCrestSize}
+                    onChange={e => setTopCrestSize(parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-400 uppercase">Nomes no Espaço Amarelo</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{yellowTextSize}px</span>
+                  </div>
+                  <input 
+                    type="range" min="8" max="32" step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={yellowTextSize}
+                    onChange={e => setYellowTextSize(parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+            </div>
+
             {!customImage && !((activeSlot === 1 && customImage) || (activeSlot === 2 && customImage2)) && (
               <>
                 <div className="relative">
@@ -905,10 +975,17 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
 
             {/* Content Layer - Positionable Info */}
             <div className="relative z-[30] pt-8 px-6 flex flex-col items-center flex-1">
-              <div className="w-12 h-12 mb-3">
-                {settings?.schoolCrest ? <img src={settings.schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" /> : <Trophy size={40} className="text-theme-primary" />}
+              <div className="mb-3 flex items-center justify-center" style={{ width: `${topCrestSize}px`, height: `${topCrestSize}px` }}>
+                {settings?.schoolCrest ? (
+                  <img src={settings.schoolCrest} className="w-full h-full object-contain" crossOrigin="anonymous" />
+                ) : (
+                  <Trophy size={Math.round(topCrestSize * 0.8)} className="text-theme-primary" />
+                )}
               </div>
-              <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg mb-1">
+              <h1 
+                className="font-black text-white italic tracking-tighter uppercase leading-none text-center drop-shadow-lg mb-1"
+                style={{ fontSize: `${topFontSize}px` }}
+              >
                 {schoolName}
               </h1>
               {flyerModality && (
@@ -925,18 +1002,29 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   
                   {isVersusMode ? (
                     <div className="flex flex-col items-center justify-center w-full leading-none py-0.5">
-                      <span className="text-sm font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none">
+                      <span 
+                        className="font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none"
+                        style={{ fontSize: `${yellowTextSize}px` }}
+                      >
                         {versusTeamA || 'NOME DE CIMA'}
                       </span>
                       <span className="text-[9px] font-black italic bg-black text-theme-primary px-2 py-0.5 rounded-md my-1 inline-block uppercase tracking-wider scale-90 leading-none">
                         {versusMiddle || 'VS'}
                       </span>
-                      <span className="text-sm font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none">
+                      <span 
+                        className="font-black text-black uppercase tracking-tighter block truncate max-w-full px-2 leading-none"
+                        style={{ fontSize: `${yellowTextSize}px` }}
+                      >
                         {versusTeamB || 'NOME DE BAIXO'}
                       </span>
                     </div>
                   ) : (
-                    <h2 className="text-base font-black text-black uppercase tracking-tighter leading-tight px-2">{eventName}</h2>
+                    <h2 
+                      className="font-black text-black uppercase tracking-tighter leading-tight px-2"
+                      style={{ fontSize: `${yellowTextSize * 1.15}px` }}
+                    >
+                      {eventName}
+                    </h2>
                   )}
                 </div>
               </div>
@@ -1001,8 +1089,8 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   <MapPin size={10} />
                   <span className="text-[8px] font-black uppercase tracking-[0.2em]">Local do Evento</span>
                 </div>
-                <p className="text-[10px] font-bold text-white uppercase tracking-tight">{event.street}, {event.number}</p>
-                <p className="text-[8px] text-zinc-400 font-bold uppercase tracking-widest">{event.neighborhood} • {event.city}/{event.uf}</p>
+                <p className="text-[10px] font-bold text-white uppercase tracking-tight">{customLocationLine1}</p>
+                <p className="text-[8px] text-zinc-400 font-bold uppercase tracking-widest">{customLocationLine2}</p>
               </div>
 
               <div className="w-full border-t border-theme-primary/20 pt-4 text-center">
