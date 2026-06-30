@@ -155,11 +155,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
       const toBase64 = async (url: string): Promise<string> => {
         if (!url || url.startsWith('data:')) return url;
         
+        // Add cache-buster to bypass any browser CORS-cached response errors for external URLs
+        let fetchUrl = url;
+        if (url.startsWith('http') && !url.includes(window.location.host)) {
+          fetchUrl = url.includes('?') ? `${url}&cb=${Date.now()}` : `${url}?cb=${Date.now()}`;
+        }
+
         // Try direct client-side fetch FIRST (much faster, handles CORS-enabled domains like Unsplash and Firebase Storage natively)
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-          const response = await fetch(url, { 
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const response = await fetch(fetchUrl, { 
             mode: 'cors', 
             signal: controller.signal,
             credentials: 'omit'
@@ -180,11 +186,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
         // Fallback to Server Proxy
         if (url.startsWith('http') && !url.includes(window.location.host)) {
-          const fetchUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+          const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(fetchUrl)}`;
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
-            const response = await fetch(fetchUrl, { signal: controller.signal });
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(proxyUrl, { signal: controller.signal });
             clearTimeout(timeoutId);
             if (response.ok) {
               const blob = await response.blob();
