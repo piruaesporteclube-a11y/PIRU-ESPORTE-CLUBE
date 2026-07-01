@@ -859,14 +859,26 @@ Muito obrigado!
 
   const handleOpenLineup = async (event: Event, index: number = 0, matchId?: string) => {
     try {
+      // Clear lineup list index caches and other event-specific states if opening a different event
+      if (!selectedEvent || selectedEvent.id !== event.id) {
+        setLineupIndicesWithData({});
+        setLineupIndicesWithNames({});
+        setEventMatches([]);
+        setAllLineupsData([]);
+      }
+
       setSelectedEvent(event);
       setActiveLineupIndex(index);
       setActiveMatchId(matchId || null);
       setModalTab('lineup');
       
-      // Set initial loading state for the main lineup
+      // Set initial loading/cleared state for the main lineup input & categories to prevent stale values from other events or indices leaking
       setLineupAthletes([]);
       setLineupStaff([]);
+      setSelectedAthletes([]);
+      setSelectedStaff([]);
+      setLineupCategory('');
+      setLineupName('');
 
       // Fetch matches and all lineups for this event in parallel to save quota and time
       const [matches, allLineups] = await Promise.all([
