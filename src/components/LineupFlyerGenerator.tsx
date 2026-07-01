@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { toast } from 'sonner';
+import { cn } from '../utils';
 
 // Helper to convert images to base64 to avoid CORS issues
 const toBase64 = async (url: string): Promise<string> => {
@@ -30,6 +31,35 @@ const toBase64 = async (url: string): Promise<string> => {
     return url;
   }
 };
+
+const SPORT_BACKGROUNDS = [
+  // FUTEBOL DE CAMPO
+  { id: 'stadium_night', name: 'Estádio Iluminado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_field_day', name: 'Gramado Verde Dia', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'field_detail', name: 'Detalhe de Gramado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_stadium_sunset', name: 'Estádio Sunset', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&q=80&w=1200' },
+
+  // FUTSAL
+  { id: 'futsal_court_wood', name: 'Quadra de Futsal', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'futsal_court_blue', name: 'Quadra de Vinílico', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'indoor_court_gym', name: 'Ginásio Coberto', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1628891890467-b79f2c8ba9ed?auto=format&fit=crop&q=80&w=1200' },
+
+  // VOLÊI
+  { id: 'volleyball_court', name: 'Quadra de Vôlei', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1592656094267-764a450201c5?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'beach_volley', name: 'Vôlei de Praia', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'volley_net_sunset', name: 'Rede Sunset', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1200' },
+
+  // CORRIDA DE RUA
+  { id: 'running_track', name: 'Pista de Atletismo', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'street_marathon', name: 'Asfalto / Cidade', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1502224562085-639556652f33?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'running_trail', name: 'Trilha Natural', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&q=80&w=1200' },
+
+  // GERAL / OUTROS
+  { id: 'carbon_fibre', name: 'Fibra de Carbono', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'gym_training', name: 'Centro de Treinamento', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'arena_neon', name: 'Arena Neon', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'dark_gradient', name: 'Preto Abstrato', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200' }
+];
 
 interface LineupFlyerGeneratorProps {
   event: Event;
@@ -73,6 +103,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   // --- Background Options ---
   const [bgType, setBgType] = useState<'solid' | 'gradient' | 'carbon' | 'stadium' | 'upload'>('carbon');
   const [uploadedBgUrl, setUploadedBgUrl] = useState<string | null>(null);
+  const [bgCategory, setBgCategory] = useState<string>('TODOS');
 
   // --- Header Customization ---
   const [headerTitle, setHeaderTitle] = useState<string>('CONVOCADOS');
@@ -385,33 +416,83 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   </div>
 
                   {/* Custom Background selector */}
-                  <div className="space-y-2 pt-2 border-t border-zinc-900">
+                  <div className="space-y-4 pt-2 border-t border-zinc-900">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Estilo de Fundo do Encarte</label>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-450 uppercase tracking-widest block">Estilo de Fundo do Encarte</label>
+                        <p className="text-[9px] text-zinc-500 uppercase font-bold">Escolha um modelo temático ou faça upload</p>
+                      </div>
                       <button
                         onClick={() => bgInputRef.current?.click()}
-                        className="text-[9px] font-black uppercase text-theme-primary px-2.5 py-1 border border-theme-primary/25 hover:bg-theme-primary/10 rounded-lg flex items-center gap-1 shrink-0"
+                        className="text-[9px] font-black uppercase text-theme-primary px-2.5 py-1.5 border border-theme-primary/25 hover:bg-theme-primary/10 rounded-xl flex items-center gap-1 shrink-0"
                       >
                         <Camera size={10} />
-                        Fazer Upload
+                        Enviar Fundo
                       </button>
                       <input type="file" ref={bgInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    {/* Category Tabs */}
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                      {['TODOS', 'FUTEBOL DE CAMPO', 'FUTSAL', 'VOLÊI', 'CORRIDA DE RUA', 'OUTROS'].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setBgCategory(cat)}
+                          className={cn(
+                            "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all whitespace-nowrap",
+                            bgCategory === cat
+                              ? "bg-theme-primary border-theme-primary text-black"
+                              : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                          )}
+                        >
+                          {cat === 'TODOS' ? 'TODOS' : cat.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Preset Grid */}
+                    <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
+                      {SPORT_BACKGROUNDS.filter(bg => bgCategory === 'TODOS' || bg.category === bgCategory).map(bg => {
+                        const selected = bgType === 'upload' && uploadedBgUrl === bg.url;
+
+                        return (
+                          <button
+                            key={bg.id}
+                            onClick={() => {
+                              setUploadedBgUrl(bg.url);
+                              setBgType('upload');
+                            }}
+                            className={cn(
+                              "group relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all text-left bg-zinc-950",
+                              selected ? "border-theme-primary ring-2 ring-theme-primary/30" : "border-zinc-850 hover:border-zinc-700"
+                            )}
+                          >
+                            <img src={bg.url} alt={bg.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" crossOrigin="anonymous" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                            <span className="absolute bottom-1.5 left-1.5 right-1.5 text-[8px] font-black uppercase tracking-tight text-white leading-tight line-clamp-2 drop-shadow-md">
+                              {bg.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Default System Backgrounds */}
+                    <div className="flex flex-wrap gap-2 pt-1">
                       {[
-                        { id: 'carbon', label: 'Fibra Carbono' },
-                        { id: 'gradient', label: 'Gradiente Sólido' },
-                        { id: 'stadium', label: 'Fundo Estádio' },
+                        { id: 'carbon', label: 'Efeito Carbono' },
+                        { id: 'gradient', label: 'Efeito Gradiente' },
+                        { id: 'stadium', label: 'Efeito Estádio Padrão' }
                       ].map(b => (
                         <button
                           key={b.id}
                           onClick={() => setBgType(b.id as any)}
-                          className={`py-2 px-1 text-[9px] font-black uppercase rounded-xl border transition-all ${
+                          className={cn(
+                            "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all",
                             bgType === b.id 
-                              ? 'bg-theme-primary border-theme-primary text-black' 
-                              : 'bg-black border-zinc-850 text-zinc-400 hover:border-zinc-700'
-                          }`}
+                              ? "bg-theme-primary border-theme-primary text-black" 
+                              : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-750"
+                          )}
                         >
                           {b.label}
                         </button>

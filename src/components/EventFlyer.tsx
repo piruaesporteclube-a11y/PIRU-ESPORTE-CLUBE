@@ -8,6 +8,35 @@ import { Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, Activity,
 import * as htmlToImage from 'html-to-image';
 import { cn, fixHtml2CanvasColors } from '../utils';
 
+const SPORT_BACKGROUNDS = [
+  // FUTEBOL DE CAMPO
+  { id: 'stadium_night', name: 'Estádio Iluminado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_field_day', name: 'Gramado Verde Dia', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'field_detail', name: 'Detalhe de Gramado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_stadium_sunset', name: 'Estádio Sunset', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&q=80&w=1200' },
+
+  // FUTSAL
+  { id: 'futsal_court_wood', name: 'Quadra de Futsal', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'futsal_court_blue', name: 'Quadra de Vinílico', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'indoor_court_gym', name: 'Ginásio Coberto', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1628891890467-b79f2c8ba9ed?auto=format&fit=crop&q=80&w=1200' },
+
+  // VOLÊI
+  { id: 'volleyball_court', name: 'Quadra de Vôlei', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1592656094267-764a450201c5?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'beach_volley', name: 'Vôlei de Praia', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'volley_net_sunset', name: 'Rede Sunset', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1200' },
+
+  // CORRIDA DE RUA
+  { id: 'running_track', name: 'Pista de Atletismo', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'street_marathon', name: 'Asfalto / Cidade', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1502224562085-639556652f33?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'running_trail', name: 'Trilha Natural', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&q=80&w=1200' },
+
+  // GERAL / OUTROS
+  { id: 'carbon_fibre', name: 'Fibra de Carbono', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'gym_training', name: 'Centro de Treinamento', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'arena_neon', name: 'Arena Neon', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'dark_gradient', name: 'Preto Abstrato', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200' }
+];
+
 interface EventFlyerProps {
   event: Event;
   athletes: Athlete[];
@@ -35,6 +64,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [yellowTextSize, setYellowTextSize] = useState<number>(14);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
+  const [bgCategory, setBgCategory] = useState<string>('TODOS');
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
   const [flyerTitle, setFlyerTitle] = useState('Grande Evento');
   const [eventName, setEventName] = useState(event.name);
@@ -342,39 +372,94 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
           </div>
 
           {/* Background Selection */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Estilo de Fundo</label>
+              <div>
+                <label className="text-[10px] font-black text-zinc-450 uppercase tracking-widest block">Estilo de Fundo do Encarte</label>
+                <p className="text-[9px] text-zinc-500 uppercase font-bold">Escolha um modelo temático ou faça upload</p>
+              </div>
               <button 
                 onClick={() => bgInputRef.current?.click()}
-                className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1 rounded-lg hover:bg-theme-primary/10 transition-all flex items-center gap-1.5"
+                className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1.5 rounded-xl hover:bg-theme-primary/10 transition-all flex items-center gap-1.5 shrink-0"
               >
                 <Camera size={12} />
-                Mudar Fundo
+                Enviar Fundo
               </button>
               <input type="file" ref={bgInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'carbon', label: 'Carbono', icon: Trophy },
-                { id: 'stadium', label: 'Estádio', icon: MapPin },
-                { id: 'grass', label: 'Campo', icon: Activity }
-              ].map(bg => {
-                const isActive = selectedBackgrounds.includes(bg.id);
+
+            {/* Category Tabs */}
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+              {['TODOS', 'FUTEBOL DE CAMPO', 'FUTSAL', 'VOLÊI', 'CORRIDA DE RUA', 'OUTROS'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setBgCategory(cat)}
+                  className={cn(
+                    "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all whitespace-nowrap",
+                    bgCategory === cat
+                      ? "bg-theme-primary border-theme-primary text-black"
+                      : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                  )}
+                >
+                  {cat === 'TODOS' ? 'TODOS' : cat.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+
+            {/* Preset Grid */}
+            <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
+              {SPORT_BACKGROUNDS.filter(bg => bgCategory === 'TODOS' || bg.category === bgCategory).map(bg => {
+                const isActive = selectedBackgrounds.includes('stadium') && customBackgrounds['stadium'] === bg.url;
+                const isDefaultActive = !customBackgrounds['stadium'] && bg.id === 'stadium_night' && selectedBackgrounds.includes('stadium');
+                const selected = isActive || isDefaultActive;
+
                 return (
                   <button
                     key={bg.id}
-                    onClick={() => toggleBackground(bg.id)}
+                    onClick={() => {
+                      setCustomBackgrounds(prev => ({
+                        ...prev,
+                        stadium: bg.url
+                      }));
+                      if (!selectedBackgrounds.includes('stadium')) {
+                        setSelectedBackgrounds(prev => [...prev, 'stadium']);
+                      }
+                    }}
                     className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all",
-                      isActive ? "bg-theme-primary border-theme-primary text-black" : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      "group relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all text-left bg-zinc-950",
+                      selected ? "border-theme-primary ring-2 ring-theme-primary/30" : "border-zinc-850 hover:border-zinc-700"
                     )}
                   >
-                     <bg.icon size={18} />
-                     <span className="text-[10px] font-black uppercase tracking-widest">{bg.label}</span>
+                    <img src={bg.url} alt={bg.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" crossOrigin="anonymous" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                    <span className="absolute bottom-1.5 left-1.5 right-1.5 text-[8px] font-black uppercase tracking-tight text-white leading-tight line-clamp-2 drop-shadow-md">
+                      {bg.name}
+                    </span>
                   </button>
                 );
               })}
+            </div>
+
+            {/* Effects Overlay Toggles */}
+            <div className="flex gap-4 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={selectedBackgrounds.includes('carbon')}
+                  onChange={() => toggleBackground('carbon')}
+                  className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0"
+                />
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Efeito Carbono</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={selectedBackgrounds.includes('grass')}
+                  onChange={() => toggleBackground('grass')}
+                  className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0"
+                />
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Efeito Campo</span>
+              </label>
             </div>
           </div>
 
