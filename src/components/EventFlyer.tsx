@@ -884,7 +884,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
         </div>
 
         {/* Right: Preview */}
-        <div className="flex flex-col items-center gap-4 max-w-full overflow-x-auto no-scrollbar">
+        <div className="flex flex-col items-center gap-4 max-w-full overflow-x-auto no-scrollbar lg:sticky lg:top-4 lg:self-start">
           <div 
             ref={flyerRef}
             style={{ width: '360px', height: '640px' }}

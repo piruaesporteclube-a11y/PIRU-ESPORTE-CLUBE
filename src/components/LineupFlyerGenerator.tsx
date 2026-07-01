@@ -285,7 +285,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: Controls & Configurations - Span 7 */}
-        <div className="lg:col-span-7 space-y-4 max-h-[72vh] overflow-y-auto pr-2">
+        <div className="lg:col-span-7 space-y-4 pr-2">
           
           {/* List Index Selector */}
           <div className="bg-zinc-950/60 p-4 border border-zinc-800 rounded-3xl space-y-3">
@@ -1137,7 +1137,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
         </div>
 
         {/* RIGHT COLUMN: Real-Time Render Preview Screen - Span 5 */}
-        <div className="lg:col-span-12 xl:col-span-5 flex flex-col items-center justify-center p-2 max-w-full overflow-x-auto no-scrollbar">
+        <div className="lg:col-span-12 xl:col-span-5 flex flex-col items-center justify-center p-2 max-w-full overflow-x-auto no-scrollbar xl:sticky xl:top-4 xl:self-start">
           
           <span className="text-[10px] font-black text-zinc-455 uppercase tracking-widest block mb-3 text-center">
             Pressione e Baixe para a Arte Final ficar em 1080x1920 (HD)

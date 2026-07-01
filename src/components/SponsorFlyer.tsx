@@ -195,7 +195,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
             </button>
           </div>
 
-          <div className="space-y-6 max-h-[55vh] overflow-y-auto pr-4 custom-scrollbar">
+          <div className="space-y-6 pr-4">
             {activeTab === 'text' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 {/* Título Section */}
@@ -621,7 +621,7 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
         </div>
 
         {/* Left Content: The Professional Canvas (Swapped visually to left on desktop) */}
-        <div className="flex flex-col items-center sticky top-4 md:order-1 w-full">
+        <div className="flex flex-col items-center sticky top-4 self-start md:order-1 w-full">
           <div 
             className="shadow-[0_45px_100px_rgba(0,0,0,0.9)] rounded-3xl overflow-hidden ring-1 ring-white/5"
             style={{ width: '360px', height: '640px', position: 'relative' }}

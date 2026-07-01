@@ -395,7 +395,7 @@ export default function AnnouncementFlyer() {
       </div>
 
       {/* Preview Container */}
-      <div className="flex justify-center">
+      <div className="flex justify-center lg:sticky lg:top-4 lg:self-start">
         <div 
           ref={flyerRef}
           className="w-[360px] aspect-[9/16] bg-black relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.6)]"
