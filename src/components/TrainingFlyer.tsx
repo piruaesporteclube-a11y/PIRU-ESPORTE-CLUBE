@@ -985,7 +985,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       selectedBackgrounds.includes('custom') ? "mix-blend-overlay opacity-80" : "opacity-100"
                     )}>
                       <img 
-                        src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200" 
+                        src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
@@ -1001,7 +1001,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('custom')) ? "mix-blend-overlay opacity-80" : "opacity-100"
                     )}>
                       <img 
-                        src="https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200" 
+                        src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"

@@ -9,28 +9,7 @@ import {
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { toast } from 'sonner';
-import { cn, prepareElementForExport } from '../utils';
-
-// Helper to convert images to base64 to avoid CORS issues
-const toBase64 = async (url: string): Promise<string> => {
-  if (!url || url.startsWith('data:')) return url;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    const response = await fetch(url, { mode: 'cors', signal: controller.signal, credentials: 'omit' });
-    clearTimeout(timeoutId);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(url);
-      reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.warn('CORS conversion failed, returning original url', e);
-    return url;
-  }
-};
+import { cn, prepareElementForExport, toBase64 } from '../utils';
 
 const SPORT_BACKGROUNDS = [
   // FUTEBOL DE CAMPO

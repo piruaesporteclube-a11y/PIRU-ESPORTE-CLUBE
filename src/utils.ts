@@ -168,20 +168,26 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
 export async function toBase64(url: string): Promise<string> {
   if (!url || url.startsWith('data:')) return url;
   
-  // Add cache-buster to bypass any browser CORS-cached response errors for external URLs
-  let fetchUrl = url;
-  if (url.startsWith('http')) {
-    const isExternal = !url.includes(window.location.host);
-    if (isExternal) {
-      fetchUrl = url.includes('?') ? `${url}&cb=${Date.now()}` : `${url}?cb=${Date.now()}`;
-    }
+  // Make relative URLs absolute to ensure correct routing within sandboxed iframes
+  let cleanUrl = url;
+  if (url.startsWith('/')) {
+    cleanUrl = `${window.location.origin}${url}`;
   }
 
-  // Try direct client-side fetch FIRST (much faster, handles CORS-enabled domains like Unsplash natively)
+  // Determine if URL is external to the app
+  const isExternal = cleanUrl.startsWith('http') && !cleanUrl.includes(window.location.host);
+
+  // Client-side fetch URL (with cache-buster to bypass browser CORS cache)
+  let clientFetchUrl = cleanUrl;
+  if (isExternal) {
+    clientFetchUrl = cleanUrl.includes('?') ? `${cleanUrl}&cb=${Date.now()}` : `${cleanUrl}?cb=${Date.now()}`;
+  }
+
+  // 1. Try direct client-side fetch first (supports CORS natively for domains like Unsplash)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(fetchUrl, { 
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch(clientFetchUrl, { 
       mode: 'cors', 
       signal: controller.signal,
       credentials: 'omit'
@@ -200,12 +206,13 @@ export async function toBase64(url: string): Promise<string> {
     console.warn('Direct fetch failed or was blocked by CORS, trying proxy...', e);
   }
 
-  // Fallback to Server Proxy
-  if (url.startsWith('http') && !url.includes(window.location.host)) {
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(fetchUrl)}`;
+  // 2. Fallback to same-origin Server Proxy (for external URLs)
+  if (isExternal) {
+    // Send cleanUrl WITHOUT cache buster so that server-side Node can download it cleanly from the CDN without being rejected
+    const proxyUrl = `${window.location.origin}/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       const response = await fetch(proxyUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (response.ok) {
@@ -216,13 +223,15 @@ export async function toBase64(url: string): Promise<string> {
           reader.onerror = () => resolve(url);
           reader.readAsDataURL(blob);
         });
+      } else {
+        console.warn('Proxy fetch failed with status:', response.status);
       }
     } catch (e) {
       console.warn('Proxy fetch failed too', e);
     }
   }
 
-  // Last resort: Canvas conversion
+  // 3. Last resort fallback: standard crossOrigin Canvas conversion
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -240,7 +249,7 @@ export async function toBase64(url: string): Promise<string> {
       }
     };
     img.onerror = () => resolve(url);
-    img.src = url;
+    img.src = clientFetchUrl;
     setTimeout(() => resolve(url), 5000);
   });
 }
@@ -299,19 +308,32 @@ export async function prepareElementForExport(element: HTMLElement, width = 360,
     }
   }));
 
-  // Convert all backgroundImage style URLs inside the clone to Base64 (preserving gradients!)
+  // Convert all backgroundImage style URLs inside the clone to Base64 (preserving gradients, multiple layers!)
   const cloneBgElements = Array.from(clone.querySelectorAll('*')).filter(el => (el as HTMLElement).style.backgroundImage);
   await Promise.all(cloneBgElements.map(async (el) => {
-    const bg = (el as HTMLElement).style.backgroundImage;
-    const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
-    if (match && match[1]) {
+    let bg = (el as HTMLElement).style.backgroundImage;
+    const urlRegex = /url\(['"]?([^'"]+?)['"]?\)/g;
+    let match;
+    const replacements: { original: string; b64: string }[] = [];
+    
+    urlRegex.lastIndex = 0;
+    while ((match = urlRegex.exec(bg)) !== null) {
+      const originalUrl = match[1];
+      const matchString = match[0];
       try {
-        const b64 = await toBase64(match[1]);
-        (el as HTMLElement).style.backgroundImage = bg.replace(match[0], `url("${b64}")`);
+        const b64 = await toBase64(originalUrl);
+        replacements.push({ original: matchString, b64: `url("${b64}")` });
       } catch (e) {
-        console.warn('Failed to convert bg image to base64', match[1], e);
+        console.warn('Failed to convert bg image to base64', originalUrl, e);
       }
     }
+    
+    // Apply all replacements in the style string
+    replacements.forEach(({ original, b64 }) => {
+      bg = bg.replace(original, b64);
+    });
+    
+    (el as HTMLElement).style.backgroundImage = bg;
   }));
 
   // Ensure all images are completely loaded in the clone DOM
