@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport } from '../utils';
 
 const SPORT_BACKGROUNDS = [
   // FUTEBOL DE CAMPO
@@ -98,30 +98,28 @@ export default function AnnouncementFlyer() {
       // Small delay to ensure any layout changes are settled
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Apply color fixes for oklch support
-      fixHtml2CanvasColors(flyerRef.current);
-      
-      const dataUrl = await toPng(flyerRef.current, {
-        quality: 1.0,
-        pixelRatio: 2,
-        width: 360,
-        height: 640,
-        cacheBust: true,
-        style: {
-          transform: 'none',
-          margin: '0',
-          position: 'relative'
-        }
-      });
+      const element = flyerRef.current;
+      const exportClone = await prepareElementForExport(element, 360, 640);
 
-      const link = document.createElement('a');
-      link.download = `comunicado-${format(new Date(), 'dd-MM-yyyy')}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success("Encarte gerado com sucesso!");
+      try {
+        const dataUrl = await toPng(exportClone, {
+          quality: 1.0,
+          pixelRatio: 2,
+          width: 360,
+          height: 640,
+        });
+
+        const link = document.createElement('a');
+        link.download = `comunicado-${format(new Date(), 'dd-MM-yyyy')}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("Encarte gerado com sucesso!");
+      } finally {
+        exportClone.remove();
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast.error("Erro ao gerar encarte. Tente novamente.");

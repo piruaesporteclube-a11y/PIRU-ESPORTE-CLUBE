@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText, ChevronDown } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, fixHtml2CanvasColors, compressImage } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport } from '../utils';
 
 const SPORT_BACKGROUNDS = [
   // FUTEBOL DE CAMPO
@@ -181,193 +181,40 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     const loadingToast = toast.loading('Gerando seu encarte... Aguarde um momento.');
     
     try {
-       // 1. Ultra-robust Base64 conversion
-      const toBase64 = async (url: string): Promise<string> => {
-        if (!url || url.startsWith('data:')) return url;
-        
-        // Add cache-buster to bypass any browser CORS-cached response errors for external URLs
-        let fetchUrl = url;
-        if (url.startsWith('http') && !url.includes(window.location.host)) {
-          fetchUrl = url.includes('?') ? `${url}&cb=${Date.now()}` : `${url}?cb=${Date.now()}`;
-        }
-
-        // Try direct client-side fetch FIRST (much faster, handles CORS-enabled domains like Unsplash and Firebase Storage natively)
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
-          const response = await fetch(fetchUrl, { 
-            mode: 'cors', 
-            signal: controller.signal,
-            credentials: 'omit'
-          });
-          clearTimeout(timeoutId);
-          if (response.ok) {
-            const blob = await response.blob();
-            return new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = () => resolve(url);
-              reader.readAsDataURL(blob);
-            });
-          }
-        } catch (e) {
-          console.warn('Direct fetch failed or was blocked by CORS, trying proxy...', e);
-        }
-
-        // Fallback to Server Proxy
-        if (url.startsWith('http') && !url.includes(window.location.host)) {
-          const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(fetchUrl)}`;
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const response = await fetch(proxyUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (response.ok) {
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = () => resolve(url);
-                reader.readAsDataURL(blob);
-              });
-            }
-          } catch (e) {
-            console.warn('Proxy fetch failed too', e);
-          }
-        }
-
-        // Last resort: Canvas conversion
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) { resolve(url); return; }
-              ctx.drawImage(img, 0, 0);
-              resolve(canvas.toDataURL('image/png'));
-            } catch (err) { 
-              resolve(url); 
-            }
-          };
-          img.onerror = () => resolve(url);
-          img.src = url;
-          setTimeout(() => resolve(url), 5000);
-        });
-      };
-
-      // 2. Clone and prepare
       const element = flyerRef.current;
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.id = 'flyer-clone';
-      Object.assign(clone.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '360px',
-        height: '640px',
-        transform: 'none',
-        transition: 'none',
-        zIndex: '-9999',
-        opacity: '1',
-        pointerEvents: 'none',
-        borderRadius: '0',
-        margin: '0',
-        padding: '0'
-      });
-      document.body.appendChild(clone);
+      const exportClone = await prepareElementForExport(element, 360, 640);
 
-      // Apply color fixes for html-to-image
-      fixHtml2CanvasColors(clone);
-
-      // 3. Clean clone
-      const allCloneElements = clone.querySelectorAll('*');
-      allCloneElements.forEach((el: any) => {
-        if (el.style) {
-          el.style.animation = 'none';
-          el.style.transition = 'none';
-          el.style.backdropFilter = 'none';
-          if (el.style.filter && el.style.filter.includes('blur')) {
-            el.style.filter = 'none';
-          }
-        }
-      });
-
-      // 4. Convert all images to Base64 with proxy fallback
-      const cloneImages = Array.from(clone.querySelectorAll('img'));
-      await Promise.all(cloneImages.map(async (img) => {
-        const currentSrc = img.getAttribute('src');
-        if (currentSrc) {
-          // Increase resilience for Vercel/CORS
-          try {
-            const b64 = await toBase64(currentSrc);
-            img.src = b64;
-            img.setAttribute('src', b64);
-            img.setAttribute('crossorigin', 'anonymous');
-          } catch (e) {
-            console.warn('Failed to convert image to base64, sticking with original', currentSrc);
-          }
-        }
-      }));
-
-      // 5. Convert Background Images to Base64
-      const cloneBgElements = Array.from(clone.querySelectorAll('*')).filter(el => (el as HTMLElement).style.backgroundImage);
-      await Promise.all(cloneBgElements.map(async (el) => {
-        const bg = (el as HTMLElement).style.backgroundImage;
-        const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
-        if (match && match[1]) {
-          try {
-            const b64 = await toBase64(match[1]);
-            (el as HTMLElement).style.backgroundImage = `url("${b64}")`;
-          } catch (e) {
-             console.warn('Failed to convert bg to base64', match[1]);
-          }
-        }
-      }));
-
-      // 6. Ensure all images are loaded
-      const images = Array.from(clone.querySelectorAll('img'));
-      await Promise.all(images.map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
+      try {
+        console.log('Capturing flyer with backgrounds:', selectedBackgrounds);
+        
+        const dataUrl = await htmlToImage.toPng(exportClone, {
+          width: 360,
+          height: 640,
+          pixelRatio: 2,
+          backgroundColor: '#000000',
+          cacheBust: true,
+          skipFonts: false
         });
-      }));
 
-      await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait for rendering engine and images
+        toast.dismiss(loadingToast);
+        
+        const isSingle = activeTrainings.length === 1;
+        const downloadName = isSingle 
+          ? `TREINO_${activeTrainings[0].modality.replace(/\s+/g, '_').toUpperCase()}_${date}.png`
+          : `AGENDA_TREINO_${date}.png`;
 
-      console.log('Capturing flyer with backgrounds:', selectedBackgrounds);
-      
-      const dataUrl = await htmlToImage.toPng(clone, {
-        width: 360,
-        height: 640,
-        pixelRatio: 2,
-        backgroundColor: '#000000',
-        cacheBust: true, // Changed to true
-        skipFonts: false
-      });
-
-      document.body.removeChild(clone);
-      toast.dismiss(loadingToast);
-      
-      const isSingle = activeTrainings.length === 1;
-      const downloadName = isSingle 
-        ? `TREINO_${activeTrainings[0].modality.replace(/\s+/g, '_').toUpperCase()}_${date}.png`
-        : `AGENDA_TREINO_${date}.png`;
-
-      const link = document.createElement('a');
-      link.download = downloadName;
-      link.href = dataUrl;
-      link.click();
-      
-      toast.success('Encarte baixado com sucesso!');
+        const link = document.createElement('a');
+        link.download = downloadName;
+        link.href = dataUrl;
+        link.click();
+        
+        toast.success('Encarte baixado com sucesso!');
+      } finally {
+        exportClone.remove();
+      }
     } catch (error) {
       console.error('Error generating flyer:', error);
+      toast.dismiss(loadingToast);
       toast.error('Ocorreu um erro ao gerar a imagem. Tente novamente.');
     } finally {
       setIsExporting(false);

@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import { Trophy, Download, X, Camera, Image as ImageIcon, Layout, Settings2, Sparkles, Move, Type, Droplets, RefreshCw } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import { cn, fixHtml2CanvasColors } from '../utils';
+import { cn, fixHtml2CanvasColors, prepareElementForExport } from '../utils';
 
 interface SponsorFlyerProps {
   sponsor: Sponsor;
@@ -109,32 +109,31 @@ export default function SponsorFlyer({ sponsor, onClose }: SponsorFlyerProps) {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 600));
-      fixHtml2CanvasColors(flyerRef.current);
 
       const element = flyerRef.current;
-      const dataUrl = await htmlToImage.toPng(element, {
-        width: 1080,
-        height: 1920,
-        pixelRatio: 1,
-        backgroundColor: '#000000',
-        cacheBust: true,
-        style: {
-          transform: 'none',
-          margin: '0',
-          padding: '0'
-        }
-      });
+      const exportClone = await prepareElementForExport(element, 1080, 1920);
 
-      toast.dismiss(loadingToast);
-      const link = document.createElement('a');
-      link.download = `GE_PATROCINIO_${sponsor.name.replace(/\s+/g, '_')}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success('Imagem gerada com sucesso!', {
-        description: 'Salve no seu dispositivo e poste nos Stories.'
-      });
+      try {
+        const dataUrl = await htmlToImage.toPng(exportClone, {
+          width: 1080,
+          height: 1920,
+          pixelRatio: 1,
+          backgroundColor: '#000000',
+        });
+
+        toast.dismiss(loadingToast);
+        const link = document.createElement('a');
+        link.download = `GE_PATROCINIO_${sponsor.name.replace(/\s+/g, '_')}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Imagem gerada com sucesso!', {
+          description: 'Salve no seu dispositivo e poste nos Stories.'
+        });
+      } finally {
+        exportClone.remove();
+      }
     } catch (error: any) {
       console.error('Error generating flyer:', error);
       toast.error('Erro ao processar imagem. Verifique as fotos enviadas.');

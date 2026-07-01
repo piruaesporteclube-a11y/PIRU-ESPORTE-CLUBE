@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { toast } from 'sonner';
-import { cn } from '../utils';
+import { cn, prepareElementForExport } from '../utils';
 
 // Helper to convert images to base64 to avoid CORS issues
 const toBase64 = async (url: string): Promise<string> => {
@@ -251,23 +251,28 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const element = flyerRef.current;
+      const exportClone = await prepareElementForExport(element, 360, 640);
       
-      // Use html-to-image with pixelRatio = 3 to get standard 1080x1920 Stories size
-      // since the preview is sized 360x640 (360 * 3 = 1080; 640 * 3 = 1920)
-      const dataUrl = await htmlToImage.toPng(element, {
-        width: 360,
-        height: 640,
-        pixelRatio: 3,
-        backgroundColor: customBgGradientStart,
-      });
+      try {
+        // Use html-to-image with pixelRatio = 3 to get standard 1080x1920 Stories size
+        // since the preview is sized 360x640 (360 * 3 = 1080; 640 * 3 = 1920)
+        const dataUrl = await htmlToImage.toPng(exportClone, {
+          width: 360,
+          height: 640,
+          pixelRatio: 3,
+          backgroundColor: customBgGradientStart,
+        });
 
-      const link = document.createElement('a');
-      link.download = `ESCALACAO_${event.name.replace(/\s+/g, '_')}_STORIES.png`;
-      link.href = dataUrl;
-      link.click();
+        const link = document.createElement('a');
+        link.download = `ESCALACAO_${event.name.replace(/\s+/g, '_')}_STORIES.png`;
+        link.href = dataUrl;
+        link.click();
 
-      toast.dismiss(loadingToast);
-      toast.success('Imagem stories gerada com sucesso!');
+        toast.dismiss(loadingToast);
+        toast.success('Imagem stories gerada com sucesso!');
+      } finally {
+        exportClone.remove();
+      }
     } catch (error) {
       console.error('Error generating instagram flyer:', error);
       toast.dismiss(loadingToast);

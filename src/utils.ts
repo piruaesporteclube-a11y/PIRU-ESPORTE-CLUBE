@@ -164,3 +164,169 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
     });
   });
 }
+
+export async function toBase64(url: string): Promise<string> {
+  if (!url || url.startsWith('data:')) return url;
+  
+  // Add cache-buster to bypass any browser CORS-cached response errors for external URLs
+  let fetchUrl = url;
+  if (url.startsWith('http')) {
+    const isExternal = !url.includes(window.location.host);
+    if (isExternal) {
+      fetchUrl = url.includes('?') ? `${url}&cb=${Date.now()}` : `${url}?cb=${Date.now()}`;
+    }
+  }
+
+  // Try direct client-side fetch FIRST (much faster, handles CORS-enabled domains like Unsplash natively)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(fetchUrl, { 
+      mode: 'cors', 
+      signal: controller.signal,
+      credentials: 'omit'
+    });
+    clearTimeout(timeoutId);
+    if (response.ok) {
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(url);
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (e) {
+    console.warn('Direct fetch failed or was blocked by CORS, trying proxy...', e);
+  }
+
+  // Fallback to Server Proxy
+  if (url.startsWith('http') && !url.includes(window.location.host)) {
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(fetchUrl)}`;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(url);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      console.warn('Proxy fetch failed too', e);
+    }
+  }
+
+  // Last resort: Canvas conversion
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(url); return; }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png', 1.0));
+      } catch (err) { 
+        resolve(url); 
+      }
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+    setTimeout(() => resolve(url), 5000);
+  });
+}
+
+export async function prepareElementForExport(element: HTMLElement, width = 360, height = 640): Promise<HTMLElement> {
+  const clone = element.cloneNode(true) as HTMLElement;
+  clone.id = `flyer-export-clone-${Date.now()}`;
+  
+  Object.assign(clone.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: `${width}px`,
+    height: `${height}px`,
+    transform: 'none',
+    transition: 'none',
+    zIndex: '-9999',
+    opacity: '1',
+    pointerEvents: 'none',
+    borderRadius: '0',
+    margin: '0',
+    padding: '0'
+  });
+  
+  document.body.appendChild(clone);
+
+  // Apply color fixes for oklch / tailwind theme variables
+  fixHtml2CanvasColors(clone);
+
+  // Clean styles (No animations, no transitions, no blurs)
+  const allCloneElements = clone.querySelectorAll('*');
+  allCloneElements.forEach((el: any) => {
+    if (el.style) {
+      el.style.animation = 'none';
+      el.style.transition = 'none';
+      el.style.backdropFilter = 'none';
+      if (el.style.filter && el.style.filter.includes('blur')) {
+        el.style.filter = 'none';
+      }
+    }
+  });
+
+  // Convert all <img> src attributes inside the clone to Base64
+  const cloneImages = Array.from(clone.querySelectorAll('img'));
+  await Promise.all(cloneImages.map(async (img) => {
+    const currentSrc = img.getAttribute('src');
+    if (currentSrc) {
+      try {
+        const b64 = await toBase64(currentSrc);
+        img.src = b64;
+        img.setAttribute('src', b64);
+        img.setAttribute('crossorigin', 'anonymous');
+      } catch (e) {
+        console.warn('Failed to convert image to base64, sticking with original', currentSrc, e);
+      }
+    }
+  }));
+
+  // Convert all backgroundImage style URLs inside the clone to Base64 (preserving gradients!)
+  const cloneBgElements = Array.from(clone.querySelectorAll('*')).filter(el => (el as HTMLElement).style.backgroundImage);
+  await Promise.all(cloneBgElements.map(async (el) => {
+    const bg = (el as HTMLElement).style.backgroundImage;
+    const match = bg.match(/url\(['"]?(.*?)['"]?\)/);
+    if (match && match[1]) {
+      try {
+        const b64 = await toBase64(match[1]);
+        (el as HTMLElement).style.backgroundImage = bg.replace(match[0], `url("${b64}")`);
+      } catch (e) {
+        console.warn('Failed to convert bg image to base64', match[1], e);
+      }
+    }
+  }));
+
+  // Ensure all images are completely loaded in the clone DOM
+  const images = Array.from(clone.querySelectorAll('img'));
+  await Promise.all(images.map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }));
+
+  await document.fonts.ready;
+  // Small delay to ensure rendering engine has applied all styles and base64 sources
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  return clone;
+}
