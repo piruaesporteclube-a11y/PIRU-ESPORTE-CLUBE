@@ -300,7 +300,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         // Essential layout and typography styles
         const propsToCopy = [
           'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
-          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'textTransform', 'color', 
           'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
           'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
           'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
@@ -309,17 +309,15 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         ];
         
         propsToCopy.forEach(prop => {
-          if (prop === 'width' || prop === 'height') {
-            const tagName = orig.tagName.toLowerCase();
-            const widthVal = parseFloat(style.width);
-            const isStructural = ['div', 'p', 'section', 'h1', 'h2', 'h3', 'h4', 'ol', 'ul', 'li'].includes(tagName);
-            if (isStructural && !isNaN(widthVal) && widthVal > 250) {
-              // Skip copying width/height for wide structural elements to allow fluid responsive behavior inside A4
-              return;
-            }
-          }
           (cln.style as any)[prop] = (style as any)[prop];
         });
+
+        // Only copy width and height for images and SVGs to prevent viewport-dependent scaling bugs on structural elements
+        const tagName = orig.tagName.toLowerCase();
+        if (tagName === 'img' || tagName === 'svg') {
+          cln.style.width = style.width;
+          cln.style.height = style.height;
+        }
       }
 
       // Replace images in clone with data URLs if available

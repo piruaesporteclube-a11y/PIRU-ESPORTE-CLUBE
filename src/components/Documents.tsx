@@ -127,7 +127,7 @@ export default function Documents() {
       // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
       clone.style.margin = '0';
-      clone.style.padding = '40px';
+      clone.style.padding = '30px'; // Set narrow margins as requested
       clone.style.width = '800px';
       clone.style.height = 'auto';
       clone.style.minHeight = '1131px';
@@ -148,7 +148,7 @@ export default function Documents() {
         // Essential layout and typography styles
         const propsToCopy = [
           'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
-          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'textTransform', 'color', 
           'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
           'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
           'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
@@ -157,17 +157,15 @@ export default function Documents() {
         ];
         
         propsToCopy.forEach(prop => {
-          if (prop === 'width' || prop === 'height') {
-            const tagName = orig.tagName.toLowerCase();
-            const widthVal = parseFloat(style.width);
-            const isStructural = ['div', 'p', 'section', 'h1', 'h2', 'h3', 'h4', 'ol', 'ul', 'li'].includes(tagName);
-            if (isStructural && !isNaN(widthVal) && widthVal > 250) {
-              // Skip copying width/height for wide structural elements to allow fluid responsive behavior inside A4
-              return;
-            }
-          }
           (cln.style as any)[prop] = (style as any)[prop];
         });
+
+        // Only copy width and height for images and SVGs to prevent viewport-dependent scaling bugs on structural elements
+        const tagName = orig.tagName.toLowerCase();
+        if (tagName === 'img' || tagName === 'svg') {
+          cln.style.width = style.width;
+          cln.style.height = style.height;
+        }
       }
 
       // Replace images in clone with data URLs if available
@@ -189,11 +187,13 @@ export default function Documents() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: 2.5,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 800,
+        windowWidth: 800, // Forces html2canvas to render at a consistent desktop resolution to prevent mobile viewport clipping
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -252,7 +252,7 @@ export default function Documents() {
       // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
       clone.style.margin = '0';
-      clone.style.padding = '40px';
+      clone.style.padding = '30px'; // Set narrow margins as requested
       clone.style.width = '800px';
       clone.style.height = 'auto';
       clone.style.minHeight = '1131px';
@@ -273,7 +273,7 @@ export default function Documents() {
         // Essential layout and typography styles
         const propsToCopy = [
           'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
-          'textTransform', 'color', 'padding', 'margin', 'width', 'height', 
+          'textTransform', 'color', 
           'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
           'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
           'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
@@ -282,17 +282,15 @@ export default function Documents() {
         ];
         
         propsToCopy.forEach(prop => {
-          if (prop === 'width' || prop === 'height') {
-            const tagName = orig.tagName.toLowerCase();
-            const widthVal = parseFloat(style.width);
-            const isStructural = ['div', 'p', 'section', 'h1', 'h2', 'h3', 'h4', 'ol', 'ul', 'li'].includes(tagName);
-            if (isStructural && !isNaN(widthVal) && widthVal > 250) {
-              // Skip copying width/height for wide structural elements to allow fluid responsive behavior inside A4
-              return;
-            }
-          }
           (cln.style as any)[prop] = (style as any)[prop];
         });
+
+        // Only copy width and height for images and SVGs to prevent viewport-dependent scaling bugs on structural elements
+        const tagName = orig.tagName.toLowerCase();
+        if (tagName === 'img' || tagName === 'svg') {
+          cln.style.width = style.width;
+          cln.style.height = style.height;
+        }
       }
 
       // Replace images in clone with data URLs if available
@@ -314,11 +312,13 @@ export default function Documents() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: 2.5,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 800,
+        windowWidth: 800, // Forces html2canvas to render at a consistent desktop resolution to prevent mobile viewport clipping
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -330,7 +330,7 @@ export default function Documents() {
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
       const imgProps = pdf.getImageProperties(imgData);
-      const margin = 10;
+      const margin = 5; // Set narrow A4 margins (5mm) to keep content perfectly framed within one sheet
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
 

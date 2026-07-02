@@ -871,26 +871,49 @@ Muito obrigado!
 
   const handleOpenLineup = async (event: Event, index: number = 0, matchId?: string) => {
     try {
+      const isSameEvent = selectedEvent && selectedEvent.id === event.id;
+
       // Clear lineup list index caches and other event-specific states if opening a different event
-      if (!selectedEvent || selectedEvent.id !== event.id) {
+      if (!isSameEvent) {
         setLineupIndicesWithData({});
         setLineupIndicesWithNames({});
         setEventMatches([]);
         setAllLineupsData([]);
+        
+        // Set initial loading/cleared state for the main lineup input & categories to prevent stale values from other events
+        setLineupAthletes([]);
+        setLineupStaff([]);
+        setSelectedAthletes([]);
+        setSelectedStaff([]);
+        setLineupCategory('');
+        setLineupName('');
+      } else {
+        // Optimistic loading from current state to prevent "somem ou demora aparecer"
+        if (allLineupsData.length > 0 && !matchId) {
+          const cachedLineup = allLineupsData.find(l => l.lineup_index === index);
+          if (cachedLineup) {
+            setLineupAthletes(cachedLineup.athletes || []);
+            setLineupStaff(cachedLineup.staff || []);
+            setLineupCategory(cachedLineup.category || '');
+            setLineupName((cachedLineup as any).lineup_name || '');
+            setSelectedAthletes((cachedLineup.athletes || []).map(a => a.id));
+            setSelectedStaff((cachedLineup.staff || []).map(s => s.id));
+          } else {
+            // New empty sub
+            setLineupAthletes([]);
+            setLineupStaff([]);
+            setSelectedAthletes([]);
+            setSelectedStaff([]);
+            setLineupCategory('');
+            setLineupName('');
+          }
+        }
       }
 
       setSelectedEvent(event);
       setActiveLineupIndex(index);
       setActiveMatchId(matchId || null);
       setModalTab('lineup');
-      
-      // Set initial loading/cleared state for the main lineup input & categories to prevent stale values from other events or indices leaking
-      setLineupAthletes([]);
-      setLineupStaff([]);
-      setSelectedAthletes([]);
-      setSelectedStaff([]);
-      setLineupCategory('');
-      setLineupName('');
 
       // Fetch matches and all lineups for this event in parallel to save quota and time
       const [matches, allLineups] = await Promise.all([
@@ -903,12 +926,12 @@ Muito obrigado!
       
       // Set data for the specific index
       const targetLineup = allLineups.find(l => l.lineup_index === index) || { athletes: [], staff: [], category: '', lineup_name: '' };
-      setLineupAthletes(targetLineup.athletes);
-      setLineupStaff(targetLineup.staff);
+      setLineupAthletes(targetLineup.athletes || []);
+      setLineupStaff(targetLineup.staff || []);
       setLineupCategory(targetLineup.category || '');
       setLineupName((targetLineup as any).lineup_name || '');
-      setSelectedAthletes(targetLineup.athletes.map(a => a.id));
-      setSelectedStaff(targetLineup.staff.map(s => s.id));
+      setSelectedAthletes((targetLineup.athletes || []).map(a => a.id));
+      setSelectedStaff((targetLineup.staff || []).map(s => s.id));
 
       // Auto-focus the correct index for students
       if (role === 'student' && loggedInUserId && index === 0) {
