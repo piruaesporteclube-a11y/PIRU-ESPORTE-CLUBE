@@ -157,6 +157,15 @@ export default function Documents() {
         ];
         
         propsToCopy.forEach(prop => {
+          if (prop === 'width' || prop === 'height') {
+            const tagName = orig.tagName.toLowerCase();
+            const widthVal = parseFloat(style.width);
+            const isStructural = ['div', 'p', 'section', 'h1', 'h2', 'h3', 'h4', 'ol', 'ul', 'li'].includes(tagName);
+            if (isStructural && !isNaN(widthVal) && widthVal > 250) {
+              // Skip copying width/height for wide structural elements to allow fluid responsive behavior inside A4
+              return;
+            }
+          }
           (cln.style as any)[prop] = (style as any)[prop];
         });
       }
@@ -273,6 +282,15 @@ export default function Documents() {
         ];
         
         propsToCopy.forEach(prop => {
+          if (prop === 'width' || prop === 'height') {
+            const tagName = orig.tagName.toLowerCase();
+            const widthVal = parseFloat(style.width);
+            const isStructural = ['div', 'p', 'section', 'h1', 'h2', 'h3', 'h4', 'ol', 'ul', 'li'].includes(tagName);
+            if (isStructural && !isNaN(widthVal) && widthVal > 250) {
+              // Skip copying width/height for wide structural elements to allow fluid responsive behavior inside A4
+              return;
+            }
+          }
           (cln.style as any)[prop] = (style as any)[prop];
         });
       }
