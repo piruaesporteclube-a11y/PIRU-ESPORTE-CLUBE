@@ -1533,6 +1533,7 @@ export const api = {
       });
       
       await batch.commit();
+      invalidateCache("event_lineups");
       if (match_id) invalidateCache(`lineup_match_${match_id}`);
       else invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(event_id); // Invalidate general summaries and queries for this event
@@ -1554,6 +1555,7 @@ export const api = {
         batch.delete(doc.ref);
       });
       await batch.commit();
+      invalidateCache("event_lineups");
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(event_id);
     } catch (error) {

@@ -2633,123 +2633,116 @@ Muito obrigado!
                                       </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-1">
-                                      {savedAthlete ? (
-                                        <div className="flex-1 flex min-w-0 items-center">
-                                          <div className="flex flex-col gap-1 mr-2 shrink-0">
-                                            {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
-                                              <button 
-                                                onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'parent')}
-                                                className="p-1 px-1.5 rounded-lg bg-zinc-900 border border-green-800/30 text-green-500 hover:bg-green-500/10 transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
-                                                title="Chamar Pais (WhatsApp) + Baixar PDF"
-                                              >
-                                                <MessageCircle size={12} />
-                                                <span className="text-[8px] font-black uppercase">Pais</span>
-                                              </button>
-                                            ) : null}
-
-                                            {((a as any).contact || (a as any).phone) ? (
-                                              <button 
-                                                onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'athlete')}
-                                                className="p-1 px-1.5 rounded-lg bg-zinc-900 border border-theme-primary/30 text-theme-primary hover:bg-theme-primary/10 transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
-                                                title="Chamar Aluno (WhatsApp) + Baixar PDF"
-                                              >
-                                                <MessageCircle size={12} />
-                                                <span className="text-[8px] font-black uppercase">Aluno</span>
-                                              </button>
-                                            ) : null}
-
-                                            {!a.guardian_phone && !((a as any).contact || (a as any).phone) && (
-                                              <span className="text-[7px] text-red-500 font-bold uppercase italic p-1 bg-red-500/10 rounded">Sem Tel.</span>
-                                            )}
-                                          </div>
-                                          <div className="flex-1 flex flex-col gap-1">
-                                          <div className="flex gap-1">
-                                            <button 
-                                              onClick={() => handleUpdateAthleteStatus(a.id, 'Titular')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all",
-                                                (savedAthlete as any).lineup_status === 'Titular' ? "bg-theme-primary text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Titular
-                                            </button>
-                                            <button 
-                                              onClick={() => handleUpdateAthleteStatus(a.id, 'Reserva')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all",
-                                                (savedAthlete as any).lineup_status === 'Reserva' ? "bg-zinc-700 text-white" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Reserva
-                                            </button>
-                                          </div>
-                                          <div className="flex gap-1">
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Confirmar
-                                            </button>
-                                            <button 
-                                              onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
-                                              className={cn(
-                                                "flex-1 py-1 px-2 rounded-lg text-[10px] font-bold uppercase transition-all",
-                                                savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-700"
-                                              )}
-                                            >
-                                              Recusar
-                                            </button>
-                                          </div>
+                                    <div className="flex flex-col gap-3 w-full border-t border-zinc-800/60 pt-3">
+                                      {/* Individual documents / travel buttons (Always available) */}
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800">
+                                        <div className="flex flex-col">
+                                          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Autorização de Viagem:</span>
+                                          {!a.guardian_phone && !((a as any).contact || (a as any).phone) && (
+                                            <span className="text-[8px] text-red-400 font-bold uppercase italic mt-0.5">Sem telefone cadastrado</span>
+                                          )}
                                         </div>
-                                        <button 
-                                          onClick={() => handleGenerateReceiptPDF({
-                                            name: a.name,
-                                            event: selectedEvent?.name || '',
-                                            date: selectedEvent?.start_date || '',
-                                            type: `Atleta (${(savedAthlete as any).lineup_status || 'Não definido'})`
-                                          })}
-                                          className="p-2 ml-1 rounded-lg bg-zinc-900 text-zinc-500 hover:text-theme-primary hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
-                                          title="Gerar Comprovante PDF"
-                                        >
-                                          <FileText size={14} />
-                                        </button>
-                                        <button 
-                                          onClick={() => handleGenerateTravelAuthorizationPDF(selectedEvent!, a)}
-                                          className="p-2 ml-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-blue-400 hover:bg-zinc-700 transition-all flex items-center justify-center flex-shrink-0"
-                                          title="Gerar Autorização de Viagem"
-                                        >
-                                          <MapPin size={14} />
-                                         </button>
-                                         
-                                         {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
-                                           <button 
-                                             onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'parent')}
-                                             className="p-2 ml-1 rounded-lg bg-zinc-900 border border-green-800/40 text-green-500 hover:bg-green-500/15 transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
-                                             title="Enviar Autorização WhatsApp Responsável (Pais) + Baixar PDF"
-                                           >
-                                             <MessageCircle size={14} />
-                                             <span className="text-[7.5px] font-black uppercase ml-0.5 text-green-500">Pais</span>
-                                           </button>
-                                         ) : null}
+                                        <div className="flex flex-wrap gap-1.5 justify-end">
+                                          <button 
+                                            onClick={() => handleGenerateTravelAuthorizationPDF(selectedEvent!, a)}
+                                            className="p-1.5 px-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-blue-400 hover:bg-zinc-700 transition-all flex items-center gap-1 text-[9px] font-black uppercase cursor-pointer"
+                                            title="Gerar Autorização de Viagem (Baixar PDF)"
+                                          >
+                                            <MapPin size={11} className="text-blue-400" />
+                                            PDF
+                                          </button>
+                                           
+                                          {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
+                                            <button 
+                                              onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'parent')}
+                                              className="p-1.5 px-2.5 rounded-lg bg-zinc-800 border border-green-800/30 text-green-400 hover:text-green-300 hover:bg-zinc-700 transition-all flex items-center gap-1 text-[9px] font-black uppercase cursor-pointer"
+                                              title="Enviar Autorização WhatsApp Responsável (Pais) + Baixar PDF"
+                                            >
+                                              <MessageCircle size={11} className="text-green-400" />
+                                              Pais
+                                            </button>
+                                          ) : null}
 
-                                         {((a as any).contact || (a as any).phone) ? (
-                                           <button 
-                                             onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'athlete')}
-                                             className="p-2 ml-1 rounded-lg bg-zinc-900 border border-theme-primary/40 text-theme-primary hover:bg-theme-primary/15 transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
-                                             title="Enviar Autorização WhatsApp Aluno + Baixar PDF"
-                                           >
-                                             <MessageCircle size={14} />
-                                             <span className="text-[7.5px] font-black uppercase ml-0.5 text-theme-primary">Aluno</span>
-                                           </button>
-                                         ) : null}
+                                          {((a as any).contact || (a as any).phone) ? (
+                                            <button 
+                                              onClick={() => handleSendWhatsAppTravelAuthorization(selectedEvent!, a, 'athlete')}
+                                              className="p-1.5 px-2.5 rounded-lg bg-zinc-800 border border-theme-primary/30 text-theme-primary hover:text-theme-primary/80 hover:bg-zinc-700 transition-all flex items-center gap-1 text-[9px] font-black uppercase cursor-pointer"
+                                              title="Enviar Autorização WhatsApp Aluno + Baixar PDF"
+                                            >
+                                              <MessageCircle size={11} />
+                                              Aluno
+                                            </button>
+                                          ) : null}
+                                        </div>
                                       </div>
-                                      ) : (
-                                        <p className="text-[10px] text-zinc-500 italic">Salve para gerenciar confirmação</p>
-                                      )}
+
+                                      {/* Presence & confirmation status (requires saving) */}
+                                      <div className="flex flex-col gap-2">
+                                        {savedAthlete ? (
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/30 p-2.5 rounded-xl border border-zinc-800/50">
+                                            <div className="flex-1 flex flex-col gap-1.5">
+                                              <div className="flex gap-1.5">
+                                                <button 
+                                                  onClick={() => handleUpdateAthleteStatus(a.id, 'Titular')}
+                                                  className={cn(
+                                                    "flex-1 py-1 px-2 rounded-lg text-[9px] font-black uppercase transition-all",
+                                                    (savedAthlete as any).lineup_status === 'Titular' ? "bg-theme-primary text-black font-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-800"
+                                                  )}
+                                                >
+                                                  Titular
+                                                </button>
+                                                <button 
+                                                  onClick={() => handleUpdateAthleteStatus(a.id, 'Reserva')}
+                                                  className={cn(
+                                                    "flex-1 py-1 px-2 rounded-lg text-[9px] font-black uppercase transition-all",
+                                                    (savedAthlete as any).lineup_status === 'Reserva' ? "bg-zinc-700 text-white font-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-800"
+                                                  )}
+                                                >
+                                                  Reserva
+                                                </button>
+                                              </div>
+                                              <div className="flex gap-1.5">
+                                                <button 
+                                                  onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Confirmado')}
+                                                  className={cn(
+                                                    "flex-1 py-1 px-2 rounded-lg text-[9px] font-bold uppercase transition-all",
+                                                    savedAthlete.confirmation === 'Confirmado' ? "bg-green-500 text-black font-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-800"
+                                                  )}
+                                                >
+                                                  Confirmado
+                                                </button>
+                                                <button 
+                                                  onClick={() => handleConfirmAthlete(a.id, 'athlete', 'Recusado')}
+                                                  className={cn(
+                                                    "flex-1 py-1 px-2 rounded-lg text-[9px] font-bold uppercase transition-all",
+                                                    savedAthlete.confirmation === 'Recusado' ? "bg-red-500 text-black font-black" : "bg-zinc-900 text-zinc-500 hover:bg-zinc-800"
+                                                  )}
+                                                >
+                                                  Recusado
+                                                </button>
+                                              </div>
+                                            </div>
+                                            
+                                            <button 
+                                              onClick={() => handleGenerateReceiptPDF({
+                                                name: a.name,
+                                                event: selectedEvent?.name || '',
+                                                date: selectedEvent?.start_date || '',
+                                                type: `Atleta (${(savedAthlete as any).lineup_status || 'Não definido'})`
+                                              })}
+                                              className="p-2 rounded-lg bg-zinc-900 text-zinc-400 hover:text-theme-primary hover:bg-zinc-800 border border-zinc-800 transition-all flex items-center justify-center flex-shrink-0 cursor-pointer w-full sm:w-auto self-stretch sm:self-center"
+                                              title="Gerar Comprovante PDF"
+                                            >
+                                              <FileText size={14} className="mr-1.5 sm:mr-0" />
+                                              <span className="sm:hidden text-[9px] font-black uppercase">Comprovante PDF</span>
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="p-2 bg-zinc-900/40 rounded-xl border border-zinc-800/30 text-center">
+                                            <p className="text-[10px] text-zinc-500 italic">Salve a escalação para gerenciar status e confirmações.</p>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 );
