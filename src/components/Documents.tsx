@@ -192,8 +192,7 @@ export default function Documents() {
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800,
-        windowWidth: 800, // Forces html2canvas to render at a consistent desktop resolution to prevent mobile viewport clipping
+        windowWidth: 1200, // Provides a wide virtual window to prevent any cropping or clipping of the right edge
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -317,8 +316,7 @@ export default function Documents() {
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 800,
-        windowWidth: 800, // Forces html2canvas to render at a consistent desktop resolution to prevent mobile viewport clipping
+        windowWidth: 1200, // Provides a wide virtual window to prevent any cropping or clipping of the right edge
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }

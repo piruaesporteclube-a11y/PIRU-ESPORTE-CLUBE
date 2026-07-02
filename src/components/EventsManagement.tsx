@@ -873,6 +873,24 @@ Muito obrigado!
     try {
       const isSameEvent = selectedEvent && selectedEvent.id === event.id;
 
+      setSelectedEvent(event);
+      setActiveLineupIndex(index);
+      setActiveMatchId(matchId || null);
+      setModalTab('lineup');
+
+      if (isSameEvent && allLineupsData.length > 0 && !matchId) {
+        // Switch subcategories instantly using cached data
+        const cachedLineup = allLineupsData.find(l => l.lineup_index === index) || { athletes: [], staff: [], category: '', lineup_name: '' };
+        setLineupAthletes(cachedLineup.athletes || []);
+        setLineupStaff(cachedLineup.staff || []);
+        setLineupCategory(cachedLineup.category || '');
+        setLineupName((cachedLineup as any).lineup_name || '');
+        setSelectedAthletes((cachedLineup.athletes || []).map(a => a.id));
+        setSelectedStaff((cachedLineup.staff || []).map(s => s.id));
+        setIsLineupOpen(true);
+        return;
+      }
+
       // Clear lineup list index caches and other event-specific states if opening a different event
       if (!isSameEvent) {
         setLineupIndicesWithData({});
@@ -887,32 +905,7 @@ Muito obrigado!
         setSelectedStaff([]);
         setLineupCategory('');
         setLineupName('');
-      } else {
-        // Optimistic loading from current state to prevent "somem ou demora aparecer"
-        if (allLineupsData.length > 0 && !matchId) {
-          const cachedLineup = allLineupsData.find(l => l.lineup_index === index);
-          if (cachedLineup) {
-            setLineupAthletes(cachedLineup.athletes || []);
-            setLineupStaff(cachedLineup.staff || []);
-            setLineupCategory(cachedLineup.category || '');
-            setLineupName((cachedLineup as any).lineup_name || '');
-            setSelectedAthletes((cachedLineup.athletes || []).map(a => a.id));
-            setSelectedStaff((cachedLineup.staff || []).map(s => s.id));
-          } else {
-            // New empty sub
-            setLineupAthletes([]);
-            setLineupStaff([]);
-            setSelectedAthletes([]);
-            setSelectedStaff([]);
-            setLineupCategory('');
-            setLineupName('');
-          }
-        }
       }
-
-      setSelectedEvent(event);
-      setActiveLineupIndex(index);
-      setActiveMatchId(matchId || null);
       setModalTab('lineup');
 
       // Fetch matches and all lineups for this event in parallel to save quota and time

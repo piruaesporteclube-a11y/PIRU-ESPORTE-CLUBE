@@ -210,8 +210,11 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const [searchQuery, setSearchQuery] = useState('');
   const [currentSection, setCurrentSection] = useState<'connection' | 'parents' | 'athletes' | 'events' | 'modalities'>('connection');
   const [athleteFilterSub, setAthleteFilterSub] = useState('Todos');
+  const [athleteFilterModality, setAthleteFilterModality] = useState('Todos');
   const [selectedModality, setSelectedModality] = useState<string>('');
   const [parentFilterSub, setParentFilterSub] = useState('Todos');
+  const [parentFilterModality, setParentFilterModality] = useState('Todos');
+  const [eventFilterModality, setEventFilterModality] = useState('Todos');
 
   // Simulated Group Membership lists stored in local storage to keep user changes persistent
   const [joinedParents, setJoinedParents] = useState<string[]>(() => {
@@ -464,22 +467,31 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
 
   // Unique list of parents
   const uniqueParents = React.useMemo(() => {
-    const map = new Map<string, { name: string, phone: string, athletes: string[], subs: Set<string> }>();
+    const map = new Map<string, { name: string, phone: string, athletes: string[], subs: Set<string>, modalities: Set<string> }>();
     athletes.forEach(athlete => {
       if (athlete.guardian_phone) {
         const phoneKey = athlete.guardian_phone.replace(/\D/g, "");
         if (!phoneKey) return;
         const current = map.get(phoneKey);
         const sub = getSubCategory(athlete.birth_date);
+        const athleteMods = athlete.modality ? athlete.modality.split(',').map(m => m.trim()) : [];
         if (current) {
           current.athletes.push(athlete.name);
           current.subs.add(sub);
+          athleteMods.forEach(m => {
+            if (m) current.modalities.add(m);
+          });
         } else {
+          const modSet = new Set<string>();
+          athleteMods.forEach(m => {
+            if (m) modSet.add(m);
+          });
           map.set(phoneKey, {
             name: athlete.guardian_name || "Responsável",
             phone: athlete.guardian_phone,
             athletes: [athlete.name],
-            subs: new Set([sub])
+            subs: new Set([sub]),
+            modalities: modSet
           });
         }
       }
@@ -493,7 +505,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                           p.phone.includes(searchQuery) ||
                           p.athletes.some(a => a.toLowerCase().includes(searchQuery.toLowerCase()));
     const hasSub = parentFilterSub === 'Todos' || p.subs.has(parentFilterSub);
-    return matchesSearch && hasSub;
+    const hasModality = parentFilterModality === 'Todos' || Array.from(p.modalities).some(m => m.toLowerCase() === parentFilterModality.toLowerCase());
+    return matchesSearch && hasSub && hasModality;
   });
 
   // Filtered athletes lists
@@ -503,7 +516,9 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                             a.doc.includes(searchQuery) || 
                             (a.nickname && a.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesSub = athleteFilterSub === 'Todos' || getSubCategory(a.birth_date) === athleteFilterSub;
-      return matchesSearch && matchesSub && a.contact;
+      const athleteMods = a.modality ? a.modality.split(',').map(m => m.trim().toLowerCase()) : [];
+      const matchesModality = athleteFilterModality === 'Todos' || athleteMods.includes(athleteFilterModality.toLowerCase());
+      return matchesSearch && matchesSub && matchesModality && a.contact;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -511,10 +526,19 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
   const activeEvent = events.find(e => e.id === selectedEventId);
   const scaledAthletes = activeEvent ? (eventLineupMap[activeEvent.id] || []) : [];
 
+  // Filter scaled athletes for travel by modality
+  const filteredScaledAthletes = React.useMemo(() => {
+    if (eventFilterModality === 'Todos') return scaledAthletes;
+    return scaledAthletes.filter(a => {
+      const athleteMods = a.modality ? a.modality.split(',').map(m => m.trim().toLowerCase()) : [];
+      return athleteMods.includes(eventFilterModality.toLowerCase());
+    });
+  }, [scaledAthletes, eventFilterModality]);
+
   // Get guardians of scaled athletes
   const scaledEventGuardians = React.useMemo(() => {
     const map = new Map<string, { name: string, phone: string, athleteName: string }>();
-    scaledAthletes.forEach(athlete => {
+    filteredScaledAthletes.forEach(athlete => {
       if (athlete.guardian_phone) {
         const phoneKey = athlete.guardian_phone.replace(/\D/g, "");
         if (phoneKey) {
@@ -527,6 +551,24 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
       }
     });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredScaledAthletes]);
+
+  // Modalities summary of scaled athletes
+  const scaledModalitiesSummary = React.useMemo(() => {
+    const summary: Record<string, number> = {};
+    scaledAthletes.forEach(a => {
+      if (a.modality) {
+        a.modality.split(',').forEach(m => {
+          const trimmed = m.trim();
+          if (trimmed) {
+            summary[trimmed] = (summary[trimmed] || 0) + 1;
+          }
+        });
+      } else {
+        summary['Outros'] = (summary['Outros'] || 0) + 1;
+      }
+    });
+    return summary;
   }, [scaledAthletes]);
 
   // Automated Bulk Sending Queue state
@@ -1420,8 +1462,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 </p>
               </div>
 
-              {/* Category Filter */}
-              <div className="flex gap-2">
+              {/* Category & Modality Filters */}
+              <div className="flex flex-wrap gap-2">
                 <select
                   value={parentFilterSub}
                   onChange={(e) => setParentFilterSub(e.target.value)}
@@ -1434,6 +1476,17 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                   <option value="Sub-15">Sub-15</option>
                   <option value="Sub-17">Sub-17</option>
                   <option value="Outros">Outras categorias</option>
+                </select>
+
+                <select
+                  value={parentFilterModality}
+                  onChange={(e) => setParentFilterModality(e.target.value)}
+                  className="px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white min-w-[170px] uppercase font-bold"
+                >
+                  <option value="Todos">TODAS AS MODALIDADES</option>
+                  {uniqueModalities.map(mod => (
+                    <option key={mod} value={mod}>{mod.toUpperCase()}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -1564,7 +1617,8 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              {/* Category & Modality Filters */}
+              <div className="flex flex-wrap gap-2">
                 <select
                   value={athleteFilterSub}
                   onChange={(e) => setAthleteFilterSub(e.target.value)}
@@ -1577,6 +1631,17 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                   <option value="Sub-15">Sub-15</option>
                   <option value="Sub-17">Sub-17</option>
                   <option value="Outros">Outras categorias</option>
+                </select>
+
+                <select
+                  value={athleteFilterModality}
+                  onChange={(e) => setAthleteFilterModality(e.target.value)}
+                  className="px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white min-w-[170px] uppercase font-bold"
+                >
+                  <option value="Todos">TODAS AS MODALIDADES</option>
+                  {uniqueModalities.map(mod => (
+                    <option key={mod} value={mod}>{mod.toUpperCase()}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -2191,10 +2256,43 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     </div>
 
                     {/* Scaled Guardian List for Event Group */}
-                    <div className="space-y-2 border-t border-zinc-800 pt-4">
-                      <div className="flex items-center justify-between">
+                    <div className="space-y-4 border-t border-zinc-800 pt-4">
+                      {/* Modality Filter for Travel Group */}
+                      <div className="bg-zinc-900 border border-zinc-850 p-3.5 rounded-2xl space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <span className="text-[10.5px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Trophy size={14} className="text-green-400" />
+                            Filtrar Convocados por Modalidade:
+                          </span>
+                          <select
+                            value={eventFilterModality}
+                            onChange={(e) => setEventFilterModality(e.target.value)}
+                            className="px-2.5 py-1.5 bg-black border border-zinc-800 rounded-lg text-[10.5px] text-white min-w-[150px] uppercase font-bold"
+                          >
+                            <option value="Todos">Todas as Modalidades</option>
+                            {uniqueModalities.map(mod => (
+                              <option key={mod} value={mod}>{mod.toUpperCase()}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Summary Badges of modalities in active event */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-zinc-800/60">
+                          <span className="text-[9px] font-black text-zinc-500 uppercase">Resumo por Esporte:</span>
+                          {Object.entries(scaledModalitiesSummary).map(([mod, count]) => (
+                            <span key={mod} className="bg-zinc-950 border border-zinc-800 text-zinc-400 text-[8.5px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>{mod}:</span>
+                              <strong className="text-green-400">{count}</strong>
+                            </span>
+                          ))}
+                          {Object.keys(scaledModalitiesSummary).length === 0 && (
+                            <span className="text-[8.5px] text-zinc-600 font-bold uppercase">Nenhum atleta escalado ainda</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
                         <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">RELAÇÃO DE RESPONSÁVEIS DIRECIONADOS (ESCALADOS):</span>
-                        <span className="text-[9px] text-zinc-500 uppercase">{joinedEventMembers[activeEvent.id]?.length || 0} No Grupo</span>
+                        <span className="text-[9px] text-zinc-500 uppercase">{scaledEventGuardians.filter(g => (joinedEventMembers[activeEvent.id] || []).includes(g.phone.replace(/\D/g, ""))).length} de {scaledEventGuardians.length} No Grupo</span>
                       </div>
 
                       <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
