@@ -446,7 +446,31 @@ const getCacheKey = (q: any) => {
     }
   } catch (e) {}
 
-  return q.path || (q._query && q._query.path && q._query.path.canonicalString()) || 'query_fallback';
+  let colName = '';
+  const COLLECTIONS = [
+    "athletes", "professors", "events", "attendance", "trainings", 
+    "anamnesis", "settings", "users", "sponsors", "uniform_models", 
+    "event_lineups", "travel_exclusions", "named_lineups", "championships", 
+    "championship_teams", "championship_matches", "official_letters", 
+    "event_companions", "training_activities", "event_matches", 
+    "uniform_requests", "sponsor_blocks", "school_reports", "access_logs", 
+    "login_errors"
+  ];
+  for (const col of COLLECTIONS) {
+    try {
+      if (
+        (q.path && String(q.path).includes(col)) ||
+        (q._query && q._query.path && String(q._query.path.canonicalString()).includes(col)) ||
+        String(q).includes(col) ||
+        JSON.stringify(q).includes(`"${col}"`)
+      ) {
+        colName = col;
+        break;
+      }
+    } catch (e) {}
+  }
+
+  return q.path || (q._query && q._query.path && q._query.path.canonicalString()) || (colName ? `${colName}_query_fallback` : 'query_fallback');
 };
 
 export const api = {
@@ -1404,7 +1428,7 @@ export const api = {
           where("lineup_index", "==", lineup_index)
         );
       }
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocsWithCacheFallback(q, cacheKey);
       const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
       const category = lineupData.find(d => d.category)?.category;
@@ -1534,6 +1558,7 @@ export const api = {
       
       await batch.commit();
       invalidateCache("event_lineups");
+      invalidateCache(`event_lineups_${event_id}`);
       if (match_id) invalidateCache(`lineup_match_${match_id}`);
       else invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(event_id); // Invalidate general summaries and queries for this event
@@ -1556,6 +1581,7 @@ export const api = {
       });
       await batch.commit();
       invalidateCache("event_lineups");
+      invalidateCache(`event_lineups_${event_id}`);
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(event_id);
     } catch (error) {
@@ -1609,6 +1635,7 @@ export const api = {
         updated_at: serverTimestamp()
       }, { merge: true });
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1625,6 +1652,7 @@ export const api = {
       }
       
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1654,6 +1682,7 @@ export const api = {
         }
       }
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1665,6 +1694,7 @@ export const api = {
       const docRef = doc(db, "event_lineups", id);
       await updateDoc(docRef, { presence, updated_at: serverTimestamp() });
       invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
     }
@@ -1676,7 +1706,10 @@ export const api = {
       const docRef = doc(db, "event_lineups", id);
       await updateDoc(docRef, { lineup_status: status, updated_at: serverTimestamp() });
       if (match_id) invalidateCache(`lineup_match_${match_id}`);
-      else invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      else {
+        invalidateCache(`lineup_${event_id}_${lineup_index}`);
+        invalidateCache(`event_lineups_${event_id}`);
+      }
     } catch (error) {
        handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${match_id || event_id}_status_${person_id}`);
     }
@@ -1688,15 +1721,17 @@ export const api = {
         collection(db, "event_lineups"), 
         where("event_id", "==", event_id)
       );
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocsWithCacheFallback(q, `event_lineups_${event_id}`);
       const allLineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
-      const indexes = [...new Set(allLineupData.map(d => d.lineup_index))];
+      const indexes = [...new Set(allLineupData.map(d => d.lineup_index))]
+        .filter(idx => idx !== undefined && idx !== null)
+        .map(Number);
       const athletesList = allAthletes || await api.getAthletes();
       const professorsList = allProfessors || await api.getProfessors();
 
-      return (indexes as number[]).map(idx => {
-        const lineupData = allLineupData.filter(d => d.lineup_index === idx);
+      return indexes.map(idx => {
+        const lineupData = allLineupData.filter(d => Number(d.lineup_index) === idx);
         const category = lineupData.find(d => d.category)?.category;
         const lineup_name = lineupData.find(d => d.lineup_name)?.lineup_name;
         const athleteIds = lineupData
@@ -1761,7 +1796,7 @@ export const api = {
         where("person_id", "==", athlete_id),
         where("type", "==", "athlete")
       );
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocsWithCacheFallback(q, `athlete_lineups_${athlete_id}`);
       const eventIds = [...new Set(querySnapshot.docs.map(doc => doc.data().event_id))];
       
       if (eventIds.length === 0) return [];

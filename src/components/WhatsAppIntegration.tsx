@@ -894,66 +894,81 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
         <button
           onClick={() => { setCurrentSection('connection'); setSearchQuery(''); }}
           className={cn(
-            "p-3.5 rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            "p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
             currentSection === 'connection' 
-              ? "bg-green-500 text-black font-black" 
-              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-green-500 text-black border-transparent font-black shadow-lg shadow-green-500/15" 
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold"
           )}
         >
           <Smartphone size={16} />
-          Conectar Aparelho
+          <span className="text-[10.5px] uppercase tracking-tighter">Conexão Celular</span>
+          <span className={cn("text-[8px] uppercase tracking-widest block opacity-75 font-normal", currentSection === 'connection' ? "text-black font-black" : "text-zinc-500 font-bold")}>
+            Instruções & Links
+          </span>
         </button>
 
         <button
           onClick={() => { setCurrentSection('parents'); setSearchQuery(''); }}
           className={cn(
-            "p-3.5 rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            "p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
             currentSection === 'parents' 
-              ? "bg-green-500 text-black font-black" 
-              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-green-500 text-black border-transparent font-black shadow-lg shadow-green-500/15" 
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold"
           )}
         >
           <Users size={16} />
-          Grupo Responsáveis
+          <span className="text-[10.5px] uppercase tracking-tighter">Responsáveis</span>
+          <span className={cn("text-[8px] uppercase tracking-widest block opacity-75 font-normal", currentSection === 'parents' ? "text-black font-black" : "text-zinc-500 font-bold")}>
+            Acompanhamento Pais ({uniqueParents.length})
+          </span>
         </button>
 
         <button
           onClick={() => { setCurrentSection('athletes'); setSearchQuery(''); }}
           className={cn(
-            "p-3.5 rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            "p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
             currentSection === 'athletes' 
-              ? "bg-green-500 text-black font-black" 
-              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-green-500 text-black border-transparent font-black shadow-lg shadow-green-500/15" 
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold"
           )}
         >
           <User size={16} />
-          Grupo Atletas
+          <span className="text-[10.5px] uppercase tracking-tighter">Atletas</span>
+          <span className={cn("text-[8px] uppercase tracking-widest block opacity-75 font-normal", currentSection === 'athletes' ? "text-black font-black" : "text-zinc-500 font-bold")}>
+            Comunicação Direta ({athletes.length})
+          </span>
         </button>
 
         <button
           onClick={() => { setCurrentSection('modalities'); setSearchQuery(''); }}
           className={cn(
-            "p-3.5 rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            "p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
             currentSection === 'modalities' 
-              ? "bg-green-500 text-black font-black" 
-              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-green-500 text-black border-transparent font-black shadow-lg shadow-green-500/15" 
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold"
           )}
         >
           <Trophy size={16} />
-          Grupos por Modalidade
+          <span className="text-[10.5px] uppercase tracking-tighter">Modalidades</span>
+          <span className={cn("text-[8px] uppercase tracking-widest block opacity-75 font-normal", currentSection === 'modalities' ? "text-black font-black" : "text-zinc-500 font-bold")}>
+            Divisão por Esportes ({uniqueModalities.length})
+          </span>
         </button>
 
         <button
           onClick={() => { setCurrentSection('events'); setSearchQuery(''); }}
           className={cn(
-            "p-3.5 rounded-xl md:rounded-2xl font-black text-xs uppercase tracking-tighter transition-all flex items-center justify-center gap-2",
+            "p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 border text-center relative col-span-2 md:col-span-1",
             currentSection === 'events' 
-              ? "bg-green-500 text-black font-black" 
-              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-green-500 text-black border-transparent font-black shadow-lg shadow-green-500/15" 
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-bold"
           )}
         >
           <Calendar size={16} />
-          Grupos de Viagem
+          <span className="text-[10.5px] uppercase tracking-tighter">Grupos de Viagem</span>
+          <span className={cn("text-[8px] uppercase tracking-widest block opacity-75 font-normal", currentSection === 'events' ? "text-black font-black" : "text-zinc-500 font-bold")}>
+            Escalados Eventos ({events.length})
+          </span>
         </button>
       </div>
 
@@ -2258,26 +2273,54 @@ export default function WhatsAppIntegration({ athletes }: WhatsAppIntegrationPro
                     {/* Scaled Guardian List for Event Group */}
                     <div className="space-y-4 border-t border-zinc-800 pt-4">
                       {/* Modality Filter for Travel Group */}
-                      <div className="bg-zinc-900 border border-zinc-850 p-3.5 rounded-2xl space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-2xl space-y-3">
+                        <div className="flex flex-col gap-2.5">
                           <span className="text-[10.5px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                             <Trophy size={14} className="text-green-400" />
-                            Filtrar Convocados por Modalidade:
+                            Toque para filtrar convocados por modalidade / esporte:
                           </span>
-                          <select
-                            value={eventFilterModality}
-                            onChange={(e) => setEventFilterModality(e.target.value)}
-                            className="px-2.5 py-1.5 bg-black border border-zinc-800 rounded-lg text-[10.5px] text-white min-w-[150px] uppercase font-bold"
-                          >
-                            <option value="Todos">Todas as Modalidades</option>
-                            {uniqueModalities.map(mod => (
-                              <option key={mod} value={mod}>{mod.toUpperCase()}</option>
-                            ))}
-                          </select>
+                          
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              onClick={() => setEventFilterModality('Todos')}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all flex items-center gap-1.5",
+                                eventFilterModality === 'Todos'
+                                  ? "bg-green-500 text-black border-transparent shadow-lg shadow-green-500/20"
+                                  : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                              )}
+                            >
+                              <Infinity size={12} />
+                              Todas ({scaledAthletes.length})
+                            </button>
+                            {uniqueModalities.map(mod => {
+                              // Calculate how many athletes are scaled for this modality in activeEvent
+                              const count = scaledAthletes.filter(a => {
+                                if (!a.modality) return mod === 'Outros';
+                                return a.modality.split(',').map(m => m.trim().toLowerCase()).includes(mod.toLowerCase());
+                              }).length;
+
+                              return (
+                                <button
+                                  key={mod}
+                                  onClick={() => setEventFilterModality(mod)}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all flex items-center gap-1.5",
+                                    eventFilterModality === mod
+                                      ? "bg-green-500 text-black border-transparent shadow-lg shadow-green-500/20"
+                                      : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                                  )}
+                                >
+                                  <Trophy size={12} />
+                                  {mod} ({count})
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                         {/* Summary Badges of modalities in active event */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-zinc-800/60">
-                          <span className="text-[9px] font-black text-zinc-500 uppercase">Resumo por Esporte:</span>
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-zinc-800/60">
+                          <span className="text-[9px] font-black text-zinc-500 uppercase">Apoio Visual:</span>
                           {Object.entries(scaledModalitiesSummary).map(([mod, count]) => (
                             <span key={mod} className="bg-zinc-950 border border-zinc-800 text-zinc-400 text-[8.5px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
                               <span>{mod}:</span>
