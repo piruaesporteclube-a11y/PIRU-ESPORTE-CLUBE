@@ -832,6 +832,18 @@ Muito obrigado!
 
   const handleOpenScores = async (event: Event) => {
     try {
+      // Clear previous event-specific lineup and tab states so they don't leak when opening a new event's games
+      setLineupIndicesWithData({});
+      setLineupIndicesWithNames({});
+      setAllLineupsData([]);
+      setLineupAthletes([]);
+      setLineupStaff([]);
+      setSelectedAthletes([]);
+      setSelectedStaff([]);
+      setLineupCategory('');
+      setLineupName('');
+      setActiveMatchId(null);
+
       setSelectedEvent(event);
       setModalTab('scores');
       setIsLineupOpen(true);
@@ -952,6 +964,23 @@ Muito obrigado!
       setIsLineupOpen(true);
     }
   };
+
+  const handleCloseLineup = () => {
+    setIsLineupOpen(false);
+    setSelectedEvent(null);
+    setLineupIndicesWithData({});
+    setLineupIndicesWithNames({});
+    setEventMatches([]);
+    setAllLineupsData([]);
+    setLineupAthletes([]);
+    setLineupStaff([]);
+    setSelectedAthletes([]);
+    setSelectedStaff([]);
+    setLineupCategory('');
+    setLineupName('');
+    setActiveMatchId(null);
+  };
+
   const handleOpenMatches = async (event: Event) => {
     await handleOpenScores(event);
   };
@@ -1236,20 +1265,62 @@ Muito obrigado!
     }
   };
 
+  const handleRenameLineup = async () => {
+    if (isEventFinished) {
+      toast.error("Este evento já finalizou.");
+      return;
+    }
+    if (!selectedEvent) return;
+    
+    setIsSavingLineup(true);
+    const loadingToast = toast.loading('Renomeando sub...');
+    try {
+      await api.saveLineup(
+        selectedEvent.id, 
+        selectedAthletes, 
+        selectedStaff, 
+        activeLineupIndex, 
+        lineupCategory, 
+        lineupName,
+        activeMatchId || undefined
+      );
+      
+      setLineupIndicesWithNames(prev => ({
+        ...prev,
+        [activeLineupIndex]: lineupName
+      }));
+
+      // Update total counts and summaries for the main list
+      const allLineups = await api.getAllEventLineups(selectedEvent.id, athletes, professors);
+      setAllLineupsData(allLineups);
+      
+      toast.success('Sub renomeado com sucesso!', { id: loadingToast });
+    } catch (err: any) {
+      console.error('Rename error:', err);
+      toast.error(`Erro ao renomear sub: ${err.message}`, { id: loadingToast });
+    } finally {
+      setIsSavingLineup(false);
+    }
+  };
+
   const handleRemoveLineup = async () => {
     if (!selectedEvent || !confirm("Deseja realmente excluir COMPLETAMENTE esta lista (atletas, comissão e configurações)?")) return;
     
     const loadingToast = toast.loading('Excluindo lista...');
     try {
-      await api.saveLineup(
-        selectedEvent.id, 
-        [], 
-        [], 
-        activeLineupIndex, 
-        '', 
-        '', 
-        activeMatchId || undefined
-      );
+      if (activeMatchId) {
+        await api.saveLineup(
+          selectedEvent.id, 
+          [], 
+          [], 
+          activeLineupIndex, 
+          '', 
+          '', 
+          activeMatchId
+        );
+      } else {
+        await api.deleteLineup(selectedEvent.id, activeLineupIndex);
+      }
       
       setLineupAthletes([]);
       setLineupStaff([]);
@@ -1290,6 +1361,19 @@ Muito obrigado!
         ...prev,
         [selectedEvent.id]: uniqueNames
       }));
+
+      // Switch back to Index 0 if we deleted a higher index, or reload index 0
+      if (activeLineupIndex !== 0) {
+        handleOpenLineup(selectedEvent, 0, activeMatchId || undefined);
+      } else {
+        const targetLineup = allLineups.find(l => l.lineup_index === 0) || { athletes: [], staff: [], category: '', lineup_name: '' };
+        setLineupAthletes(targetLineup.athletes);
+        setLineupStaff(targetLineup.staff);
+        setLineupCategory(targetLineup.category || '');
+        setLineupName((targetLineup as any).lineup_name || '');
+        setSelectedAthletes(targetLineup.athletes.map(a => a.id));
+        setSelectedStaff(targetLineup.staff.map(s => s.id));
+      }
       
       toast.success('Lista excluída com sucesso!', { id: loadingToast });
     } catch (err: any) {
@@ -1853,13 +1937,23 @@ Muito obrigado!
                   <div className="mt-4 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 space-y-1">
                       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Nome da Lista:</label>
-                      <input 
-                        type="text" 
-                        placeholder={lineupIndicesWithNames[activeLineupIndex] || `LISTA ${activeLineupIndex + 1}`}
-                        className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-1 focus:ring-theme-primary uppercase font-bold"
-                        value={lineupName}
-                        onChange={(e) => setLineupName(e.target.value)}
-                      />
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder={lineupIndicesWithNames[activeLineupIndex] || `LISTA ${activeLineupIndex + 1}`}
+                          className="flex-1 px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-1 focus:ring-theme-primary uppercase font-bold"
+                          value={lineupName}
+                          onChange={(e) => setLineupName(e.target.value)}
+                        />
+                        <button
+                          onClick={handleRenameLineup}
+                          disabled={isSavingLineup}
+                          type="button"
+                          className="px-4 py-2 bg-theme-primary hover:opacity-90 text-black text-xs font-black rounded-xl uppercase transition-all flex items-center gap-1 disabled:opacity-50"
+                        >
+                          Renomear
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1 space-y-1">
                       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Categorias Vinculadas:</label>
@@ -1899,14 +1993,15 @@ Muito obrigado!
                   <>
                     <button 
                       onClick={handleRemoveLineup}
-                      className="p-2 bg-red-900/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all border border-red-500/20"
-                      title="Excluir TODOS os dados desta lista (Atletas e Comissão)"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-950/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 rounded-xl transition-all border border-red-900/30 font-black text-xs uppercase"
+                      title="Excluir este SUB completamente da lista de escalação"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={16} />
+                      Excluir SUB
                     </button>
-                    </>
-                  )}
-                  <button onClick={() => setIsLineupOpen(false)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
+                  </>
+                )}
+                  <button onClick={handleCloseLineup} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group">
                     <X size={18} className="group-hover:rotate-90 transition-transform" />
                     <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
                   </button>
@@ -2810,7 +2905,7 @@ Muito obrigado!
                   <Printer size={18} />
                   Imprimir
                 </button>
-                <button onClick={() => setIsLineupOpen(false)} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Fechar</button>
+                <button onClick={handleCloseLineup} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Fechar</button>
                 {isAdmin && !isEventFinished && (
                   <div className="flex gap-2">
                     <button 

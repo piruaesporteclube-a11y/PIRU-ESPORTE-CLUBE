@@ -1540,6 +1540,26 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
     }
   },
+
+  deleteLineup: async (event_id: string, lineup_index: number) => {
+    try {
+      const batch = writeBatch(db);
+      const q = query(
+        collection(db, "event_lineups"), 
+        where("event_id", "==", event_id),
+        where("lineup_index", "==", lineup_index)
+      );
+      const querySnapshot = await getDocs(q);
+      querySnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      invalidateCache(event_id);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `event_lineups/${event_id}_${lineup_index}`);
+    }
+  },
   
   // Named Lineup Templates
   getNamedLineups: async (): Promise<{ id: string, name: string, athlete_ids: string[], staff_ids: string[], created_at: any }[]> => {
