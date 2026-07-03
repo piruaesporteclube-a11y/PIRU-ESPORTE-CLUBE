@@ -170,8 +170,8 @@ const getCachedData = (key: string) => {
     const localCached = localStorage.getItem(PERSISTENT_CACHE_PREFIX + key);
     if (localCached) {
       const { data, timestamp } = JSON.parse(localCached);
-      // If quota is exceeded, we use any data we have up to STALE_TTL
-      if ((Date.now() - timestamp) < STALE_TTL) {
+      // If quota is exceeded, we use any data we have up to STALE_TTL, otherwise we use effectiveTTL (which defaults to CACHE_TTL)
+      if ((Date.now() - timestamp) < effectiveTTL) {
         // Update memory cache
         cache[key] = { data, timestamp };
         return data;
@@ -1424,12 +1424,19 @@ export const api = {
       } else {
         q = query(
           collection(db, "event_lineups"), 
-          where("event_id", "==", event_id),
-          where("lineup_index", "==", lineup_index)
+          where("event_id", "==", event_id)
         );
       }
-      const querySnapshot = await getDocsWithCacheFallback(q, cacheKey);
-      const lineupData = querySnapshot.docs.map(doc => doc.data() as any);
+      const querySnapshot = await getDocsWithCacheFallback(q, match_id ? cacheKey : `event_lineups_${event_id}`);
+      let lineupData = querySnapshot.docs.map(doc => doc.data() as any);
+      
+      if (!match_id) {
+        lineupData = lineupData.filter(d => {
+          if (d.match_id) return false;
+          const idx = d.lineup_index !== undefined && d.lineup_index !== null ? Number(d.lineup_index) : 0;
+          return idx === lineup_index;
+        });
+      }
       
       const category = lineupData.find(d => d.category)?.category;
       const lineup_name = lineupData.find(d => d.lineup_name)?.lineup_name;
@@ -1475,8 +1482,7 @@ export const api = {
       } else {
         q = query(
           collection(db, "event_lineups"), 
-          where("event_id", "==", event_id),
-          where("lineup_index", "==", lineup_index)
+          where("event_id", "==", event_id)
         );
       }
       const querySnapshot = await getDocs(q);
@@ -1485,6 +1491,16 @@ export const api = {
       const existingData: Record<string, any> = {};
       querySnapshot.docs.forEach(doc => {
         const data = doc.data() as any;
+        
+        // If we are saving a general lineup, ignore match lineups
+        if (!match_id && data.match_id) return;
+        
+        // If we are saving a general lineup, only delete/process docs for the current lineup_index
+        if (!match_id) {
+          const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+          if (idx !== lineup_index) return;
+        }
+
         if (data.person_id && data.person_id !== 'metadata') {
           existingData[data.person_id] = {
             confirmation: data.confirmation,
@@ -1572,12 +1588,16 @@ export const api = {
       const batch = writeBatch(db);
       const q = query(
         collection(db, "event_lineups"), 
-        where("event_id", "==", event_id),
-        where("lineup_index", "==", lineup_index)
+        where("event_id", "==", event_id)
       );
       const querySnapshot = await getDocs(q);
       querySnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
+        const data = doc.data() as any;
+        if (data.match_id) return; // Ignore match lineups
+        const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+        if (idx === lineup_index) {
+          batch.delete(doc.ref);
+        }
       });
       await batch.commit();
       invalidateCache("event_lineups");
@@ -1724,14 +1744,15 @@ export const api = {
       const querySnapshot = await getDocsWithCacheFallback(q, `event_lineups_${event_id}`);
       const allLineupData = querySnapshot.docs.map(doc => doc.data() as any);
       
-      const indexes = [...new Set(allLineupData.map(d => d.lineup_index))]
-        .filter(idx => idx !== undefined && idx !== null)
-        .map(Number);
+      // Only include documents that are NOT part of a specific match (i.e. match_id is undefined or null)
+      const generalLineupData = allLineupData.filter(d => !d.match_id);
+
+      const indexes = [...new Set(generalLineupData.map(d => d.lineup_index !== undefined && d.lineup_index !== null ? Number(d.lineup_index) : 0))];
       const athletesList = allAthletes || await api.getAthletes();
       const professorsList = allProfessors || await api.getProfessors();
 
       return indexes.map(idx => {
-        const lineupData = allLineupData.filter(d => Number(d.lineup_index) === idx);
+        const lineupData = generalLineupData.filter(d => (d.lineup_index !== undefined && d.lineup_index !== null ? Number(d.lineup_index) : 0) === idx);
         const category = lineupData.find(d => d.category)?.category;
         const lineup_name = lineupData.find(d => d.lineup_name)?.lineup_name;
         const athleteIds = lineupData
@@ -1755,7 +1776,7 @@ export const api = {
             return { ...p, confirmation: el?.confirmation || "Pendente", presence: el?.presence };
           });
 
-        return { athletes, staff, lineup_index: idx, category, lineup_name: lineupData[0]?.lineup_name };
+        return { athletes, staff, lineup_index: idx as number, category, lineup_name: lineupData[0]?.lineup_name };
       });
     } catch (error) {
        console.error("Error fetching event lineups:", error);
