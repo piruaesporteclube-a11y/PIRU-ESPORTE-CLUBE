@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Attendance, Athlete, getSubCategory } from '../types';
-import { Calendar, Search, Filter, User, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Calendar, Search, Filter, User, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Clock, Activity } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../utils';
@@ -24,6 +24,7 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSub, setSelectedSub] = useState('Todos');
   const [filterMode, setFilterMode] = useState<'all' | 'present' | 'absent' | 'observation'>('all');
+  const [viewMode, setViewMode] = useState<'dates' | 'individual'>('dates');
 
   const categories = Array.from(new Set(athletes.map(a => getSubCategory(a.birth_date))));
 
@@ -85,6 +86,14 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
 
   // Unique dates in history
   const dates = Array.from(new Set(history.map(h => h.date))).sort((a, b) => b.localeCompare(a));
+
+  const statsAthletes = filteredAthletes;
+  const statsHistory = history.filter(h => statsAthletes.some(a => a.id === h.athlete_id));
+  const statsTotal = statsHistory.length;
+  const statsPresent = statsHistory.filter(h => h.status === 'Presente').length;
+  const statsAbsent = statsHistory.filter(h => h.status === 'Faltou').length;
+  const statsPresencePct = statsTotal > 0 ? Math.round((statsPresent / statsTotal) * 100) : 0;
+  const statsAbsencePct = statsTotal > 0 ? Math.round((statsAbsent / statsTotal) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -186,132 +195,245 @@ export default function AttendanceHistory({ athletes, trainingId, eventId }: Att
             <p className="text-zinc-500 font-medium">Nenhum registro encontrado para este período.</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {dates.map(date => {
-              const dateHistory = history.filter(h => h.date === date);
-              const presentCount = dateHistory.filter(h => h.status === 'Presente').length;
-              const absentCount = dateHistory.filter(h => h.status === 'Faltou').length;
-              
-              return (
-                <div key={date} className="animate-in fade-in slide-in-from-top-4 duration-500">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-theme-primary/10 text-theme-primary p-2 rounded-xl">
-                        <Calendar size={16} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-tight">
-                          {format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </h4>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] font-bold text-green-500 flex items-center gap-1 uppercase">
-                            <CheckCircle2 size={10} /> {presentCount} Presentes
-                          </span>
-                          <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 uppercase">
-                            <XCircle size={10} /> {absentCount} Ausentes
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <div className="space-y-6">
+            {/* General progress bar card */}
+            <div className="bg-zinc-950/60 border border-zinc-800 p-6 rounded-3xl animate-in fade-in duration-300">
+              <h4 className="text-sm font-black text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Activity size={16} className="text-theme-primary" />
+                Média Geral de Frequência do Período
+              </h4>
+              <div className="space-y-4 text-left">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs font-bold uppercase">
+                  <span className="text-green-500 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block animate-pulse" />
+                    Presença: {statsPresencePct}% ({statsPresent} registros)
+                  </span>
+                  <span className="text-red-500 flex items-center gap-1.5 sm:text-right">
+                    Falta: {statsAbsencePct}% ({statsAbsent} registros)
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
+                  </span>
+                </div>
+                <div className="w-full h-5 bg-zinc-900 rounded-full overflow-hidden flex border border-zinc-800 p-0.5">
+                  {statsTotal > 0 ? (
+                    <>
+                      <div style={{ width: `${statsPresencePct}%` }} className="bg-gradient-to-r from-emerald-600 to-green-500 h-full rounded-l-full transition-all duration-500" />
+                      <div style={{ width: `${statsAbsencePct}%` }} className="bg-gradient-to-r from-red-600 to-rose-500 h-full rounded-r-full transition-all duration-500" />
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 font-bold uppercase">Nenhum registro de presença para o período</div>
+                  )}
+                </div>
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest text-right">
+                  Total de Chamadas no Período: {statsTotal}
+                </div>
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {filteredAthletes.map(athlete => {
-                      const records = dateHistory.filter(h => h.athlete_id === athlete.id);
-                      const record = records.find(r => 
-                        (trainingId && r.training_id === trainingId) ||
-                        (eventId && r.event_id === eventId) ||
-                        (!trainingId && !eventId) // In general mode, just take the first one or we'll list them
-                      );
-                      
-                      // Apply filter mode
-                      if (filterMode === 'present' && !records.some(r => r.status === 'Presente')) return null;
-                      if (filterMode === 'absent' && records.length > 0 && !records.some(r => r.status === 'Presente')) {
-                         // If all are absent or just one record is absent
-                      } else if (filterMode === 'absent' && (!record || record.status !== 'Faltou')) {
-                         if (filterMode === 'absent') return null;
-                      }
-                      
-                      if (filterMode === 'observation' && records.length > 0) return null; // Observation only shows UNMARKED
-                      if (filterMode === 'all' && records.length === 0 && searchTerm === '') return null; // Default view only shows MARKED unless searching
+            {/* View Mode Toggle */}
+            <div className="flex border-b border-zinc-800 no-print">
+              <button
+                type="button"
+                onClick={() => setViewMode('dates')}
+                className={cn(
+                  "px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all duration-200",
+                  viewMode === 'dates' ? "border-theme-primary text-theme-primary bg-theme-primary/5 font-black" : "border-transparent text-zinc-500 hover:text-white"
+                )}
+              >
+                Histórico Diário
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('individual')}
+                className={cn(
+                  "px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all duration-200",
+                  viewMode === 'individual' ? "border-theme-primary text-theme-primary bg-theme-primary/5 font-black" : "border-transparent text-zinc-500 hover:text-white"
+                )}
+              >
+                Média por Atleta (Individual)
+              </button>
+            </div>
 
-                      const isUnmarked = records.length === 0;
-
-                      return (
-                        <div key={athlete.id} className={cn(
-                          "p-3 rounded-2xl border transition-all flex flex-col gap-2 group",
-                          records.some(r => r.status === 'Presente') ? "bg-green-500/5 border-green-500/20" : 
-                          records.some(r => r.status === 'Faltou') ? "bg-red-500/5 border-red-500/20" :
-                          "bg-zinc-900/40 border-zinc-800"
-                        )}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
-                              {athlete.photo ? (
-                                <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                  <User size={14} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-bold text-white truncate uppercase">{athlete.name}</p>
-                              <div className="flex items-center justify-between mt-0.5">
-                                <span className={cn(
-                                  "text-[8px] font-black uppercase tracking-widest",
-                                  records.some(r => r.status === 'Presente') ? "text-green-500" : 
-                                  records.some(r => r.status === 'Faltou') ? "text-red-500" :
-                                  "text-zinc-600"
-                                )}>
-                                  {records.length > 0 ? (records.some(r => r.status === 'Presente') ? 'Presente' : 'Faltou') : 'Não Marcado'}
-                                </span>
-                              </div>
+            {viewMode === 'dates' ? (
+              <div className="space-y-8">
+                {dates.map(date => {
+                  const dateHistory = history.filter(h => h.date === date);
+                  const presentCount = dateHistory.filter(h => h.status === 'Presente').length;
+                  const absentCount = dateHistory.filter(h => h.status === 'Faltou').length;
+                  
+                  return (
+                    <div key={date} className="animate-in fade-in slide-in-from-top-4 duration-500">
+                      <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-800/50">
+                        <div className="flex items-center gap-3 text-left">
+                          <div className="bg-theme-primary/10 text-theme-primary p-2 rounded-xl">
+                            <Calendar size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-tight">
+                              {format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                            </h4>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-[10px] font-bold text-green-500 flex items-center gap-1 uppercase">
+                                <CheckCircle2 size={10} /> {presentCount} Presentes
+                              </span>
+                              <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 uppercase">
+                                <XCircle size={10} /> {absentCount} Ausentes
+                              </span>
                             </div>
                           </div>
+                        </div>
+                      </div>
 
-                          {records.length > 0 && (
-                            <div className="space-y-1 pt-1 border-t border-zinc-800/50">
-                              {records.map((r, i) => (
-                                <div key={i} className="flex items-center justify-between text-[8px] text-zinc-500 font-medium">
-                                  <span className="truncate flex-1 pr-2">
-                                    {r.training_id ? "Treino" : r.event_id ? "Evento" : "Geral"}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    {r.arrival_time && <span>{r.arrival_time}</span>}
-                                    <span className={r.status === 'Presente' ? "text-green-500" : "text-red-500"}>
-                                      {r.status === 'Presente' ? "P" : "F"}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {filteredAthletes.map(athlete => {
+                          const records = dateHistory.filter(h => h.athlete_id === athlete.id);
+                          const record = records.find(r => 
+                            (trainingId && r.training_id === trainingId) ||
+                            (eventId && r.event_id === eventId) ||
+                            (!trainingId && !eventId)
+                          );
+                          
+                          if (filterMode === 'present' && !records.some(r => r.status === 'Presente')) return null;
+                          if (filterMode === 'absent' && records.length > 0 && !records.some(r => r.status === 'Presente')) {
+                             // Keep it
+                          } else if (filterMode === 'absent' && (!record || record.status !== 'Faltou')) {
+                             if (filterMode === 'absent') return null;
+                          }
+                          
+                          if (filterMode === 'observation' && records.length > 0) return null;
+                          if (filterMode === 'all' && records.length === 0 && searchTerm === '') return null;
+
+                          const isUnmarked = records.length === 0;
+
+                          return (
+                            <div key={athlete.id} className={cn(
+                              "p-3 rounded-2xl border transition-all flex flex-col gap-2 group text-left",
+                              records.some(r => r.status === 'Presente') ? "bg-green-500/5 border-green-500/20" : 
+                              records.some(r => r.status === 'Faltou') ? "bg-red-500/5 border-red-500/20" :
+                              "bg-zinc-900/40 border-zinc-800"
+                            )}>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+                                  {athlete.photo ? (
+                                    <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                      <User size={14} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] font-bold text-white truncate uppercase">{athlete.name}</p>
+                                  <div className="flex items-center justify-between mt-0.5">
+                                    <span className={cn(
+                                      "text-[8px] font-black uppercase tracking-widest",
+                                      records.some(r => r.status === 'Presente') ? "text-green-500" : 
+                                      records.some(r => r.status === 'Faltou') ? "text-red-500" :
+                                      "text-zinc-600"
+                                    )}>
+                                      {records.length > 0 ? (records.some(r => r.status === 'Presente') ? 'Presente' : 'Faltou') : 'Não Marcado'}
                                     </span>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                              </div>
 
-                          {isUnmarked && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-auto">
-                              <button 
-                                onClick={() => handleMarkAttendance(athlete.id, date, 'Presente')}
-                                className="flex-1 py-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center justify-center"
-                                title="Marcar Presente"
-                              >
-                                <CheckCircle2 size={10} />
-                              </button>
-                              <button 
-                                onClick={() => handleMarkAttendance(athlete.id, date, 'Faltou')}
-                                className="flex-1 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center"
-                                title="Marcar Falta"
-                              >
-                                <XCircle size={10} />
-                              </button>
+                              {records.length > 0 && (
+                                <div className="space-y-1 pt-1 border-t border-zinc-800/50">
+                                  {records.map((r, i) => (
+                                    <div key={i} className="flex items-center justify-between text-[8px] text-zinc-500 font-medium">
+                                      <span className="truncate flex-1 pr-2">
+                                        {r.training_id ? "Treino" : r.event_id ? "Evento" : "Geral"}
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        {r.arrival_time && <span>{r.arrival_time}</span>}
+                                        <span className={r.status === 'Presente' ? "text-green-500" : "text-red-500"}>
+                                          {r.status === 'Presente' ? "P" : "F"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {isUnmarked && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-auto">
+                                  <button 
+                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Presente')}
+                                    className="flex-1 py-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center justify-center"
+                                    title="Marcar Presente"
+                                  >
+                                    <CheckCircle2 size={10} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleMarkAttendance(athlete.id, date, 'Faltou')}
+                                    className="flex-1 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center"
+                                    title="Marcar Falta"
+                                  >
+                                    <XCircle size={10} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 text-left">
+                {filteredAthletes.map(athlete => {
+                  const athleteHistory = history.filter(h => h.athlete_id === athlete.id);
+                  const athleteTotal = athleteHistory.length;
+                  const athletePresent = athleteHistory.filter(h => h.status === 'Presente').length;
+                  const athleteAbsent = athleteHistory.filter(h => h.status === 'Faltou').length;
+                  const athletePresencePct = athleteTotal > 0 ? Math.round((athletePresent / athleteTotal) * 100) : 0;
+                  const athleteAbsencePct = athleteTotal > 0 ? Math.round((athleteAbsent / athleteTotal) * 100) : 0;
+
+                  return (
+                    <div key={athlete.id} className="bg-zinc-950/40 border border-zinc-800 p-5 rounded-3xl flex flex-col justify-between gap-4 transition-all hover:border-zinc-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+                          {athlete.photo ? (
+                            <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                              <User size={16} />
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-black text-white truncate uppercase">{athlete.name}</h5>
+                          <span className="text-[9px] font-bold text-theme-primary uppercase tracking-wider">
+                            {getSubCategory(athlete.birth_date)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[9px] font-black uppercase">
+                          <span className="text-green-500">P: {athletePresencePct}% ({athletePresent})</span>
+                          <span className="text-red-500">F: {athleteAbsencePct}% ({athleteAbsent})</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-zinc-900 rounded-full overflow-hidden flex border border-zinc-800">
+                          {athleteTotal > 0 ? (
+                            <>
+                              <div style={{ width: `${athletePresencePct}%` }} className="bg-green-500 h-full" />
+                              <div style={{ width: `${athleteAbsencePct}%` }} className="bg-red-500 h-full" />
+                            </>
+                          ) : (
+                            <div className="w-full h-full bg-zinc-900" />
+                          )}
+                        </div>
+                        <div className="text-[8px] text-zinc-500 font-bold uppercase text-right">
+                          Total Chamadas: {athleteTotal}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )
       }

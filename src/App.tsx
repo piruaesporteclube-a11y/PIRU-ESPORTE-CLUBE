@@ -44,7 +44,7 @@ import { api, clearCache } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { navItems } from './navigation';
 import { cn } from './utils';
 
@@ -213,6 +213,36 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
 }) => {
   const [upcomingActivities, setUpcomingActivities] = useState<any[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [currentMonthStats, setCurrentMonthStats] = useState<{ presence: number, absence: number, total: number } | null>(null);
+
+  useEffect(() => {
+    const loadCurrentMonthAttendance = async () => {
+      try {
+        const startOfCurrMonth = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+        const endOfCurrMonth = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+        
+        let data: any[] = [];
+        if (user.role === 'student') {
+          if (user.athlete_id) {
+            data = await api.getAttendance(undefined, user.athlete_id, undefined, undefined, startOfCurrMonth, endOfCurrMonth);
+          }
+        } else {
+          data = await api.getAttendance(undefined, undefined, undefined, undefined, startOfCurrMonth, endOfCurrMonth);
+        }
+
+        const total = data.length;
+        const present = data.filter(h => h.status === 'Presente').length;
+        const absent = data.filter(h => h.status === 'Faltou').length;
+        const presencePct = total > 0 ? Math.round((present / total) * 100) : 0;
+        const absencePct = total > 0 ? Math.round((absent / total) * 100) : 0;
+        setCurrentMonthStats({ presence: presencePct, absence: absencePct, total });
+      } catch (err) {
+        console.error("Error loading current month attendance stats:", err);
+      }
+    };
+
+    loadCurrentMonthAttendance();
+  }, [user.id, user.role, user.athlete_id]);
 
   useEffect(() => {
     if (user.role === 'student' || user.role === 'professor') {
@@ -487,6 +517,21 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                             )}>
                               {item.description}
                             </p>
+                          )}
+                          {item.id === 'attendance-history' && currentMonthStats && (
+                            <div className="mt-3 w-full space-y-1 text-left bg-black/40 p-2.5 rounded-xl border border-zinc-800/80">
+                              <div className="flex justify-between text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-green-500">P: {currentMonthStats.presence}%</span>
+                                <span className="text-red-500">F: {currentMonthStats.absence}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden flex">
+                                <div style={{ width: `${currentMonthStats.presence}%` }} className="bg-green-500 h-full" />
+                                <div style={{ width: `${currentMonthStats.absence}%` }} className="bg-red-500 h-full" />
+                              </div>
+                              <p className="text-[7px] text-zinc-500 text-center font-bold uppercase tracking-widest mt-0.5">
+                                Frequência Mês Vigente
+                              </p>
+                            </div>
                           )}
                         </div>
                       </button>
@@ -773,6 +818,21 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                           )}>
                             {item.description}
                           </p>
+                        )}
+                        {item.id === 'attendance' && currentMonthStats && (
+                          <div className="mt-3 w-full space-y-1 text-left bg-black/40 p-2.5 rounded-xl border border-zinc-800/80">
+                            <div className="flex justify-between text-[8px] font-black uppercase tracking-wider">
+                              <span className="text-green-500">P: {currentMonthStats.presence}%</span>
+                              <span className="text-red-500">F: {currentMonthStats.absence}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden flex">
+                              <div style={{ width: `${currentMonthStats.presence}%` }} className="bg-green-500 h-full" />
+                              <div style={{ width: `${currentMonthStats.absence}%` }} className="bg-red-500 h-full" />
+                            </div>
+                            <p className="text-[7px] text-zinc-500 text-center font-bold uppercase tracking-widest mt-0.5">
+                              Frequência Mês Vigente
+                            </p>
+                          </div>
                         )}
                       </div>
                     </button>
