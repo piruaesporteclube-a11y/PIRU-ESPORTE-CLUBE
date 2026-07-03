@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Athlete, categories, getSubCategory } from '../types';
-import { Users, ChevronRight, Search, Filter } from 'lucide-react';
+import { Users, ChevronRight, Search, Filter, FileDown } from 'lucide-react';
 import { cn } from '../utils';
 import AthleteList from './AthleteList';
+import { useTheme } from '../contexts/ThemeContext';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface CategoryListProps {
   athletes: Athlete[];
@@ -14,6 +19,155 @@ interface CategoryListProps {
 export default function CategoryList({ athletes, onEditAthlete, onAddAthlete, onRefresh }: CategoryListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const { settings } = useTheme();
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
+
+  const formatBirthDate = (dateStr?: string) => {
+    if (!dateStr) return '---';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  };
+
+  const handleDownloadPDF = (categoryName: string, categoryAthletes: Athlete[]) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Sort athletes alphabetically by name
+    const sortedAthletes = [...categoryAthletes].sort((a, b) => a.name.localeCompare(b.name));
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`ATLETAS (${sortedAthletes.length})`, 15, 55);
+    
+    autoTable(doc, {
+      startY: 57,
+      head: [['#', 'NOME COMPLETO', 'APELIDO', 'NASCIMENTO', 'DOCUMENTO (RG/CPF)', 'RESPONSÁVEL', 'CONTATO', 'STATUS']],
+      body: sortedAthletes.map((a, idx) => [
+        idx + 1,
+        a.name.toUpperCase(),
+        (a.nickname || '---').toUpperCase(),
+        formatBirthDate(a.birth_date),
+        a.doc || '---',
+        (a.guardian_name || '---').toUpperCase(),
+        a.guardian_phone || a.contact || '---',
+        (a.status || 'Ativo').toUpperCase()
+      ]),
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
+      styles: { fontSize: 7, cellPadding: 1.2, overflow: 'linebreak' },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      margin: { top: 55, left: 15, right: 15 },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          const athlete = sortedAthletes[data.row.index];
+          if (athlete) {
+            if (athlete.status === 'Inativo') {
+              data.cell.styles.textColor = [120, 120, 120];
+            } else if (athlete.status === 'Suspenso') {
+              data.cell.styles.fillColor = [254, 243, 199]; // light yellow
+              data.cell.styles.textColor = [180, 83, 9];
+            }
+          }
+        }
+      }
+    });
+
+    // Header drawing on all pages
+    const totalPages = (doc as any).getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Header Text and Lines
+      if (crestDataUrl) {
+        try {
+          doc.addImage(crestDataUrl, 'PNG', 15, 8, 13, 13);
+        } catch (err) {
+          console.warn('Could not add school crest to PDF', err);
+        }
+      }
+
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(15, 23, pageWidth - 15, 23);
+      
+      // Category Banner Style
+      doc.setFillColor(0, 0, 0);
+      doc.rect(15, 26, pageWidth - 30, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`ATLETAS REGISTRADOS - CATEGORIA ${categoryName.toUpperCase()}`, pageWidth / 2, 31, { align: 'center' });
+      
+      // Details
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`CATEGORIA: ${categoryName.toUpperCase()}`, 15, 40);
+      doc.text(`DATA DE GERAÇÃO: ${format(new Date(), 'dd/MM/yyyy')}`, 15, 44);
+      doc.text(`RESPONSÁVEL: ${(settings?.president || settings?.technicalDirector || 'DIRETORIA').toUpperCase()}`, pageWidth - 15, 40, { align: 'right' });
+      doc.text(`CONTATO: ${settings?.whatsapp || '---'}`, pageWidth - 15, 44, { align: 'right' });
+
+      // Page numbers at the bottom footer
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Páginas: ${i} / ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    doc.save(`atletas-${categoryName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    toast.success('PDF gerado com sucesso!');
+  };
 
   const categoryStats = categories.map(cat => ({
     name: cat,
@@ -26,17 +180,27 @@ export default function CategoryList({ athletes, onEditAthlete, onAddAthlete, on
     
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setSelectedCategory(null)}
-            className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"
-          >
-            <ChevronRight className="rotate-180" size={24} />
-          </button>
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-tighter">{selectedCategory}</h2>
-            <p className="text-zinc-500 text-sm uppercase tracking-widest">Visualizando atletas desta categoria</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"
+            >
+              <ChevronRight className="rotate-180" size={24} />
+            </button>
+            <div>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">{selectedCategory}</h2>
+              <p className="text-zinc-500 text-sm uppercase tracking-widest">Visualizando atletas desta categoria</p>
+            </div>
           </div>
+
+          <button
+            onClick={() => handleDownloadPDF(selectedCategory, categoryAthletes)}
+            className="px-5 py-3 bg-theme-primary text-black hover:opacity-90 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-theme-primary/10 self-start sm:self-center"
+          >
+            <FileDown size={18} />
+            <span>SALVAR PDF</span>
+          </button>
         </div>
 
         <AthleteList 
