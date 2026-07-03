@@ -71,6 +71,22 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
+export function formatCPF(cpf: string): string {
+  const clean = cpf.replace(/\D/g, '');
+  if (clean.length === 11) {
+    return `${clean.substring(0, 3)}.${clean.substring(3, 6)}.${clean.substring(6, 9)}-${clean.substring(9)}`;
+  }
+  return cpf;
+}
+
+export function formatCPFOrRG(value: string): string {
+  const clean = value.replace(/\D/g, '');
+  if (clean.length === 11) {
+    return `${clean.substring(0, 3)}.${clean.substring(3, 6)}.${clean.substring(6, 9)}-${clean.substring(9)}`;
+  }
+  return value.toUpperCase();
+}
+
 export function fixHtml2CanvasColors(element: HTMLElement) {
   const elements = element.querySelectorAll('*');
   elements.forEach((el) => {

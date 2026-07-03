@@ -30,6 +30,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
+import { formatCPF, formatCPFOrRG, formatPhone } from "./utils";
 
 const SETTINGS_ID = "global_settings";
 
@@ -530,7 +531,8 @@ export const api = {
     // Try to find the real email if login is by CPF
     if (!username.includes("@") && normalizedUsername.length >= 11) {
       try {
-        const qUser = query(collection(db, "users"), where("doc", "==", normalizedUsername));
+        const formattedCpf = formatCPF(normalizedUsername);
+        const qUser = query(collection(db, "users"), where("doc", "in", [normalizedUsername, formattedCpf]));
         const userSnapshot = await getDocsWithCacheFallback(qUser);
         if (!userSnapshot.empty) {
           const userData = userSnapshot.docs[0].data();
@@ -585,8 +587,9 @@ export const api = {
           userDocSnap = await getDoc(userDocRef);
         } else {
             // Orphaned Auth user: Find the athlete or professor by CPF and link them
-            const qAthlete = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
-            const qProfessor = query(collection(db, "professors"), where("doc", "==", normalizedUsername));
+            const formattedCpf = formatCPF(normalizedUsername);
+            const qAthlete = query(collection(db, "athletes"), where("doc", "in", [normalizedUsername, formattedCpf]));
+            const qProfessor = query(collection(db, "professors"), where("doc", "in", [normalizedUsername, formattedCpf]));
             
             const [athleteSnapshot, professorSnapshot] = await Promise.all([
               getDocs(qAthlete),
@@ -673,8 +676,9 @@ export const api = {
         // Only if the password used matches the CPF (default behavior)
         if (normalizedPassword === normalizedUsername && normalizedUsername.length >= 11) {
           try {
-            const qAthlete = query(collection(db, "athletes"), where("doc", "==", normalizedUsername));
-            const qProfessor = query(collection(db, "professors"), where("doc", "==", normalizedUsername));
+            const formattedCpf = formatCPF(normalizedUsername);
+            const qAthlete = query(collection(db, "athletes"), where("doc", "in", [normalizedUsername, formattedCpf]));
+            const qProfessor = query(collection(db, "professors"), where("doc", "in", [normalizedUsername, formattedCpf]));
             
             const [athleteSnapshot, professorSnapshot] = await Promise.all([
               getDocs(qAthlete),
@@ -811,7 +815,8 @@ export const api = {
       console.log("Starting registration for:", authEmail);
       
       // 1. Check if CPF already exists in athletes collection
-      const q = query(collection(db, "athletes"), where("doc", "==", normalizedDoc));
+      const formattedDoc = formatCPF(normalizedDoc);
+      const q = query(collection(db, "athletes"), where("doc", "in", [normalizedDoc, formattedDoc]));
       const querySnapshot = await getDocsWithCacheFallback(q);
       if (!querySnapshot.empty) {
         throw new Error("Este CPF já está cadastrado no sistema.");
@@ -850,7 +855,10 @@ export const api = {
       const newAthlete = {
         ...athleteData,
         id: athleteId,
-        doc: normalizedDoc,
+        doc: formatCPF(normalizedDoc),
+        guardian_doc: athleteData.guardian_doc ? formatCPFOrRG(athleteData.guardian_doc) : undefined,
+        contact: athleteData.contact ? formatPhone(athleteData.contact) : undefined,
+        guardian_phone: athleteData.guardian_phone ? formatPhone(athleteData.guardian_phone) : undefined,
         email: emailForDoc,
         status: "Inativo",
         confirmation: "Pendente",
@@ -862,7 +870,7 @@ export const api = {
         id: firebaseUser.uid,
         name: athleteData.name || "Novo Aluno",
         email: emailForDoc,
-        doc: normalizedDoc,
+        doc: formatCPF(normalizedDoc),
         role: "student",
         athlete_id: athleteId,
         updated_at: serverTimestamp() as any
@@ -1078,10 +1086,16 @@ export const api = {
     // Normalize CPF if present
     const sanitizedAthlete = { ...athlete };
     if (sanitizedAthlete.doc) {
-      sanitizedAthlete.doc = sanitizedAthlete.doc.replace(/\D/g, "");
+      sanitizedAthlete.doc = formatCPFOrRG(sanitizedAthlete.doc);
     }
     if (sanitizedAthlete.guardian_doc) {
-      sanitizedAthlete.guardian_doc = sanitizedAthlete.guardian_doc.replace(/\D/g, "");
+      sanitizedAthlete.guardian_doc = formatCPFOrRG(sanitizedAthlete.guardian_doc);
+    }
+    if (sanitizedAthlete.contact) {
+      sanitizedAthlete.contact = formatPhone(sanitizedAthlete.contact);
+    }
+    if (sanitizedAthlete.guardian_phone) {
+      sanitizedAthlete.guardian_phone = formatPhone(sanitizedAthlete.guardian_phone);
     }
 
     if (!athlete.id) athlete.id = doc(collection(db, "athletes")).id;
@@ -1089,9 +1103,10 @@ export const api = {
     try {
       // Check for duplicate CPF
       if (sanitizedAthlete.doc) {
+        const formattedDoc = formatCPF(sanitizedAthlete.doc);
         const q = query(
           collection(db, "athletes"), 
-          where("doc", "==", sanitizedAthlete.doc)
+          where("doc", "in", [sanitizedAthlete.doc, formattedDoc])
         );
         const querySnapshot = await getDocs(q);
         const duplicate = querySnapshot.docs.find(doc => doc.id !== athlete.id);
@@ -1207,7 +1222,10 @@ export const api = {
   saveProfessor: async (professor: Partial<Professor>) => {
     const sanitizedProfessor = { ...professor };
     if (sanitizedProfessor.doc) {
-      sanitizedProfessor.doc = sanitizedProfessor.doc.replace(/\D/g, "");
+      sanitizedProfessor.doc = formatCPFOrRG(sanitizedProfessor.doc);
+    }
+    if (sanitizedProfessor.phone) {
+      sanitizedProfessor.phone = formatPhone(sanitizedProfessor.phone);
     }
 
     if (!sanitizedProfessor.id) sanitizedProfessor.id = doc(collection(db, "professors")).id;
@@ -1215,9 +1233,10 @@ export const api = {
     try {
       // Check for duplicate CPF
       if (sanitizedProfessor.doc) {
+        const formattedDoc = formatCPF(sanitizedProfessor.doc);
         const q = query(
           collection(db, "professors"), 
-          where("doc", "==", sanitizedProfessor.doc)
+          where("doc", "in", [sanitizedProfessor.doc, formattedDoc])
         );
         const querySnapshot = await getDocsWithCacheFallback(q);
         const duplicate = querySnapshot.docs.find(doc => doc.id !== sanitizedProfessor.id);
@@ -1925,10 +1944,11 @@ export const api = {
   },
   getChampionshipTeamsByResponsibleDoc: async (championshipId: string, docNum: string): Promise<ChampionshipTeam[]> => {
     try {
+      const formattedDoc = formatCPF(docNum);
       const q = query(
         collection(db, "championship_teams"), 
         where("championship_id", "==", championshipId),
-        where("responsible_doc", "==", docNum.replace(/\D/g, ""))
+        where("responsible_doc", "in", [docNum.replace(/\D/g, ""), formattedDoc])
       );
       const querySnapshot = await getDocsWithCacheFallback(q);
       return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
@@ -1939,8 +1959,21 @@ export const api = {
   },
   saveChampionshipTeam: async (team: Partial<ChampionshipTeam>) => {
     if (!team.id) team.id = doc(collection(db, "championship_teams")).id;
+    const sanitizedTeam = { ...team };
+    if (sanitizedTeam.responsible_doc) {
+      sanitizedTeam.responsible_doc = formatCPFOrRG(sanitizedTeam.responsible_doc);
+    }
+    if (sanitizedTeam.responsible_phone) {
+      sanitizedTeam.responsible_phone = formatPhone(sanitizedTeam.responsible_phone);
+    }
+    if (sanitizedTeam.players) {
+      sanitizedTeam.players = sanitizedTeam.players.map(p => ({
+        ...p,
+        doc: formatCPFOrRG(p.doc)
+      }));
+    }
     try {
-      const data = { ...team, created_at: team.created_at || serverTimestamp() };
+      const data = { ...sanitizedTeam, created_at: team.created_at || serverTimestamp() };
       await setDoc(doc(db, "championship_teams", team.id), sanitizeData(data), { merge: true });
       // Invalidate related caches
       Object.keys(cache).forEach(key => {
@@ -2227,8 +2260,15 @@ export const api = {
   saveCompanion: async (companion: Partial<Companion>) => {
     try {
       const id = companion.id || doc(collection(db, "event_companions")).id;
+      const sanitizedCompanion = { ...companion };
+      if (sanitizedCompanion.doc) {
+        sanitizedCompanion.doc = formatCPFOrRG(sanitizedCompanion.doc);
+      }
+      if (sanitizedCompanion.whatsapp) {
+        sanitizedCompanion.whatsapp = formatPhone(sanitizedCompanion.whatsapp);
+      }
       const data = { 
-        ...companion, 
+        ...sanitizedCompanion, 
         id,
         created_at: serverTimestamp()
       };
@@ -2570,5 +2610,148 @@ export const api = {
         handleFirestoreError(error, OperationType.GET, "login_errors/subscription");
       }
     });
+  },
+
+  migrateDataToNewPatterns: async () => {
+    if (localStorage.getItem("pirua_migration_cpf_phone_completed")) {
+      return;
+    }
+
+    try {
+      console.log("Starting data standardization migration...");
+
+      // 1. Athletes
+      const athletesSnap = await getDocs(collection(db, "athletes"));
+      const athletePromises = athletesSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let changed = false;
+        const updated: any = {};
+
+        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+          updated.doc = formatCPFOrRG(data.doc);
+          changed = true;
+        }
+        if (data.guardian_doc && data.guardian_doc !== formatCPFOrRG(data.guardian_doc)) {
+          updated.guardian_doc = formatCPFOrRG(data.guardian_doc);
+          changed = true;
+        }
+        if (data.contact && data.contact !== formatPhone(data.contact)) {
+          updated.contact = formatPhone(data.contact);
+          changed = true;
+        }
+        if (data.guardian_phone && data.guardian_phone !== formatPhone(data.guardian_phone)) {
+          updated.guardian_phone = formatPhone(data.guardian_phone);
+          changed = true;
+        }
+
+        if (changed) {
+          await updateDoc(docSnap.ref, updated);
+        }
+      });
+      await Promise.all(athletePromises);
+
+      // 2. Users
+      const usersSnap = await getDocs(collection(db, "users"));
+      const userPromises = usersSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let changed = false;
+        const updated: any = {};
+
+        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+          updated.doc = formatCPFOrRG(data.doc);
+          changed = true;
+        }
+
+        if (changed) {
+          await updateDoc(docSnap.ref, updated);
+        }
+      });
+      await Promise.all(userPromises);
+
+      // 3. Professors
+      const professorsSnap = await getDocs(collection(db, "professors"));
+      const professorPromises = professorsSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let changed = false;
+        const updated: any = {};
+
+        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+          updated.doc = formatCPFOrRG(data.doc);
+          changed = true;
+        }
+        if (data.phone && data.phone !== formatPhone(data.phone)) {
+          updated.phone = formatPhone(data.phone);
+          changed = true;
+        }
+
+        if (changed) {
+          await updateDoc(docSnap.ref, updated);
+        }
+      });
+      await Promise.all(professorPromises);
+
+      // 4. Companions
+      const companionsSnap = await getDocs(collection(db, "event_companions"));
+      const companionPromises = companionsSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let changed = false;
+        const updated: any = {};
+
+        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+          updated.doc = formatCPFOrRG(data.doc);
+          changed = true;
+        }
+        if (data.whatsapp && data.whatsapp !== formatPhone(data.whatsapp)) {
+          updated.whatsapp = formatPhone(data.whatsapp);
+          changed = true;
+        }
+
+        if (changed) {
+          await updateDoc(docSnap.ref, updated);
+        }
+      });
+      await Promise.all(companionPromises);
+
+      // 5. Championship Teams
+      const teamsSnap = await getDocs(collection(db, "championship_teams"));
+      const teamPromises = teamsSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        let changed = false;
+        const updated: any = {};
+
+        if (data.responsible_doc && data.responsible_doc !== formatCPFOrRG(data.responsible_doc)) {
+          updated.responsible_doc = formatCPFOrRG(data.responsible_doc);
+          changed = true;
+        }
+        if (data.responsible_phone && data.responsible_phone !== formatPhone(data.responsible_phone)) {
+          updated.responsible_phone = formatPhone(data.responsible_phone);
+          changed = true;
+        }
+        if (data.players && Array.isArray(data.players)) {
+          let playersChanged = false;
+          const updatedPlayers = data.players.map((p: any) => {
+            if (p.doc && p.doc !== formatCPFOrRG(p.doc)) {
+              playersChanged = true;
+              return { ...p, doc: formatCPFOrRG(p.doc) };
+            }
+            return p;
+          });
+          if (playersChanged) {
+            updated.players = updatedPlayers;
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          await updateDoc(docSnap.ref, updated);
+        }
+      });
+      await Promise.all(teamPromises);
+
+      localStorage.setItem("pirua_migration_cpf_phone_completed", "true");
+      console.log("All data successfully migrated to standard formats.");
+    } catch (e) {
+      console.error("Failed to run data migration:", e);
+    }
   },
 };

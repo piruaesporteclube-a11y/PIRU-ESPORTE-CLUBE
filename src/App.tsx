@@ -1246,6 +1246,7 @@ export default function App() {
 
   useEffect(() => {
     initAuth();
+    api.migrateDataToNewPatterns().catch(err => console.error("Migration error:", err));
   }, []);
 
   const handleLogin = (auth: any) => {
