@@ -236,31 +236,57 @@ export default function CategoryList({ athletes, onEditAthlete, onAddAthlete, on
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredCategories.map((cat) => (
-          <button
-            key={cat.name}
-            onClick={() => setSelectedCategory(cat.name)}
-            className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl hover:border-theme-primary/50 transition-all group text-left relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Users size={80} />
-            </div>
-            
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform">
-                <Users size={24} />
+        {filteredCategories.map((cat) => {
+          const categoryAthletes = athletes.filter(a => getSubCategory(a.birth_date) === cat.name);
+          return (
+            <div
+              key={cat.name}
+              className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl hover:border-theme-primary/50 transition-all group text-left relative overflow-hidden flex flex-col justify-between min-h-[180px]"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                <Users size={80} />
               </div>
-              <ChevronRight size={20} className="text-zinc-600 group-hover:text-theme-primary transition-colors" />
-            </div>
+              
+              <div className="flex items-center justify-between mb-4 z-10">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className="p-3 bg-theme-primary/10 text-theme-primary rounded-2xl group-hover:scale-110 transition-transform"
+                >
+                  <Users size={24} />
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadPDF(cat.name, categoryAthletes);
+                  }}
+                  className="p-2.5 bg-zinc-800 hover:bg-theme-primary hover:text-black text-zinc-400 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider shadow-md border border-zinc-700/50 hover:border-theme-primary"
+                  title={`Baixar PDF do ${cat.name}`}
+                >
+                  <FileDown size={14} />
+                  <span>PDF</span>
+                </button>
+              </div>
 
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-1">{cat.name}</h3>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{cat.count} Atletas</span>
-              <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-              <span className="text-xs font-bold text-green-500 uppercase tracking-widest">{cat.active} Ativos</span>
+              <div 
+                onClick={() => setSelectedCategory(cat.name)}
+                className="cursor-pointer space-y-2 flex-1 flex flex-col justify-end"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-1">{cat.name}</h3>
+                  <ChevronRight size={20} className="text-zinc-600 group-hover:text-theme-primary transition-colors" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{cat.count} Atletas</span>
+                  <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                  <span className="text-xs font-bold text-green-500 uppercase tracking-widest">{cat.active} Ativos</span>
+                </div>
+              </div>
             </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
 
       {filteredCategories.length === 0 && (
