@@ -1038,10 +1038,10 @@ Muito obrigado!
   const toggleAthlete = (id: string) => {
     if (selectedAthletes.includes(id)) {
       setSelectedAthletes(selectedAthletes.filter(aid => aid !== id));
-    } else if (selectedAthletes.length < 22) {
+    } else if (selectedAthletes.length < 25) {
       setSelectedAthletes([...selectedAthletes, id]);
     } else {
-      toast.warning('Limite máximo de 22 atletas atingido.');
+      toast.warning('Limite máximo de 25 atletas atingido.');
     }
   };
 
@@ -2360,7 +2360,7 @@ Muito obrigado!
 
                       {selectedAthletes.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({selectedAthletes.length}/22):</p>
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Atletas no SUB ({selectedAthletes.length}/25):</p>
                           <p className="text-xs text-zinc-300 font-medium leading-relaxed">
                             {athletes.filter(a => selectedAthletes.includes(a.id)).map(a => a.name).join(' • ')}
                           </p>
@@ -2375,7 +2375,7 @@ Muito obrigado!
                       <div className="lg:col-span-2 space-y-8">
                         <div className="space-y-4">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Atletas ({selectedAthletes.length}/22)</h3>
+                            <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Selecionar Atletas ({selectedAthletes.length}/25)</h3>
                             <div className="flex flex-col sm:flex-row gap-2">
                               <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
@@ -3107,7 +3107,7 @@ Muito obrigado!
                           <td className="border border-black p-1 text-center font-bold">#{a.jersey_number}</td>
                         </tr>
                       ))}
-                      {Array.from({ length: Math.max(0, 22 - lineupAthletes.length) }).map((_, i) => (
+                      {Array.from({ length: Math.max(0, 25 - lineupAthletes.length) }).map((_, i) => (
                         <tr key={`empty-athlete-${i}`} className="h-6">
                           <td className="border border-black p-1 text-center">{lineupAthletes.length + i + 1}</td>
                           <td className="border border-black p-1"></td>
