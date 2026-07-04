@@ -2257,6 +2257,16 @@ export const api = {
       return [];
     }
   },
+  getAllCompanions: async (): Promise<Companion[]> => {
+    try {
+      const q = query(collection(db, "event_companions"));
+      const querySnapshot = await getDocsWithCacheFallback(q);
+      return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Companion));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "event_companions");
+      return [];
+    }
+  },
   saveCompanion: async (companion: Partial<Companion>) => {
     try {
       const id = companion.id || doc(collection(db, "event_companions")).id;

@@ -37,6 +37,8 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   const [selectedLineupIndexes, setSelectedLineupIndexes] = useState<number[]>([0]);
   const [lineup, setLineup] = useState<{ athletes: Athlete[], staff: Professor[] }>({ athletes: [], staff: [] });
   const [companions, setCompanions] = useState<Companion[]>([]);
+  const [allHistoricalCompanions, setAllHistoricalCompanions] = useState<Companion[]>([]);
+  const [historicalSearchQuery, setHistoricalSearchQuery] = useState('');
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
@@ -261,6 +263,64 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       loadEvents();
     } catch (error) {
       toast.error("Erro ao salvar contato");
+    }
+  };
+
+  const loadHistoricalCompanions = async () => {
+    try {
+      const data = await api.getAllCompanions();
+      const uniqueCompanions: Companion[] = [];
+      const seenKeys = new Set<string>();
+      
+      data.forEach(comp => {
+        if (!comp.name) return;
+        const key = `${comp.name.trim().toUpperCase()}_${(comp.doc || '').replace(/\D/g, '')}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          uniqueCompanions.push(comp);
+        }
+      });
+      
+      setAllHistoricalCompanions(uniqueCompanions.sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (error) {
+      console.error("Error loading historical companions:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAddingCompanion) {
+      loadHistoricalCompanions();
+    }
+  }, [isAddingCompanion]);
+
+  const handleAddHistoricalCompanion = async (historicalComp: Companion) => {
+    if (!selectedEventId) return;
+    try {
+      const alreadyIn = companions.some(c => 
+        c.name.trim().toUpperCase() === historicalComp.name.trim().toUpperCase() || 
+        (c.doc && c.doc !== '---' && c.doc === historicalComp.doc)
+      );
+      if (alreadyIn) {
+        toast.warning("Este passageiro já está adicionado nesta viagem.");
+        return;
+      }
+
+      await api.saveCompanion({
+        event_id: selectedEventId,
+        name: historicalComp.name.toUpperCase().trim(),
+        doc: historicalComp.doc || '---',
+        whatsapp: historicalComp.whatsapp || '---',
+        role: historicalComp.role?.toUpperCase().trim() || 'ACOMPANHANTE',
+        presence: 'Presente'
+      });
+
+      const compData = await api.getCompanions(selectedEventId);
+      setCompanions(compData.sort((a, b) => a.name.localeCompare(b.name)));
+      // Also reload historical companions to refresh the available options
+      loadHistoricalCompanions();
+      toast.success(`${historicalComp.name} adicionado(a) com sucesso!`);
+    } catch (error) {
+      toast.error("Erro ao adicionar passageiro");
     }
   };
 
@@ -1196,6 +1256,99 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                           </div>
                         </div>
                       )}
+
+                      {/* Select from Frequent / Previous Passengers */}
+                      <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                          <div className="flex items-center gap-3">
+                            <Users className="text-theme-primary" size={18} />
+                            <h5 className="text-xs font-black text-white uppercase tracking-widest">Selecionar Passageiros ou Motoristas de Viagens Anteriores</h5>
+                          </div>
+                          <span className="text-[10px] font-black text-zinc-500 bg-zinc-800 px-2.5 py-1 rounded-full uppercase">
+                            Total Cadastrados: {allHistoricalCompanions.length}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-4 leading-relaxed">
+                          Selecione um passageiro, acompanhante ou motorista que já foi cadastrado em qualquer viagem anterior para adicioná-lo instantaneamente a este evento.
+                        </p>
+                        <div className="relative mb-4">
+                          <input 
+                            type="text"
+                            placeholder="PESQUISAR PASSAGEIROS ANTERIORES POR NOME OU FUNÇÃO..."
+                            className="w-full pl-12 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold uppercase"
+                            value={historicalSearchQuery}
+                            onChange={e => setHistoricalSearchQuery(e.target.value)}
+                          />
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                        </div>
+
+                        {allHistoricalCompanions.length === 0 ? (
+                          <div className="p-4 text-center text-zinc-600 text-[10px] font-bold uppercase italic border border-dashed border-zinc-800 rounded-xl">
+                            Nenhum passageiro cadastrado anteriormente no sistema.
+                          </div>
+                        ) : (
+                          (() => {
+                            const filtered = allHistoricalCompanions.filter(comp => {
+                              const searchLower = historicalSearchQuery.toUpperCase();
+                              return (comp.name || '').toUpperCase().includes(searchLower) ||
+                                     (comp.role || '').toUpperCase().includes(searchLower) ||
+                                     (comp.doc || '').includes(searchLower);
+                            });
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-4 text-center text-zinc-600 text-[10px] font-bold uppercase italic border border-dashed border-zinc-800 rounded-xl">
+                                  Nenhum passageiro corresponde à pesquisa.
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-1">
+                                {filtered.map(comp => {
+                                  const alreadyIn = companions.some(c => 
+                                    c.name.trim().toUpperCase() === comp.name.trim().toUpperCase() || 
+                                    (c.doc && c.doc !== '---' && c.doc === comp.doc)
+                                  );
+
+                                  return (
+                                    <div key={comp.id} className="flex flex-col justify-between p-4 bg-black border border-zinc-800 rounded-2xl hover:border-zinc-700 transition-all space-y-3">
+                                      <div>
+                                        <div className="flex items-start justify-between gap-2">
+                                          <p className="text-xs font-black text-white uppercase truncate">{comp.name}</p>
+                                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${comp.role?.toUpperCase() === 'MOTORISTA' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-theme-primary/10 text-theme-primary border border-theme-primary/20'}`}>
+                                            {comp.role || 'ACOMPANHANTE'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1.5 space-y-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-wide">
+                                          <p>Doc: <span className="text-zinc-400 font-mono">{comp.doc || '---'}</span></p>
+                                          {comp.whatsapp && comp.whatsapp !== '---' && (
+                                            <p>WhatsApp: <span className="text-zinc-400 font-mono">{comp.whatsapp}</span></p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      {alreadyIn ? (
+                                        <span className="w-full text-center text-[10px] font-black text-green-500 uppercase py-1.5 bg-green-500/10 rounded-xl block border border-green-500/20">
+                                          Já adicionado nesta viagem
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleAddHistoricalCompanion(comp)}
+                                          className="w-full py-1.5 bg-theme-primary text-black text-[10px] font-black rounded-xl hover:bg-theme-primary/90 transition-all uppercase flex items-center justify-center gap-1.5 shadow-sm"
+                                        >
+                                          <UserPlus size={12} />
+                                          Adicionar na Viagem
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()
+                        )}
+                      </div>
 
                       {/* Manual Add Companion */}
                       <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-xl">
