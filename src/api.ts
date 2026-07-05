@@ -2283,6 +2283,7 @@ export const api = {
         created_at: serverTimestamp()
       };
       await setDoc(doc(db, "event_companions", id), sanitizeData(data), { merge: true });
+      invalidateCache("event_companions");
       return id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_companions");
@@ -2292,6 +2293,7 @@ export const api = {
   deleteCompanion: async (id: string) => {
     try {
       await deleteDoc(doc(db, "event_companions", id));
+      invalidateCache("event_companions");
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_companions/${id}`);
     }
@@ -2299,6 +2301,7 @@ export const api = {
   updateCompanionPresence: async (id: string, presence: "Presente" | "Ausente") => {
     try {
       await updateDoc(doc(db, "event_companions", id), { presence, updated_at: serverTimestamp() });
+      invalidateCache("event_companions");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_companions/${id}`);
     }
