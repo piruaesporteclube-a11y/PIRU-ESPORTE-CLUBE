@@ -293,9 +293,21 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                     >
                       <div id={innerElementId} className="print-card">
                         <div className="print-header print-only">
+                          {settings?.schoolCrest && (
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                              <img src={settings.schoolCrest} alt="Escudo" style={{ height: '60px', width: '60px', objectFit: 'contain' }} />
+                            </div>
+                          )}
                           <h1 className="print-title">{schoolName}</h1>
                           <h2 className="print-subtitle">{listName} {lineup.category ? ` - CATEGORIA: ${lineup.category.toUpperCase()}` : ''}</h2>
-                          <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - {event.start_date}</p>
+                          <div style={{ fontSize: '11px', color: '#333', textAlign: 'center', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <p style={{ fontWeight: 'bold' }}>EVENTO: {event.name.toUpperCase()}</p>
+                            <p>📅 DATA DO JOGO: {event.start_date} às {event.start_time}</p>
+                            <p>📍 LOCAL: {[event.street ? `${event.street}${event.number ? ', ' + event.number : ''}` : '', event.neighborhood, event.city ? `${event.city}/${event.uf || ''}` : ''].filter(Boolean).join(' - ').toUpperCase()}</p>
+                            {event.departure_time && (
+                              <p style={{ fontWeight: 'bold' }}>🚍 HORÁRIO DE SAÍDA: {event.departure_time} {event.departure_location ? ` - LOCAL: ${event.departure_location.toUpperCase()}` : ''}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-start justify-between border-b border-zinc-800/80 pb-4 mb-4 no-print">
@@ -426,9 +438,21 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
                       >
                         <div id={innerElementId} className="print-card">
                           <div className="print-header print-only">
+                            {settings?.schoolCrest && (
+                              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                                <img src={settings.schoolCrest} alt="Escudo" style={{ height: '60px', width: '60px', objectFit: 'contain' }} />
+                              </div>
+                            )}
                             <h1 className="print-title">{schoolName}</h1>
                             <h2 className="print-subtitle">CATEGORIA: {subName.toUpperCase()}</h2>
-                            <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - {event.start_date}</p>
+                            <div style={{ fontSize: '11px', color: '#333', textAlign: 'center', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <p style={{ fontWeight: 'bold' }}>EVENTO: {event.name.toUpperCase()}</p>
+                              <p>📅 DATA DO JOGO: {event.start_date} às {event.start_time}</p>
+                              <p>📍 LOCAL: {[event.street ? `${event.street}${event.number ? ', ' + event.number : ''}` : '', event.neighborhood, event.city ? `${event.city}/${event.uf || ''}` : ''].filter(Boolean).join(' - ').toUpperCase()}</p>
+                              {event.departure_time && (
+                                <p style={{ fontWeight: 'bold' }}>🚍 HORÁRIO DE SAÍDA: {event.departure_time} {event.departure_location ? ` - LOCAL: ${event.departure_location.toUpperCase()}` : ''}</p>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex items-start justify-between border-b border-zinc-800/80 pb-4 mb-4 no-print">
@@ -503,9 +527,21 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] p-6 lg:p-8 hover:border-zinc-700 transition-all">
               <div id="print-general-complete" className="print-card">
                 <div className="print-header print-only">
+                  {settings?.schoolCrest && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                      <img src={settings.schoolCrest} alt="Escudo" style={{ height: '60px', width: '60px', objectFit: 'contain' }} />
+                    </div>
+                  )}
                   <h1 className="print-title">{schoolName}</h1>
                   <h2 className="print-subtitle">Sumário / Convocação Geral</h2>
-                  <p style={{ fontSize: '10px', color: '#555' }}>Evento: {event.name} - Data: {event.start_date}</p>
+                  <div style={{ fontSize: '11px', color: '#333', textAlign: 'center', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <p style={{ fontWeight: 'bold' }}>EVENTO: {event.name.toUpperCase()}</p>
+                    <p>📅 DATA DO JOGO: {event.start_date} às {event.start_time}</p>
+                    <p>📍 LOCAL: {[event.street ? `${event.street}${event.number ? ', ' + event.number : ''}` : '', event.neighborhood, event.city ? `${event.city}/${event.uf || ''}` : ''].filter(Boolean).join(' - ').toUpperCase()}</p>
+                    {event.departure_time && (
+                      <p style={{ fontWeight: 'bold' }}>🚍 HORÁRIO DE SAÍDA: {event.departure_time} {event.departure_location ? ` - LOCAL: ${event.departure_location.toUpperCase()}` : ''}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6 mb-6 no-print">

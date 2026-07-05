@@ -611,18 +611,28 @@ Muito obrigado!
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       
+      let offsetY = 0;
+      if (crestDataUrl) {
+        try {
+          doc.addImage(crestDataUrl, 'PNG', pageWidth / 2 - 10, 8, 20, 20);
+          offsetY = 18;
+        } catch (e) {
+          console.warn("Could not add crest to PDF:", e);
+        }
+      }
+
       // Header
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15, { align: 'center' });
+      doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15 + offsetY, { align: 'center' });
       
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20, { align: 'center' });
+      doc.text('Associação Desportiva e Cultural', pageWidth / 2, 20 + offsetY, { align: 'center' });
       
       doc.setDrawColor(0);
       doc.setLineWidth(0.5);
-      doc.line(15, 23, pageWidth - 15, 23);
+      doc.line(15, 23 + offsetY, pageWidth - 15, 23 + offsetY);
       
       // Event Banner Style
       let currentLineupLabel = `CONVOCATÓRIA: ${selectedEvent.name.toUpperCase()}`;
@@ -633,7 +643,7 @@ Muito obrigado!
         currentLineupLabel = parts.join(' - ');
       }
       doc.setFillColor(0, 0, 0);
-      doc.rect(15, 26, pageWidth - 30, 8, 'F');
+      doc.rect(15, 26 + offsetY, pageWidth - 30, 8, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       
@@ -645,7 +655,7 @@ Muito obrigado!
         doc.setFontSize(bannerFontSize);
       }
       
-      doc.text(currentLineupLabel, pageWidth / 2, 31, { align: 'center' });
+      doc.text(currentLineupLabel, pageWidth / 2, 31 + offsetY, { align: 'center' });
       
       // Event Details
       doc.setTextColor(0, 0, 0);
@@ -653,21 +663,34 @@ Muito obrigado!
       
       const maxLeftWidth = pageWidth / 2 - 20;
       const splitEventName = doc.splitTextToSize(`EVENTO: ${selectedEvent.name.toUpperCase()}`, maxLeftWidth);
-      doc.text(splitEventName, 15, 40);
+      doc.text(splitEventName, 15, 40 + offsetY);
       
-      const splitDest = doc.splitTextToSize(`DESTINO: ${selectedEvent.city} - ${selectedEvent.uf}`.toUpperCase(), maxLeftWidth);
-      const destY = 40 + (splitEventName.length * 4);
+      const fullAddressText = [
+        selectedEvent.street ? `${selectedEvent.street}${selectedEvent.number ? ', ' + selectedEvent.number : ''}` : '',
+        selectedEvent.neighborhood || '',
+        `${selectedEvent.city || ''}/${selectedEvent.uf || ''}`
+      ].filter(Boolean).join(' - ');
+
+      const splitDest = doc.splitTextToSize(`LOCAL: ${fullAddressText}`.toUpperCase(), maxLeftWidth);
+      const destY = (40 + offsetY) + (splitEventName.length * 4);
       doc.text(splitDest, 15, destY);
       
       const dateY = destY + (splitDest.length * 4);
-      doc.text(`DATA: ${formatDateSafe(selectedEvent.start_date)}`, 15, dateY);
+      doc.text(`DATA: ${formatDateSafe(selectedEvent.start_date)} às ${selectedEvent.start_time}`, 15, dateY);
+      
+      let departureY = dateY;
+      if (selectedEvent.departure_time) {
+        departureY = dateY + 4;
+        const departureText = `SAÍDA: ${selectedEvent.departure_time}${selectedEvent.departure_location ? ' - ' + selectedEvent.departure_location : ''}`.toUpperCase();
+        doc.text(departureText, 15, departureY);
+      }
       
       doc.setFont('helvetica', 'normal');
-      doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40, { align: 'right' });
-      doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44, { align: 'right' });
+      doc.text(`DOCUMENTO OFICIAL DE CONVOCATÓRIA`, pageWidth - 15, 40 + offsetY, { align: 'right' });
+      doc.text(`GERADO EM: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, 44 + offsetY, { align: 'right' });
       
       // Display current Match or Category if applicable
-      let matchY = dateY + 6;
+      let matchY = departureY + 6;
       if (lineupName) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);

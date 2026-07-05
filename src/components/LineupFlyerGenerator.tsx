@@ -85,14 +85,34 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [bgCategory, setBgCategory] = useState<string>('TODOS');
 
   // --- Header Customization ---
+  const formatDateSafe = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const fullAddress = [
+    event.street ? `${event.street}${event.number ? ', ' + event.number : ''}` : '',
+    event.neighborhood || '',
+    event.city ? `${event.city}${event.uf ? '/' + event.uf : ''}` : ''
+  ].filter(Boolean).join(' - ');
+
   const [headerTitle, setHeaderTitle] = useState<string>('CONVOCADOS');
   const [headerSubtitle, setHeaderSubtitle] = useState<string>(event.name || 'DATA DO JOGO');
   const [showLogo, setShowLogo] = useState<boolean>(true);
   const [logoSize, setLogoSize] = useState<number>(48);
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState<string | null>(null);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-  const [headerDateText, setHeaderDateText] = useState<string>(`${event.start_date} às ${event.start_time}`);
-  const [headerLocationText, setHeaderLocationText] = useState<string>(`${event.city || ''}/${event.uf || ''} - ${event.neighborhood || ''}`);
+  const [headerDateText, setHeaderDateText] = useState<string>(`${formatDateSafe(event.start_date)} às ${event.start_time}`);
+  const [headerLocationText, setHeaderLocationText] = useState<string>(fullAddress || `${event.city || ''}/${event.uf || ''} - ${event.neighborhood || ''}`);
+  const [headerDepartureText, setHeaderDepartureText] = useState<string>(
+    event.departure_time 
+      ? `SAÍDA: ${event.departure_time}${event.departure_location ? ' - ' + event.departure_location : ''}`
+      : ''
+  );
 
   // --- Footer Customization ---
   const [footerInstagram, setFooterInstagram] = useState<string>(settings?.instagram || '@piruaesporteclube');
@@ -581,7 +601,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Data / Hora</label>
                       <input
@@ -598,6 +618,16 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         value={headerLocationText}
                         onChange={e => setHeaderLocationText(e.target.value)}
                         className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Saída (Hora & Local)</label>
+                      <input
+                        type="text"
+                        value={headerDepartureText}
+                        onChange={e => setHeaderDepartureText(e.target.value)}
+                        className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
+                        placeholder="Ex: SAÍDA: 13:00 - Sede"
                       />
                     </div>
                   </div>
@@ -1348,7 +1378,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                 )}
 
                 {/* Match Infos */}
-                {(headerDateText || headerLocationText) && (
+                {(headerDateText || headerLocationText || headerDepartureText) && (
                   <div className="mt-1 flex flex-col gap-0.5 opacity-80 select-none">
                     {headerDateText && (
                       <p className="text-[8.5px] font-bold text-zinc-300 uppercase tracking-wide flex items-center justify-center gap-1">
@@ -1360,6 +1390,12 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                       <p className="text-[8.5px] font-medium text-zinc-400 uppercase tracking-wider flex items-center justify-center gap-1 truncate max-w-[290px]">
                         <MapPin size={8} style={{ color: customPrimaryColor }} />
                         {headerLocationText}
+                      </p>
+                    )}
+                    {headerDepartureText && (
+                      <p className="text-[8.5px] font-medium text-zinc-400 uppercase tracking-wider flex items-center justify-center gap-1 truncate max-w-[290px]">
+                        <Clock size={8} style={{ color: customPrimaryColor }} />
+                        {headerDepartureText}
                       </p>
                     )}
                   </div>
