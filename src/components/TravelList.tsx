@@ -305,21 +305,31 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
         return;
       }
 
+      let docValue = (historicalComp.doc || '').trim();
+      if (!docValue || docValue.length < 3) {
+        docValue = '---';
+      }
+
+      let nameValue = (historicalComp.name || '').toUpperCase().trim();
+      if (nameValue.length < 3) {
+        nameValue = nameValue.padEnd(3, '.');
+      }
+
       await api.saveCompanion({
         event_id: selectedEventId,
-        name: historicalComp.name.toUpperCase().trim(),
-        doc: historicalComp.doc || '---',
+        name: nameValue,
+        doc: docValue,
         whatsapp: historicalComp.whatsapp || '---',
         role: historicalComp.role?.toUpperCase().trim() || 'ACOMPANHANTE',
         presence: 'Presente'
       });
 
-      const compData = await api.getCompanions(selectedEventId);
-      setCompanions(compData.sort((a, b) => a.name.localeCompare(b.name)));
-      // Also reload historical companions to refresh the available options
+      // Reload all event travel list data and historical list
+      await loadEventData(selectedEventId);
       loadHistoricalCompanions();
       toast.success(`${historicalComp.name} adicionado(a) com sucesso!`);
     } catch (error) {
+      console.error("Error adding historical companion:", error);
       toast.error("Erro ao adicionar passageiro");
     }
   };
@@ -334,10 +344,15 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
       return;
     }
     try {
+      let docValue = newCompanion.doc.trim();
+      if (!docValue || docValue.length < 3) {
+        docValue = '---';
+      }
+
       await api.saveCompanion({
         event_id: selectedEventId,
         name: newCompanion.name.toUpperCase().trim(),
-        doc: newCompanion.doc.trim() || '---',
+        doc: docValue,
         whatsapp: newCompanion.whatsapp.replace(/\D/g, '') || '---',
         role: newCompanion.role.toUpperCase().trim() || 'ACOMPANHANTE'
       });
