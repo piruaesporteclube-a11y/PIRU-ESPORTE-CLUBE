@@ -57,11 +57,16 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
 
     try {
       setIsSubmitting(true);
+      let docValue = formData.doc.trim();
+      if (!docValue || docValue.length < 3) {
+        docValue = '---';
+      }
+
       await api.saveCompanion({
         event_id: eventId,
-        name: formData.name.toUpperCase(),
-        doc: formData.doc.replace(/\D/g, ''),
-        whatsapp: formData.whatsapp.replace(/\D/g, ''),
+        name: formData.name.toUpperCase().trim(),
+        doc: docValue,
+        whatsapp: formData.whatsapp.replace(/\D/g, '') || '---',
         role: formData.role || undefined
       });
       setSubmitted(true);

@@ -354,10 +354,11 @@ service cloud.firestore {
     }
 
     match /event_companions/{companionId} {
-      allow read: if isAdmin();
+      allow read: if isStaff();
       allow create: if isValidCompanion(request.resource.data) && 
                       exists(/databases/$(database)/documents/events/$(request.resource.data.event_id));
-      allow delete: if isAdmin();
+      allow update: if isStaff() && isValidCompanion(request.resource.data);
+      allow delete: if isStaff();
     }
 
     match /training_activities/{activityId} {
