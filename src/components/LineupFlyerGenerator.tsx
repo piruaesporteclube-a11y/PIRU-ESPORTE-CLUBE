@@ -8,6 +8,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
+import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { cn, prepareElementForExport, toBase64 } from '../utils';
 
@@ -121,6 +122,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [footerMotivationalText, setFooterMotivationalText] = useState<string>('🏆 União, Força e Glória! 🏆');
   const [showSponsors, setShowSponsors] = useState<boolean>(true);
   const [sponsorText, setSponsorText] = useState<string>('PATROCINADORES');
+  const [showFooter, setShowFooter] = useState<boolean>(false);
 
   // --- Players Selection & Layout ---
   const [selectedIndex, setSelectedIndex] = useState<number>(initialSelectedIndex ?? 0);
@@ -264,17 +266,33 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
       const exportClone = await prepareElementForExport(element, 360, 640);
       
       try {
-        // Use html-to-image with pixelRatio = 3 to get standard 1080x1920 Stories size
-        // since the preview is sized 360x640 (360 * 3 = 1080; 640 * 3 = 1920)
-        const dataUrl = await htmlToImage.toPng(exportClone, {
-          width: 360,
-          height: 640,
-          pixelRatio: 3,
-          backgroundColor: customBgGradientStart,
-        });
+        let dataUrl = '';
+        try {
+          // Use html-to-image with pixelRatio = 3 to get standard 1080x1920 Stories size
+          // since the preview is sized 360x640 (360 * 3 = 1080; 640 * 3 = 1920)
+          dataUrl = await htmlToImage.toPng(exportClone, {
+            width: 360,
+            height: 640,
+            pixelRatio: 3,
+            backgroundColor: customBgGradientStart,
+          });
+        } catch (imageErr) {
+          console.warn('htmlToImage failed, trying html2canvas fallback...', imageErr);
+          // Fallback to html2canvas
+          const canvas = await html2canvas(exportClone, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: customBgGradientStart,
+            logging: false,
+            width: 360,
+            height: 640,
+          });
+          dataUrl = canvas.toDataURL('image/png', 1.0);
+        }
 
         const link = document.createElement('a');
-        link.download = `ESCALACAO_${event.name.replace(/\s+/g, '_')}_STORIES.png`;
+        link.download = `ESCALACAO_${event.name.replace(/\s+/g, '_').toUpperCase()}_STORIES.png`;
         link.href = dataUrl;
         link.click();
 
@@ -1004,6 +1022,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                           setFontSizeClass('text-[11px]');
                           setItemsGap(1.5);
                           setShowStaff(true);
+                          setShowFooter(false);
                           toast.success("Modelo Completo Aplicado!");
                         }}
                         className="py-2 px-3 rounded-xl bg-black hover:bg-zinc-900 border border-zinc-800 text-[10px] font-black uppercase text-zinc-300 hover:text-white transition-all text-left flex flex-col justify-center"
@@ -1022,6 +1041,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                           setFontSizeClass('text-sm');
                           setItemsGap(2.5);
                           setShowStaff(false);
+                          setShowFooter(false);
                           toast.success("Modelo Stories (Apenas Nomes) Aplicado!");
                         }}
                         className="py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-orange-500/30 text-[10px] font-black uppercase text-white transition-all text-left flex flex-col justify-center"
@@ -1256,55 +1276,74 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
 
               {accordionOpen === 'footer' && (
                 <div className="p-4 border-t border-zinc-800 space-y-4 bg-zinc-950/20">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Texto Motivacional / Hashtag</label>
-                      <input
-                        type="text"
-                        value={footerMotivationalText}
-                        onChange={e => setFooterMotivationalText(e.target.value)}
-                        className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
-                        placeholder="Ex: 🏆 União, Força e Glória! 🏆"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Instagram do Clube</label>
-                      <input
-                        type="text"
-                        value={footerInstagram}
-                        onChange={e => setFooterInstagram(e.target.value)}
-                        className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
-                        placeholder="Ex: @minhaequipe_oficial"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-3 border-t border-zinc-900">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1.5 cursor-pointer">
+                  <div className="space-y-3 pb-3 border-b border-zinc-900">
+                    <label className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={showSponsors}
-                        onChange={e => setShowSponsors(e.target.checked)}
-                        className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0 text-xs"
+                        checked={showFooter}
+                        onChange={e => setShowFooter(e.target.checked)}
+                        className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0 text-sm"
                       />
-                      Exibir Área de Patrocinadores (Sponsor space)
+                      🔔 Exibir Rodapé e Redes Sociais no Encarte
                     </label>
-
-                    {showSponsors && (
-                      <div className="grid grid-cols-1 gap-2 p-3 bg-black/40 border border-zinc-900 rounded-xl">
-                        <label className="text-[10px] font-black text-zinc-505 uppercase">Título da seção</label>
-                        <input
-                          type="text"
-                          value={sponsorText}
-                          onChange={e => setSponsorText(e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-805 p-2 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold uppercase"
-                        />
-                        <p className="text-[9px] text-zinc-550 font-bold uppercase tracking-wide mt-1.5 leading-relaxed">
-                          Os patrocinadores oficiais de seu clube cadastrados em sua conta serão desenhados de forma limpa e transparente no pé da foto dos Stories.
-                        </p>
-                      </div>
-                    )}
+                    <p className="text-[9px] text-zinc-500 font-bold uppercase leading-relaxed pl-6">
+                      Desmarque para remover completamente o rodapé e obter uma leitura extremamente simples e moderna.
+                    </p>
                   </div>
+
+                  {showFooter && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Texto Motivacional / Hashtag</label>
+                          <input
+                            type="text"
+                            value={footerMotivationalText}
+                            onChange={e => setFooterMotivationalText(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
+                            placeholder="Ex: 🏆 União, Força e Glória! 🏆"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Instagram do Clube</label>
+                          <input
+                            type="text"
+                            value={footerInstagram}
+                            onChange={e => setFooterInstagram(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
+                            placeholder="Ex: @minhaequipe_oficial"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-3 border-t border-zinc-900">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showSponsors}
+                            onChange={e => setShowSponsors(e.target.checked)}
+                            className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0 text-xs"
+                          />
+                          Exibir Área de Patrocinadores (Sponsor space)
+                        </label>
+
+                        {showSponsors && (
+                          <div className="grid grid-cols-1 gap-2 p-3 bg-black/40 border border-zinc-900 rounded-xl">
+                            <label className="text-[10px] font-black text-zinc-550 uppercase">Título da seção</label>
+                            <input
+                              type="text"
+                              value={sponsorText}
+                              onChange={e => setSponsorText(e.target.value)}
+                              className="w-full bg-zinc-900 border border-zinc-805 p-2 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold uppercase"
+                            />
+                            <p className="text-[9px] text-zinc-550 font-bold uppercase tracking-wide mt-1.5 leading-relaxed">
+                              Os patrocinadores oficiais de seu clube cadastrados em sua conta serão desenhados de forma limpa e transparente no pé da foto dos Stories.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1316,12 +1355,16 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
         {/* RIGHT COLUMN: Real-Time Render Preview Screen - Span 5 */}
         <div className="lg:col-span-12 xl:col-span-5 flex flex-col items-center justify-center p-2 max-w-full overflow-x-auto no-scrollbar xl:sticky xl:top-4 xl:self-start">
           
-          <span className="text-[10px] font-black text-zinc-455 uppercase tracking-widest block mb-3 text-center">
-            Pressione e Baixe para a Arte Final ficar em 1080x1920 (HD)
+          <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest block mb-3 text-center animate-pulse">
+            💡 CLIQUE NA IMAGEM ABAIXO PARA SALVAR E BAIXAR A ARTE FINAL!
           </span>
 
           {/* Sizable Visual Device Frame */}
-          <div className="relative p-3 bg-zinc-950 border border-zinc-800/80 rounded-[3rem] shadow-2xl overflow-hidden shadow-theme-primary/5">
+          <div 
+            onClick={handleDownload}
+            className="relative p-3 bg-zinc-950 border border-zinc-800/80 rounded-[3rem] shadow-2xl overflow-hidden shadow-theme-primary/5 cursor-pointer hover:scale-[1.02] hover:border-theme-primary/35 active:scale-[0.99] transition-all group"
+            title="Clique aqui para gerar e baixar a imagem em alta resolução!"
+          >
             
             {/* Front Camera notch representation */}
             <div className="absolute top-5 left-1/2 transform -translate-x-1/2 w-28 h-5 bg-zinc-950 rounded-full z-20 flex items-center justify-around px-4">
@@ -1359,21 +1402,29 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
               )}
 
               {bgType === 'stadium' && (
-                <div 
-                  className="absolute inset-0 bg-cover bg-center z-0 contrast-125 brightness-[0.25]"
-                  style={{
-                    backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.95)), url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1000')`,
-                  }}
-                />
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                  <img 
+                    src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1000" 
+                    alt="Stadium" 
+                    className="absolute inset-0 w-full h-full object-cover contrast-125 brightness-[0.25]"
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/95" />
+                </div>
               )}
 
               {bgType === 'upload' && uploadedBgUrl && (
-                <div 
-                  className="absolute inset-0 bg-cover bg-center z-0"
-                  style={{
-                    backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url('${uploadedBgUrl}')`
-                  }}
-                />
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                  <img 
+                    src={uploadedBgUrl} 
+                    alt="Background" 
+                    className="absolute inset-0 w-full h-full object-cover"
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/85" />
+                </div>
               )}
 
               {/* Grid overlay */}
@@ -1403,6 +1454,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   src={photo1.url}
                   alt="Player 01 behind"
                   className="absolute select-none pointer-events-none max-w-none origin-center"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   style={{
                     width: `${photo1.scale * 240}px`,
                     transform: `translate(${photo1.x}px, ${photo1.y}px) ${photo1.flip ? 'scaleX(-1)' : ''}`,
@@ -1419,6 +1472,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   src={photo2.url}
                   alt="Player 02 behind"
                   className="absolute select-none pointer-events-none max-w-none origin-center"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   style={{
                     width: `${photo2.scale * 240}px`,
                     transform: `translate(${photo2.x}px, ${photo2.y}px) ${photo2.flip ? 'scaleX(-1)' : ''}`,
@@ -1438,6 +1493,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     <img
                       src={uploadedLogoUrl || logoDataUrl || ''}
                       alt="Club Logo"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
                       style={{ height: `${logoSize}px`, width: `${logoSize}px` }}
                       className="object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                     />
@@ -1500,7 +1557,10 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
               </div>
 
               {/* --- MAIN ATHLETES GRID LIST --- */}
-              <div className="absolute inset-x-6 top-36 bottom-24 flex flex-col justify-center z-10">
+              <div 
+                className="absolute inset-x-6 top-36 flex flex-col justify-center z-10"
+                style={{ bottom: showFooter ? '104px' : '24px' }}
+              >
                 
                 {filteredAthletesToRender.length === 0 ? (
                   <div className="text-center py-10 bg-black/60 border border-white/5 p-4 rounded-2xl select-none">
@@ -1582,6 +1642,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   src={photo1.url}
                   alt="Player 01 front"
                   className="absolute select-none pointer-events-none max-w-none origin-center"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   style={{
                     width: `${photo1.scale * 240}px`,
                     transform: `translate(${photo1.x}px, ${photo1.y}px) ${photo1.flip ? 'scaleX(-1)' : ''}`,
@@ -1598,6 +1660,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   src={photo2.url}
                   alt="Player 02 front"
                   className="absolute select-none pointer-events-none max-w-none origin-center"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   style={{
                     width: `${photo2.scale * 240}px`,
                     transform: `translate(${photo2.x}px, ${photo2.y}px) ${photo2.flip ? 'scaleX(-1)' : ''}`,
@@ -1610,42 +1674,43 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
               )}
 
               {/* --- STORIES FOREGROUND FOOTER --- */}
-              <div className="absolute bottom-6 left-0 right-0 px-6 flex flex-col items-center text-center z-20 select-none">
-                
-                {/* Motivation Text */}
-                {footerMotivationalText && (
-                  <p 
-                    className="text-[9px] font-black uppercase tracking-wider italic drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
-                    style={{ color: customPrimaryColor }}
-                  >
-                    {footerMotivationalText}
-                  </p>
-                )}
-
-                {/* Instagram Handle */}
-                {footerInstagram && (
-                  <p className="text-[8.5px] font-black tracking-widest text-zinc-300 drop-shadow-[0_1.5px_3px_rgba(0,0,0,1)] uppercase mt-0.5 flex items-center justify-center gap-1">
-                    <Instagram size={8} style={{ color: customPrimaryColor }} />
-                    {footerInstagram}
-                  </p>
-                )}
-
-                {/* Sponsors section */}
-                {showSponsors && (
-                  <div className="mt-2.5 w-full border-t border-white/5 pt-2 select-none">
-                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1.5">
-                      {sponsorText}
+              {showFooter && (
+                <div className="absolute bottom-4 left-0 right-0 px-6 flex flex-col items-center text-center z-20 select-none">
+                  {/* Motivation Text */}
+                  {footerMotivationalText && (
+                    <p 
+                      className="text-[9px] font-black uppercase tracking-wider italic drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] mb-1"
+                      style={{ color: customPrimaryColor }}
+                    >
+                      {footerMotivationalText}
                     </p>
-                    
-                    {/* Placeholder Sponsor display */}
-                    <div className="flex items-center justify-center gap-4 opacity-40 group-hover:opacity-60 transition-opacity">
-                      <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 1</div>
-                      <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 2</div>
-                      <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 3</div>
+                  )}
+
+                  {/* Instagram Handle */}
+                  {footerInstagram && (
+                    <p className="text-[8.5px] font-black tracking-widest text-zinc-300 drop-shadow-[0_1.5px_3px_rgba(0,0,0,1)] uppercase flex items-center justify-center gap-1">
+                      <Instagram size={8} style={{ color: customPrimaryColor }} />
+                      {footerInstagram}
+                    </p>
+                  )}
+
+                  {/* Sponsors section */}
+                  {showSponsors && (
+                    <div className="mt-2 w-full border-t border-white/5 pt-1.5 select-none">
+                      <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">
+                        {sponsorText}
+                      </p>
+                      
+                      {/* Placeholder Sponsor display */}
+                      <div className="flex items-center justify-center gap-4 opacity-40">
+                        <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 1</div>
+                        <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 2</div>
+                        <div className="h-4 w-12 bg-white/10 rounded border border-white/5 flex items-center justify-center text-[7px] font-black italic">SPONSOR 3</div>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
             </div>
           </div>

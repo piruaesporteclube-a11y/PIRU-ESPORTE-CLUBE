@@ -2630,141 +2630,166 @@ export const api = {
       return;
     }
 
+    if (!auth.currentUser) {
+      console.log("No authenticated firebase user. Skipping data migration.");
+      return;
+    }
+
     try {
       console.log("Starting data standardization migration...");
 
       // 1. Athletes
-      const athletesSnap = await getDocs(collection(db, "athletes"));
-      const athletePromises = athletesSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let changed = false;
-        const updated: any = {};
+      try {
+        const athletesSnap = await getDocs(collection(db, "athletes"));
+        const athletePromises = athletesSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let changed = false;
+          const updated: any = {};
 
-        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
-          updated.doc = formatCPFOrRG(data.doc);
-          changed = true;
-        }
-        if (data.guardian_doc && data.guardian_doc !== formatCPFOrRG(data.guardian_doc)) {
-          updated.guardian_doc = formatCPFOrRG(data.guardian_doc);
-          changed = true;
-        }
-        if (data.contact && data.contact !== formatPhone(data.contact)) {
-          updated.contact = formatPhone(data.contact);
-          changed = true;
-        }
-        if (data.guardian_phone && data.guardian_phone !== formatPhone(data.guardian_phone)) {
-          updated.guardian_phone = formatPhone(data.guardian_phone);
-          changed = true;
-        }
-
-        if (changed) {
-          await updateDoc(docSnap.ref, updated);
-        }
-      });
-      await Promise.all(athletePromises);
-
-      // 2. Users
-      const usersSnap = await getDocs(collection(db, "users"));
-      const userPromises = usersSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let changed = false;
-        const updated: any = {};
-
-        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
-          updated.doc = formatCPFOrRG(data.doc);
-          changed = true;
-        }
-
-        if (changed) {
-          await updateDoc(docSnap.ref, updated);
-        }
-      });
-      await Promise.all(userPromises);
-
-      // 3. Professors
-      const professorsSnap = await getDocs(collection(db, "professors"));
-      const professorPromises = professorsSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let changed = false;
-        const updated: any = {};
-
-        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
-          updated.doc = formatCPFOrRG(data.doc);
-          changed = true;
-        }
-        if (data.phone && data.phone !== formatPhone(data.phone)) {
-          updated.phone = formatPhone(data.phone);
-          changed = true;
-        }
-
-        if (changed) {
-          await updateDoc(docSnap.ref, updated);
-        }
-      });
-      await Promise.all(professorPromises);
-
-      // 4. Companions
-      const companionsSnap = await getDocs(collection(db, "event_companions"));
-      const companionPromises = companionsSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let changed = false;
-        const updated: any = {};
-
-        if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
-          updated.doc = formatCPFOrRG(data.doc);
-          changed = true;
-        }
-        if (data.whatsapp && data.whatsapp !== formatPhone(data.whatsapp)) {
-          updated.whatsapp = formatPhone(data.whatsapp);
-          changed = true;
-        }
-
-        if (changed) {
-          await updateDoc(docSnap.ref, updated);
-        }
-      });
-      await Promise.all(companionPromises);
-
-      // 5. Championship Teams
-      const teamsSnap = await getDocs(collection(db, "championship_teams"));
-      const teamPromises = teamsSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let changed = false;
-        const updated: any = {};
-
-        if (data.responsible_doc && data.responsible_doc !== formatCPFOrRG(data.responsible_doc)) {
-          updated.responsible_doc = formatCPFOrRG(data.responsible_doc);
-          changed = true;
-        }
-        if (data.responsible_phone && data.responsible_phone !== formatPhone(data.responsible_phone)) {
-          updated.responsible_phone = formatPhone(data.responsible_phone);
-          changed = true;
-        }
-        if (data.players && Array.isArray(data.players)) {
-          let playersChanged = false;
-          const updatedPlayers = data.players.map((p: any) => {
-            if (p.doc && p.doc !== formatCPFOrRG(p.doc)) {
-              playersChanged = true;
-              return { ...p, doc: formatCPFOrRG(p.doc) };
-            }
-            return p;
-          });
-          if (playersChanged) {
-            updated.players = updatedPlayers;
+          if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+            updated.doc = formatCPFOrRG(data.doc);
             changed = true;
           }
-        }
+          if (data.guardian_doc && data.guardian_doc !== formatCPFOrRG(data.guardian_doc)) {
+            updated.guardian_doc = formatCPFOrRG(data.guardian_doc);
+            changed = true;
+          }
+          if (data.contact && data.contact !== formatPhone(data.contact)) {
+            updated.contact = formatPhone(data.contact);
+            changed = true;
+          }
+          if (data.guardian_phone && data.guardian_phone !== formatPhone(data.guardian_phone)) {
+            updated.guardian_phone = formatPhone(data.guardian_phone);
+            changed = true;
+          }
 
-        if (changed) {
-          await updateDoc(docSnap.ref, updated);
-        }
-      });
-      await Promise.all(teamPromises);
+          if (changed) {
+            await updateDoc(docSnap.ref, updated);
+          }
+        });
+        await Promise.all(athletePromises);
+      } catch (err) {
+        console.warn("Failed to migrate athletes:", err);
+      }
+
+      // 2. Users
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const userPromises = usersSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let changed = false;
+          const updated: any = {};
+
+          if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+            updated.doc = formatCPFOrRG(data.doc);
+            changed = true;
+          }
+
+          if (changed) {
+            await updateDoc(docSnap.ref, updated);
+          }
+        });
+        await Promise.all(userPromises);
+      } catch (err) {
+        console.warn("Failed to migrate users:", err);
+      }
+
+      // 3. Professors
+      try {
+        const professorsSnap = await getDocs(collection(db, "professors"));
+        const professorPromises = professorsSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let changed = false;
+          const updated: any = {};
+
+          if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+            updated.doc = formatCPFOrRG(data.doc);
+            changed = true;
+          }
+          if (data.phone && data.phone !== formatPhone(data.phone)) {
+            updated.phone = formatPhone(data.phone);
+            changed = true;
+          }
+
+          if (changed) {
+            await updateDoc(docSnap.ref, updated);
+          }
+        });
+        await Promise.all(professorPromises);
+      } catch (err) {
+        console.warn("Failed to migrate professors:", err);
+      }
+
+      // 4. Companions
+      try {
+        const companionsSnap = await getDocs(collection(db, "event_companions"));
+        const companionPromises = companionsSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let changed = false;
+          const updated: any = {};
+
+          if (data.doc && data.doc !== formatCPFOrRG(data.doc)) {
+            updated.doc = formatCPFOrRG(data.doc);
+            changed = true;
+          }
+          if (data.whatsapp && data.whatsapp !== formatPhone(data.whatsapp)) {
+            updated.whatsapp = formatPhone(data.whatsapp);
+            changed = true;
+          }
+
+          if (changed) {
+            await updateDoc(docSnap.ref, updated);
+          }
+        });
+        await Promise.all(companionPromises);
+      } catch (err) {
+        console.warn("Failed to migrate event companions:", err);
+      }
+
+      // 5. Championship Teams
+      try {
+        const teamsSnap = await getDocs(collection(db, "championship_teams"));
+        const teamPromises = teamsSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let changed = false;
+          const updated: any = {};
+
+          if (data.responsible_doc && data.responsible_doc !== formatCPFOrRG(data.responsible_doc)) {
+            updated.responsible_doc = formatCPFOrRG(data.responsible_doc);
+            changed = true;
+          }
+          if (data.responsible_phone && data.responsible_phone !== formatPhone(data.responsible_phone)) {
+            updated.responsible_phone = formatPhone(data.responsible_phone);
+            changed = true;
+          }
+          if (data.players && Array.isArray(data.players)) {
+            let playersChanged = false;
+            const updatedPlayers = data.players.map((p: any) => {
+              if (p.doc && p.doc !== formatCPFOrRG(p.doc)) {
+                playersChanged = true;
+                return { ...p, doc: formatCPFOrRG(p.doc) };
+              }
+              return p;
+            });
+            if (playersChanged) {
+              updated.players = updatedPlayers;
+              changed = true;
+            }
+          }
+
+          if (changed) {
+            await updateDoc(docSnap.ref, updated);
+          }
+        });
+        await Promise.all(teamPromises);
+      } catch (err) {
+        console.warn("Failed to migrate championship teams:", err);
+      }
 
       localStorage.setItem("pirua_migration_cpf_phone_completed", "true");
       console.log("All data successfully migrated to standard formats.");
     } catch (e) {
-      console.error("Failed to run data migration:", e);
+      console.warn("Failed to run data migration:", e);
     }
   },
 };

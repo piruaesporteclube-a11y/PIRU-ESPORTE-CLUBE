@@ -202,7 +202,7 @@ export async function toBase64(url: string): Promise<string> {
   // 1. Try direct client-side fetch first (supports CORS natively for domains like Unsplash)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
     const response = await fetch(clientFetchUrl, { 
       mode: 'cors', 
       signal: controller.signal,
@@ -228,7 +228,7 @@ export async function toBase64(url: string): Promise<string> {
     const proxyUrl = `${window.location.origin}/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const response = await fetch(proxyUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (response.ok) {
@@ -266,7 +266,7 @@ export async function toBase64(url: string): Promise<string> {
     };
     img.onerror = () => resolve(url);
     img.src = clientFetchUrl;
-    setTimeout(() => resolve(url), 5000);
+    setTimeout(() => resolve(url), 1500);
   });
 }
 
