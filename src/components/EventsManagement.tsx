@@ -2028,6 +2028,14 @@ Muito obrigado!
               </div>
               <div className="flex items-center gap-2 self-start lg:self-center mt-2 lg:mt-0">
                 <button onClick={() => window.print()} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"><Printer size={20} /></button>
+                <button 
+                  onClick={() => setModalTab('lineup_flyer')}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-black font-black text-xs uppercase rounded-xl transition-all shadow-md shadow-orange-500/10"
+                  title="Gerar Imagem de Convocados para Stories (Instagram/WhatsApp)"
+                >
+                  <Instagram size={16} />
+                  Gerar Imagem
+                </button>
                 {isAdmin && (
                   <>
                     <button 
@@ -2061,6 +2069,7 @@ Muito obrigado!
                   allLineups={allLineupsData} 
                   athletes={athletes} 
                   professors={professors} 
+                  initialSelectedIndex={activeLineupIndex}
                 />
               ) : modalTab === 'simple_list' ? (
                 <SimpleLineupGenerator event={selectedEvent} allLineups={allLineupsData} />

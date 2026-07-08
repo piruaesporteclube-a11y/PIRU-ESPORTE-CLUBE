@@ -51,6 +51,7 @@ interface LineupFlyerGeneratorProps {
   }[];
   athletes: Athlete[];
   professors: Professor[];
+  initialSelectedIndex?: number;
 }
 
 interface PlayerPhotoSettings {
@@ -63,7 +64,7 @@ interface PlayerPhotoSettings {
   behindText: boolean;
 }
 
-export default function LineupFlyerGenerator({ event, allLineups, athletes, professors }: LineupFlyerGeneratorProps) {
+export default function LineupFlyerGenerator({ event, allLineups, athletes, professors, initialSelectedIndex }: LineupFlyerGeneratorProps) {
   const { settings } = useTheme();
   const flyerRef = useRef<HTMLDivElement>(null);
   const fileInputRef1 = useRef<HTMLInputElement>(null);
@@ -122,7 +123,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [sponsorText, setSponsorText] = useState<string>('PATROCINADORES');
 
   // --- Players Selection & Layout ---
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [selectedIndex, setSelectedIndex] = useState<number>(initialSelectedIndex ?? 0);
   const [selectedListAthletes, setSelectedListAthletes] = useState<string[]>([]);
   const [selectedListStaff, setSelectedListStaff] = useState<string[]>([]);
   const [showStaff, setShowStaff] = useState<boolean>(true);
@@ -133,6 +134,13 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [showPosition, setShowPosition] = useState<boolean>(true);
   const [showNickname, setShowNickname] = useState<boolean>(true);
   const [sortAlphabetically, setSortAlphabetically] = useState<boolean>(true);
+
+  // Sync selectedIndex when initialSelectedIndex changes
+  useEffect(() => {
+    if (initialSelectedIndex !== undefined) {
+      setSelectedIndex(initialSelectedIndex);
+    }
+  }, [initialSelectedIndex]);
 
   // --- Featured Player Photos (Ajustar Fotos) ---
   const [photo1, setPhoto1] = useState<PlayerPhotoSettings>({
@@ -979,6 +987,51 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
               {accordionOpen === 'list' && (
                 <div className="p-4 border-t border-zinc-800 space-y-4 bg-zinc-950/20">
                   
+                  {/* Preset Buttons for Quick Layout */}
+                  <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl space-y-2">
+                    <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest block">
+                      ⚡ PRESETS RÁPIDOS DE LAYOUT:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowJersey(true);
+                          setShowPosition(true);
+                          setShowNickname(true);
+                          setSortAlphabetically(true);
+                          setColumnsCount(2);
+                          setFontSizeClass('text-[11px]');
+                          setItemsGap(1.5);
+                          setShowStaff(true);
+                          toast.success("Modelo Completo Aplicado!");
+                        }}
+                        className="py-2 px-3 rounded-xl bg-black hover:bg-zinc-900 border border-zinc-800 text-[10px] font-black uppercase text-zinc-300 hover:text-white transition-all text-left flex flex-col justify-center"
+                      >
+                        <span className="text-theme-primary">📋 Completo Tradicional</span>
+                        <span className="text-[8px] text-zinc-500 font-bold mt-0.5 font-sans lowercase">número, posição, apelido e comissão em 2 colunas</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowJersey(false);
+                          setShowPosition(false);
+                          setShowNickname(false);
+                          setSortAlphabetically(true);
+                          setColumnsCount(1);
+                          setFontSizeClass('text-sm');
+                          setItemsGap(2.5);
+                          setShowStaff(false);
+                          toast.success("Modelo Stories (Apenas Nomes) Aplicado!");
+                        }}
+                        className="py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-orange-500/30 text-[10px] font-black uppercase text-white transition-all text-left flex flex-col justify-center"
+                      >
+                        <span className="text-orange-400">📲 Lista de Nomes (Stories)</span>
+                        <span className="text-[8px] text-zinc-400 font-bold mt-0.5 font-sans lowercase">apenas nomes em ordem alfabética e numerados (ideal para whatsapp/instagram)</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Grid Layout controls */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-black/40 rounded-2xl border border-zinc-900">
                     <div className="space-y-1.5">
