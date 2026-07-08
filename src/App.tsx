@@ -1246,8 +1246,13 @@ export default function App() {
 
   useEffect(() => {
     initAuth();
-    api.migrateDataToNewPatterns().catch(err => console.error("Migration error:", err));
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      api.migrateDataToNewPatterns().catch(err => console.error("Migration error:", err));
+    }
+  }, [user?.role]);
 
   const handleLogin = (auth: any) => {
     if (!auth || !auth.user) {
