@@ -130,7 +130,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [selectedListStaff, setSelectedListStaff] = useState<string[]>([]);
   const [showStaff, setShowStaff] = useState<boolean>(true);
   const [columnsCount, setColumnsCount] = useState<1 | 2>(2);
-  const [fontSizeClass, setFontSizeClass] = useState<'text-[10px]' | 'text-[11px]' | 'text-xs' | 'text-sm'>('text-xs');
+  const [fontSizeClass, setFontSizeClass] = useState<'text-[10px]' | 'text-[11px]' | 'text-xs' | 'text-sm' | 'text-base' | 'text-lg'>('text-sm');
   const [itemsGap, setItemsGap] = useState<number>(1.5); // gap in py-0.5, py-1, py-1.5, etc.
   const [showJersey, setShowJersey] = useState<boolean>(true);
   const [showPosition, setShowPosition] = useState<boolean>(true);
@@ -1019,8 +1019,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                           setShowNickname(true);
                           setSortAlphabetically(true);
                           setColumnsCount(2);
-                          setFontSizeClass('text-[11px]');
-                          setItemsGap(1.5);
+                          setFontSizeClass('text-sm');
+                          setItemsGap(2.0);
                           setShowStaff(true);
                           setShowFooter(false);
                           toast.success("Modelo Completo Aplicado!");
@@ -1038,8 +1038,8 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                           setShowNickname(false);
                           setSortAlphabetically(true);
                           setColumnsCount(1);
-                          setFontSizeClass('text-sm');
-                          setItemsGap(2.5);
+                          setFontSizeClass('text-base');
+                          setItemsGap(3.0);
                           setShowStaff(false);
                           setShowFooter(false);
                           toast.success("Modelo Stories (Apenas Nomes) Aplicado!");
@@ -1086,9 +1086,11 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         className="w-full bg-zinc-900 border border-zinc-805 rounded-xl p-2 text-xs text-zinc-350 focus:border-theme-primary outline-none uppercase font-bold"
                       >
                         <option value="text-[10px]">Minúsculo / Extra Small</option>
-                        <option value="text-[11px]">Compacto (Recomendado)</option>
-                        <option value="text-xs">Médio</option>
-                        <option value="text-sm">Grande (Menos atletas)</option>
+                        <option value="text-[11px]">Compacto</option>
+                        <option value="text-xs">Médio (12px)</option>
+                        <option value="text-sm">Grande (14px - Recomendado)</option>
+                        <option value="text-base">Muito Grande (16px)</option>
+                        <option value="text-lg">Gigante (18px - Poucos atletas)</option>
                       </select>
                     </div>
                   </div>
@@ -1572,7 +1574,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     
                     {/* Athlete Columns */}
                     <div 
-                      className={`grid ${columnsCount === 2 ? 'grid-cols-2 gap-x-6' : 'grid-cols-1'} gap-y-0.5 bg-black/45 backdrop-blur-sm border border-white/5 p-4 rounded-3xl`}
+                      className={`grid ${columnsCount === 2 ? 'grid-cols-2 gap-x-6' : 'grid-cols-1'} bg-black/50 backdrop-blur-sm border border-white/5 p-4 rounded-3xl`}
                       style={{ padding: '16px', gap: `${itemsGap * 4}px` }}
                     >
                       {filteredAthletesToRender.map((a, idx) => {
@@ -1581,31 +1583,65 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         return (
                           <div 
                             key={a.id} 
-                            className={`flex items-center justify-between border-b border-white/5 pb-1 max-w-full overflow-hidden ${fontSizeClass}`}
+                            className={`flex items-center justify-between border-b border-white/[0.08] pb-1.5 max-w-full overflow-hidden transition-all duration-300 hover:bg-white/[0.02] px-1 rounded-lg ${fontSizeClass}`}
                           >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-[9px] font-mono opacity-40 font-semibold">{num}</span>
-                              <span className="font-extrabold uppercase text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span 
+                                className="font-mono font-black select-none mr-1 shrink-0"
+                                style={{ 
+                                  fontSize: '0.85em',
+                                  color: customPrimaryColor,
+                                  opacity: 0.4
+                                }}
+                              >
+                                {num}
+                              </span>
+                              <span 
+                                className="font-extrabold uppercase text-white truncate tracking-wide"
+                                style={{
+                                  textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.5)'
+                                }}
+                              >
                                 {a.name}
                                 {showNickname && a.nickname && (
-                                  <span className="text-[8.5px] lowercase font-medium ml-1" style={{ color: customPrimaryColor }}>
+                                  <span 
+                                    className="lowercase font-bold ml-1.5 opacity-90 px-1.5 py-0.5 rounded bg-black/30" 
+                                    style={{ 
+                                      color: customPrimaryColor,
+                                      fontSize: '0.82em',
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                                    }}
+                                  >
                                     "{a.nickname.toLowerCase()}"
                                   </span>
                                 )}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0 pl-1.5">
+                            <div className="flex items-center gap-2 shrink-0 pl-1.5">
                               {showPosition && a.position && (
-                                <span className="opacity-50 text-[7px] font-extrabold uppercase px-1 py-0.2 border border-white/10 rounded">
+                                <span 
+                                  className="font-black uppercase px-1.5 py-0.5 rounded border tracking-wider shrink-0"
+                                  style={{ 
+                                    fontSize: '0.7em',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                                    color: '#e4e4e7', // text-zinc-200
+                                    textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                                  }}
+                                >
                                   {a.position.trim().split(',')[0].slice(0, 3)}
                                 </span>
                               )}
                               
                               {showJersey && (
                                 <span 
-                                  className="font-mono text-[9px] font-black"
-                                  style={{ color: customPrimaryColor }}
+                                  className="font-mono font-black tracking-tighter shrink-0"
+                                  style={{ 
+                                    color: customPrimaryColor, 
+                                    fontSize: '0.9em',
+                                    textShadow: '0 1.5px 3px rgba(0,0,0,0.9)'
+                                  }}
                                 >
                                   #{a.jersey_number || 'S/N'}
                                 </span>
