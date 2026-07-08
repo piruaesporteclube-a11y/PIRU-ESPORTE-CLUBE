@@ -101,6 +101,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   ].filter(Boolean).join(' - ');
 
   const [headerTitle, setHeaderTitle] = useState<string>('CONVOCADOS');
+  const [headerCategoryText, setHeaderCategoryText] = useState<string>('');
   const [headerSubtitle, setHeaderSubtitle] = useState<string>(event.name || 'DATA DO JOGO');
   const [showLogo, setShowLogo] = useState<boolean>(true);
   const [logoSize, setLogoSize] = useState<number>(48);
@@ -131,6 +132,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [showJersey, setShowJersey] = useState<boolean>(true);
   const [showPosition, setShowPosition] = useState<boolean>(true);
   const [showNickname, setShowNickname] = useState<boolean>(true);
+  const [sortAlphabetically, setSortAlphabetically] = useState<boolean>(true);
 
   // --- Featured Player Photos (Ajustar Fotos) ---
   const [photo1, setPhoto1] = useState<PlayerPhotoSettings>({
@@ -172,6 +174,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
     if (defaultLineup) {
       setSelectedListAthletes(defaultLineup.athletes.map(a => a.id));
       setSelectedListStaff(defaultLineup.staff.map(s => s.id));
+      setHeaderCategoryText(defaultLineup.category || defaultLineup.lineup_name || `SUB-${selectedIndex + 1}`);
     }
   }, [selectedIndex, allLineups]);
 
@@ -282,7 +285,14 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   };
 
   // Filter actual athlete list based on users selection
-  const filteredAthletesToRender = currentLineup.athletes.filter(a => selectedListAthletes.includes(a.id));
+  const filteredAthletesToRender = currentLineup.athletes
+    .filter(a => selectedListAthletes.includes(a.id))
+    .sort((a, b) => {
+      if (sortAlphabetically) {
+        return a.name.localeCompare(b.name, 'pt-BR');
+      }
+      return 0;
+    });
   const filteredStaffToRender = currentLineup.staff.filter(s => selectedListStaff.includes(s.id));
 
   // Determine font family style
@@ -578,7 +588,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
 
               {accordionOpen === 'header' && (
                 <div className="p-4 border-t border-zinc-800 space-y-4 bg-zinc-950/20">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Título Principal</label>
                       <input
@@ -590,13 +600,23 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                       />
                     </div>
                     <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Categoria / SUB</label>
+                      <input
+                        type="text"
+                        value={headerCategoryText}
+                        onChange={e => setHeaderCategoryText(e.target.value)}
+                        className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
+                        placeholder="Ex: SUB-15"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-zinc-505 uppercase tracking-widest block">Subtítulo (Evento)</label>
                       <input
                         type="text"
                         value={headerSubtitle}
                         onChange={e => setHeaderSubtitle(e.target.value)}
                         className="w-full bg-black border border-zinc-850 p-2.5 rounded-xl text-xs text-white focus:ring-1 focus:ring-theme-primary outline-none font-bold placeholder-zinc-700"
-                        placeholder="Ex: FINAL DE CAMPEONATO"
+                        placeholder="Ex: COPA INTERNACIONAL"
                       />
                     </div>
                   </div>
@@ -1001,7 +1021,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                   </div>
 
                   {/* Formatting Toggles */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-black/30 border border-zinc-900 rounded-xl">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-black/30 border border-zinc-900 rounded-xl">
                     <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1028,6 +1048,15 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
                       />
                       Apelido "Aspas"
+                    </label>
+                    <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sortAlphabetically}
+                        onChange={e => setSortAlphabetically(e.target.checked)}
+                        className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
+                      />
+                      Ordem Alfabética
                     </label>
                   </div>
 
@@ -1369,6 +1398,21 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                 >
                   {headerTitle}
                 </h2>
+
+                {/* Category Badge */}
+                {headerCategoryText && (
+                  <span 
+                    className="inline-block px-3 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md mt-1 select-none shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
+                    style={{ 
+                      borderColor: `${customPrimaryColor}40`, 
+                      color: '#ffffff', 
+                      backgroundColor: customPrimaryColor,
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                    }}
+                  >
+                    {headerCategoryText}
+                  </span>
+                )}
 
                 {/* Subtitle */}
                 {headerSubtitle && (
