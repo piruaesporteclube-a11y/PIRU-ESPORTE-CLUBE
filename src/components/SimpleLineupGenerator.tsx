@@ -117,6 +117,10 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
       text += `\n`;
     }
 
+    if (event.whatsapp_group_id && event.whatsapp_group_id.trim() !== '') {
+      text += `💬 *GRUPO DA VIAGEM:* ${event.whatsapp_group_id.trim()}\n\n`;
+    }
+
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     text += `🍀 *União, Força e Glória!* 🍀`;
     return text;
@@ -137,7 +141,13 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
       text += `${num}.   *${a.name}${nickname}* (#${a.jersey_number || 'S/N'}${position})\n`;
     });
 
-    text += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `\n`;
+
+    if (event.whatsapp_group_id && event.whatsapp_group_id.trim() !== '') {
+      text += `💬 *GRUPO DA VIAGEM:* ${event.whatsapp_group_id.trim()}\n\n`;
+    }
+
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
     text += `🍀 *União, Força e Glória!* 🍀`;
     return text;
   };
@@ -165,6 +175,10 @@ export default function SimpleLineupGenerator({ event, allLineups }: SimpleLineu
         text += `• *${s.name}* (${s.role || 'Staff'})\n`;
       });
       text += `\n`;
+    }
+
+    if (event.whatsapp_group_id && event.whatsapp_group_id.trim() !== '') {
+      text += `💬 *GRUPO DA VIAGEM:* ${event.whatsapp_group_id.trim()}\n\n`;
     }
 
     text += `━━━━━━━━━━━━━━━━━━━━\n`;

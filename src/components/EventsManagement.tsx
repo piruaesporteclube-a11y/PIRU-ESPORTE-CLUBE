@@ -551,6 +551,49 @@ Muito obrigado!
     toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
   };
 
+  const handleSendWhatsAppGroupLink = (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
+    if (!event.whatsapp_group_id || event.whatsapp_group_id.trim() === '') {
+      toast.error('Nenhum link de grupo do WhatsApp cadastrado para este evento. Edite o evento para cadastrar o link do grupo da viagem!');
+      return;
+    }
+
+    const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
+    const groupLink = event.whatsapp_group_id.trim();
+
+    const text = `Olá, tudo bem? ⚽
+
+Gostaríamos de convidar você para entrar no grupo oficial da viagem/evento *${event.name}* para podermos nos comunicar e alinhar todos os detalhes!
+
+🔗 *Link do grupo:* ${groupLink}
+
+Por favor, entre no grupo clicando no link acima para ficar por dentro das informações e avisos importantes.
+
+Muito obrigado!
+*Piruá Esporte Clube*`;
+
+    const encodedText = encodeURIComponent(text);
+    
+    let rawPhone = '';
+    if (target === 'parent') {
+      rawPhone = athlete.guardian_phone || '';
+    } else if (target === 'athlete') {
+      rawPhone = athlete.contact || (athlete as any).phone || '';
+    } else {
+      rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    }
+    
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+
+    if (!cleanPhone) {
+      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado!`);
+      return;
+    }
+
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
+  };
+
   const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
     if (list.length === 0) {
       toast.error('Nenhum atleta selecionado para gerar autorizações.');
@@ -2719,6 +2762,56 @@ Muito obrigado!
                                             >
                                               <MessageCircle size={11} />
                                               Aluno
+                                            </button>
+                                          ) : null}
+                                        </div>
+                                      </div>
+
+                                      {/* Travel WhatsApp Group invitation */}
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
+                                        <div className="flex flex-col">
+                                          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                                            Grupo da Viagem (WhatsApp):
+                                          </span>
+                                          {selectedEvent?.whatsapp_group_id ? (
+                                            <div className="flex flex-col mt-0.5">
+                                              <span className="text-[9px] text-zinc-500 font-bold uppercase">
+                                                Responsável: <span className="text-zinc-300">{a.guardian_name || 'Não informado'}</span>
+                                              </span>
+                                              {a.guardian_phone ? (
+                                                <span className="text-[8px] text-green-500/80 font-mono font-bold mt-0.5">{a.guardian_phone}</span>
+                                              ) : ((a as any).contact || (a as any).phone) ? (
+                                                <span className="text-[8px] text-yellow-500/80 font-mono font-bold mt-0.5">
+                                                  {((a as any).contact || (a as any).phone)} (Usando contato do aluno)
+                                                </span>
+                                              ) : (
+                                                <span className="text-[8px] text-red-400 font-bold uppercase italic mt-0.5">Sem telefone cadastrado</span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span className="text-[8px] text-red-400 font-bold uppercase italic mt-0.5">Sem grupo cadastrado no evento</span>
+                                          )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 justify-end">
+                                          {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
+                                            <button 
+                                              onClick={() => handleSendWhatsAppGroupLink(selectedEvent!, a, 'parent')}
+                                              disabled={!selectedEvent?.whatsapp_group_id}
+                                              className="p-2 px-3 rounded-lg bg-green-500 hover:bg-green-400 text-black disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[10px] font-black uppercase cursor-pointer shadow-lg shadow-green-500/10 hover:scale-[1.02] active:scale-95"
+                                              title={`Enviar Convite para o Pai/Responsável (${a.guardian_name || 'Pais'}) via WhatsApp`}
+                                            >
+                                              <MessageCircle size={12} className="text-black" />
+                                              Convidar Pai/Responsável
+                                            </button>
+                                          ) : ((a as any).contact || (a as any).phone) ? (
+                                            <button 
+                                              onClick={() => handleSendWhatsAppGroupLink(selectedEvent!, a, 'parent')}
+                                              disabled={!selectedEvent?.whatsapp_group_id}
+                                              className="p-2 px-3 rounded-lg bg-zinc-800 border border-green-500/30 text-green-400 hover:text-green-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[10px] font-black uppercase cursor-pointer hover:scale-[1.02] active:scale-95"
+                                              title="Enviar Convite para o WhatsApp do Contato (Sem telefone do responsável cadastrado)"
+                                            >
+                                              <MessageCircle size={12} className="text-green-400" />
+                                              Convidar Responsável
                                             </button>
                                           ) : null}
                                         </div>
