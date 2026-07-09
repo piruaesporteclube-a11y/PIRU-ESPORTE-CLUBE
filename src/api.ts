@@ -9,15 +9,15 @@ import {
 } from "firebase/auth";
 import { 
   doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
+  getDoc as _getDoc, 
+  getDocs as _getDocs, 
+  setDoc as _setDoc, 
+  updateDoc as _updateDoc, 
+  deleteDoc as _deleteDoc, 
   collection, 
   query, 
   where, 
-  onSnapshot,
+  onSnapshot as _onSnapshot,
   getDocFromServer,
   writeBatch,
   orderBy,
@@ -28,6 +28,89 @@ import {
   terminate,
   clearIndexedDbPersistence
 } from "firebase/firestore";
+
+// --- FIRESTORE USAGE TRACKER ---
+export interface UsageStats {
+  reads: number;
+  writes: number;
+  date: string;
+}
+
+export const getUsageStats = (): UsageStats => {
+  try {
+    const data = localStorage.getItem('pirua_firestore_usage');
+    const today = new Date().toDateString();
+    if (data) {
+      const stats = JSON.parse(data) as UsageStats;
+      if (stats.date === today) {
+        return stats;
+      }
+    }
+    const newStats = { reads: 0, writes: 0, date: today };
+    localStorage.setItem('pirua_firestore_usage', JSON.stringify(newStats));
+    return newStats;
+  } catch (e) {
+    return { reads: 0, writes: 0, date: new Date().toDateString() };
+  }
+};
+
+export const trackUsage = (type: 'reads' | 'writes', amount: number) => {
+  try {
+    const stats = getUsageStats();
+    stats[type] += amount;
+    localStorage.setItem('pirua_firestore_usage', JSON.stringify(stats));
+    window.dispatchEvent(new window.Event('pirua_usage_updated'));
+  } catch (e) {
+    // ignore
+  }
+};
+
+// Wrappers for tracking usage statistics
+const getDoc = async (docRef: any): Promise<any> => {
+  const snapshot = await _getDoc(docRef);
+  if (snapshot && !snapshot.metadata?.fromCache) {
+    trackUsage('reads', 1);
+  }
+  return snapshot;
+};
+
+const getDocs = async (q: any): Promise<any> => {
+  const snapshot = await _getDocs(q);
+  if (snapshot && !snapshot.metadata?.fromCache) {
+    trackUsage('reads', Math.max(1, snapshot.size));
+  }
+  return snapshot;
+};
+
+const setDoc = async (docRef: any, data: any, options?: any): Promise<any> => {
+  trackUsage('writes', 1);
+  if (options) {
+    return _setDoc(docRef, data, options);
+  }
+  return _setDoc(docRef, data);
+};
+
+const updateDoc = async (docRef: any, data: any): Promise<any> => {
+  trackUsage('writes', 1);
+  return _updateDoc(docRef, data);
+};
+
+const deleteDoc = async (docRef: any): Promise<any> => {
+  trackUsage('writes', 1);
+  return _deleteDoc(docRef);
+};
+
+const onSnapshot = (ref: any, onNext: any, onError?: any): any => {
+  return _onSnapshot(ref, (snapshot: any) => {
+    if (snapshot && !snapshot.metadata?.fromCache) {
+      const changesCount = snapshot.docChanges().length;
+      if (changesCount > 0) {
+        trackUsage('reads', changesCount);
+      }
+    }
+    onNext(snapshot);
+  }, onError);
+};
 import { auth, db } from "./firebase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
 import { formatCPF, formatCPFOrRG, formatPhone } from "./utils";

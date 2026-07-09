@@ -40,8 +40,8 @@ import { AccessAudit } from './components/AccessAudit';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
-import { api, clearCache } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause } from 'lucide-react';
+import { api, clearCache, getUsageStats } from './api';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -580,6 +580,9 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
         </div>
       </section>
 
+      {/* Firestore Daily Quotas Tracker */}
+      <QuotaTrackerBar />
+
       {/* Stats */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
@@ -949,6 +952,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 }
 
 import QuotaBanner from './components/QuotaBanner';
+import QuotaTrackerBar from './components/QuotaTrackerBar';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
