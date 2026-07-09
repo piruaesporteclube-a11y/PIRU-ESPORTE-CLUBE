@@ -1178,6 +1178,7 @@ Muito obrigado!
     }
 
     toast.info(`Iniciando notificações para ${athletesWithPhone.length + staffWithPhone.length} pessoas...`);
+    setNotifiedRecipients([]);
     
     const generalMessage = `Olá! Você foi escalado para o evento *${selectedEvent.name}*. \n📅 *Data:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}\n\nPor favor, confirme sua participação acessando o portal: ${window.location.origin}\n\nContamos com sua presença!`;
 
@@ -1231,8 +1232,59 @@ Muito obrigado!
     setIsNotificationModalOpen(true);
   };
 
+  const handleInviteAllToGroup = () => {
+    if (!selectedEvent) return;
+    if (!selectedEvent.whatsapp_group_id || selectedEvent.whatsapp_group_id.trim() === '') {
+      toast.error('Nenhum link de grupo do WhatsApp cadastrado para este evento. Edite o evento para cadastrar o link do grupo da viagem!');
+      return;
+    }
+
+    const groupLink = selectedEvent.whatsapp_group_id.trim();
+    
+    // Find all selected athletes whose phone is available
+    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && (a.contact || a.guardian_phone || (a as any).phone));
+    
+    if (athletesWithPhone.length === 0) {
+      toast.error("Nenhum atleta ou responsável com telefone cadastrado para convidar.");
+      return;
+    }
+
+    toast.info(`Iniciando convites de grupo para ${athletesWithPhone.length} responsáveis...`);
+    setNotifiedRecipients([]);
+    
+    const generalMessage = `Gostaríamos de convidar você para entrar no grupo oficial da viagem/evento *${selectedEvent.name}*!\n\n🔗 *Link do grupo:* ${groupLink}`;
+
+    setNotificationBatch({
+      message: generalMessage,
+      recipients: athletesWithPhone.map(a => {
+        const textTargetName = a.guardian_phone ? 'Responsável' : 'Atleta';
+        const athleteMsg = `Olá, tudo bem? ⚽
+
+Gostaríamos de convidar você para entrar no grupo oficial da viagem/evento *${selectedEvent.name}* para podermos nos comunicar e alinhar todos os detalhes!
+
+🔗 *Link do grupo:* ${groupLink}
+
+Por favor, entre no grupo clicando no link acima para ficar por dentro das informações e avisos importantes.
+
+Muito obrigado!
+*Piruá Esporte Clube*`;
+        return { 
+          id: a.id, 
+          name: a.name, 
+          phone: a.guardian_phone || a.contact || (a as any).phone || '', 
+          guardianPhone: a.guardian_phone || '',
+          contactPhone: a.contact || (a as any).phone || '',
+          type: 'Atleta',
+          customMessage: athleteMsg
+        };
+      })
+    });
+    setIsNotificationModalOpen(true);
+  };
+
   const [notificationBatch, setNotificationBatch] = useState<{ message: string, recipients: { id: string, name: string, phone: string, guardianPhone?: string, contactPhone?: string, type: string, customMessage?: string }[] } | null>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notifiedRecipients, setNotifiedRecipients] = useState<string[]>([]);
 
   const handleSaveLineup = async () => {
     if (isEventFinished) {
@@ -2550,6 +2602,15 @@ Muito obrigado!
                                 <MessageCircle size={10} />
                                 Notificar Todos
                               </button>
+                              <button 
+                                onClick={handleInviteAllToGroup}
+                                disabled={!selectedEvent?.whatsapp_group_id}
+                                className="p-1 px-2 rounded-lg bg-green-500 text-black hover:bg-green-400 disabled:opacity-40 disabled:bg-zinc-850 disabled:text-zinc-550 disabled:cursor-not-allowed flex items-center gap-1 text-[8px] font-extrabold uppercase transition-all cursor-pointer"
+                                title={selectedEvent?.whatsapp_group_id ? "Convidar todos os pais/responsáveis para o grupo da viagem via WhatsApp" : "Cadastre o link do grupo do WhatsApp nas configurações do evento para habilitar"}
+                              >
+                                <MessageCircle size={10} />
+                                Convite Grupo (Lote)
+                              </button>
                               {selectedAthletes.length > 0 && (
                                 <button 
                                   onClick={() => {
@@ -3307,6 +3368,18 @@ Muito obrigado!
             </div>
             
             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+              {/* Informative Alert for batch sending */}
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-2xl text-[11px] font-medium leading-relaxed">
+                <p className="font-extrabold uppercase text-[10px] mb-1.5 flex items-center gap-1 text-amber-400">
+                  ⚠️ ATENÇÃO - IMPORTANTE SOBRE O ENVIO EM BLOCO (LOTE):
+                </p>
+                O WhatsApp e os navegadores de internet <strong>não permitem disparar mensagens em massa automaticamente em segundo plano</strong> por segurança (anti-spam).
+                <br /><br />
+                Por favor, <strong>clique no botão verde de cada pessoa na lista abaixo</strong>. Isso abrirá a tela do WhatsApp com o texto já preenchido, bastando você apertar "Enviar". 
+                <br /><br />
+                Os contatos já clicados ficarão marcados com <span className="text-green-400 font-bold">✅ ENVIADO</span> para você não se perder!
+              </div>
+
               <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700 mb-6">
                 <p className="text-[10px] font-black text-theme-primary uppercase mb-2">Mensagem a ser enviada:</p>
                 <p className="text-xs text-zinc-300 italic whitespace-pre-wrap">{notificationBatch.message}</p>
@@ -3316,31 +3389,40 @@ Muito obrigado!
                 const hasParent = r.type === 'Atleta' && r.guardianPhone && r.guardianPhone.trim() !== '';
                 const hasAthlete = r.type === 'Atleta' && r.contactPhone && r.contactPhone.trim() !== '';
                 const isStaff = r.type === 'Comissão';
+                const isSent = notifiedRecipients.includes(r.id);
 
                 return (
                   <div
                     key={i}
-                    className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+                    className={`w-full p-4 border rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all duration-300 ${isSent ? 'bg-zinc-950/40 border-green-500/20 opacity-85' : 'bg-zinc-800 border-zinc-700'}`}
                   >
-                    <div className="text-left">
-                      <p className="font-bold text-white uppercase text-xs md:text-sm">{r.name}</p>
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase">
+                    <div className="text-left flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className={`font-bold uppercase text-xs md:text-sm ${isSent ? 'text-zinc-400 line-through' : 'text-white'}`}>{r.name}</p>
+                        {isSent && (
+                          <span className="text-[9px] font-black uppercase text-green-400 px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20 animate-pulse">
+                            ✅ Enviado
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase mt-0.5">
                         {r.type} {r.type === 'Atleta' ? `• POSSUI: ${[hasParent && 'PAIS', hasAthlete && 'ALUNO'].filter(Boolean).join(' e ')}` : `• ${r.phone}`}
                       </p>
                     </div>
                     
-                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+                    <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
                       {isStaff && (
                         <button
                           onClick={() => {
                             const finalMsg = r.customMessage || notificationBatch.message;
                             const msg = encodeURIComponent(finalMsg);
+                            setNotifiedRecipients(prev => [...prev, r.id]);
                             window.open(`https://wa.me/55${r.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
                           }}
-                          className="py-1.5 px-3 bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500 hover:text-black rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          className={`py-1.5 px-3 border rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700' : 'bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500 hover:text-black'}`}
                         >
                           <MessageCircle size={12} />
-                          Enviar WhatsApp
+                          {isSent ? 'Reenviar Comissão' : 'Enviar WhatsApp'}
                         </button>
                       )}
                       
@@ -3349,6 +3431,7 @@ Muito obrigado!
                           onClick={async () => {
                             const finalMsg = r.customMessage || notificationBatch.message;
                             const msg = encodeURIComponent(finalMsg);
+                            setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
@@ -3357,11 +3440,11 @@ Muito obrigado!
                             }
                             window.open(`https://wa.me/55${r.guardianPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
                           }}
-                          className="py-1.5 px-3 bg-green-500 hover:bg-green-600 text-black rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          className={`py-1.5 px-3 rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white' : 'bg-green-500 hover:bg-green-600 text-black'}`}
                           title="Enviar para Responsável/Pais"
                         >
                           <MessageCircle size={12} />
-                          Pais
+                          {isSent ? 'Reenviar Pais' : 'Pais'}
                         </button>
                       )}
                       
@@ -3370,6 +3453,7 @@ Muito obrigado!
                           onClick={async () => {
                             const finalMsg = r.customMessage || notificationBatch.message;
                             const msg = encodeURIComponent(finalMsg);
+                            setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
@@ -3378,11 +3462,11 @@ Muito obrigado!
                             }
                             window.open(`https://wa.me/55${r.contactPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
                           }}
-                          className="py-1.5 px-3 bg-theme-primary/10 border border-theme-primary/30 text-theme-primary hover:bg-theme-primary hover:text-black rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          className={`py-1.5 px-3 border rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700' : 'bg-theme-primary/10 border-theme-primary/30 text-theme-primary hover:bg-theme-primary hover:text-black'}`}
                           title="Enviar para Atleta/Aluno"
                         >
                           <MessageCircle size={12} />
-                          Aluno
+                          {isSent ? 'Reenviar Aluno' : 'Aluno'}
                         </button>
                       )}
                       
