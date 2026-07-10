@@ -12,6 +12,64 @@ import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+const hasScheduledTrainingOrEventForAthlete = (
+  athlete: Athlete,
+  dateStr: string,
+  allTrainings: Training[],
+  allEvents: Event[]
+): boolean => {
+  const athleteMods = (athlete.modality || '')
+    .split(',')
+    .map(m => m.trim().toLowerCase())
+    .filter(Boolean);
+  
+  const athleteSub = getSubCategory(athlete.birth_date);
+
+  // Check if there is any training on this date matching the athlete's modality and category
+  const hasMatchingTraining = allTrainings.some(t => {
+    if (t.date !== dateStr) return false;
+
+    // Check Modality: if training has a modality specified, it must match one of the athlete's modalities
+    if (t.modality) {
+      const trainingMod = t.modality.trim().toLowerCase();
+      const matchesModality = athleteMods.some(m => 
+        m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod)
+      );
+      if (!matchesModality) return false;
+    }
+
+    // Check Category: if training has a category, it must match the athlete's sub-category or be "Todos"
+    const isCategoryEligible = t.category === 'Todos' || t.category === athleteSub;
+    if (isCategoryEligible) return true;
+
+    // If training has schedules, check if any schedule category matches
+    if (t.schedules && t.schedules.length > 0) {
+      return t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
+    }
+
+    return false;
+  });
+
+  if (hasMatchingTraining) return true;
+
+  // Check if there is any event on this date matching the athlete's modality
+  const hasMatchingEvent = allEvents.some(e => {
+    if (dateStr < e.start_date || dateStr > e.end_date) return false;
+
+    if (e.modality) {
+      const eventMod = e.modality.trim().toLowerCase();
+      const matchesModality = athleteMods.some(m => 
+        m === eventMod || eventMod.includes(m) || m.includes(eventMod)
+      );
+      return matchesModality;
+    }
+
+    return true;
+  });
+
+  return hasMatchingEvent;
+};
+
 export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin', filterCategory = 'Todos' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string, filterCategory?: string }) {
   const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
@@ -69,6 +127,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
   const [availableTrainings, setAvailableTrainings] = useState<Training[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<Event[]>([]);
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | 'geral'>(trainingId || 'geral');
   const [event, setEvent] = useState<Event | null>(null);
   const [isLocked, setIsLocked] = useState(false);
@@ -273,23 +332,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   }, [filterCategory]);
 
   useEffect(() => {
-    const fetchDayTrainings = async () => {
+    const fetchDayTrainingsAndEvents = async () => {
       try {
-        const allTrainings = await api.getTrainings();
+        const [allTrainings, allEvents] = await Promise.all([
+          api.getTrainings(),
+          api.getEvents()
+        ]);
         const dayTrainings = allTrainings.filter(t => t.date === date);
         setAvailableTrainings(dayTrainings);
+
+        const dayEvents = allEvents.filter(e => date >= e.start_date && date <= e.end_date);
+        setAvailableEvents(dayEvents);
         
         if (trainingId) {
           setSelectedTrainingId(trainingId);
-        } else if (dayTrainings.length > 0 && selectedTrainingId === 'geral') {
-          // If there's training today and we are in "geral", maybe we should prompt?
-          // For now, let's just keep 'geral' unless specifically selected.
         }
       } catch (err) {
-        console.error("Error fetching day trainings:", err);
+        console.error("Error fetching day trainings and events:", err);
       }
     };
-    fetchDayTrainings();
+    fetchDayTrainingsAndEvents();
   }, [date, trainingId]);
 
   useEffect(() => {
@@ -790,6 +852,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       toast.error("Esta chamada para este atleta já foi finalizada.");
       return;
     }
+
+    if (athlete && selectedTrainingId === 'geral' && !trainingId && !eventId) {
+      const hasScheduled = hasScheduledTrainingOrEventForAthlete(athlete, date, availableTrainings, availableEvents);
+      if (!hasScheduled) {
+        toast.error(`Não há treino ou evento cadastrado para a categoria/modalidade de ${athlete.name} nesta data.`);
+        return;
+      }
+    }
     
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     let attendanceId = `${athleteId}_${date}`;
@@ -985,8 +1055,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const activeAthletes = athletes.filter(a => {
-    if (!showOnlyActive) return true;
-    return a.status === 'Ativo' && a.confirmation !== 'Pendente';
+    if (showOnlyActive && (a.status !== 'Ativo' || a.confirmation === 'Pendente')) return false;
+
+    // If we are in "geral", only show athletes with scheduled trainings or events on this date
+    if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
+      return hasScheduledTrainingOrEventForAthlete(a, date, availableTrainings, availableEvents);
+    }
+
+    return true;
   });
   const athletesMatchingFilters = activeAthletes
     .filter(a => {

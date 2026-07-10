@@ -1,16 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Attendance, Training, Event } from '../types';
+import { Attendance, Training, Event, Athlete, getSubCategory } from '../types';
 import { ClipboardCheck, Calendar, Clock, MapPin, CheckCircle2, XCircle, AlertCircle, MessageSquare, X } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../utils';
 import { toast } from 'sonner';
 
+const hasScheduledTrainingOrEventForAthlete = (
+  athlete: Athlete,
+  dateStr: string,
+  allTrainings: Training[],
+  allEvents: Event[]
+): boolean => {
+  const athleteMods = (athlete.modality || '')
+    .split(',')
+    .map(m => m.trim().toLowerCase())
+    .filter(Boolean);
+  
+  const athleteSub = getSubCategory(athlete.birth_date);
+
+  // Check if there is any training on this date matching the athlete's modality and category
+  const hasMatchingTraining = allTrainings.some(t => {
+    if (t.date !== dateStr) return false;
+
+    // Check Modality: if training has a modality specified, it must match one of the athlete's modalities
+    if (t.modality) {
+      const trainingMod = t.modality.trim().toLowerCase();
+      const matchesModality = athleteMods.some(m => 
+        m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod)
+      );
+      if (!matchesModality) return false;
+    }
+
+    // Check Category: if training has a category, it must match the athlete's sub-category or be "Todos"
+    const isCategoryEligible = t.category === 'Todos' || t.category === athleteSub;
+    if (isCategoryEligible) return true;
+
+    // If training has schedules, check if any schedule category matches
+    if (t.schedules && t.schedules.length > 0) {
+      return t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
+    }
+
+    return false;
+  });
+
+  if (hasMatchingTraining) return true;
+
+  // Check if there is any event on this date matching the athlete's modality
+  const hasMatchingEvent = allEvents.some(e => {
+    if (dateStr < e.start_date || dateStr > e.end_date) return false;
+
+    if (e.modality) {
+      const eventMod = e.modality.trim().toLowerCase();
+      const matchesModality = athleteMods.some(m => 
+        m === eventMod || eventMod.includes(m) || m.includes(eventMod)
+      );
+      return matchesModality;
+    }
+
+    return true;
+  });
+
+  return hasMatchingEvent;
+};
+
 export default function StudentPresenceHistory({ athleteId }: { athleteId: string }) {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('all');
   
@@ -28,15 +87,17 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
   const loadHistory = async () => {
     setIsLoading(true);
     try {
-      const [attData, trainingData, eventData] = await Promise.all([
+      const [attData, trainingData, eventData, athleteData] = await Promise.all([
         api.getAttendance(undefined, athleteId),
         api.getTrainings(),
-        api.getEvents()
+        api.getEvents(),
+        api.getAthlete(athleteId)
       ]);
       
       setAttendance(attData.sort((a, b) => b.date.localeCompare(a.date)));
       setTrainings(trainingData);
       setEvents(eventData);
+      setAthlete(athleteData);
     } catch (error) {
       console.error('Error loading presence history:', error);
     } finally {
@@ -44,18 +105,22 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
     }
   };
 
-  const getAttendanceStats = () => {
-    const total = attendance.length;
-    const present = attendance.filter(a => a.status === 'Presente').length;
-    const absent = attendance.filter(a => a.status === 'Faltou').length;
+  const getAttendanceStats = (records: Attendance[]) => {
+    const total = records.length;
+    const present = records.filter(a => a.status === 'Presente').length;
+    const absent = records.filter(a => a.status === 'Faltou').length;
     const percent = total > 0 ? Math.round((present / total) * 100) : 0;
     
     return { total, present, absent, percent };
   };
 
-  const stats = getAttendanceStats();
+  const validAttendance = athlete 
+    ? attendance.filter(a => hasScheduledTrainingOrEventForAthlete(athlete, a.date, trainings, events)) 
+    : attendance;
 
-  const filteredAttendance = attendance.filter(a => {
+  const stats = getAttendanceStats(validAttendance);
+
+  const filteredAttendance = validAttendance.filter(a => {
     if (filter === 'present') return a.status === 'Presente';
     if (filter === 'absent') return a.status === 'Faltou';
     return true;
