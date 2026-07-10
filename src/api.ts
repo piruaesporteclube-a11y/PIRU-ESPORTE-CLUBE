@@ -1912,6 +1912,32 @@ export const api = {
     });
   },
 
+  subscribeToAthleteLineupConfirmations: (athlete_id: string, callback: (confirmations: Record<string, { confirmation: string, lineup_index: number }>) => void) => {
+    const q = query(
+      collection(db, "event_lineups"), 
+      where("person_id", "==", athlete_id),
+      where("type", "==", "athlete")
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const mapping: Record<string, { confirmation: string, lineup_index: number }> = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.event_id) {
+          mapping[data.event_id] = {
+            confirmation: data.confirmation || 'Pendente',
+            lineup_index: data.lineup_index !== undefined ? Number(data.lineup_index) : 0
+          };
+        }
+      });
+      callback(mapping);
+    }, (error) => {
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "athlete_lineups_confirmations/subscription");
+      }
+    });
+  },
+
   checkAthleteLineups: async (athlete_id: string): Promise<Event[]> => {
     try {
       const q = query(

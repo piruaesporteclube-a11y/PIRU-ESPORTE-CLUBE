@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Attendance, Training, Event } from '../types';
-import { ClipboardCheck, Calendar, Clock, MapPin, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Calendar, Clock, MapPin, CheckCircle2, XCircle, AlertCircle, MessageSquare, X } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../utils';
+import { toast } from 'sonner';
 
 export default function StudentPresenceHistory({ athleteId }: { athleteId: string }) {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -12,6 +13,11 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('all');
+  
+  // Justification Modal State
+  const [selectedRecord, setSelectedRecord] = useState<Attendance | null>(null);
+  const [justificationText, setJustificationText] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (athleteId) {
@@ -54,6 +60,31 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
     if (filter === 'absent') return a.status === 'Faltou';
     return true;
   });
+
+  const handleOpenJustify = (record: Attendance) => {
+    setSelectedRecord(record);
+    setJustificationText(record.justification || '');
+  };
+
+  const handleSaveJustification = async () => {
+    if (!selectedRecord) return;
+    setIsSaving(true);
+    try {
+      await api.saveAttendance({
+        id: selectedRecord.id,
+        justification: justificationText.trim() || undefined
+      });
+      toast.success("Justificativa de falta salva com sucesso!");
+      setSelectedRecord(null);
+      setJustificationText('');
+      await loadHistory();
+    } catch (err) {
+      console.error("Error saving justification:", err);
+      toast.error("Erro ao salvar justificativa.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -154,13 +185,24 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 self-end sm:self-center">
                   {record.justification && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-medium max-w-[200px]">
-                      <AlertCircle size={12} />
-                      <span className="truncate">{record.justification}</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-xl border border-zinc-700 text-zinc-300 text-[10px] font-medium max-w-[240px]">
+                      <AlertCircle size={12} className="text-amber-400 shrink-0" />
+                      <span className="truncate" title={record.justification}>{record.justification}</span>
                     </div>
                   )}
+
+                  {record.status === 'Faltou' && (
+                    <button
+                      onClick={() => handleOpenJustify(record)}
+                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 hover:text-white rounded-xl border border-zinc-700 text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <MessageSquare size={12} />
+                      {record.justification ? 'Editar Justificativa' : 'Justificar Falta'}
+                    </button>
+                  )}
+
                   <div className={cn(
                     "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest",
                     record.status === 'Presente' ? "bg-green-500 text-black" : "bg-red-500 text-black"
@@ -171,6 +213,62 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Justification Dialog */}
+      {selectedRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/40">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="text-theme-primary" size={20} />
+                <h3 className="text-md font-black text-white uppercase tracking-tight">Justificar Falta</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedRecord(null)}
+                className="p-1.5 hover:bg-zinc-850 rounded-xl text-zinc-500 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Data da Falta</p>
+                <p className="text-sm font-bold text-white uppercase">{selectedRecord.date}</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Motivo / Justificativa</label>
+                <textarea
+                  value={justificationText}
+                  onChange={(e) => setJustificationText(e.target.value)}
+                  placeholder="Ex: Atestado médico, viagem familiar, compromisso escolar..."
+                  rows={4}
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-theme-primary/50 text-white rounded-2xl p-4 text-xs font-medium focus:ring-1 focus:ring-theme-primary/20 outline-none resize-none transition-all placeholder:text-zinc-650"
+                  maxLength={250}
+                />
+                <p className="text-[9px] text-zinc-500 text-right mt-1 font-medium">{justificationText.length}/250 caracteres</p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-zinc-800 bg-zinc-950/20 flex gap-3 justify-end">
+              <button
+                onClick={() => setSelectedRecord(null)}
+                className="px-5 py-2.5 rounded-xl text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveJustification}
+                disabled={isSaving}
+                className="px-6 py-2.5 bg-theme-primary hover:bg-theme-primary/90 disabled:opacity-50 text-black text-xs font-black rounded-xl uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {isSaving ? "Salvando..." : "Salvar Justificativa"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
