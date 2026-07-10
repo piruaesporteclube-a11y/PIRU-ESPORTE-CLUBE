@@ -72,6 +72,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [showVS, setShowVS] = useState(false);
   const [selectedBackgrounds, setSelectedBackgrounds] = useState<string[]>(['stadium']);
   const [customBackgrounds, setCustomBackgrounds] = useState<{ [key: string]: string }>({});
+  
+  // Custom Dual-Layer Background States
+  const [fundo1, setFundo1] = useState<string>('stadium_night');
+  const [fundo1Custom, setFundo1Custom] = useState<string | null>(null);
+  const [fundo2, setFundo2] = useState<string>('none');
+  const [fundo2Custom, setFundo2Custom] = useState<string | null>(null);
+  const [fundo1Opacity, setFundo1Opacity] = useState<number>(1);
+  const [fundo2Opacity, setFundo2Opacity] = useState<number>(0.5);
+  const [fundoBlend, setFundoBlend] = useState<string>('overlay');
+  const [bgSelectTarget, setBgSelectTarget] = useState<1 | 2>(1);
   const [bgCategory, setBgCategory] = useState<string>('TODOS');
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
@@ -109,6 +119,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
+  const bg1InputRef = useRef<HTMLInputElement>(null);
+  const bg2InputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,6 +176,61 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
           if (!selectedBackgrounds.includes('custom')) {
             toggleBackground('custom');
           }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getFundo1Url = () => {
+    if (fundo1 === 'custom') return fundo1Custom;
+    const found = SPORT_BACKGROUNDS.find(bg => bg.id === fundo1);
+    return found ? found.url : 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200';
+  };
+
+  const getFundo2Url = () => {
+    if (fundo2 === 'none') return null;
+    if (fundo2 === 'custom') return fundo2Custom;
+    const found = SPORT_BACKGROUNDS.find(bg => bg.id === fundo2);
+    return found ? found.url : null;
+  };
+
+  const handleBg1Upload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 1200, 1200, 0.8);
+          setFundo1Custom(compressed);
+          setFundo1('custom');
+          toast.success('Fundo Principal (Fundo 1) carregado!');
+        } catch (err) {
+          setFundo1Custom(base64);
+          setFundo1('custom');
+          toast.success('Fundo Principal (Fundo 1) carregado!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBg2Upload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 1200, 1200, 0.8);
+          setFundo2Custom(compressed);
+          setFundo2('custom');
+          toast.success('Fundo de Mesclagem (Fundo 2) carregado!');
+        } catch (err) {
+          setFundo2Custom(base64);
+          setFundo2('custom');
+          toast.success('Fundo de Mesclagem (Fundo 2) carregado!');
         }
       };
       reader.readAsDataURL(file);
@@ -277,31 +344,112 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
           {/* Background Selection */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-[10px] font-black text-zinc-450 uppercase tracking-widest block font-sans">Estilo de Fundo do Encarte</label>
-                <p className="text-[9px] text-zinc-500 uppercase font-bold">Escolha um modelo temático ou faça upload</p>
-              </div>
+            <div>
+              <label className="text-[10px] font-black text-zinc-450 uppercase tracking-widest block font-sans">Configuração de Fundos</label>
+              <p className="text-[9px] text-zinc-500 uppercase font-bold">Personalize o fundo, mescle imagens e controle a opacidade</p>
+            </div>
+
+            {/* Selector Tab for Layer 1 vs Layer 2 */}
+            <div className="flex bg-black p-1 rounded-xl border border-zinc-850">
               <button 
-                onClick={() => bgInputRef.current?.click()}
+                type="button"
+                onClick={() => setBgSelectTarget(1)}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex items-center justify-center gap-1.5",
+                  bgSelectTarget === 1 ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-400"
+                )}
+              >
+                Fundo Principal (Fundo 1)
+              </button>
+              <button 
+                type="button"
+                onClick={() => setBgSelectTarget(2)}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex items-center justify-center gap-1.5",
+                  bgSelectTarget === 2 ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-400"
+                )}
+              >
+                Fundo de Mesclagem (Fundo 2)
+              </button>
+            </div>
+
+            {/* Upload Button based on active layer */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-zinc-400 uppercase">
+                {bgSelectTarget === 1 ? "Customizar Fundo Principal" : "Customizar Fundo de Mesclagem"}
+              </span>
+              <button 
+                type="button"
+                onClick={() => bgSelectTarget === 1 ? bg1InputRef.current?.click() : bg2InputRef.current?.click()}
                 className="text-[10px] font-black text-theme-primary uppercase border border-theme-primary/30 px-3 py-1.5 rounded-xl hover:bg-theme-primary/10 transition-all flex items-center gap-1.5 shrink-0"
               >
                 <Camera size={12} />
-                Enviar Fundo
+                Enviar Foto {bgSelectTarget}
               </button>
               <input 
                 type="file" 
-                ref={bgInputRef} 
-                onChange={handleBgUpload} 
+                ref={bg1InputRef} 
+                onChange={handleBg1Upload} 
                 accept="image/*" 
                 className="hidden" 
               />
+              <input 
+                type="file" 
+                ref={bg2InputRef} 
+                onChange={handleBg2Upload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+
+            {/* Custom active uploads toggles */}
+            <div className="flex flex-wrap gap-2">
+              {bgSelectTarget === 1 ? (
+                fundo1Custom && (
+                  <button
+                    type="button"
+                    onClick={() => setFundo1('custom')}
+                    className={cn(
+                      "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all flex items-center gap-1",
+                      fundo1 === 'custom' ? "bg-theme-primary border-theme-primary text-black" : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    )}
+                  >
+                    ✨ Usar Foto Enviada 1
+                  </button>
+                )
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFundo2('none')}
+                    className={cn(
+                      "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all",
+                      fundo2 === 'none' ? "bg-theme-primary border-theme-primary text-black" : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    )}
+                  >
+                    🚫 Sem Mesclagem (Fundo 2 Off)
+                  </button>
+                  {fundo2Custom && (
+                    <button
+                      type="button"
+                      onClick={() => setFundo2('custom')}
+                      className={cn(
+                        "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all flex items-center gap-1",
+                        fundo2 === 'custom' ? "bg-theme-primary border-theme-primary text-black" : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      )}
+                    >
+                      ✨ Usar Foto Enviada 2
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Category Tabs */}
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {['TODOS', 'FUTEBOL DE CAMPO', 'FUTSAL', 'VOLÊI', 'CORRIDA DE RUA', 'OUTROS'].map(cat => (
                 <button
+                  type="button"
                   key={cat}
                   onClick={() => setBgCategory(cat)}
                   className={cn(
@@ -319,25 +467,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             {/* Preset Grid */}
             <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
               {SPORT_BACKGROUNDS.filter(bg => bgCategory === 'TODOS' || bg.category === bgCategory).map(bg => {
-                const isActive = selectedBackgrounds.includes('stadium') && customBackgrounds['stadium'] === bg.url;
-                const isDefaultActive = !customBackgrounds['stadium'] && bg.id === 'stadium_night' && selectedBackgrounds.includes('stadium');
-                const selected = isActive || isDefaultActive;
+                const selected = bgSelectTarget === 1 ? fundo1 === bg.id : fundo2 === bg.id;
 
                 return (
                   <button
+                    type="button"
                     key={bg.id}
                     onClick={() => {
-                      setCustomBackgrounds(prev => ({
-                        ...prev,
-                        stadium: bg.url
-                      }));
-                      setSelectedBackgrounds(prev => {
-                        const next = prev.filter(item => item !== 'custom');
-                        if (!next.includes('stadium')) {
-                          next.push('stadium');
-                        }
-                        return next;
-                      });
+                      if (bgSelectTarget === 1) {
+                        setFundo1(bg.id);
+                      } else {
+                        setFundo2(bg.id);
+                      }
                     }}
                     className={cn(
                       "group relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all text-left bg-zinc-950",
@@ -354,7 +495,63 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               })}
             </div>
 
-            {/* Effects Overlay Toggles & Upload status */}
+            {/* Opacity and Blend Mode Controls */}
+            <div className="space-y-4 bg-zinc-950/60 p-4 rounded-2xl border border-zinc-850/80">
+              <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Ajuste de Opacidade & Mesclagem</div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase">Opacidade Fundo 1</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{(fundo1Opacity * 100).toFixed(0)}%</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="1" step="0.05"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={fundo1Opacity}
+                    onChange={e => setFundo1Opacity(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase">Opacidade Fundo 2</label>
+                    <span className="text-[9px] text-theme-primary font-bold">{(fundo2Opacity * 100).toFixed(0)}%</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="1" step="0.05"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    disabled={fundo2 === 'none'}
+                    value={fundo2Opacity}
+                    onChange={e => setFundo2Opacity(parseFloat(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              {fundo2 !== 'none' && (
+                <div className="animate-in fade-in duration-300">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1.5">Efeito de Mesclagem (Fundo 2 sobre Fundo 1)</label>
+                  <select
+                    value={fundoBlend}
+                    onChange={(e) => setFundoBlend(e.target.value)}
+                    className="w-full bg-black border border-zinc-800 text-white rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-theme-primary text-[10px] font-bold uppercase cursor-pointer"
+                  >
+                    <option value="normal">Normal (Sem Mesclagem)</option>
+                    <option value="overlay">Sobreposição (Overlay)</option>
+                    <option value="multiply">Multiplicar (Multiply)</option>
+                    <option value="screen">Clarear (Screen)</option>
+                    <option value="soft-light">Luz Suave (Soft Light)</option>
+                    <option value="hard-light">Luz Intensa (Hard Light)</option>
+                    <option value="color-dodge">Esquivar Cor (Color Dodge)</option>
+                    <option value="color-burn">Super-exposição (Color Burn)</option>
+                    <option value="difference">Diferença (Difference)</option>
+                    <option value="luminosity">Luminosidade (Luminosity)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Effects Overlay Toggles */}
             <div className="flex flex-wrap gap-4 pt-1">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input 
@@ -374,17 +571,6 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 />
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Efeito Campo</span>
               </label>
-              {customBackgrounds['custom'] && (
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedBackgrounds.includes('custom')}
-                    onChange={() => toggleBackground('custom')}
-                    className="rounded border-zinc-800 bg-black text-theme-primary focus:ring-0"
-                  />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-theme-primary">Foto Enviada</span>
-                </label>
-              )}
             </div>
           </div>
 
@@ -966,73 +1152,62 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               <div className="absolute inset-x-0 inset-y-0 pointer-events-none">
                 {/* Backgrounds now start after the border */}
                 <div className="absolute inset-0">
-                  {/* Layer 0: Custom Photo */}
-                  {selectedBackgrounds.includes('custom') && customBackgrounds['custom'] && (
+                  {/* Layer 1: Background 1 */}
+                  {getFundo1Url() && (
                     <div className="absolute inset-0 z-0">
                       <img 
-                        src={customBackgrounds['custom']} 
+                        src={getFundo1Url() || ''} 
                         className="w-full h-full object-cover" 
+                        style={{ opacity: fundo1Opacity }}
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
                     </div>
                   )}
 
-                  {/* Layer 1: Stadium */}
-                  {selectedBackgrounds.includes('stadium') && (
-                    <div className={cn(
-                      "absolute inset-0 z-[1]",
-                      selectedBackgrounds.includes('custom') ? "mix-blend-overlay opacity-80" : "opacity-100"
-                    )}>
+                  {/* Layer 2: Background 2 (Mesclagem) */}
+                  {getFundo2Url() && (
+                    <div className="absolute inset-0 z-[1]" style={{ mixBlendMode: fundoBlend as any }}>
                       <img 
-                        src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} 
+                        src={getFundo2Url() || ''} 
                         className="w-full h-full object-cover" 
+                        style={{ opacity: fundo2Opacity }}
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
-                      {(!selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
-                  {/* Layer 2: Grass */}
+                  {/* Layer 3: Grass Overlay */}
                   {selectedBackgrounds.includes('grass') && (
-                    <div className={cn(
-                      "absolute inset-0 z-[2]",
-                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('custom')) ? "mix-blend-overlay opacity-80" : "opacity-100"
-                    )}>
+                    <div className="absolute inset-0 z-[2] mix-blend-overlay opacity-80">
                       <img 
-                        src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} 
+                        src="https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200" 
                         className="w-full h-full object-cover" 
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
-                      {(!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
-                  {/* Layer 3: Carbon */}
+                  {/* Layer 4: Carbon Overlay */}
                   {selectedBackgrounds.includes('carbon') && (
                     <div 
                       data-bg-layer="carbon"
-                      className={cn(
-                      "absolute inset-0 z-[3]",
-                      (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass') || selectedBackgrounds.includes('custom')) ? "mix-blend-multiply opacity-80" : "opacity-100"
-                    )}
-                    style={{ 
-                      backgroundColor: carbonColor,
-                      backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')`
-                    }}
+                      className="absolute inset-0 z-[3] mix-blend-multiply opacity-80"
+                      style={{ 
+                        backgroundColor: carbonColor,
+                        backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')`
+                      }}
                     >
                       <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
-                      {/* Scanline Effect for Personalization */}
+                      {/* Scanline Effect */}
                       <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
                       <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-2/3 animate-scan-slow-delayed blur-[1px]" />
                       
-                      {/* Tech Grid Overlay for Carbon personalization */}
+                      {/* Tech Grid Overlay */}
                       <div className="absolute inset-0 z-[1] opacity-80 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
-                      
-                      {(!selectedBackgrounds.includes('stadium') && !selectedBackgrounds.includes('grass') && !selectedBackgrounds.includes('custom')) && <div className="absolute inset-0 bg-black/40" />}
                     </div>
                   )}
 
