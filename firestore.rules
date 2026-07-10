@@ -287,7 +287,12 @@ service cloud.firestore {
       allow create: if hasRequiredFields(['athlete_id', 'date', 'status']) && 
                       request.resource.data.status in ['Presente', 'Faltou', 'Justificado'] &&
                       (!('training_id' in request.resource.data) || request.resource.data.training_id is string);
-      allow update, delete: if isStaff();
+      allow update: if isStaff() || (
+        isAuthenticated() &&
+        isDataOwner(resource.data.athlete_id) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['justification', 'updated_at'])
+      );
+      allow delete: if isStaff();
     }
 
     match /trainings/{trainingId} {
@@ -309,7 +314,15 @@ service cloud.firestore {
 
     match /event_lineups/{lineupId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow create: if isStaff();
+      allow delete: if isStaff();
+      allow update: if isStaff() || (
+        isAuthenticated() &&
+        resource.data.type == 'athlete' &&
+        isDataOwner(resource.data.person_id) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmation', 'updated_at']) &&
+        request.resource.data.confirmation in ['Confirmado', 'Recusado', 'Pendente']
+      );
     }
 
     match /travel_exclusions/{eventId} {
