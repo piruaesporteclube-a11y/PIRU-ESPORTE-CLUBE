@@ -57,7 +57,7 @@ export default function StudentLineups({ athleteId, athleteName }: { athleteId: 
   const [professorsList, setProfessorsList] = useState<Professor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [filter, setFilter] = useState<'mine' | 'all'>('mine');
+  const [filter, setFilter] = useState<'mine' | 'all'>('all');
 
   useEffect(() => {
     if (athleteId) {

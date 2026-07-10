@@ -89,8 +89,12 @@ service cloud.firestore {
     function isDataOwner(personId) {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('athlete_id', '') == personId ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('professor_id', '') == personId);
+        (
+          ('athlete_id' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.athlete_id == personId) ||
+          ('professor_id' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.professor_id == personId)
+        );
     }
 
     function hasRequiredFields(fields) {
