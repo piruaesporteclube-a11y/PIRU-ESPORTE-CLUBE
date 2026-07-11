@@ -171,7 +171,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Original Firestore Error Object:', error);
   const errorMessage = error instanceof Error ? error.message : String(error);
   
-  const quotaDetected = errorMessage.toLowerCase().includes("quota");
+  const quotaDetected = isQuotaError(error);
   if (quotaDetected) {
     quotaExceededToday = true;
     try {
@@ -219,6 +219,14 @@ const checkQuotaExceeded = (): boolean => {
   try {
     const val = localStorage.getItem('quota_exceeded_today');
     if (!val) return false;
+    
+    // Safety check: If locally tracked reads are very low (e.g., < 20000),
+    // we should suspect a false positive from a previous non-quota error and auto-clear it.
+    const stats = getUsageStats();
+    if (stats.reads < 20000) {
+      localStorage.removeItem('quota_exceeded_today');
+      return false;
+    }
     
     // If it's a legacy date string
     if (val.includes(" ") || isNaN(Number(val))) {
@@ -341,8 +349,21 @@ async function testConnection() {
 // testConnection(); // Remove unnecessary read on load
 
 const isQuotaError = (error: any): boolean => {
-  const message = String(error).toLowerCase();
-  return message.includes('quota exceeded') || message.includes('quota limit exceeded') || message.includes('resource exhausted');
+  if (!error) return false;
+  
+  // Official Firestore/gRPC error code for quota exhaustion is "resource-exhausted" or code contains quota
+  if (typeof error === 'object' && 'code' in error) {
+    const code = String(error.code).toLowerCase();
+    if (code === 'resource-exhausted' || code.includes('quota')) {
+      return true;
+    }
+  }
+  
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('quota exceeded') || 
+         message.includes('quota limit exceeded') || 
+         message.includes('resource exhausted') || 
+         message.includes('quota-exhausted');
 };
 
 const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
