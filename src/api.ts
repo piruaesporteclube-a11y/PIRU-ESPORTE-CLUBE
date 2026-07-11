@@ -445,19 +445,18 @@ const isQuotaError = (error: any): boolean => {
   
   const code = error.code ? String(error.code).toLowerCase() : '';
   const message = error.message ? String(error.message).toLowerCase() : String(error).toLowerCase();
-  const name = error.name ? String(error.name).toLowerCase() : '';
   
   return (
     code === 'resource-exhausted' || 
     code.includes('quota') || 
-    code.includes('exhausted') ||
-    message.includes('quota') || 
-    message.includes('exhausted') || 
-    message.includes('limit exceeded') ||
+    message.includes('quota exceeded') || 
+    message.includes('quota_exceeded') || 
+    message.includes('billing tier') ||
+    message.includes('over quota') ||
+    message.includes('quota limit') ||
     message.includes('quotalimitexceeded') ||
-    message.includes('resource_exhausted') ||
-    name.includes('quota') ||
-    name.includes('exhausted')
+    message.includes('resource-exhausted') ||
+    message.includes('resource_exhausted')
   );
 };
 
@@ -1317,8 +1316,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
     
@@ -1455,8 +1458,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
     
@@ -1544,8 +1551,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
     
@@ -2280,8 +2291,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
     
@@ -2324,8 +2339,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2370,8 +2389,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2439,8 +2462,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2478,8 +2505,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2522,8 +2553,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2599,8 +2634,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
@@ -2702,8 +2741,12 @@ export const api = {
       }
     };
 
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+
     if (staleCached && staleCached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      setTimeout(() => backgroundFetch().catch(() => {}), 500);
       return staleCached;
     }
 
