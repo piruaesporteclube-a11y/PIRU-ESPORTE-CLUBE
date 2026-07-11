@@ -65,11 +65,50 @@ export const trackUsage = (type: 'reads' | 'writes', amount: number) => {
   }
 };
 
+// --- QUOTA CONTROL VARIABLES AND FUNCTIONS ---
+const checkQuotaExceeded = (): boolean => {
+  try {
+    const val = localStorage.getItem('quota_exceeded_today');
+    if (!val) return false;
+    
+    // Safety check: If locally tracked reads are very low (e.g., < 20000),
+    // we should suspect a false positive from a previous non-quota error and auto-clear it.
+    const stats = getUsageStats();
+    if (stats.reads < 20000) {
+      localStorage.removeItem('quota_exceeded_today');
+      return false;
+    }
+    
+    // If it's a legacy date string
+    if (val.includes(" ") || isNaN(Number(val))) {
+      return val === new Date().toDateString();
+    }
+    
+    // It's a timestamp
+    const ts = Number(val);
+    const isSameDay = new Date(ts).toDateString() === new Date().toDateString();
+    const isRecent = (Date.now() - ts) < (4 * 60 * 60 * 1000); // 4 hours
+    return isSameDay && isRecent;
+  } catch (e) {
+    return false;
+  }
+};
+
+let quotaExceededToday = checkQuotaExceeded();
+
+export const isQuotaExceeded = () => quotaExceededToday;
+
 // Wrappers for tracking usage statistics
 const getDoc = async (docRef: any): Promise<any> => {
   const snapshot = await _getDoc(docRef);
   if (snapshot && !snapshot.metadata?.fromCache) {
     trackUsage('reads', 1);
+    if (quotaExceededToday) {
+      quotaExceededToday = false;
+      try {
+        localStorage.removeItem('quota_exceeded_today');
+      } catch (e) {}
+    }
   }
   return snapshot;
 };
@@ -78,35 +117,73 @@ const getDocs = async (q: any): Promise<any> => {
   const snapshot = await _getDocs(q);
   if (snapshot && !snapshot.metadata?.fromCache) {
     trackUsage('reads', Math.max(1, snapshot.size));
+    if (quotaExceededToday) {
+      quotaExceededToday = false;
+      try {
+        localStorage.removeItem('quota_exceeded_today');
+      } catch (e) {}
+    }
   }
   return snapshot;
 };
 
 const setDoc = async (docRef: any, data: any, options?: any): Promise<any> => {
   trackUsage('writes', 1);
-  if (options) {
-    return _setDoc(docRef, data, options);
+  const result = options ? await _setDoc(docRef, data, options) : await _setDoc(docRef, data);
+  if (quotaExceededToday) {
+    quotaExceededToday = false;
+    try {
+      localStorage.removeItem('quota_exceeded_today');
+    } catch (e) {}
   }
-  return _setDoc(docRef, data);
+  return result;
 };
 
 const updateDoc = async (docRef: any, data: any): Promise<any> => {
   trackUsage('writes', 1);
-  return _updateDoc(docRef, data);
+  const result = await _updateDoc(docRef, data);
+  if (quotaExceededToday) {
+    quotaExceededToday = false;
+    try {
+      localStorage.removeItem('quota_exceeded_today');
+    } catch (e) {}
+  }
+  return result;
 };
 
 const deleteDoc = async (docRef: any): Promise<any> => {
   trackUsage('writes', 1);
-  return _deleteDoc(docRef);
+  const result = await _deleteDoc(docRef);
+  if (quotaExceededToday) {
+    quotaExceededToday = false;
+    try {
+      localStorage.removeItem('quota_exceeded_today');
+    } catch (e) {}
+  }
+  return result;
 };
 
 const onSnapshot = (ref: any, onNext: any, onError?: any): any => {
+  let isInitial = true;
   return _onSnapshot(ref, (snapshot: any) => {
     if (snapshot && !snapshot.metadata?.fromCache) {
-      const changesCount = snapshot.docChanges().length;
-      if (changesCount > 0) {
-        trackUsage('reads', changesCount);
+      if (isInitial) {
+        isInitial = false;
+        trackUsage('reads', 1);
+      } else {
+        const changesCount = snapshot.docChanges().length;
+        if (changesCount > 0) {
+          trackUsage('reads', changesCount);
+        }
       }
+      if (quotaExceededToday) {
+        quotaExceededToday = false;
+        try {
+          localStorage.removeItem('quota_exceeded_today');
+        } catch (e) {}
+      }
+    } else if (snapshot) {
+      isInitial = false;
     }
     onNext(snapshot);
   }, onError);
@@ -215,37 +292,68 @@ const CACHE_TTL = 900000; // 15 minutes for "fresh" data
 const PERSISTENT_CACHE_PREFIX = "pirua_cache_";
 const STALE_TTL = 172800000; // 48 hours (can use very stale data if quota is out)
 
-const checkQuotaExceeded = (): boolean => {
-  try {
-    const val = localStorage.getItem('quota_exceeded_today');
-    if (!val) return false;
-    
-    // Safety check: If locally tracked reads are very low (e.g., < 20000),
-    // we should suspect a false positive from a previous non-quota error and auto-clear it.
-    const stats = getUsageStats();
-    if (stats.reads < 20000) {
-      localStorage.removeItem('quota_exceeded_today');
-      return false;
-    }
-    
-    // If it's a legacy date string
-    if (val.includes(" ") || isNaN(Number(val))) {
-      return val === new Date().toDateString();
-    }
-    
-    // It's a timestamp
-    const ts = Number(val);
-    const isSameDay = new Date(ts).toDateString() === new Date().toDateString();
-    const isRecent = (Date.now() - ts) < (4 * 60 * 60 * 1000); // 4 hours
-    return isSameDay && isRecent;
-  } catch (e) {
-    return false;
+// --- CACHE SERIALIZATION HELPERS ---
+const prepareDataForCache = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
+
+  // Detect Firestore QuerySnapshot (contains docs and size/forEach)
+  if (Array.isArray(data.docs) && typeof data.forEach === 'function') {
+    return {
+      _isPlainSnapshot: true,
+      docs: data.docs.map((doc: any) => ({
+        id: doc.id,
+        data: typeof doc.data === 'function' ? doc.data() : doc.data
+      }))
+    };
   }
+
+  // Detect Firestore DocumentSnapshot (contains exists and data functions)
+  if (typeof data.exists === 'function' && typeof data.data === 'function') {
+    const exists = data.exists();
+    return {
+      _isPlainDoc: true,
+      id: data.id,
+      exists,
+      data: exists ? data.data() : null
+    };
+  }
+
+  return data;
 };
 
-let quotaExceededToday = checkQuotaExceeded();
+const wrapCachedValue = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
 
-export const isQuotaExceeded = () => quotaExceededToday;
+  if (data._isPlainSnapshot) {
+    const mockSnapshot = {
+      docs: data.docs.map((d: any) => ({
+        id: d.id,
+        exists: () => true,
+        data: () => d.data,
+        metadata: { fromCache: true }
+      })),
+      empty: data.docs.length === 0,
+      size: data.docs.length,
+      forEach: function(callback: any) {
+        this.docs.forEach((doc: any) => callback(doc));
+      },
+      metadata: { fromCache: true }
+    };
+    return mockSnapshot;
+  }
+
+  if (data._isPlainDoc) {
+    const mockDoc = {
+      id: data.id,
+      exists: () => data.exists,
+      data: () => data.data,
+      metadata: { fromCache: true }
+    };
+    return mockDoc;
+  }
+
+  return data;
+};
 
 const getCachedData = (key: string) => {
   // If we know quota is exceeded, be very aggressive with memory cache
@@ -254,7 +362,7 @@ const getCachedData = (key: string) => {
   // Check memory cache first
   const memoryCached = cache[key];
   if (memoryCached && (Date.now() - memoryCached.timestamp) < effectiveTTL) {
-    return memoryCached.data;
+    return wrapCachedValue(memoryCached.data);
   }
 
   // Check localStorage
@@ -266,7 +374,7 @@ const getCachedData = (key: string) => {
       if ((Date.now() - timestamp) < effectiveTTL) {
         // Update memory cache
         cache[key] = { data, timestamp };
-        return data;
+        return wrapCachedValue(data);
       }
     }
   } catch (e) {
@@ -277,18 +385,13 @@ const getCachedData = (key: string) => {
 
 const setCachedData = (key: string, data: any) => {
   const timestamp = Date.now();
-  cache[key] = { data, timestamp };
+  const preparedData = prepareDataForCache(data);
+  cache[key] = { data: preparedData, timestamp };
   
   // Try to persist to localStorage if it's serializable
   try {
-    // Only persist arrays or plain objects, not Firestore Snapshots directly
-    if (data && typeof data === 'object' && !Array.isArray(data) && (data.docs || data.exists || data._delegate)) {
-      // Don't persist snapshots directly
-      return;
-    }
-    
     // Safely stringify
-    const serialized = JSON.stringify({ data, timestamp });
+    const serialized = JSON.stringify({ data: preparedData, timestamp });
     if (serialized.length < 500000) { // Don't cache huge chunks to avoid quota on localStorage
        localStorage.setItem(PERSISTENT_CACHE_PREFIX + key, serialized);
     }
@@ -387,11 +490,11 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
     } catch (error) {
       pendingRequests[key] = null;
       if (isQuotaError(error)) {
-      quotaExceededToday = true;
-      try {
-        localStorage.setItem('quota_exceeded_today', Date.now().toString());
-      } catch (e) {}
-      console.warn("Quota exceeded, attempting to load from cache...");
+        quotaExceededToday = true;
+        try {
+          localStorage.setItem('quota_exceeded_today', Date.now().toString());
+        } catch (e) {}
+        console.warn("Quota exceeded, attempting to load from cache...");
         
         // Return stale cache if available
         if (cached) return cached;
@@ -1162,8 +1265,8 @@ export const api = {
     
     // Background refresh - only if quota is NOT exceeded
     const backgroundFetch = async () => {
-      if (quotaExceededToday) {
-        return cached || [];
+      if (quotaExceededToday && cached && cached.length > 0) {
+        return cached;
       }
       try {
         const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
