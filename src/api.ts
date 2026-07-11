@@ -1591,26 +1591,65 @@ export const api = {
       
       // Store existing statuses to preserve them
       const existingData: Record<string, any> = {};
+      const allLineupIndices = new Set<number>();
+      allLineupIndices.add(lineup_index); // always include current index
+
+      const lineupNamesAndCategories: Record<number, { category: string, lineup_name: string }> = {};
+      lineupNamesAndCategories[lineup_index] = { category: category || '', lineup_name: lineup_name || '' };
+
       querySnapshot.docs.forEach(doc => {
         const data = doc.data() as any;
         
         // If we are saving a general lineup, ignore match lineups
         if (!match_id && data.match_id) return;
         
-        // If we are saving a general lineup, only delete/process docs for the current lineup_index
         if (!match_id) {
           const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
-          if (idx !== lineup_index) return;
+          allLineupIndices.add(idx);
+          if (idx !== lineup_index) {
+            if (!lineupNamesAndCategories[idx]) {
+              lineupNamesAndCategories[idx] = { category: '', lineup_name: '' };
+            }
+            if (data.category) lineupNamesAndCategories[idx].category = data.category;
+            if (data.lineup_name) lineupNamesAndCategories[idx].lineup_name = data.lineup_name;
+          }
         }
+      });
 
-        if (data.person_id && data.person_id !== 'metadata') {
-          existingData[data.person_id] = {
-            confirmation: data.confirmation,
-            presence: data.presence,
-            lineup_status: data.lineup_status
-          };
+      querySnapshot.docs.forEach(doc => {
+        const data = doc.data() as any;
+        if (!match_id && data.match_id) return;
+
+        if (!match_id) {
+          const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+          if (idx === lineup_index) {
+            if (data.person_id && data.person_id !== 'metadata') {
+              existingData[data.person_id] = {
+                confirmation: data.confirmation,
+                presence: data.presence,
+                lineup_status: data.lineup_status
+              };
+            }
+            batch.delete(doc.ref);
+          } else if (data.type === 'staff') {
+            if (data.person_id && data.person_id !== 'metadata') {
+              existingData[data.person_id] = {
+                confirmation: data.confirmation,
+                presence: data.presence
+              };
+            }
+            batch.delete(doc.ref);
+          }
+        } else {
+          if (data.person_id && data.person_id !== 'metadata') {
+            existingData[data.person_id] = {
+              confirmation: data.confirmation,
+              presence: data.presence,
+              lineup_status: data.lineup_status
+            };
+          }
+          batch.delete(doc.ref);
         }
-        batch.delete(doc.ref);
       });
       
       // Add metadata document to preserve lineup name and category even if empty
@@ -1651,34 +1690,43 @@ export const api = {
         batch.set(doc(db, "event_lineups", id), docData);
       });
 
-      // Add staff
-      staff_ids.forEach(sid => {
-        const id = match_id ? `${match_id}_staff_${sid}` : `${event_id}_${lineup_index}_staff_${sid}`;
-        const existing = existingData[sid] || {};
-        
-        const docData: any = {
-          event_id,
-          person_id: sid,
-          type: 'staff',
-          confirmation: existing.confirmation || "Pendente",
-          category: category || '',
-          lineup_name: lineup_name || '',
-          updated_at: serverTimestamp()
-        };
-        
-        if (match_id) docData.match_id = match_id;
-        else docData.lineup_index = lineup_index;
-        
-        if (existing.presence) docData.presence = existing.presence;
-        
-        batch.set(doc(db, "event_lineups", id), docData);
+      // Add staff across all indices
+      const indicesToWrite = Array.from(allLineupIndices);
+      indicesToWrite.forEach(idx => {
+        const lNameCat = lineupNamesAndCategories[idx] || { category: '', lineup_name: '' };
+        staff_ids.forEach(sid => {
+          const id = match_id ? `${match_id}_staff_${sid}` : `${event_id}_${idx}_staff_${sid}`;
+          const existing = existingData[sid] || {};
+          
+          const docData: any = {
+            event_id,
+            person_id: sid,
+            type: 'staff',
+            confirmation: existing.confirmation || "Pendente",
+            category: lNameCat.category || '',
+            lineup_name: lNameCat.lineup_name || '',
+            updated_at: serverTimestamp()
+          };
+          
+          if (match_id) docData.match_id = match_id;
+          else docData.lineup_index = idx;
+          
+          if (existing.presence) docData.presence = existing.presence;
+          
+          batch.set(doc(db, "event_lineups", id), docData);
+        });
       });
       
       await batch.commit();
       invalidateCache("event_lineups");
       invalidateCache(`event_lineups_${event_id}`);
-      if (match_id) invalidateCache(`lineup_match_${match_id}`);
-      else invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      if (match_id) {
+        invalidateCache(`lineup_match_${match_id}`);
+      } else {
+        indicesToWrite.forEach(idx => {
+          invalidateCache(`lineup_${event_id}_${idx}`);
+        });
+      }
       invalidateCache(event_id); // Invalidate general summaries and queries for this event
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "event_lineups");
@@ -1747,16 +1795,59 @@ export const api = {
   },
   addPersonToLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', lineup_index: number = 0) => {
     try {
-      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
-      await setDoc(doc(db, "event_lineups", id), {
-        event_id,
-        lineup_index,
-        person_id,
-        type,
-        confirmation: "Pendente",
-        updated_at: serverTimestamp()
-      }, { merge: true });
-      invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      const batch = writeBatch(db);
+      
+      if (type === 'staff') {
+        const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+        const querySnapshot = await getDocs(q);
+        const allLineupIndices = new Set<number>();
+        allLineupIndices.add(lineup_index);
+        
+        const lineupNamesAndCategories: Record<number, { category: string, lineup_name: string }> = {};
+        lineupNamesAndCategories[lineup_index] = { category: '', lineup_name: '' };
+        
+        querySnapshot.docs.forEach(doc => {
+          const data = doc.data() as any;
+          if (!data.match_id) {
+            const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+            allLineupIndices.add(idx);
+            if (!lineupNamesAndCategories[idx]) {
+              lineupNamesAndCategories[idx] = { category: '', lineup_name: '' };
+            }
+            if (data.category) lineupNamesAndCategories[idx].category = data.category;
+            if (data.lineup_name) lineupNamesAndCategories[idx].lineup_name = data.lineup_name;
+          }
+        });
+        
+        Array.from(allLineupIndices).forEach(idx => {
+          const id = `${event_id}_${idx}_staff_${person_id}`;
+          const lNameCat = lineupNamesAndCategories[idx] || { category: '', lineup_name: '' };
+          batch.set(doc(db, "event_lineups", id), {
+            event_id,
+            person_id,
+            type: 'staff',
+            confirmation: "Pendente",
+            lineup_index: idx,
+            category: lNameCat.category || '',
+            lineup_name: lNameCat.lineup_name || '',
+            updated_at: serverTimestamp()
+          }, { merge: true });
+          invalidateCache(`lineup_${event_id}_${idx}`);
+        });
+        
+        await batch.commit();
+      } else {
+        const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+        await setDoc(doc(db, "event_lineups", id), {
+          event_id,
+          lineup_index,
+          person_id,
+          type,
+          confirmation: "Pendente",
+          updated_at: serverTimestamp()
+        }, { merge: true });
+        invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      }
       invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
@@ -1764,16 +1855,33 @@ export const api = {
   },
   removePersonFromLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', lineup_index: number = 0) => {
     try {
-      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
-      await deleteDoc(doc(db, "event_lineups", id));
+      const batch = writeBatch(db);
       
-      // Also try to delete old format if it was index 0
-      if (lineup_index === 0 && type === 'athlete') {
-        const oldId = `${event_id}_${person_id}`;
-        await deleteDoc(doc(db, "event_lineups", oldId));
+      if (type === 'staff') {
+        const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.docs.forEach(doc => {
+          const data = doc.data() as any;
+          if (!data.match_id && data.type === 'staff' && data.person_id === person_id) {
+            batch.delete(doc.ref);
+            const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+            invalidateCache(`lineup_${event_id}_${idx}`);
+          }
+        });
+        
+        await batch.commit();
+      } else {
+        const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+        await deleteDoc(doc(db, "event_lineups", id));
+        
+        // Also try to delete old format if it was index 0
+        if (lineup_index === 0 && type === 'athlete') {
+          const oldId = `${event_id}_${person_id}`;
+          await deleteDoc(doc(db, "event_lineups", oldId));
+        }
+        invalidateCache(`lineup_${event_id}_${lineup_index}`);
       }
-      
-      invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
@@ -1781,29 +1889,46 @@ export const api = {
   },
   confirmLineup: async (event_id: string, person_id: string, type: 'athlete' | 'staff', confirmation: string, lineup_index: number = 0) => {
     try {
-      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
-      // Check if doc exists with new ID format, fallback to old if needed for athletes
-      const docRef = doc(db, "event_lineups", id);
-      const docSnap = await getDocWithCacheFallback(docRef);
+      const batch = writeBatch(db);
       
-      if (docSnap.exists()) {
-        await updateDoc(docRef, { 
-          confirmation,
-          updated_at: serverTimestamp()
+      if (type === 'staff') {
+        const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.docs.forEach(doc => {
+          const data = doc.data() as any;
+          if (!data.match_id && data.type === 'staff' && data.person_id === person_id) {
+            batch.update(doc.ref, { confirmation, updated_at: serverTimestamp() });
+            const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+            invalidateCache(`lineup_${event_id}_${idx}`);
+          }
         });
-      } else if (type === 'athlete' && lineup_index === 0) {
-        // Fallback for old athlete ID format (only for index 0)
-        const oldId = `${event_id}_${person_id}`;
-        const oldDocRef = doc(db, "event_lineups", oldId);
-        const oldDocSnap = await getDocWithCacheFallback(oldDocRef);
-        if (oldDocSnap.exists()) {
-          await updateDoc(oldDocRef, { 
+        
+        await batch.commit();
+      } else {
+        const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+        const docRef = doc(db, "event_lineups", id);
+        const docSnap = await getDocWithCacheFallback(docRef);
+        
+        if (docSnap.exists()) {
+          await updateDoc(docRef, { 
             confirmation,
             updated_at: serverTimestamp()
           });
+        } else if (type === 'athlete' && lineup_index === 0) {
+          // Fallback for old athlete ID format (only for index 0)
+          const oldId = `${event_id}_${person_id}`;
+          const oldDocRef = doc(db, "event_lineups", oldId);
+          const oldDocSnap = await getDocWithCacheFallback(oldDocRef);
+          if (oldDocSnap.exists()) {
+            await updateDoc(oldDocRef, { 
+              confirmation,
+              updated_at: serverTimestamp()
+            });
+          }
         }
+        invalidateCache(`lineup_${event_id}_${lineup_index}`);
       }
-      invalidateCache(`lineup_${event_id}_${lineup_index}`);
       invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
@@ -1812,10 +1937,28 @@ export const api = {
 
   updateLineupPresence: async (event_id: string, person_id: string, type: 'athlete' | 'staff', presence: "Presente" | "Ausente", lineup_index: number = 0) => {
     try {
-      const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
-      const docRef = doc(db, "event_lineups", id);
-      await updateDoc(docRef, { presence, updated_at: serverTimestamp() });
-      invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      const batch = writeBatch(db);
+      
+      if (type === 'staff') {
+        const q = query(collection(db, "event_lineups"), where("event_id", "==", event_id));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.docs.forEach(doc => {
+          const data = doc.data() as any;
+          if (!data.match_id && data.type === 'staff' && data.person_id === person_id) {
+            batch.update(doc.ref, { presence, updated_at: serverTimestamp() });
+            const idx = data.lineup_index !== undefined && data.lineup_index !== null ? Number(data.lineup_index) : 0;
+            invalidateCache(`lineup_${event_id}_${idx}`);
+          }
+        });
+        
+        await batch.commit();
+      } else {
+        const id = `${event_id}_${lineup_index}_${type}_${person_id}`;
+        const docRef = doc(db, "event_lineups", id);
+        await updateDoc(docRef, { presence, updated_at: serverTimestamp() });
+        invalidateCache(`lineup_${event_id}_${lineup_index}`);
+      }
       invalidateCache(`event_lineups_${event_id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `event_lineups/${event_id}_${lineup_index}_${type}_${person_id}`);
