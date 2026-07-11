@@ -270,9 +270,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   }
   console.error('Firestore Error Info:', JSON.stringify(errInfo));
   
-  // Only throw if it's NOT a quota error on a GET operation
-  // This allows GET operations to fail silently and use cache fallbacks
-  if (!isQuotaError(error) || operationType !== OperationType.GET) {
+  // Only throw if it's NOT a quota error on a GET or LIST operation
+  // This allows GET and LIST operations to fail silently and use cache fallbacks
+  const isReadOp = operationType === OperationType.GET || operationType === OperationType.LIST;
+  if (!quotaDetected || !isReadOp) {
     throw new Error(errInfo.error);
   }
 }
@@ -442,19 +443,22 @@ async function testConnection() {
 const isQuotaError = (error: any): boolean => {
   if (!error) return false;
   
-  // Official Firestore/gRPC error code for quota exhaustion is "resource-exhausted" or code contains quota
-  if (typeof error === 'object' && 'code' in error) {
-    const code = String(error.code).toLowerCase();
-    if (code === 'resource-exhausted' || code.includes('quota')) {
-      return true;
-    }
-  }
+  const code = error.code ? String(error.code).toLowerCase() : '';
+  const message = error.message ? String(error.message).toLowerCase() : String(error).toLowerCase();
+  const name = error.name ? String(error.name).toLowerCase() : '';
   
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return message.includes('quota exceeded') || 
-         message.includes('quota limit exceeded') || 
-         message.includes('resource exhausted') || 
-         message.includes('quota-exhausted');
+  return (
+    code === 'resource-exhausted' || 
+    code.includes('quota') || 
+    code.includes('exhausted') ||
+    message.includes('quota') || 
+    message.includes('exhausted') || 
+    message.includes('limit exceeded') ||
+    message.includes('quotalimitexceeded') ||
+    message.includes('resource_exhausted') ||
+    name.includes('quota') ||
+    name.includes('exhausted')
+  );
 };
 
 const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
@@ -1277,7 +1281,7 @@ export const api = {
 
   getAthlete: async (id: string): Promise<Athlete | null> => {
     const cacheKey = `athlete_${id}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
     try {
       const docSnap = await getDocWithCacheFallback(doc(db, "athletes", id));
@@ -1296,6 +1300,7 @@ export const api = {
   getAthletes: async (): Promise<Athlete[]> => {
     const cacheKey = "athletes";
     const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
     
     const backgroundFetch = async () => {
       try {
@@ -1308,13 +1313,13 @@ export const api = {
         }
         return data;
       } catch (e) {
-        return cached || [];
+        return staleCached || [];
       }
     };
 
-    if (cached && cached.length > 0) {
-      setTimeout(() => backgroundFetch().catch(() => {}), 2000 + Math.random() * 5000);
-      return cached;
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
     
     return backgroundFetch();
@@ -1417,7 +1422,7 @@ export const api = {
   // Professors
   getProfessor: async (id: string): Promise<Professor | null> => {
     const cacheKey = `professor_${id}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
     try {
       const docSnap = await getDocWithCacheFallback(doc(db, "professors", id));
@@ -1436,6 +1441,7 @@ export const api = {
   getProfessors: async (): Promise<Professor[]> => {
     const cacheKey = "professors";
     const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
     
     const backgroundFetch = async () => {
       try {
@@ -1445,13 +1451,13 @@ export const api = {
         setCachedData(cacheKey, data);
         return data;
       } catch (e) {
-        return cached || [];
+        return staleCached || [];
       }
     };
 
-    if (cached) {
-      backgroundFetch().catch(() => {});
-      return cached;
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
     
     return backgroundFetch();
@@ -1504,7 +1510,7 @@ export const api = {
   // Events
   getEvent: async (id: string): Promise<Event | null> => {
     const cacheKey = `event_${id}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
     try {
       const docSnap = await getDocWithCacheFallback(doc(db, "events", id));
@@ -1523,6 +1529,7 @@ export const api = {
   getEvents: async (): Promise<Event[]> => {
     const cacheKey = "events";
     const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
     
     const backgroundFetch = async () => {
       try {
@@ -1533,13 +1540,13 @@ export const api = {
         setCachedData(cacheKey, data);
         return data;
       } catch (e) {
-        return cached || [];
+        return staleCached || [];
       }
     };
 
-    if (cached) {
-      backgroundFetch().catch(() => {});
-      return cached;
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
     
     return backgroundFetch();
@@ -1588,7 +1595,7 @@ export const api = {
 
   getAttendance: async (date?: string, athlete_id?: string, training_id?: string, event_id?: string, startDate?: string, endDate?: string): Promise<Attendance[]> => {
     const cacheKey = `attendance_${date || 'all'}_${athlete_id || 'all'}_${training_id || 'all'}_${event_id || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
 
     try {
@@ -1638,7 +1645,7 @@ export const api = {
   // Anamnesis
   getAnamnesis: async (athlete_id: string): Promise<Anamnesis> => {
     const cacheKey = `anamnesis_${athlete_id}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
 
     try {
@@ -1667,7 +1674,7 @@ export const api = {
   // Lineups (using a subcollection or separate collection)
   getLineup: async (event_id: string, lineup_index: number = 0, match_id?: string, allAthletes?: Athlete[], allProfessors?: Professor[]): Promise<{ athletes: Athlete[], staff: Professor[], category?: string, lineup_name?: string }> => {
     const cacheKey = match_id ? `lineup_match_${match_id}` : `lineup_${event_id}_${lineup_index}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached && !allAthletes && !allProfessors) return cached;
 
     try {
@@ -2260,6 +2267,7 @@ export const api = {
   getSponsors: async (): Promise<Sponsor[]> => {
     const cacheKey = "sponsors";
     const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
     
     const backgroundFetch = async () => {
       try {
@@ -2268,13 +2276,13 @@ export const api = {
         setCachedData(cacheKey, data);
         return data;
       } catch (e) {
-        return cached || [];
+        return staleCached || [];
       }
     };
 
-    if (cached) {
-      backgroundFetch().catch(() => {});
-      return cached;
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
     
     return backgroundFetch();
@@ -2300,17 +2308,28 @@ export const api = {
 
   // Championships
   getChampionships: async (): Promise<Championship[]> => {
-    const cached = getCachedData("championships");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "championships"));
-      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Championship));
-      setCachedData("championships", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "championships");
-      return [];
+    const cacheKey = "championships";
+    const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "championships"));
+        const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Championship));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "championships");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   saveChampionship: async (championship: Partial<Championship>) => {
     if (!championship.id) championship.id = doc(collection(db, "championships")).id;
@@ -2335,18 +2354,28 @@ export const api = {
   getChampionshipTeams: async (championshipId?: string): Promise<ChampionshipTeam[]> => {
     const cacheKey = `championship_teams_${championshipId || 'all'}`;
     const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-    try {
-      let q = query(collection(db, "championship_teams"));
-      if (championshipId) q = query(q, where("championship_id", "==", championshipId));
-      const querySnapshot = await getDocsWithCacheFallback(q);
-      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
-      setCachedData(cacheKey, data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "championship_teams");
-      return [];
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        let q = query(collection(db, "championship_teams"));
+        if (championshipId) q = query(q, where("championship_id", "==", championshipId));
+        const querySnapshot = await getDocsWithCacheFallback(q);
+        const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipTeam));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "championship_teams");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   getChampionshipTeamsByResponsibleDoc: async (championshipId: string, docNum: string): Promise<ChampionshipTeam[]> => {
     try {
@@ -2394,18 +2423,28 @@ export const api = {
   getChampionshipMatches: async (championshipId?: string): Promise<ChampionshipMatch[]> => {
     const cacheKey = `championship_matches_${championshipId || 'all'}`;
     const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-    try {
-      let q = query(collection(db, "championship_matches"));
-      if (championshipId) q = query(q, where("championship_id", "==", championshipId));
-      const querySnapshot = await getDocsWithCacheFallback(q);
-      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipMatch));
-      setCachedData(cacheKey, data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "championship_matches");
-      return [];
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        let q = query(collection(db, "championship_matches"));
+        if (championshipId) q = query(q, where("championship_id", "==", championshipId));
+        const querySnapshot = await getDocsWithCacheFallback(q);
+        const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChampionshipMatch));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "championship_matches");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   saveChampionshipMatch: async (match: Partial<ChampionshipMatch>) => {
     if (!match.id) match.id = doc(collection(db, "championship_matches")).id;
@@ -2423,17 +2462,28 @@ export const api = {
 
   // Uniform Models
   getUniformModels: async (): Promise<UniformModel[]> => {
-    const cached = getCachedData("uniform_models");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "uniform_models"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as UniformModel));
-      setCachedData("uniform_models", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "uniform_models");
-      return [];
+    const cacheKey = "uniform_models";
+    const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "uniform_models"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as UniformModel));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "uniform_models");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   saveUniformModel: async (model: Partial<UniformModel>) => {
     if (!model.id) model.id = doc(collection(db, "uniform_models")).id;
@@ -2456,22 +2506,33 @@ export const api = {
 
   // Trainings
   getTrainings: async (): Promise<Training[]> => {
-    const cached = getCachedData("trainings");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "trainings"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Training));
-      setCachedData("trainings", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "trainings");
-      return [];
+    const cacheKey = "trainings";
+    const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "trainings"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Training));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "trainings");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
 
   getTraining: async (id: string): Promise<Training | null> => {
     const cacheKey = `training_${id}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
     if (cached) return cached;
     try {
       const docSnap = await getDocWithCacheFallback(doc(db, "trainings", id));
@@ -2522,17 +2583,28 @@ export const api = {
 
   // Training Activities
   getActivities: async (): Promise<TrainingActivity[]> => {
-    const cached = getCachedData("training_activities");
-    if (cached) return cached;
-    try {
-      const querySnapshot = await getDocsWithCacheFallback(collection(db, "training_activities"));
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as TrainingActivity));
-      setCachedData("training_activities", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "training_activities");
-      return [];
+    const cacheKey = "training_activities";
+    const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "training_activities"));
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as TrainingActivity));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "training_activities");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   saveActivity: async (activity: Partial<TrainingActivity>) => {
     if (!activity.id) activity.id = doc(collection(db, "training_activities")).id;
@@ -2613,18 +2685,29 @@ export const api = {
 
   // Official Letters
   getOfficialLetters: async (): Promise<OfficialLetter[]> => {
-    const cached = getCachedData("official_letters");
-    if (cached) return cached;
-    try {
-      const q = query(collection(db, "official_letters"), orderBy("created_at", "desc"));
-      const querySnapshot = await getDocsWithCacheFallback(q);
-      const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as OfficialLetter));
-      setCachedData("official_letters", data);
-      return data;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "official_letters");
-      return [];
+    const cacheKey = "official_letters";
+    const cached = getCachedData(cacheKey);
+    const staleCached = cached || getCachedData(cacheKey, true);
+    
+    const backgroundFetch = async () => {
+      try {
+        const q = query(collection(db, "official_letters"), orderBy("created_at", "desc"));
+        const querySnapshot = await getDocsWithCacheFallback(q);
+        const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as OfficialLetter));
+        setCachedData(cacheKey, data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, "official_letters");
+        return staleCached || [];
+      }
+    };
+
+    if (staleCached && staleCached.length > 0) {
+      setTimeout(() => backgroundFetch().catch(() => {}), cached ? 5000 + Math.random() * 5000 : 500);
+      return staleCached;
     }
+
+    return backgroundFetch();
   },
   saveOfficialLetter: async (letter: Partial<OfficialLetter>) => {
     try {
