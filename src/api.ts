@@ -71,14 +71,6 @@ const checkQuotaExceeded = (): boolean => {
     const val = localStorage.getItem('quota_exceeded_today');
     if (!val) return false;
     
-    // Safety check: If locally tracked reads are very low (e.g., < 20000),
-    // we should suspect a false positive from a previous non-quota error and auto-clear it.
-    const stats = getUsageStats();
-    if (stats.reads < 45000) {
-      localStorage.removeItem('quota_exceeded_today');
-      return false;
-    }
-    
     // If it's a legacy date string
     if (val.includes(" ") || isNaN(Number(val))) {
       return val === new Date().toDateString();
@@ -467,8 +459,18 @@ const isQuotaError = (error: any): boolean => {
 
 const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
   const key = customCacheKey ? `docs_${customCacheKey}` : `docs_${getCacheKey(q)}`;
-  const cached = getCachedData(key); // checks standard 15 min TTL
   
+  // 1. If we already know the quota is exceeded today, instantly serve the stale cache if available
+  if (quotaExceededToday) {
+    const staleCached = getCachedData(key, true);
+    if (staleCached) {
+      console.log("[Quota Mode] Serving stale cache for:", key);
+      return staleCached;
+    }
+  }
+
+  // 2. Check standard fresh cache (15 min TTL)
+  const cached = getCachedData(key);
   if (cached) {
     return cached;
   }
@@ -502,7 +504,7 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
         try {
           localStorage.setItem('quota_exceeded_today', Date.now().toString());
         } catch (e) {}
-        console.warn("Quota exceeded, attempting to load from cache...");
+        console.warn("Quota exceeded, attempting to load from Firestore SDK cache...");
         
         try {
           const snapshot = await getDocsFromCache(q);
@@ -513,9 +515,9 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
         } catch (cacheError) {
           console.error("Failed to load from cache:", cacheError);
         }
-        
-        return { docs: [], empty: true, size: 0, forEach: () => {} } as any;
       }
+      
+      // Throw the error so the caller knows it failed and can fall back to its own flat-list cache
       throw error;
     }
   })();
@@ -526,7 +528,18 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
 
 const getDocWithCacheFallback = async (docRef: any) => {
   const key = `doc_${docRef.path}`;
-  const cached = getCachedData(key); // checks standard 15 min TTL
+  
+  // 1. If we already know the quota is exceeded today, instantly serve the stale cache if available
+  if (quotaExceededToday) {
+    const staleCached = getCachedData(key, true);
+    if (staleCached) {
+      console.log("[Quota Mode] Serving stale document cache for:", docRef.path);
+      return staleCached;
+    }
+  }
+
+  // 2. Check standard fresh cache (15 min TTL)
+  const cached = getCachedData(key);
   if (cached) return cached;
   
   if (pendingRequests[key]) return pendingRequests[key];
@@ -563,7 +576,6 @@ const getDocWithCacheFallback = async (docRef: any) => {
           return await getDocFromCache(docRef);
         } catch (cacheError) {
           console.error("Failed to load document from cache:", cacheError);
-          return { exists: () => false, data: () => undefined } as any;
         }
       }
       throw error;
@@ -574,101 +586,106 @@ const getDocWithCacheFallback = async (docRef: any) => {
   return promise;
 };
 
+const findFiltersAndOrders = (obj: any, depth = 0): string[] => {
+  const parts: string[] = [];
+  if (!obj || depth > 6) return parts;
+  
+  if (obj.op && obj.field) {
+    const field = obj.field.canonicalString ? obj.field.canonicalString() : String(obj.field);
+    parts.push(`filter:${field}:${obj.op}:${JSON.stringify(obj.value)}`);
+  }
+  if (obj.direction && obj.field) {
+    const field = obj.field.canonicalString ? obj.field.canonicalString() : String(obj.field);
+    parts.push(`order:${field}:${obj.direction}`);
+  }
+  
+  for (const key of Object.keys(obj)) {
+    try {
+      if (key === 'firestore' || key === 'client' || key === 'databaseId') continue;
+      const val = obj[key];
+      if (val && typeof val === 'object') {
+        if (Array.isArray(val)) {
+          val.forEach(item => {
+            parts.push(...findFiltersAndOrders(item, depth + 1));
+          });
+        } else {
+          parts.push(...findFiltersAndOrders(val, depth + 1));
+        }
+      }
+    } catch (e) {}
+  }
+  return parts;
+};
+
 const getCacheKey = (q: any) => {
   try {
     if (!q) return '';
     if (typeof q === 'string') return q;
     if (q.path) return q.path;
     
-    let parts: string[] = [];
-    
-    if (q._query) {
-      const queryInfo = q._query;
-      
-      if (queryInfo.path) {
-        parts.push(queryInfo.path.canonicalString() || '');
-      }
-      
-      if (queryInfo.filters && Array.isArray(queryInfo.filters)) {
-        queryInfo.filters.forEach((filter: any) => {
-          if (filter.field && filter.op) {
-            const fieldPath = filter.field.canonicalString ? filter.field.canonicalString() : String(filter.field);
-            const op = filter.op;
-            let val = '';
-            if (filter.value) {
-              val = filter.value.internalValue !== undefined ? filter.value.internalValue : String(filter.value);
-            }
-            parts.push(`filter:${fieldPath}:${op}:${val}`);
-          } else if (filter.filters && Array.isArray(filter.filters)) {
-            filter.filters.forEach((sub: any) => {
-              if (sub.field && sub.op) {
-                const fieldPath = sub.field.canonicalString ? sub.field.canonicalString() : String(sub.field);
-                const op = sub.op;
-                let val = '';
-                if (sub.value) {
-                  val = sub.value.internalValue !== undefined ? sub.value.internalValue : String(sub.value);
-                }
-                parts.push(`filter:${fieldPath}:${op}:${val}`);
-              } else {
-                parts.push(JSON.stringify(sub));
-              }
-            });
-          } else {
-            parts.push(JSON.stringify(filter));
-          }
-        });
-      } else if (queryInfo.filters) {
-        parts.push(JSON.stringify(queryInfo.filters));
-      }
-      
-      if (queryInfo.explicitOrderBy && Array.isArray(queryInfo.explicitOrderBy)) {
-        queryInfo.explicitOrderBy.forEach((ob: any) => {
-          const field = ob.field ? (ob.field.canonicalString ? ob.field.canonicalString() : String(ob.field)) : '';
-          const dir = ob.dir || '';
-          parts.push(`order:${field}:${dir}`);
-        });
-      }
-      
-      if (queryInfo.limit !== undefined && queryInfo.limit !== null) {
-        parts.push(`limit:${queryInfo.limit}`);
-      }
-    }
-    
-    // Fallback: If we couldn't parse filters or serialize properly (e.g. key is empty due to mangled/minified properties),
-    // use a custom deep serialization of the query's non-circular fields to guarantee a unique, stable cache key.
-    if (parts.length === 0 || parts.join('|') === '') {
-      const serializeQuery = (obj: any): string => {
-        try {
-          const seen = new Set();
-          const replacer = (k: string, v: any) => {
-            if (v && typeof v === 'object') {
-              if (seen.has(v)) return '[Circular]';
-              seen.add(v);
-              if (v.constructor && (v.constructor.name === 'Firestore' || v.constructor.name === 'FirebaseApp')) {
-                return '[Firestore]';
-              }
-              if (v.segments && Array.isArray(v.segments)) {
-                return v.segments.join('/');
-              }
-            }
-            if (typeof v === 'function') return undefined;
-            return v;
-          };
-          return JSON.stringify(obj, replacer);
-        } catch (e) {
-          return '';
-        }
-      };
-      
-      const qSerialized = serializeQuery(q);
-      if (qSerialized) {
-        return qSerialized;
-      }
+    // 1. Try to find path recursively (immune to minification/mangling)
+    let path = '';
+    if (q.path) {
+      path = q.path;
     } else {
-      return parts.join('|');
+      const findPath = (obj: any, depth = 0): string => {
+        if (!obj || depth > 5) return '';
+        if (obj.path && typeof obj.path === 'string') return obj.path;
+        if (Array.isArray(obj.segments)) return obj.segments.join('/');
+        
+        for (const key of Object.keys(obj)) {
+          if (key === 'firestore' || key === 'client' || key === 'databaseId') continue;
+          try {
+            const val = obj[key];
+            if (val && typeof val === 'object') {
+              if (Array.isArray(val.segments)) {
+                return val.segments.join('/');
+              }
+              if (val.path && typeof val.path === 'string') {
+                return val.path;
+              }
+              const res = findPath(val, depth + 1);
+              if (res) return res;
+            }
+          } catch (e) {}
+        }
+        return '';
+      };
+      path = findPath(q);
     }
+    
+    // 2. Try to find filters/orders recursively (immune to minification/mangling)
+    const filters = findFiltersAndOrders(q);
+    
+    let key = path || 'query';
+    if (filters.length > 0) {
+      key += '|' + filters.join('|');
+    }
+    
+    // 3. Try to find limit recursively
+    const findLimit = (obj: any, depth = 0): number | null => {
+      if (!obj || depth > 4) return null;
+      if (typeof obj.limit === 'number') return obj.limit;
+      for (const key of Object.keys(obj)) {
+        if (key === 'firestore' || key === 'client' || key === 'databaseId') continue;
+        try {
+          const val = obj[key];
+          if (val && typeof val === 'object') {
+            const res = findLimit(val, depth + 1);
+            if (res !== null) return res;
+          }
+        } catch (e) {}
+      }
+      return null;
+    };
+    const limit = findLimit(q);
+    if (limit !== null) {
+      key += `|limit:${limit}`;
+    }
+    
+    return key;
   } catch (e) {
-    console.warn("Error serializing Firestore query in getCacheKey:", e);
+    console.warn("Error in getCacheKey:", e);
   }
   
   try {
