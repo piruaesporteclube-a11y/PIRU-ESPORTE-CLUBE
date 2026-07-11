@@ -74,7 +74,7 @@ const checkQuotaExceeded = (): boolean => {
     // Safety check: If locally tracked reads are very low (e.g., < 20000),
     // we should suspect a false positive from a previous non-quota error and auto-clear it.
     const stats = getUsageStats();
-    if (stats.reads < 20000) {
+    if (stats.reads < 45000) {
       localStorage.removeItem('quota_exceeded_today');
       return false;
     }
@@ -355,13 +355,10 @@ const wrapCachedValue = (data: any): any => {
   return data;
 };
 
-const getCachedData = (key: string) => {
-  // If we know quota is exceeded, be very aggressive with memory cache
-  const effectiveTTL = quotaExceededToday ? STALE_TTL : CACHE_TTL;
-  
+const getCachedData = (key: string, ignoreTTL = false) => {
   // Check memory cache first
   const memoryCached = cache[key];
-  if (memoryCached && (Date.now() - memoryCached.timestamp) < effectiveTTL) {
+  if (memoryCached && (ignoreTTL || (Date.now() - memoryCached.timestamp) < CACHE_TTL)) {
     return wrapCachedValue(memoryCached.data);
   }
 
@@ -370,8 +367,7 @@ const getCachedData = (key: string) => {
     const localCached = localStorage.getItem(PERSISTENT_CACHE_PREFIX + key);
     if (localCached) {
       const { data, timestamp } = JSON.parse(localCached);
-      // If quota is exceeded, we use any data we have up to STALE_TTL, otherwise we use effectiveTTL (which defaults to CACHE_TTL)
-      if ((Date.now() - timestamp) < effectiveTTL) {
+      if (ignoreTTL || (Date.now() - timestamp) < CACHE_TTL) {
         // Update memory cache
         cache[key] = { data, timestamp };
         return wrapCachedValue(data);
@@ -471,10 +467,9 @@ const isQuotaError = (error: any): boolean => {
 
 const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
   const key = customCacheKey ? `docs_${customCacheKey}` : `docs_${getCacheKey(q)}`;
-  const cached = getCachedData(key);
+  const cached = getCachedData(key); // checks standard 15 min TTL
   
-  // If quota was already exceeded today, or we have very fresh data, return cached
-  if (cached && (quotaExceededToday || (Date.now() - (cache[key]?.timestamp || 0) < CACHE_TTL))) {
+  if (cached) {
     return cached;
   }
   
@@ -482,13 +477,26 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
 
   const promise = (async () => {
     try {
-      // Try server first if not already known to be over quota
       const snapshot = await getDocs(q);
       setCachedData(key, snapshot);
       pendingRequests[key] = null;
       return snapshot;
     } catch (error) {
       pendingRequests[key] = null;
+      
+      // On error, try to retrieve even expired cached data as fallback first
+      const staleCached = getCachedData(key, true);
+      if (staleCached) {
+        console.warn("Query failed, falling back to stale cache:", error);
+        if (isQuotaError(error)) {
+          quotaExceededToday = true;
+          try {
+            localStorage.setItem('quota_exceeded_today', Date.now().toString());
+          } catch (e) {}
+        }
+        return staleCached;
+      }
+
       if (isQuotaError(error)) {
         quotaExceededToday = true;
         try {
@@ -496,9 +504,6 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
         } catch (e) {}
         console.warn("Quota exceeded, attempting to load from cache...");
         
-        // Return stale cache if available
-        if (cached) return cached;
-
         try {
           const snapshot = await getDocsFromCache(q);
           if (snapshot) {
@@ -521,7 +526,7 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
 
 const getDocWithCacheFallback = async (docRef: any) => {
   const key = `doc_${docRef.path}`;
-  const cached = getCachedData(key);
+  const cached = getCachedData(key); // checks standard 15 min TTL
   if (cached) return cached;
   
   if (pendingRequests[key]) return pendingRequests[key];
@@ -534,7 +539,25 @@ const getDocWithCacheFallback = async (docRef: any) => {
       return snapshot;
     } catch (error) {
       pendingRequests[key] = null;
+      
+      // On error, try to retrieve even expired cached document as fallback
+      const staleCached = getCachedData(key, true);
+      if (staleCached) {
+        console.warn("Document fetch failed, falling back to stale cache:", error);
+        if (isQuotaError(error)) {
+          quotaExceededToday = true;
+          try {
+            localStorage.setItem('quota_exceeded_today', Date.now().toString());
+          } catch (e) {}
+        }
+        return staleCached;
+      }
+
       if (isQuotaError(error)) {
+        quotaExceededToday = true;
+        try {
+          localStorage.setItem('quota_exceeded_today', Date.now().toString());
+        } catch (e) {}
         console.warn("Quota exceeded, attempting to load document from cache...");
         try {
           return await getDocFromCache(docRef);
@@ -1202,12 +1225,6 @@ export const api = {
     // Initial fetch from cache or server
     api.getAthletes().then(callback);
     
-    // If quota was already exceeded, don't even try to subscribe as it will just error out
-    if (quotaExceededToday) {
-      console.warn("[Quota Mode] Athletes subscription disabled");
-      return () => {};
-    }
-
     return onSnapshot(collection(db, "athletes"), (snapshot) => {
       const athletes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
       // Update cache manually when snapshot triggers
@@ -1263,11 +1280,7 @@ export const api = {
     const cacheKey = "athletes";
     const cached = getCachedData(cacheKey);
     
-    // Background refresh - only if quota is NOT exceeded
     const backgroundFetch = async () => {
-      if (quotaExceededToday && cached && cached.length > 0) {
-        return cached;
-      }
       try {
         const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
         const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete))
@@ -3012,6 +3025,14 @@ export const api = {
     }
 
     try {
+      // Check global settings first to see if migration was already marked complete globally
+      const settingsSnap = await _getDoc(doc(db, "settings", "global_settings"));
+      if (settingsSnap.exists() && settingsSnap.data()?.migration_cpf_phone_completed) {
+        localStorage.setItem("pirua_migration_cpf_phone_completed", "true");
+        console.log("Data migration already marked as completed globally. Skipping.");
+        return;
+      }
+
       console.log("Starting data standardization migration...");
 
       // 1. Athletes
@@ -3162,6 +3183,7 @@ export const api = {
         console.warn("Failed to migrate championship teams:", err);
       }
 
+      await _setDoc(doc(db, "settings", "global_settings"), { migration_cpf_phone_completed: true }, { merge: true });
       localStorage.setItem("pirua_migration_cpf_phone_completed", "true");
       console.log("All data successfully migrated to standard formats.");
     } catch (e) {
