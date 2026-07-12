@@ -183,6 +183,7 @@ export type Settings = {
   assistants?: string;
   studentAccessPaused?: boolean;
   studentAccessPauseMessage?: string;
+  studentReadsLimit?: number;
 };
 
 export type User = {

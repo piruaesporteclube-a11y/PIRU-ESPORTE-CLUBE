@@ -26,7 +26,8 @@ import {
   getDocFromCache,
   serverTimestamp,
   terminate,
-  clearIndexedDbPersistence
+  clearIndexedDbPersistence,
+  increment
 } from "firebase/firestore";
 
 // --- FIRESTORE USAGE TRACKER ---
@@ -54,12 +55,57 @@ export const getUsageStats = (): UsageStats => {
   }
 };
 
+let accumulatedReads = 0;
+let syncTimeout: any = null;
+
+const syncStudentReads = (athleteId: string, athleteName: string, amount: number) => {
+  if (quotaExceededToday) return;
+  
+  accumulatedReads += amount;
+  
+  if (syncTimeout) return;
+  
+  syncTimeout = setTimeout(async () => {
+    syncTimeout = null;
+    if (accumulatedReads <= 0) return;
+    const readsToSync = accumulatedReads;
+    accumulatedReads = 0;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const docId = `${today}_${athleteId}`;
+      const docRef = doc(db, "student_daily_reads", docId);
+      
+      await _setDoc(docRef, {
+        athlete_id: athleteId,
+        athlete_name: athleteName,
+        reads: increment(readsToSync),
+        date: today,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.error("Error syncing student reads:", err);
+      accumulatedReads += readsToSync;
+    }
+  }, 5000);
+};
+
 export const trackUsage = (type: 'reads' | 'writes', amount: number) => {
   try {
     const stats = getUsageStats();
     stats[type] += amount;
     localStorage.setItem('pirua_firestore_usage', JSON.stringify(stats));
     window.dispatchEvent(new window.Event('pirua_usage_updated'));
+
+    if (type === 'reads' && amount > 0) {
+      const userStr = localStorage.getItem('pirua_user');
+      if (userStr) {
+        const userObj = JSON.parse(userStr);
+        if (userObj && userObj.role === 'student' && userObj.athlete_id) {
+          syncStudentReads(userObj.athlete_id, userObj.name, amount);
+        }
+      }
+    }
   } catch (e) {
     // ignore
   }
@@ -886,7 +932,7 @@ export const api = {
 
       const userData = userDocSnap.data() as User;
 
-      // Check if student access is paused
+      // Check if student access is paused or has reached limit
       if (userData.role === 'student') {
         const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
         if (settingsSnap.exists()) {
@@ -895,6 +941,16 @@ export const api = {
             await signOut(auth);
             const msg = settingsData.studentAccessPauseMessage || "O acesso ao portal do aluno está temporariamente suspenso pela administração do clube para otimização de recursos.";
             throw new Error(msg);
+          }
+
+          // Check student read limit
+          const limitValue = settingsData?.studentReadsLimit !== undefined ? settingsData.studentReadsLimit : 20000;
+          if (limitValue > 0) {
+            const todayReads = await api.getTodayStudentReads();
+            if (todayReads >= limitValue) {
+              await signOut(auth);
+              throw new Error(`O limite de acessos para alunos (${limitValue.toLocaleString('pt-BR')} leituras hoje) foi atingido para economizar recursos de banco de dados. O acesso será restaurado amanhã.`);
+            }
           }
         }
       }
@@ -1011,7 +1067,7 @@ export const api = {
         await setDoc(userDocRef, sanitizeData(userData));
       }
 
-      // Check if student access is paused
+      // Check if student access is paused or has reached limit
       if (userData.role === 'student') {
         const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
         if (settingsSnap.exists()) {
@@ -1020,6 +1076,16 @@ export const api = {
             await signOut(auth);
             const msg = settingsData.studentAccessPauseMessage || "O acesso ao portal do aluno está temporariamente suspenso pela administração do clube para otimização de recursos.";
             throw new Error(msg);
+          }
+
+          // Check student read limit
+          const limitValue = settingsData?.studentReadsLimit !== undefined ? settingsData.studentReadsLimit : 20000;
+          if (limitValue > 0) {
+            const todayReads = await api.getTodayStudentReads();
+            if (todayReads >= limitValue) {
+              await signOut(auth);
+              throw new Error(`O limite de acessos para alunos (${limitValue.toLocaleString('pt-BR')} leituras hoje) foi atingido para economizar recursos de banco de dados. O acesso será restaurado amanhã.`);
+            }
           }
         }
       }
@@ -3154,6 +3220,32 @@ export const api = {
       if (!isQuotaError(error)) {
         handleFirestoreError(error, OperationType.GET, "login_errors/subscription");
       }
+    });
+  },
+
+  getTodayStudentReads: async (): Promise<number> => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const q = query(collection(db, "student_daily_reads"), where("date", "==", today));
+      const snap = await _getDocs(q);
+      let total = 0;
+      snap.forEach((doc) => {
+        total += doc.data().reads || 0;
+      });
+      return total;
+    } catch (e) {
+      console.error("Error getting today's student reads:", e);
+      return 0;
+    }
+  },
+
+  subscribeToStudentDailyReads: (date: string, callback: (reads: any[]) => void) => {
+    const q = query(collection(db, "student_daily_reads"), where("date", "==", date));
+    return onSnapshot(q, (snapshot) => {
+      const reads = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      callback(reads);
+    }, (error) => {
+      // ignore
     });
   },
 

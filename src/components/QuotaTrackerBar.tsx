@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, RefreshCcw, Info, CheckCircle, AlertTriangle, Cpu } from 'lucide-react';
-import { getUsageStats, clearCache, isQuotaExceeded } from '../api';
+import { getUsageStats, clearCache, isQuotaExceeded, api } from '../api';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
@@ -44,9 +44,10 @@ export default function QuotaTrackerBar() {
     setIsClearing(true);
     try {
       clearCache();
+      api.clearQuota();
       // Reset tracker counts visually on this browser if needed (re-load usage stats)
       setUsage(getUsageStats());
-      toast.success("O cache local foi limpo e o aplicativo foi sincronizado com sucesso com os servidores do Google.");
+      toast.success("O cache local e as restrições temporárias foram limpos. O aplicativo tentará buscar dados novos diretamente dos servidores do Google.");
     } catch (e) {
       toast.error("Erro ao limpar cache.");
     } finally {
@@ -172,12 +173,25 @@ export default function QuotaTrackerBar() {
       </div>
 
       {isQuotaExceeded() && (
-        <div className="mt-4 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3">
-          <AlertTriangle className="text-rose-400 animate-pulse shrink-0" size={18} />
-          <div className="text-left">
-            <p className="text-[11px] font-extrabold text-rose-400 uppercase">Limite Diário Atingido (Quota Exceeded)</p>
-            <p className="text-[10px] text-rose-350 leading-relaxed mt-0.5">
-              Você consumiu todos os acessos gratuitos de hoje. O Piruá continuará funcionando em modo de leitura seguro com base nos dados que você já carregou anteriormente. As cotas serão restauradas automaticamente pelo Google nas próximas horas.
+        <div className="mt-4 p-5 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-rose-400 animate-pulse shrink-0 mt-0.5" size={18} />
+            <div className="text-left">
+              <p className="text-[11px] font-black text-rose-400 uppercase tracking-wider">Limite Diário do Google Firebase Atingido</p>
+              <p className="text-xs text-rose-300/90 leading-relaxed mt-1">
+                O seu projeto foi publicado no <strong>Vercel</strong>! Isso significa que todos os acessos de diferentes computadores, celulares, visitantes e até robôs de busca estão consumindo a <strong>mesma cota global de 50.000 leituras diárias</strong> do seu banco de dados Firebase.
+              </p>
+            </div>
+          </div>
+          <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 text-[11px] text-zinc-400 leading-relaxed space-y-1.5">
+            <p>
+              💡 <strong>Por que a barra diz {usage.reads.toLocaleString('pt-BR')} de {READ_LIMIT.toLocaleString('pt-BR')} usado?</strong>
+            </p>
+            <p>
+              A barra de progresso acima mostra apenas o consumo <strong>deste seu navegador específico</strong> ({usage.reads.toLocaleString('pt-BR')} leituras). Mas a mensagem de limite vem diretamente do Google Cloud porque a soma de <em>todos os acessos globais</em> no Vercel atingiu o limite de 50.000.
+            </p>
+            <p className="text-[10px] text-zinc-500 italic">
+              O aplicativo continuará funcionando perfeitamente de forma segura utilizando o nosso cache offline inteligente, para que você não perca o acesso aos seus dados.
             </p>
           </div>
         </div>
