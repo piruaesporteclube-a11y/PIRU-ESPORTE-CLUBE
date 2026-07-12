@@ -114,6 +114,7 @@ export const AccessAudit: React.FC = () => {
 
   const filteredErrors = loginErrors.filter(err => 
     err.doc_attempted?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    err.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     err.error_message?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -270,7 +271,9 @@ export const AccessAudit: React.FC = () => {
                       <XCircle size={24} />
                     </div>
                     <div className="max-w-md">
-                      <h4 className="text-white font-bold">Tentativa falha: {err.doc_attempted}</h4>
+                      <h4 className="text-white font-bold">
+                        Tentativa falha: {err.user_name ? `${err.user_name} (${err.doc_attempted})` : err.doc_attempted}
+                      </h4>
                       <p className="text-red-400/80 text-sm font-medium mt-0.5 italic">
                         "{err.error_message}"
                       </p>

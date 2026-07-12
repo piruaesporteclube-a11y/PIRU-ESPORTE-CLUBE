@@ -3187,9 +3187,35 @@ export const api = {
   logLoginError: async (docAttempted: string, errorMessage: string) => {
     try {
       const errorId = doc(collection(db, "login_errors")).id;
+      let userName = '';
+      try {
+        const cleanDoc = docAttempted.replace(/\D/g, '');
+        const formattedCpf = formatCPF(docAttempted);
+        const searchDocs = [docAttempted, cleanDoc, formattedCpf].filter(Boolean);
+        
+        if (searchDocs.length > 0) {
+          // Try searching in athletes
+          const qAthlete = query(collection(db, "athletes"), where("doc", "in", searchDocs));
+          const athleteSnap = await _getDocs(qAthlete);
+          if (!athleteSnap.empty) {
+            userName = athleteSnap.docs[0].data().name || '';
+          } else {
+            // Try searching in professors
+            const qProfessor = query(collection(db, "professors"), where("doc", "in", searchDocs));
+            const professorSnap = await _getDocs(qProfessor);
+            if (!professorSnap.empty) {
+              userName = professorSnap.docs[0].data().name || '';
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to lookup name for login error:", err);
+      }
+
       const errorData = {
         id: errorId,
         doc_attempted: docAttempted,
+        user_name: userName || null,
         error_message: errorMessage,
         created_at: serverTimestamp()
       };
