@@ -149,6 +149,21 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
   }, [selectedEventId]);
 
   useEffect(() => {
+    if (selectedEventId && events.length > 0) {
+      const event = events.find(e => e.id === selectedEventId);
+      if (event) {
+        setResponsibleWhatsApp(event.responsible_phone || '');
+        if (!delegationResponsible && settings?.technicalDirector) {
+          setDelegationResponsible(settings.technicalDirector);
+        }
+        if (!directorName && settings?.president) {
+          setDirectorName(settings.president);
+        }
+      }
+    }
+  }, [selectedEventId, events, settings]);
+
+  useEffect(() => {
     // Combine selected lineups into one cumulative list
     const cumulativeAthletes: Athlete[] = [];
     const cumulativeStaff: Professor[] = [];
@@ -578,9 +593,19 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
     doc.line(15, signatureY, 90, signatureY);
     doc.setFontSize(7.5);
     doc.text(delegationResponsible.toUpperCase() || 'RESPONSÁVEL PELA DELEGAÇÃO', 52.5, signatureY + 4, { align: 'center' });
+    if (responsibleWhatsApp) {
+      doc.setFontSize(6.5);
+      doc.text(`CONTATO: ${responsibleWhatsApp}`, 52.5, signatureY + 8, { align: 'center' });
+    }
     
     doc.line(pageWidth - 90, signatureY, pageWidth - 15, signatureY);
+    doc.setFontSize(7.5);
     doc.text(directorName.toUpperCase() || 'DIRETOR(A) EXECUTIVO(A)', pageWidth - 52.5, signatureY + 4, { align: 'center' });
+    const boardPhone = settings?.phone || settings?.whatsapp;
+    if (boardPhone) {
+      doc.setFontSize(6.5);
+      doc.text(`CONTATO: ${boardPhone}`, pageWidth - 52.5, signatureY + 8, { align: 'center' });
+    }
 
     // Header drawing on all pages (strictly 1 page)
     const totalPages = (doc as any).getNumberOfPages();
@@ -879,7 +904,7 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                     <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Evento / Competição</p>
                     <h3 className="text-sm print:text-xs font-black uppercase italic leading-none">{selectedEvent.name}</h3>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <div>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Destino</p>
                       <p className="font-bold uppercase text-[9px]">{selectedEvent.city} - {selectedEvent.uf}</p>
@@ -891,6 +916,10 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
                     <div>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Responsável</p>
                       <p className="font-bold uppercase text-[9px]">{delegationResponsible || 'NÃO INFORMADO'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 text-zinc-400 font-sans">Contato</p>
+                      <p className="font-bold uppercase text-[9px]">{responsibleWhatsApp || 'NÃO INFORMADO'}</p>
                     </div>
                   </div>
                 </div>
@@ -1149,10 +1178,16 @@ export default function TravelList({ role = 'admin', athletes: athletesProp, pro
               <div className="mt-8 print:mt-6 grid grid-cols-2 gap-8 max-w-4xl mx-auto border-t-2 border-black pt-4">
                 <div className="text-center">
                   <p className="font-bold uppercase text-[9px] mb-1">{delegationResponsible || '_________________________________'}</p>
+                  {responsibleWhatsApp && (
+                    <p className="text-[8px] text-zinc-500 mb-1 font-bold">CONTATO: {responsibleWhatsApp}</p>
+                  )}
                   <p className="font-black uppercase text-[8px] leading-none">Responsável pela Delegação</p>
                 </div>
                 <div className="text-center">
                   <p className="font-bold uppercase text-[9px] mb-1">{directorName || '_________________________________'}</p>
+                  {(settings?.phone || settings?.whatsapp) && (
+                    <p className="text-[8px] text-zinc-500 mb-1 font-bold">CONTATO: {settings.phone || settings.whatsapp}</p>
+                  )}
                   <p className="font-black uppercase text-[8px] leading-none">Diretoria Executiva</p>
                 </div>
               </div>
