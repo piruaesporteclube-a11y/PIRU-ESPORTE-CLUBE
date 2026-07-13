@@ -24,6 +24,18 @@ export const BORDER_THEMES = [
   { id: 'plain-white', label: 'Branco Clean', class: 'bg-gradient-to-tr from-neutral-200 via-white to-neutral-400', glow: 'rgba(255,255,255,0.15)', dotColor: '#ffffff' }
 ];
 
+export const BACKGROUND_TEMPLATES = [
+  { id: 'default-stadium', label: 'Estádio Padrão', url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'stadium-neon', label: 'Estádio Épico', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'stadium-sunset', label: 'Gramado Sunset', url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'neon-cyberpunk', label: 'Futurista Cyberpunk', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'gold-luxury', label: 'Ouro Imperial', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'tech-dark', label: 'Carbono & Holofote', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'fluid-gradient', label: 'Fluido Moderno', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'balloons-dark', label: 'Balões & Celebração', url: 'https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&q=80&w=1080&h=1920' },
+  { id: 'abstract-neon-light', label: 'Luzes Abstratas', url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1080&h=1920' }
+];
+
 export default function Birthdays({ athletes: athletesProp, professors: professorsProp }: BirthdaysProps) {
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [professors, setProfessors] = useState<Professor[]>(professorsProp || []);
@@ -32,6 +44,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [athleteName, setAthleteName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedBgUrl, setSelectedBgUrl] = useState('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920');
   const [bgLayers, setBgLayers] = useState<Array<{
     id: string;
     url: string;
@@ -638,7 +651,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 {/* Default Background */}
                 <div className="absolute inset-0 bg-black overflow-hidden">
                   <img 
-                    src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920" 
+                    src={selectedBgUrl} 
                     alt="Soccer Stadium" 
                     className="w-full h-full object-cover opacity-50"
                     style={{
@@ -1284,6 +1297,47 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           ))}
                         </div>
                       )}
+                      
+                      <div className="pt-4 border-t border-zinc-800 space-y-3">
+                        <div>
+                          <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Modelos de Fundo Modernos</p>
+                          <p className="text-[8px] text-zinc-500 uppercase mt-0.5">Selecione um design de plano de fundo moderno e profissional</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2.5 pt-1">
+                          {BACKGROUND_TEMPLATES.map((bg) => (
+                            <button
+                              key={bg.id}
+                              onClick={() => {
+                                setSelectedBgUrl(bg.url);
+                                toast.success(`Modelo "${bg.label}" ativado!`);
+                              }}
+                              className={cn(
+                                "flex flex-col items-center p-2 rounded-2xl border text-center transition-all group overflow-hidden relative",
+                                selectedBgUrl === bg.url 
+                                  ? "bg-zinc-800 border-theme-primary" 
+                                  : "bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+                              )}
+                            >
+                              <div className="w-full aspect-[4/5] rounded-xl overflow-hidden mb-1 relative border border-zinc-800/80 bg-zinc-950">
+                                <img src={bg.url} alt={bg.label} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-300" referrerPolicy="no-referrer" />
+                                {selectedBgUrl === bg.url && (
+                                  <div className="absolute inset-0 bg-theme-primary/15 flex items-center justify-center">
+                                    <div className="bg-theme-primary text-black text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shadow-md">
+                                      Ativo
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={cn(
+                                "text-[8px] font-bold tracking-tight block w-full truncate",
+                                selectedBgUrl === bg.url ? "text-theme-primary" : "text-zinc-400 group-hover:text-white"
+                              )}>
+                                {bg.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
                       <div className="pt-4 border-t border-zinc-800">
                         <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest mb-4">Ajustar Estádio de Fundo (Padrão)</p>
@@ -1653,6 +1707,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           setBgXOffset(0);
                           setBgYOffset(0);
                           setBgLayers([]);
+                          setSelectedBgUrl('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920');
                           setSupportPhotoScales([1, 1, 1, 1]);
                           setSupportPhotoXOffsets([0, 0, 0, 0]);
                           setSupportPhotoYOffsets([0, 0, 0, 0]);
