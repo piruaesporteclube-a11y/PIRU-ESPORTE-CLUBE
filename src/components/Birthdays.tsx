@@ -25,15 +25,31 @@ export const BORDER_THEMES = [
 ];
 
 export const BACKGROUND_TEMPLATES = [
-  { id: 'default-stadium', label: 'Estádio Padrão', url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'stadium-neon', label: 'Estádio Épico', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'stadium-sunset', label: 'Gramado Sunset', url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'neon-cyberpunk', label: 'Futurista Cyberpunk', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'gold-luxury', label: 'Ouro Imperial', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'tech-dark', label: 'Carbono & Holofote', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'fluid-gradient', label: 'Fluido Moderno', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'balloons-dark', label: 'Balões & Celebração', url: 'https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&q=80&w=1080&h=1920' },
-  { id: 'abstract-neon-light', label: 'Luzes Abstratas', url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1080&h=1920' }
+  // Estádios
+  { id: 'default-stadium', label: 'Holofotes da Arena', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  { id: 'stadium-nebula', label: 'Névoa do Jogo', url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  { id: 'stadium-sunset', label: 'Sunset de Campeão', url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  { id: 'night-match', label: 'Clássico Noturno', url: 'https://images.unsplash.com/photo-1518063319789-7217e6706b04?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  { id: 'macro-grass', label: 'Gramado Sagrado', url: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  { id: 'stadium-aerial', label: 'Arena de Elite', url: 'https://images.unsplash.com/photo-1431324155629-1a6edd1d141d?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+
+  // Premium Ouro / Preto
+  { id: 'neon-yellow-stripes', label: 'Linhas Fênix (Club)', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+  { id: 'gold-fluid', label: 'Ouro Líquido 3D', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+  { id: 'black-gold-marble', label: 'Mármore Imperial', url: 'https://images.unsplash.com/photo-1618005198143-e5283464303b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+  { id: 'carbon-tech', label: 'Fibra de Carbono', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+  { id: 'dark-cyberpunk', label: 'Geometria Urbana', url: 'https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+
+  // Celebração
+  { id: 'luxury-balloons', label: 'Balões Ouro & Preto', url: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
+  { id: 'sparklers-gold', label: 'Faíscas da Vitória', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
+  { id: 'confetti-burst', label: 'Festa de Campeão', url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
+  { id: 'championship-lights', label: 'Brilho do Pódio', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
+
+  // Minimalistas
+  { id: 'orange-gold-grad', label: 'Degradê Fênix', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' },
+  { id: 'dark-studio-light', label: 'Estúdio Sombrio', url: 'https://images.unsplash.com/photo-1531685250784-7569952593d2?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' },
+  { id: 'starry-cosmic', label: 'Cosmos Noturno', url: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' }
 ];
 
 export default function Birthdays({ athletes: athletesProp, professors: professorsProp }: BirthdaysProps) {
@@ -44,7 +60,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [athleteName, setAthleteName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedBgUrl, setSelectedBgUrl] = useState('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920');
+  const [selectedBgUrl, setSelectedBgUrl] = useState('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920');
+  const [selectedBgCategory, setSelectedBgCategory] = useState<string>('Todos');
   const [bgLayers, setBgLayers] = useState<Array<{
     id: string;
     url: string;
@@ -1398,8 +1415,27 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                           <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Modelos de Fundo Modernos</p>
                           <p className="text-[8px] text-zinc-500 uppercase mt-0.5">Selecione um design de plano de fundo moderno e profissional</p>
                         </div>
+
+                        {/* Category Selector Pills */}
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                          {['Todos', 'Estádios', 'Premium Ouro', 'Celebração', 'Minimalistas'].map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() => setSelectedBgCategory(cat)}
+                              className={cn(
+                                "flex-shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border",
+                                selectedBgCategory === cat
+                                  ? "bg-theme-primary text-black border-theme-primary"
+                                  : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
+                              )}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+
                         <div className="grid grid-cols-3 gap-2.5 pt-1">
-                          {BACKGROUND_TEMPLATES.map((bg) => (
+                          {BACKGROUND_TEMPLATES.filter(bg => selectedBgCategory === 'Todos' || bg.category === selectedBgCategory).map((bg) => (
                             <button
                               key={bg.id}
                               onClick={() => {
