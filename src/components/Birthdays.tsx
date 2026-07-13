@@ -88,7 +88,42 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [supportPhotoXOffsets, setSupportPhotoXOffsets] = useState<number[]>([0, 0, 0, 0]);
   const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
 
+  const [editorScale, setEditorScale] = useState(1);
+  const [cardWidth, setCardWidth] = useState(450);
+  const [cardHeight, setCardHeight] = useState(800);
+
   const currentBorder = BORDER_THEMES.find(t => t.id === photoBorderTheme) || BORDER_THEMES[0];
+
+  useEffect(() => {
+    if (!selectedPerson) return;
+    const handleResize = () => {
+      const isDesktop = window.innerWidth >= 1024;
+      const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+      
+      if (isDesktop) {
+        const availableHeight = window.innerHeight - 200;
+        const scaleFactor = Math.min(1, Math.max(0.4, availableHeight / 800));
+        setEditorScale(scaleFactor);
+        setCardWidth(450);
+        setCardHeight(800);
+      } else if (isTablet) {
+        const availableHeight = window.innerHeight - 250;
+        const scaleFactor = Math.min(1, Math.max(0.4, availableHeight / 800));
+        setEditorScale(scaleFactor);
+        setCardWidth(450);
+        setCardHeight(800);
+      } else {
+        const scaleFactor = Math.min(1, (window.innerWidth - 32) / 360);
+        setEditorScale(Math.max(0.5, scaleFactor));
+        setCardWidth(360);
+        setCardHeight(640);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [selectedPerson]);
 
   useEffect(() => {
     if (selectedPerson) {
@@ -624,27 +659,50 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
       {/* Instagram Post Modal */}
       {selectedPerson && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="relative py-8 w-full max-w-[1400px]">
+        <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-[70] flex flex-col overflow-y-auto lg:overflow-hidden font-sans">
+          {/* Modal Header */}
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-zinc-900 bg-black/40 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-theme-primary animate-pulse" />
+              <h2 className="text-lg md:text-xl font-black text-white italic tracking-tighter uppercase">
+                Editor de Encarte <span className="hidden sm:inline text-xs font-bold text-zinc-500 not-italic uppercase tracking-widest ml-2">Piruá Esporte Clube</span>
+              </h2>
+            </div>
             <button 
               onClick={() => setSelectedPerson(null)}
-              className="absolute top-0 right-0 text-white hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-xs z-[80]"
+              className="text-zinc-400 hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-[10px] py-2 px-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-theme-primary"
             >
               Fechar [X]
             </button>
+          </div>
 
-            <div className="flex flex-col items-center mb-10">
-              <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Editor de Encarte</h2>
-              <div className="w-20 h-1 bg-theme-primary mt-2"></div>
-            </div>
-            
-            <div className="flex flex-col lg:flex-row gap-12 w-full items-start justify-center px-4">
-              {/* Preview Column */}
-              <div className="flex flex-col items-center gap-8 lg:sticky lg:top-8 w-full lg:w-auto">
-                {/* Instagram Style Birthday Card - Modern Sports Poster */}
+          {/* Main Editor Body */}
+          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+            {/* Left Column: Fixed Preview Column */}
+            <div className="w-full lg:w-[500px] xl:w-[600px] flex-shrink-0 flex flex-col items-center justify-between p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/40 relative overflow-y-auto lg:overflow-hidden">
+              <div className="flex flex-col items-center justify-center flex-grow w-full my-auto py-4">
+                {/* Responsive Scale Container */}
                 <div 
-                  id="birthday-card" 
-              className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[8px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
+                  className="relative flex items-center justify-center flex-shrink-0"
+                  style={{
+                    width: `${cardWidth * editorScale}px`,
+                    height: `${cardHeight * editorScale}px`,
+                    transition: 'width 0.15s ease, height 0.15s ease'
+                  }}
+                >
+                  <div 
+                    className="absolute origin-center"
+                    style={{
+                      transform: `scale(${editorScale})`,
+                      width: `${cardWidth}px`,
+                      height: `${cardHeight}px`,
+                      transition: 'transform 0.15s ease'
+                    }}
+                  >
+                    {/* Instagram Style Birthday Card - Modern Sports Poster */}
+                    <div 
+                      id="birthday-card" 
+                      className="w-[360px] h-[640px] md:w-[450px] md:h-[800px] overflow-hidden relative shadow-2xl flex flex-col bg-zinc-950 font-sans mx-auto rounded-3xl border-[8px] border-theme-primary shadow-[0_0_80px_rgba(234,179,8,0.3)]" 
             >
               {/* Background Layer: Soccer Theme & Mascot */}
               <div className="absolute inset-0 z-0">
@@ -962,32 +1020,69 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 <div className="absolute bottom-[20%] -right-10 w-60 h-60 border-8 border-white rounded-full opacity-10 transform rotate-12 translate-x-[20%] translate-y-[20%]" />
               </div>
             </div>
+          </div> {/* Closing of #birthday-card */}
+        </div> {/* Closing of absolute origin-center scaled container */}
+      </div> {/* Closing of relative flex-shrink-0 responsive scale container */}
 
-            {/* Action Buttons for Mobile - Only visible on small screens below the preview */}
-            <div className="lg:hidden w-full max-w-[400px] flex flex-col gap-3">
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => downloadCard(false)}
-                  disabled={isGenerating}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
-                >
-                  <Download size={18} className={isGenerating ? "animate-bounce" : ""} />
-                  Salvar
-                </button>
-                <button 
-                  onClick={() => downloadCard(true)}
-                  disabled={isGenerating}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
-                >
-                  <Share2 size={18} />
-                  Postar
-                </button>
-              </div>
-            </div>
-          </div>
+    {/* Action Buttons for Mobile - Only visible on small screens below the preview */}
+    <div className="lg:hidden w-full max-w-[400px] flex flex-col gap-3 mt-4">
+      <div className="flex gap-2">
+        <button 
+          onClick={() => downloadCard(false)}
+          disabled={isGenerating}
+          className="flex-1 flex items-center justify-center gap-2 py-3 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
+        >
+          <Download size={18} className={isGenerating ? "animate-bounce" : ""} />
+          Salvar
+        </button>
+        <button 
+          onClick={() => downloadCard(true)}
+          disabled={isGenerating}
+          className="flex-1 flex items-center justify-center gap-2 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
+        >
+          <Share2 size={18} />
+          Postar
+        </button>
+      </div>
+    </div>
 
-          {/* Controls Column */}
-          <div className="flex-1 w-full max-w-[700px] flex flex-col gap-6">
+    {/* Action Buttons for Desktop / Large Screens (kept fixed at the bottom of the left column) */}
+    <div className="hidden lg:flex flex-wrap justify-center gap-3 w-full border-t border-zinc-900/50 pt-4 mt-auto flex-shrink-0">
+      <button 
+        onClick={() => downloadCard(false)}
+        disabled={isGenerating}
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter"
+      >
+        <Download size={16} className={isGenerating ? "animate-bounce" : ""} />
+        {isGenerating ? 'Gerando...' : 'Salvar Arte'}
+      </button>
+      
+      <button 
+        onClick={() => downloadCard(true)}
+        disabled={isGenerating}
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-xs tracking-tighter shadow-[0_5px_15px_rgba(234,179,8,0.25)]"
+      >
+        <Share2 size={16} />
+        {isGenerating ? 'Processando...' : 'Postar'}
+      </button>
+
+      <button 
+        onClick={() => {
+          const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
+          navigator.clipboard.writeText(text);
+          toast.success('Legenda copiada!');
+        }}
+        className="flex items-center justify-center p-3 bg-zinc-900 border border-zinc-800 text-white font-black rounded-xl hover:bg-zinc-800 transition-colors uppercase text-xs tracking-tighter"
+        title="Copiar Legenda"
+      >
+        <Instagram size={16} />
+      </button>
+    </div>
+  </div> {/* Closing of Left Column (Preview Column) */}
+
+  {/* Right Column: Scrollable Controls Column */}
+  <div className="flex-1 flex flex-col overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
+    <div className="w-full max-w-[700px] mx-auto flex flex-col gap-6">
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               {/* Tabs Header */}
               <div className="flex bg-black p-1 gap-1">
@@ -1722,43 +1817,10 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 )}
               </div>
             </div>
-
-            {/* Action Buttons for Desktop */}
-            <div className="hidden lg:flex flex-wrap justify-center gap-4 mt-2">
-                <button 
-                  onClick={() => downloadCard(false)}
-                  disabled={isGenerating}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter"
-                >
-                  <Download size={20} className={isGenerating ? "animate-bounce" : ""} />
-                  {isGenerating ? 'Gerando...' : 'Salvar no Celular'}
-                </button>
-                
-                <button 
-                  onClick={() => downloadCard(true)}
-                  disabled={isGenerating}
-                  className="flex i flex items-center justify-center gap-2 px-6 py-4 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-sm tracking-tighter shadow-[0_10px_20px_rgba(234,179,8,0.3)]"
-                >
-                  <Share2 size={20} />
-                  {isGenerating ? 'Processando...' : 'Postar / Compartilhar'}
-                </button>
-
-                <button 
-                  onClick={() => {
-                    const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
-                    navigator.clipboard.writeText(text);
-                    toast.success('Legenda copiada! Agora é só colar no post.');
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-800 text-white font-black rounded-xl hover:bg-zinc-700 transition-colors uppercase text-sm tracking-tighter"
-                >
-                  <Instagram size={20} />
-                  Legenda
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+    </div>
     )}
   </div>
 );
