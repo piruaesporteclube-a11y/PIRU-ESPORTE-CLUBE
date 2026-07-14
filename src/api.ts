@@ -227,7 +227,7 @@ const onSnapshot = (ref: any, onNext: any, onError?: any): any => {
   }, onError);
 };
 import { auth, db } from "./firebase";
-import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport } from "./types";
+import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport, PlayerProfile } from "./types";
 import { formatCPF, formatCPFOrRG, formatPhone } from "./utils";
 
 const SETTINGS_ID = "global_settings";
@@ -1745,6 +1745,35 @@ export const api = {
       invalidateCache(`anamnesis_${anamnesis.athlete_id}`); // Invalidate cache
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `anamnesis/${anamnesis.athlete_id}`);
+    }
+  },
+
+  // Player Profiles
+  getPlayerProfile: async (athlete_id: string): Promise<PlayerProfile> => {
+    const cacheKey = `player_profile_${athlete_id}`;
+    const cached = getCachedData(cacheKey) || getCachedData(cacheKey, true);
+    if (cached) return cached;
+
+    try {
+      const docSnap = await getDocWithCacheFallback(doc(db, "player_profiles", athlete_id));
+      if (docSnap.exists()) {
+        const data = docSnap.data() as PlayerProfile;
+        setCachedData(cacheKey, data);
+        return data;
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `player_profiles/${athlete_id}`);
+    }
+    return { athlete_id } as PlayerProfile;
+  },
+  savePlayerProfile: async (profile: Partial<PlayerProfile>) => {
+    if (!profile.athlete_id) throw new Error("ID do atleta é obrigatório");
+    try {
+      const data = { ...profile, updated_at: serverTimestamp() };
+      await setDoc(doc(db, "player_profiles", profile.athlete_id), sanitizeData(data), { merge: true });
+      invalidateCache(`player_profile_${profile.athlete_id}`); // Invalidate cache
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `player_profiles/${profile.athlete_id}`);
     }
   },
 

@@ -7,6 +7,7 @@ import Attendance from './components/Attendance';
 import Birthdays from './components/Birthdays';
 import EventsManagement from './components/EventsManagement';
 import AnamnesisForm from './components/AnamnesisForm';
+import PlayerProfileForm from './components/PlayerProfileForm';
 import Documents from './components/Documents';
 import SponsorManager from './components/SponsorManager';
 import ModalityList from './components/ModalityList';
@@ -1569,6 +1570,31 @@ export default function App() {
                       setSelectedAthleteForAnamnesis(null);
                     }} 
                   />
+                </div>
+              )}
+            </div>
+          );
+        case 'player-profiles':
+          return (
+            <div className="max-w-6xl mx-auto">
+              <PlayerProfileForm 
+                userRole={user.role as any} 
+                athletes={athletes}
+              />
+            </div>
+          );
+        case 'my-player-profile':
+          return (
+            <div className="max-w-6xl mx-auto">
+              {myAthleteData ? (
+                <PlayerProfileForm 
+                  athlete={myAthleteData} 
+                  userRole="student" 
+                  standalone
+                />
+              ) : (
+                <div className="p-12 text-center bg-black rounded-3xl border border-zinc-800">
+                  <p className="text-zinc-500">Carregando seus dados...</p>
                 </div>
               )}
             </div>

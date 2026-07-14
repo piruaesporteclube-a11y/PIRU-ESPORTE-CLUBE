@@ -58,6 +58,7 @@ export const navItems: NavItem[] = [
   { id: 'uniforms', label: 'Uniforme', icon: Shirt, roles: ['admin', 'student', 'professor'], description: 'Pedidos e Numeração', color: 'text-theme-primary', category: 'office' },
   { id: 'documents', label: 'Arquivos', icon: FileText, roles: ['admin', 'professor'], description: 'PDFs e Manuais', color: 'text-purple-500', category: 'office' },
   { id: 'anamnesis', label: 'Ficha Médica', icon: Activity, roles: ['admin', 'professor'], description: 'Saúde dos Atletas', color: 'text-theme-primary', category: 'office' },
+  { id: 'player-profiles', label: 'Ficha Técnica', icon: ClipboardList, roles: ['admin', 'professor'], description: 'Desempenho e Biometria', color: 'text-theme-primary', category: 'office' },
   { id: 'membership-card', label: 'Identidade', icon: CreditCard, roles: ['admin', 'professor'], description: 'Carteirinha Oficial', color: 'text-blue-500', category: 'office' },
   
   // --- GRUPO: Social & Relacionamento (Família Piruá) ---
@@ -72,6 +73,7 @@ export const navItems: NavItem[] = [
   { id: 'attendance-history', label: 'Histórico', icon: History, roles: ['student', 'professor'], description: 'Sua Presença', category: 'student' },
   { id: 'my-card', label: 'Minha Carteirinha', icon: CreditCard, roles: ['student', 'professor'], description: 'Sua ID Digital', category: 'student' },
   { id: 'my-anamnesis', label: 'Minha Saúde', icon: Activity, roles: ['student', 'professor'], description: 'Ficha Médica', category: 'student' },
+  { id: 'my-player-profile', label: 'Minha Ficha Técnica', icon: FileText, roles: ['student', 'professor'], description: 'Seu Boletim Técnico', category: 'student' },
   { id: 'school-reports', label: 'Boletim Escolar', icon: FileText, roles: ['admin', 'student', 'professor'], description: 'Notas Escolares', category: 'office' },
   { id: 'uniform-request', label: 'Pedir Uniforme', icon: Shirt, roles: ['student'], description: 'Solicitar Kit', category: 'student' },
 ];

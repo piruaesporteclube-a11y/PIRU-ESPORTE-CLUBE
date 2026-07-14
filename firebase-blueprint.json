@@ -104,6 +104,34 @@
       },
       "required": ["athlete_id"]
     },
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "Athlete technical datasheet and profile",
+      "type": "object",
+      "properties": {
+        "athlete_id": { "type": "string" },
+        "nationality": { "type": "string" },
+        "birth_place": { "type": "string" },
+        "primary_position": { "type": "string" },
+        "secondary_position": { "type": "string" },
+        "current_club": { "type": "string" },
+        "contract_duration": { "type": "string" },
+        "height": { "type": "string" },
+        "weight": { "type": "string" },
+        "wingspan": { "type": "string" },
+        "dominant_foot": { "type": "string", "enum": ["Destro", "Canhoto", "Ambidestro", ""] },
+        "skills_passing": { "type": "string" },
+        "skills_heading": { "type": "string" },
+        "skills_dribbling": { "type": "string" },
+        "skills_speed": { "type": "string" },
+        "skills_tactical": { "type": "string" },
+        "decision_making": { "type": "string" },
+        "routine_exams": { "type": "string" },
+        "injury_history": { "type": "string" },
+        "performance_tests": { "type": "string" }
+      },
+      "required": ["athlete_id"]
+    },
     "Settings": {
       "title": "Settings",
       "description": "Settings data model",
@@ -429,6 +457,10 @@
     "/anamnesis/{athleteId}": {
       "schema": "Anamnesis",
       "description": "Anamnesis records indexed by athlete ID"
+    },
+    "/player_profiles/{athleteId}": {
+      "schema": "PlayerProfile",
+      "description": "Player technical profile and performance evaluations"
     },
     "/settings/global_settings": {
       "schema": "Settings",

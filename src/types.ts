@@ -455,3 +455,29 @@ export const categories = [
   "SUB 16", "SUB 17", "SUB 18", "SUB 19", "SUB 20", 
   "ADULTO"
 ];
+
+export type PlayerProfile = {
+  athlete_id: string;
+  nationality?: string;
+  birth_place?: string;
+  primary_position?: string;
+  secondary_position?: string;
+  current_club?: string;
+  contract_duration?: string;
+  // Características Físicas e Técnicas
+  height?: string;
+  weight?: string;
+  wingspan?: string;
+  dominant_foot?: "Destro" | "Canhoto" | "Ambidestro" | "";
+  skills_passing?: string;
+  skills_heading?: string;
+  skills_dribbling?: string;
+  skills_speed?: string;
+  skills_tactical?: string;
+  decision_making?: string;
+  // Histórico Médico e Físico
+  routine_exams?: string;
+  injury_history?: string;
+  performance_tests?: string;
+  updated_at?: any;
+};

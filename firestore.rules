@@ -160,6 +160,29 @@ service cloud.firestore {
              (!('pathologies_description' in data) || data.pathologies_description is string);
     }
 
+    function isValidPlayerProfile(data) {
+      return data.athlete_id is string && data.athlete_id.size() > 0 &&
+             (!('nationality' in data) || data.nationality is string) &&
+             (!('birth_place' in data) || data.birth_place is string) &&
+             (!('primary_position' in data) || data.primary_position is string) &&
+             (!('secondary_position' in data) || data.secondary_position is string) &&
+             (!('current_club' in data) || data.current_club is string) &&
+             (!('contract_duration' in data) || data.contract_duration is string) &&
+             (!('height' in data) || data.height is string) &&
+             (!('weight' in data) || data.weight is string) &&
+             (!('wingspan' in data) || data.wingspan is string) &&
+             (!('dominant_foot' in data) || data.dominant_foot is string) &&
+             (!('skills_passing' in data) || data.skills_passing is string) &&
+             (!('skills_heading' in data) || data.skills_heading is string) &&
+             (!('skills_dribbling' in data) || data.skills_dribbling is string) &&
+             (!('skills_speed' in data) || data.skills_speed is string) &&
+             (!('skills_tactical' in data) || data.skills_tactical is string) &&
+             (!('decision_making' in data) || data.decision_making is string) &&
+             (!('routine_exams' in data) || data.routine_exams is string) &&
+             (!('injury_history' in data) || data.injury_history is string) &&
+             (!('performance_tests' in data) || data.performance_tests is string);
+    }
+
     function isValidSponsor(data) {
       return data.id is string && data.name is string && data.name.size() > 0 &&
              data.logo is string && data.logo.size() > 0;
@@ -308,6 +331,13 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isDataOwner(athleteId) || isAdmin());
       allow create: if isAuthenticated() && isValidAnamnesis(request.resource.data);
       allow update: if isAuthenticated() && (isDataOwner(athleteId) || isAdmin()) && isValidAnamnesis(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /player_profiles/{athleteId} {
+      allow read: if isAuthenticated() && (isDataOwner(athleteId) || isStaff());
+      allow create: if isAuthenticated() && isValidPlayerProfile(request.resource.data);
+      allow update: if isAuthenticated() && (isDataOwner(athleteId) || isStaff()) && isValidPlayerProfile(request.resource.data);
       allow delete: if isAdmin();
     }
 
