@@ -58,6 +58,9 @@ const YesNoField = ({ label, value, onChange, placeholder = "Especifique se nece
 
 export default function AnamnesisForm({ athlete, onSave, standalone }: AnamnesisFormProps) {
   const { settings } = useTheme();
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [exists, setExists] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Anamnesis>>({
     athlete_id: athlete.id,
     sleep_time: '',
@@ -80,10 +83,24 @@ export default function AnamnesisForm({ athlete, onSave, standalone }: Anamnesis
   });
 
   useEffect(() => {
+    setHasLoaded(false);
+    setIsEditing(false);
     api.getAnamnesis(athlete.id).then(data => {
-      if (data.athlete_id) setFormData(prev => ({ ...prev, ...data }));
+      if (data.athlete_id) {
+        const hasData = !!(data.sleep_time || data.wake_up_difficulty || data.medical_treatment || data.updated_at);
+        setExists(hasData);
+        setFormData(prev => ({ 
+          ...prev, 
+          ...data,
+          pathologies: data.pathologies || '[]'
+        }));
+      } else {
+        setExists(false);
+      }
+      setHasLoaded(true);
     }).catch(() => {
-      // If not found, keep default empty form
+      setExists(false);
+      setHasLoaded(true);
     });
   }, [athlete.id]);
 
@@ -128,11 +145,98 @@ export default function AnamnesisForm({ athlete, onSave, standalone }: Anamnesis
     try {
       await api.saveAnamnesis(formData);
       toast.success("Anamnese salva com sucesso!");
+      setExists(true);
+      setIsEditing(false);
       onSave();
     } catch (err: any) {
       toast.error(`Erro ao salvar anamnese: ${err.message}`);
     }
   };
+
+  if (!hasLoaded) {
+    return (
+      <div className={cn("p-12 text-center bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl", !standalone && "min-h-[400px] flex items-center justify-center")}>
+        <p className="text-zinc-500 uppercase font-bold text-xs tracking-widest animate-pulse">Carregando ficha de saúde...</p>
+      </div>
+    );
+  }
+
+  if (!exists && !isEditing) {
+    const title = standalone ? "Sua Ficha Não Preenchida" : "Ficha Não Preenchida";
+    const desc = standalone 
+      ? "Você ainda não preencheu sua ficha de saúde e anamnese obrigatória." 
+      : "Este atleta ainda não possui informações de saúde ou histórico médico preenchido.";
+    const buttonText = standalone ? "Preencher Minha Ficha" : "Preencher Ficha Agora";
+
+    return (
+      <div className={cn("space-y-6", !standalone && "bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl")}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {!standalone && (
+              <button 
+                onClick={onSave}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group no-print"
+              >
+                <X size={20} className="group-hover:rotate-90 transition-transform" />
+              </button>
+            )}
+            <div className="w-14 h-14 flex items-center justify-center p-1.5 bg-zinc-800 rounded-xl border border-zinc-700 shadow-xl overflow-hidden">
+              {settings?.schoolCrest ? (
+                <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-full h-full bg-theme-primary rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
+              )}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Ficha de Anamnese</h2>
+              <p className="text-zinc-400 text-sm">Histórico de saúde do atleta: <span className="text-theme-primary font-bold uppercase">{athlete.name}</span></p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 no-print">
+            {!standalone && (
+              <button 
+                onClick={onSave}
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all group"
+              >
+                <X size={18} className="group-hover:rotate-90 transition-transform" />
+                <span className="font-bold uppercase text-xs tracking-widest">Voltar</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-black border border-zinc-800 rounded-3xl p-12 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="p-4 bg-zinc-800/50 text-zinc-500 rounded-full">
+              <ClipboardList size={48} />
+            </div>
+          </div>
+          <div className="space-y-2 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-white uppercase tracking-tight">{title}</h3>
+            <p className="text-zinc-400 text-sm">
+              {desc}
+            </p>
+          </div>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-6 py-3 bg-theme-primary text-black font-black uppercase text-xs tracking-widest rounded-xl hover:opacity-90 transition-all"
+            >
+              {buttonText}
+            </button>
+            {!standalone && (
+              <button
+                onClick={onSave}
+                className="px-6 py-3 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white font-bold uppercase text-xs tracking-widest rounded-xl transition-all"
+              >
+                Voltar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-6", !standalone && "bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl")}>

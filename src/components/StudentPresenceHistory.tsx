@@ -65,6 +65,30 @@ const hasScheduledTrainingOrEventForAthlete = (
   return hasMatchingEvent;
 };
 
+const isWithinJustificationTimeframe = (dateStr: string, startTimeStr?: string): boolean => {
+  const now = new Date();
+  
+  // Format current date in YYYY-MM-DD
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
+  // If scheduled for today or in the future, it's always allowed ("antes do treino")
+  if (dateStr >= todayStr) {
+    return true;
+  }
+
+  // If in the past, let's check if it is within 24 hours of the training start time.
+  const startTime = startTimeStr || '08:00';
+  const trainingDateTime = new Date(`${dateStr}T${startTime}:00`);
+  
+  const elapsedMs = now.getTime() - trainingDateTime.getTime();
+  const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+  
+  return elapsedMs <= twentyFourHoursMs;
+};
+
 export default function StudentPresenceHistory({ athleteId }: { athleteId: string }) {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
@@ -77,6 +101,11 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
   const [selectedRecord, setSelectedRecord] = useState<Attendance | null>(null);
   const [justificationText, setJustificationText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Pre-emptive/Recent Absence Justification State
+  const [isAddJustificationOpen, setIsAddJustificationOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [newJustificationText, setNewJustificationText] = useState('');
 
   useEffect(() => {
     if (athleteId) {
@@ -151,6 +180,134 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
     }
   };
 
+  const getEligibleSessions = () => {
+    if (!athlete) return [];
+
+    const eligible: {
+      id: string;
+      type: 'training' | 'event';
+      title: string;
+      date: string;
+      start_time?: string;
+      training_id?: string;
+      event_id?: string;
+    }[] = [];
+
+    const athleteMods = (athlete.modality || '')
+      .split(',')
+      .map(m => m.trim().toLowerCase())
+      .filter(Boolean);
+
+    const athleteSub = getSubCategory(athlete.birth_date);
+
+    // 1. Process Trainings
+    trainings.forEach(t => {
+      if (t.modality) {
+        const trainingMod = t.modality.trim().toLowerCase();
+        const matchesModality = athleteMods.some(m => 
+          m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod)
+        );
+        if (!matchesModality) return;
+      }
+
+      let isCategoryEligible = t.category === 'Todos' || t.category === athleteSub;
+      if (!isCategoryEligible && t.schedules && t.schedules.length > 0) {
+        isCategoryEligible = t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
+      }
+
+      if (!isCategoryEligible) return;
+
+      if (isWithinJustificationTimeframe(t.date, t.start_time)) {
+        // Check if student is already marked as Presente for this training
+        const alreadyPresent = attendance.some(a => a.training_id === t.id && a.status === 'Presente');
+        if (!alreadyPresent) {
+          eligible.push({
+            id: `training-${t.id}`,
+            type: 'training',
+            title: `Treino: ${t.category || 'Geral'} - ${t.location}`,
+            date: t.date,
+            start_time: t.start_time,
+            training_id: t.id
+          });
+        }
+      }
+    });
+
+    // 2. Process Events
+    events.forEach(e => {
+      if (e.modality) {
+        const eventMod = e.modality.trim().toLowerCase();
+        const matchesModality = athleteMods.some(m => 
+          m === eventMod || eventMod.includes(m) || m.includes(eventMod)
+        );
+        if (!matchesModality) return;
+      }
+
+      if (isWithinJustificationTimeframe(e.start_date, e.start_time)) {
+        const alreadyPresent = attendance.some(a => a.event_id === e.id && a.status === 'Presente');
+        if (!alreadyPresent) {
+          eligible.push({
+            id: `event-${e.id}`,
+            type: 'event',
+            title: `Evento: ${e.name}`,
+            date: e.start_date,
+            start_time: e.start_time,
+            event_id: e.id
+          });
+        }
+      }
+    });
+
+    return eligible.sort((a, b) => b.date.localeCompare(a.date)); // descending so most recent is first
+  };
+
+  const handleSaveNewJustification = async () => {
+    if (!selectedSessionId) {
+      toast.error("Por favor, selecione um treino ou evento.");
+      return;
+    }
+    if (!newJustificationText.trim()) {
+      toast.error("Por favor, digite uma justificativa.");
+      return;
+    }
+
+    const eligible = getEligibleSessions();
+    const session = eligible.find(s => s.id === selectedSessionId);
+    if (!session) {
+      toast.error("Treino ou evento não encontrado ou não elegível.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const existingRecord = attendance.find(a => 
+        (session.training_id && a.training_id === session.training_id) || 
+        (session.event_id && a.event_id === session.event_id)
+      );
+
+      await api.saveAttendance({
+        id: existingRecord?.id || undefined,
+        athlete_id: athleteId,
+        date: session.date,
+        training_id: session.training_id || undefined,
+        event_id: session.event_id || undefined,
+        status: "Faltou",
+        justification: newJustificationText.trim()
+      });
+
+      toast.success("Ausência comunicada com sucesso!");
+      setIsAddJustificationOpen(false);
+      setSelectedSessionId('');
+      setNewJustificationText('');
+      await loadHistory();
+    } catch (err) {
+      console.error("Error communicating pre-emptive absence:", err);
+      toast.error("Erro ao salvar justificativa.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -167,7 +324,16 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
           <p className="text-zinc-400 text-sm">Acompanhe sua frequência em treinos e eventos</p>
         </div>
         
-        <div className="flex items-center gap-2 bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsAddJustificationOpen(true)}
+            className="px-4 py-2.5 bg-theme-primary hover:bg-theme-primary/95 text-black rounded-xl text-xs font-black uppercase tracking-tighter transition-all flex items-center gap-2 shadow-lg shadow-theme-primary/15 cursor-pointer"
+          >
+            <AlertCircle size={14} />
+            Justificar Ausência (Prévia/Recente)
+          </button>
+
+          <div className="flex items-center gap-2 bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
           <button 
             onClick={() => setFilter('all')}
             className={cn(
@@ -197,6 +363,7 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
           </button>
         </div>
       </div>
+    </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -258,15 +425,29 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
                     </div>
                   )}
 
-                  {record.status === 'Faltou' && (
-                    <button
-                      onClick={() => handleOpenJustify(record)}
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 hover:text-white rounded-xl border border-zinc-700 text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      <MessageSquare size={12} />
-                      {record.justification ? 'Editar Justificativa' : 'Justificar Falta'}
-                    </button>
-                  )}
+                  {record.status === 'Faltou' && (() => {
+                    const startTime = training?.start_time || event?.start_time;
+                    const canEdit = isWithinJustificationTimeframe(record.date, startTime);
+
+                    if (canEdit) {
+                      return (
+                        <button
+                          onClick={() => handleOpenJustify(record)}
+                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 hover:text-white rounded-xl border border-zinc-700 text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <MessageSquare size={12} />
+                          {record.justification ? 'Editar Justificativa' : 'Justificar Falta'}
+                        </button>
+                      );
+                    } else {
+                      return (
+                        <div className="text-[10px] uppercase font-bold text-zinc-500 bg-zinc-950 px-3 py-1.5 rounded-xl border border-zinc-800 flex items-center gap-1">
+                          <Clock size={12} />
+                          {record.justification ? 'Prazo de Edição Expirado (24h)' : 'Sem Justificativa (Prazo Expirado)'}
+                        </div>
+                      );
+                    }
+                  })()}
 
                   <div className={cn(
                     "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest",
@@ -332,6 +513,102 @@ export default function StudentPresenceHistory({ athleteId }: { athleteId: strin
               >
                 {isSaving ? "Salvando..." : "Salvar Justificativa"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-emptive / Recent Absence Justification Dialog */}
+      {isAddJustificationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/40">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="text-theme-primary" size={20} />
+                <h3 className="text-md font-black text-white uppercase tracking-tight">Justificar Ausência</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsAddJustificationOpen(false);
+                  setSelectedSessionId('');
+                  setNewJustificationText('');
+                }}
+                className="p-1.5 hover:bg-zinc-850 rounded-xl text-zinc-500 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Selecione o Treino ou Evento</label>
+                {(() => {
+                  const eligible = getEligibleSessions();
+                  if (eligible.length === 0) {
+                    return (
+                      <div className="p-4 bg-zinc-950/55 rounded-2xl border border-zinc-800 text-center text-xs font-bold uppercase text-zinc-500 space-y-1">
+                        <Calendar size={24} className="mx-auto text-zinc-750 mb-1" />
+                        <p>Nenhum treino ou evento elegível</p>
+                        <p className="text-[9px] font-medium text-zinc-650 tracking-normal normal-case">
+                          Apenas treinos futuros, de hoje ou ocorridos nas últimas 24 horas podem ser justificados antecipadamente ou recentemente.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <select
+                      value={selectedSessionId}
+                      onChange={(e) => setSelectedSessionId(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-theme-primary/50 text-white rounded-2xl p-4 text-xs font-bold uppercase outline-none focus:ring-1 focus:ring-theme-primary/20 transition-all cursor-pointer"
+                    >
+                      <option value="">-- Escolha uma data e horário --</option>
+                      {eligible.map(session => (
+                        <option key={session.id} value={session.id}>
+                          {session.date} - {session.title}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
+              </div>
+
+              {getEligibleSessions().length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Motivo / Justificativa da Ausência</label>
+                  <textarea
+                    value={newJustificationText}
+                    onChange={(e) => setNewJustificationText(e.target.value)}
+                    placeholder="Ex: Atestado médico, viagem familiar, compromisso escolar..."
+                    rows={4}
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-theme-primary/50 text-white rounded-2xl p-4 text-xs font-medium focus:ring-1 focus:ring-theme-primary/20 outline-none resize-none transition-all placeholder:text-zinc-650"
+                    maxLength={250}
+                  />
+                  <p className="text-[9px] text-zinc-500 text-right mt-1 font-medium">{newJustificationText.length}/250 caracteres</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-zinc-800 bg-zinc-950/20 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setIsAddJustificationOpen(false);
+                  setSelectedSessionId('');
+                  setNewJustificationText('');
+                }}
+                className="px-5 py-2.5 rounded-xl text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              {getEligibleSessions().length > 0 && (
+                <button
+                  onClick={handleSaveNewJustification}
+                  disabled={isSaving || !selectedSessionId || !newJustificationText.trim()}
+                  className="px-6 py-2.5 bg-theme-primary hover:bg-theme-primary/90 disabled:opacity-50 text-black text-xs font-black rounded-xl uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSaving ? "Salvando..." : "Confirmar Justificativa"}
+                </button>
+              )}
             </div>
           </div>
         </div>
