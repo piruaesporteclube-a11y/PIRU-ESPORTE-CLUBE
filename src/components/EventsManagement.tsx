@@ -16,6 +16,60 @@ import TrainingFlyer from './TrainingFlyer';
 import SimpleLineupGenerator from './SimpleLineupGenerator';
 import LineupFlyerGenerator from './LineupFlyerGenerator';
 
+// Helper parser/compiler for scorers
+export function parseScorersString(scorersStr: string): { name: string; goals: number }[] {
+  if (!scorersStr || typeof scorersStr !== 'string') return [];
+  
+  const results: { name: string; goals: number }[] = [];
+  const parts = scorersStr.split(/[,;]/);
+  
+  for (let part of parts) {
+    part = part.trim();
+    if (!part) continue;
+    
+    let goals = 1;
+    let name = part;
+    
+    // Pattern 1: Name (number) or Name (number gols)
+    const parenMatch = part.match(/(.+?)\s*\(\s*(\d+)\s*(?:gol|gols)?\s*\)/i);
+    // Pattern 2: Name xNumber or Name Numberx or Name - Number
+    const xMatch = part.match(/(.+?)\s*[-xX]\s*(\d+)\s*$/) || part.match(/(.+?)\s*(\d+)\s*[-xX]\s*$/);
+    const hyphenMatch = part.match(/(.+?)\s*-\s*(\d+)\s*$/);
+    const endNumberMatch = part.match(/(.+?)\s+(\d+)\s*$/);
+    
+    if (parenMatch) {
+      name = parenMatch[1].trim();
+      goals = parseInt(parenMatch[2], 10) || 1;
+    } else if (xMatch) {
+      name = xMatch[1].trim();
+      goals = parseInt(xMatch[2], 10) || 1;
+    } else if (hyphenMatch) {
+      name = hyphenMatch[1].trim();
+      goals = parseInt(hyphenMatch[2], 10) || 1;
+    } else if (endNumberMatch) {
+      const possibleName = endNumberMatch[1].trim();
+      if (!possibleName.toUpperCase().startsWith("SUB") && !possibleName.toUpperCase().endsWith("SUB")) {
+        name = possibleName;
+        goals = parseInt(endNumberMatch[2], 10) || 1;
+      }
+    }
+    
+    name = name.trim();
+    if (name) {
+      results.push({ name, goals });
+    }
+  }
+  
+  return results;
+}
+
+function compileScorersString(scorers: { name: string; goals: number }[]): string {
+  return scorers
+    .filter(s => s.name.trim())
+    .map(s => s.goals > 1 ? `${s.name.trim()} (${s.goals})` : s.name.trim())
+    .join(', ');
+}
+
 interface EventsManagementProps {
   athletes?: Athlete[];
   events?: Event[];
@@ -71,6 +125,48 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Partial<EventMatch> | null>(null);
   const [isDeletingMatch, setIsDeletingMatch] = useState<string | null>(null);
+
+  // States for interactive scorers
+  const [scorersA, setScorersA] = useState<{ name: string; goals: number }[]>([]);
+  const [scorersB, setScorersB] = useState<{ name: string; goals: number }[]>([]);
+  const [newScorerNameA, setNewScorerNameA] = useState('');
+  const [newScorerNameB, setNewScorerNameB] = useState('');
+
+  const updateScorersA = (newScorers: { name: string; goals: number }[]) => {
+    setScorersA(newScorers);
+    const compiled = compileScorersString(newScorers);
+    setEditingMatch(prev => prev ? { ...prev, scorers_a: compiled } : null);
+  };
+
+  const updateScorersB = (newScorers: { name: string; goals: number }[]) => {
+    setScorersB(newScorers);
+    const compiled = compileScorersString(newScorers);
+    setEditingMatch(prev => prev ? { ...prev, scorers_b: compiled } : null);
+  };
+
+  const handleOpenMatchForm = (match: Partial<EventMatch> | null) => {
+    if (match) {
+      setEditingMatch(match);
+      setScorersA(parseScorersString(match.scorers_a || ''));
+      setScorersB(parseScorersString(match.scorers_b || ''));
+    } else {
+      setEditingMatch({ 
+        team_a_name: settings?.schoolName || 'Minha Equipe', 
+        team_b_name: '', 
+        score_a: 0, 
+        score_b: 0, 
+        category: lineupCategory,
+        date: selectedEvent?.start_date || '',
+        time: selectedEvent?.start_time || '',
+        location: selectedEvent ? `${selectedEvent.street}, ${selectedEvent.number}` : ''
+      });
+      setScorersA([]);
+      setScorersB([]);
+    }
+    setNewScorerNameA('');
+    setNewScorerNameB('');
+    setIsMatchFormOpen(true);
+  };
 
   const [formData, setFormData] = useState<Partial<Event>>({
     name: '',
@@ -2177,19 +2273,7 @@ Muito obrigado!
                     </div>
                     {isAdmin && (
                       <button
-                        onClick={() => {
-                          setEditingMatch({ 
-                            team_a_name: settings?.schoolName || 'Minha Equipe', 
-                            team_b_name: '', 
-                            score_a: 0, 
-                            score_b: 0, 
-                            category: lineupCategory,
-                            date: selectedEvent.start_date,
-                            time: selectedEvent.start_time,
-                            location: `${selectedEvent.street}, ${selectedEvent.number}`
-                          });
-                          setIsMatchFormOpen(true);
-                        }}
+                        onClick={() => handleOpenMatchForm(null)}
                         className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black font-bold rounded-xl text-xs"
                       >
                         <Plus size={14} />
@@ -2220,7 +2304,7 @@ Muito obrigado!
                             <div className="flex items-center gap-2">
                               {isAdmin && (
                                 <>
-                                  <button onClick={() => { setEditingMatch(match); setIsMatchFormOpen(true); }} className="text-zinc-500 hover:text-white p-1"><Edit size={14} /></button>
+                                  <button onClick={() => handleOpenMatchForm(match)} className="text-zinc-500 hover:text-white p-1" title="Editar Jogo"><Edit size={14} /></button>
                                   <button onClick={() => handleDeleteMatch(match.id)} className="text-zinc-500 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                                 </>
                               )}
@@ -2244,6 +2328,30 @@ Muito obrigado!
                               <p className="font-black text-white uppercase text-sm truncate">{match.team_b_name}</p>
                             </div>
                           </div>
+
+                          {/* Scorers display */}
+                          {(match.scorers_a || match.scorers_b) && (
+                            <div className="grid grid-cols-2 gap-4 px-3 py-2 bg-black/30 rounded-2xl border border-zinc-800/60 text-[10px]">
+                              <div>
+                                {match.scorers_a ? (
+                                  <p className="text-zinc-400 font-bold leading-relaxed break-words whitespace-pre-wrap">
+                                    ⚽ <span className="text-zinc-200">{match.scorers_a}</span>
+                                  </p>
+                                ) : (
+                                  <div />
+                                )}
+                              </div>
+                              <div className="text-right">
+                                {match.scorers_b ? (
+                                  <p className="text-zinc-400 font-bold leading-relaxed break-words whitespace-pre-wrap">
+                                    <span className="text-zinc-200">{match.scorers_b}</span> ⚽
+                                  </p>
+                                ) : (
+                                  <div />
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/50">
                             <div className="flex items-center gap-2 text-zinc-400">
@@ -2277,10 +2385,7 @@ Muito obrigado!
                             </button>
                             {isAdmin && (
                                <button
-                               onClick={() => {
-                                 setEditingMatch(match);
-                                 setIsMatchFormOpen(true);
-                               }}
+                               onClick={() => handleOpenMatchForm(match)}
                                className="px-4 py-3 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-all"
                                title="Editar Placar e Detalhes"
                              >
@@ -2364,24 +2469,172 @@ Muito obrigado!
                                 />
                               </div>
                               <div className="text-center">
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Gols</label>
+                                <div className="flex items-center justify-between mb-2">
+                                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Gols</label>
+                                  {scorersA.reduce((sum, s) => sum + s.goals, 0) !== (editingMatch?.score_a ?? 0) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingMatch(prev => prev ? { ...prev, score_a: scorersA.reduce((sum, s) => sum + s.goals, 0) } : null)}
+                                      className="text-[9px] text-theme-primary font-bold hover:underline"
+                                    >
+                                      Usar total ({scorersA.reduce((sum, s) => sum + s.goals, 0)})
+                                    </button>
+                                  )}
+                                </div>
                                 <input 
                                   required
                                   type="number" 
                                   min="0"
-                                  className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-4xl focus:ring-2 focus:ring-theme-primary"
+                                  className="w-full px-4 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-3xl focus:ring-2 focus:ring-theme-primary"
                                   value={editingMatch?.score_a ?? 0}
                                   onChange={e => setEditingMatch({...editingMatch!, score_a: parseInt(e.target.value) || 0})}
                                 />
                               </div>
-                              <div>
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Quem marcou os gols?</label>
+                              
+                              {/* Interactive Scorers Team A */}
+                              <div className="space-y-2 bg-zinc-950/40 border border-zinc-800/80 p-3 rounded-2xl text-left">
+                                <div className="flex items-center justify-between">
+                                  <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-wider">Artilheiros ({editingMatch?.team_a_name || 'Mandante'})</label>
+                                  <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Soma: {scorersA.reduce((sum, s) => sum + s.goals, 0)}</span>
+                                </div>
+                                
+                                {scorersA.length > 0 ? (
+                                  <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                                    {scorersA.map((scorer, index) => (
+                                      <div key={index} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 px-2 py-1.5 rounded-xl">
+                                        <span className="text-[10px] font-bold text-white truncate max-w-[100px]">{scorer.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...scorersA];
+                                              if (updated[index].goals > 1) {
+                                                updated[index].goals -= 1;
+                                                updateScorersA(updated);
+                                              } else {
+                                                updated.splice(index, 1);
+                                                updateScorersA(updated);
+                                              }
+                                            }}
+                                            className="w-4 h-4 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded text-zinc-300 font-bold text-[10px] transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="text-[10px] font-black text-theme-primary w-3 text-center">{scorer.goals}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...scorersA];
+                                              updated[index].goals += 1;
+                                              updateScorersA(updated);
+                                            }}
+                                            className="w-4 h-4 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded text-zinc-300 font-bold text-[10px] transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = scorersA.filter((_, i) => i !== index);
+                                              updateScorersA(updated);
+                                            }}
+                                            className="text-zinc-500 hover:text-red-500 p-1 transition-colors ml-0.5"
+                                          >
+                                            <Trash2 size={10} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-[9px] text-zinc-600 italic">Nenhum gol registrado.</p>
+                                )}
+
+                                <div className="space-y-1">
+                                  <select
+                                    className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold text-[9px] focus:ring-1 focus:ring-theme-primary outline-none"
+                                    value=""
+                                    onChange={e => {
+                                      const name = e.target.value;
+                                      if (name) {
+                                        const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                        if (existingIndex !== -1) {
+                                          const updated = [...scorersA];
+                                          updated[existingIndex].goals += 1;
+                                          updateScorersA(updated);
+                                        } else {
+                                          updateScorersA([...scorersA, { name, goals: 1 }]);
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <option value="" disabled>+ Selecionar atleta do clube...</option>
+                                    {athletes
+                                      ?.slice()
+                                      ?.sort((a, b) => a.name.localeCompare(b.name))
+                                      ?.map(a => (
+                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                      ))
+                                    }
+                                  </select>
+
+                                  <div className="flex gap-1">
+                                    <input
+                                      type="text"
+                                      className="flex-1 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-[9px] placeholder-zinc-600"
+                                      placeholder="Ou digite o nome de outro..."
+                                      value={newScorerNameA}
+                                      onChange={e => setNewScorerNameA(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newScorerNameA.trim()) {
+                                            const name = newScorerNameA.trim();
+                                            const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                            if (existingIndex !== -1) {
+                                              const updated = [...scorersA];
+                                              updated[existingIndex].goals += 1;
+                                              updateScorersA(updated);
+                                            } else {
+                                              updateScorersA([...scorersA, { name, goals: 1 }]);
+                                            }
+                                            setNewScorerNameA('');
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (newScorerNameA.trim()) {
+                                          const name = newScorerNameA.trim();
+                                          const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                          if (existingIndex !== -1) {
+                                            const updated = [...scorersA];
+                                            updated[existingIndex].goals += 1;
+                                            updateScorersA(updated);
+                                          } else {
+                                            updateScorersA([...scorersA, { name, goals: 1 }]);
+                                          }
+                                          setNewScorerNameA('');
+                                        }
+                                      }}
+                                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 text-white font-bold text-[9px] rounded-xl transition-colors"
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
+                                </div>
+
                                 <input 
                                   type="text" 
-                                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
+                                  className="w-full px-2 py-1 bg-zinc-905 border border-zinc-800 rounded text-zinc-500 font-bold text-[9px]"
                                   value={editingMatch?.scorers_a || ''}
-                                  onChange={e => setEditingMatch({...editingMatch!, scorers_a: e.target.value})}
-                                  placeholder="Ex: João, Maria (2)"
+                                  onChange={e => {
+                                    setEditingMatch({...editingMatch!, scorers_a: e.target.value});
+                                    setScorersA(parseScorersString(e.target.value));
+                                  }}
+                                  placeholder="Formato: João (2), Pedro"
                                 />
                               </div>
                             </div>
@@ -2399,24 +2652,172 @@ Muito obrigado!
                                 />
                               </div>
                               <div className="text-center">
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Gols</label>
+                                <div className="flex items-center justify-between mb-2">
+                                  <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Gols</label>
+                                  {scorersB.reduce((sum, s) => sum + s.goals, 0) !== (editingMatch?.score_b ?? 0) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingMatch(prev => prev ? { ...prev, score_b: scorersB.reduce((sum, s) => sum + s.goals, 0) } : null)}
+                                      className="text-[9px] text-theme-primary font-bold hover:underline"
+                                    >
+                                      Usar total ({scorersB.reduce((sum, s) => sum + s.goals, 0)})
+                                    </button>
+                                  )}
+                                </div>
                                 <input 
                                   required
                                   type="number" 
                                   min="0"
-                                  className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-4xl focus:ring-2 focus:ring-theme-primary"
+                                  className="w-full px-4 py-4 bg-zinc-800 border border-zinc-700 rounded-2xl text-white text-center font-black text-3xl focus:ring-2 focus:ring-theme-primary"
                                   value={editingMatch?.score_b ?? 0}
                                   onChange={e => setEditingMatch({...editingMatch!, score_b: parseInt(e.target.value) || 0})}
                                 />
                               </div>
-                              <div>
-                                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Quem marcou os gols?</label>
+
+                              {/* Interactive Scorers Team B */}
+                              <div className="space-y-2 bg-zinc-950/40 border border-zinc-800/80 p-3 rounded-2xl text-left">
+                                <div className="flex items-center justify-between">
+                                  <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-wider">Artilheiros ({editingMatch?.team_b_name || 'Visitante'})</label>
+                                  <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Soma: {scorersB.reduce((sum, s) => sum + s.goals, 0)}</span>
+                                </div>
+                                
+                                {scorersB.length > 0 ? (
+                                  <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                                    {scorersB.map((scorer, index) => (
+                                      <div key={index} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 px-2 py-1.5 rounded-xl">
+                                        <span className="text-[10px] font-bold text-white truncate max-w-[100px]">{scorer.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...scorersB];
+                                              if (updated[index].goals > 1) {
+                                                updated[index].goals -= 1;
+                                                updateScorersB(updated);
+                                              } else {
+                                                updated.splice(index, 1);
+                                                updateScorersB(updated);
+                                              }
+                                            }}
+                                            className="w-4 h-4 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded text-zinc-300 font-bold text-[10px] transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="text-[10px] font-black text-theme-primary w-3 text-center">{scorer.goals}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...scorersB];
+                                              updated[index].goals += 1;
+                                              updateScorersB(updated);
+                                            }}
+                                            className="w-4 h-4 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 rounded text-zinc-300 font-bold text-[10px] transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = scorersB.filter((_, i) => i !== index);
+                                              updateScorersB(updated);
+                                            }}
+                                            className="text-zinc-500 hover:text-red-500 p-1 transition-colors ml-0.5"
+                                          >
+                                            <Trash2 size={10} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-[9px] text-zinc-600 italic">Nenhum gol registrado.</p>
+                                )}
+
+                                <div className="space-y-1">
+                                  <select
+                                    className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold text-[9px] focus:ring-1 focus:ring-theme-primary outline-none"
+                                    value=""
+                                    onChange={e => {
+                                      const name = e.target.value;
+                                      if (name) {
+                                        const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                        if (existingIndex !== -1) {
+                                          const updated = [...scorersB];
+                                          updated[existingIndex].goals += 1;
+                                          updateScorersB(updated);
+                                        } else {
+                                          updateScorersB([...scorersB, { name, goals: 1 }]);
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <option value="" disabled>+ Selecionar atleta do clube...</option>
+                                    {athletes
+                                      ?.slice()
+                                      ?.sort((a, b) => a.name.localeCompare(b.name))
+                                      ?.map(a => (
+                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                      ))
+                                    }
+                                  </select>
+
+                                  <div className="flex gap-1">
+                                    <input
+                                      type="text"
+                                      className="flex-1 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-[9px] placeholder-zinc-600"
+                                      placeholder="Ou digite o nome de outro..."
+                                      value={newScorerNameB}
+                                      onChange={e => setNewScorerNameB(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newScorerNameB.trim()) {
+                                            const name = newScorerNameB.trim();
+                                            const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                            if (existingIndex !== -1) {
+                                              const updated = [...scorersB];
+                                              updated[existingIndex].goals += 1;
+                                              updateScorersB(updated);
+                                            } else {
+                                              updateScorersB([...scorersB, { name, goals: 1 }]);
+                                            }
+                                            setNewScorerNameB('');
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (newScorerNameB.trim()) {
+                                          const name = newScorerNameB.trim();
+                                          const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                          if (existingIndex !== -1) {
+                                            const updated = [...scorersB];
+                                            updated[existingIndex].goals += 1;
+                                            updateScorersB(updated);
+                                          } else {
+                                            updateScorersB([...scorersB, { name, goals: 1 }]);
+                                          }
+                                          setNewScorerNameB('');
+                                        }
+                                      }}
+                                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 text-white font-bold text-[9px] rounded-xl transition-colors"
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
+                                </div>
+
                                 <input 
                                   type="text" 
-                                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-bold text-[10px]"
+                                  className="w-full px-2 py-1 bg-zinc-905 border border-zinc-800 rounded text-zinc-500 font-bold text-[9px]"
                                   value={editingMatch?.scorers_b || ''}
-                                  onChange={e => setEditingMatch({...editingMatch!, scorers_b: e.target.value})}
-                                  placeholder="Ex: Pedro, Lucas"
+                                  onChange={e => {
+                                    setEditingMatch({...editingMatch!, scorers_b: e.target.value});
+                                    setScorersB(parseScorersString(e.target.value));
+                                  }}
+                                  placeholder="Formato: Pedro, Lucas"
                                 />
                               </div>
                             </div>

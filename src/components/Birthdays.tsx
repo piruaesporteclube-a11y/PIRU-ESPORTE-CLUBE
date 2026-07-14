@@ -25,31 +25,37 @@ export const BORDER_THEMES = [
 ];
 
 export const BACKGROUND_TEMPLATES = [
-  // Estádios
-  { id: 'default-stadium', label: 'Holofotes da Arena', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
-  { id: 'stadium-nebula', label: 'Névoa do Jogo', url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
-  { id: 'stadium-sunset', label: 'Sunset de Campeão', url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
-  { id: 'night-match', label: 'Clássico Noturno', url: 'https://images.unsplash.com/photo-1518063319789-7217e6706b04?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
-  { id: 'macro-grass', label: 'Gramado Sagrado', url: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
-  { id: 'stadium-aerial', label: 'Arena de Elite', url: 'https://images.unsplash.com/photo-1431324155629-1a6edd1d141d?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Estádios' },
+  // Arena & Esporte
+  { id: 'default-stadium', label: 'Holofotes da Arena', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'stadium-nebula', label: 'Névoa do Jogo', url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'stadium-sunset', label: 'Sunset de Campeão', url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'night-match', label: 'Clássico Noturno', url: 'https://images.unsplash.com/photo-1518063319789-7217e6706b04?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'macro-grass', label: 'Gramado Sagrado', url: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'stadium-lights-dark', label: 'Refletores Sombrios', url: 'https://images.unsplash.com/photo-1562074244-3523ba35f280?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'ball-grass-light', label: 'Chute de Ouro', url: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
+  { id: 'stadium-flare', label: 'Explosão de Luz', url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Arena & Esporte' },
 
-  // Premium Ouro / Preto
-  { id: 'neon-yellow-stripes', label: 'Linhas Fênix (Club)', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
-  { id: 'gold-fluid', label: 'Ouro Líquido 3D', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
-  { id: 'black-gold-marble', label: 'Mármore Imperial', url: 'https://images.unsplash.com/photo-1618005198143-e5283464303b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
-  { id: 'carbon-tech', label: 'Fibra de Carbono', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
-  { id: 'dark-cyberpunk', label: 'Geometria Urbana', url: 'https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium Ouro' },
+  // Neon & Cyber
+  { id: 'neon-cyber-field', label: 'Arena Futurista', url: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
+  { id: 'neon-dark-glow', label: 'Rastro de Luz Neon', url: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
+  { id: 'vibrant-wave', label: 'Onda de Energia', url: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
+  { id: 'fluid-gradient', label: 'Vapor Neon', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
+  { id: 'gaming-neon-grid', label: 'Grade Cibernética', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
+  { id: 'cyber-circuits', label: 'Placa de Circuito Tech', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Neon & Cyber' },
 
-  // Celebração
-  { id: 'luxury-balloons', label: 'Balões Ouro & Preto', url: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
-  { id: 'sparklers-gold', label: 'Faíscas da Vitória', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
-  { id: 'confetti-burst', label: 'Festa de Campeão', url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
-  { id: 'championship-lights', label: 'Brilho do Pódio', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Celebração' },
+  // Premium & Ouro
+  { id: 'luxury-gold-lines', label: 'Linhas de Ouro 3D', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
+  { id: 'gold-particles-ambient', label: 'Poeira de Estrelas', url: 'https://images.unsplash.com/photo-1525253086316-d0c936c814f8?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
+  { id: 'neon-yellow-stripes', label: 'Fênix Club Noir', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
+  { id: 'gold-fluid', label: 'Fluido de Ouro Real', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
+  { id: 'black-gold-marble', label: 'Mármore Imperial', url: 'https://images.unsplash.com/photo-1618005198143-e5283464303b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
+  { id: 'carbon-tech', label: 'Fibra de Carbono', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Premium & Ouro' },
 
-  // Minimalistas
-  { id: 'orange-gold-grad', label: 'Degradê Fênix', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' },
-  { id: 'dark-studio-light', label: 'Estúdio Sombrio', url: 'https://images.unsplash.com/photo-1531685250784-7569952593d2?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' },
-  { id: 'starry-cosmic', label: 'Cosmos Noturno', url: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Minimalistas' }
+  // Festa & Celebração
+  { id: 'luxury-balloons', label: 'Balões Ouro & Preto', url: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Festa & Celebração' },
+  { id: 'sparklers-gold', label: 'Chuva de Estrelas', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Festa & Celebração' },
+  { id: 'confetti-burst', label: 'Festa do Título', url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Festa & Celebração' },
+  { id: 'championship-lights', label: 'Brilho do Campeão', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=1080&h=1920', category: 'Festa & Celebração' }
 ];
 
 export default function Birthdays({ athletes: athletesProp, professors: professorsProp }: BirthdaysProps) {
@@ -130,8 +136,12 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
         setCardWidth(450);
         setCardHeight(800);
       } else {
-        const scaleFactor = Math.min(1, (window.innerWidth - 32) / 360);
-        setEditorScale(Math.max(0.5, scaleFactor));
+        const mobilePreviewHeight = window.innerHeight * 0.38 - 16;
+        const scaleFactor = Math.min(
+          (window.innerWidth - 32) / 360, 
+          mobilePreviewHeight / 640
+        );
+        setEditorScale(Math.max(0.35, scaleFactor));
         setCardWidth(360);
         setCardHeight(640);
       }
@@ -676,7 +686,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
       {/* Instagram Post Modal */}
       {selectedPerson && (
-        <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-[70] flex flex-col overflow-y-auto lg:overflow-hidden font-sans">
+        <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-[70] flex flex-col overflow-hidden font-sans">
           {/* Modal Header */}
           <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-zinc-900 bg-black/40 backdrop-blur-md">
             <div className="flex items-center gap-3">
@@ -694,10 +704,10 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
           </div>
 
           {/* Main Editor Body */}
-          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
             {/* Left Column: Fixed Preview Column */}
-            <div className="w-full lg:w-[500px] xl:w-[600px] flex-shrink-0 flex flex-col items-center justify-between p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/40 relative overflow-y-auto lg:overflow-hidden">
-              <div className="flex flex-col items-center justify-center flex-grow w-full my-auto py-4">
+            <div className="w-full lg:w-[500px] xl:w-[600px] flex-shrink-0 h-[38vh] lg:h-full flex flex-col items-center justify-center p-4 lg:p-8 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/40 relative overflow-hidden">
+              <div className="flex flex-col items-center justify-center flex-grow w-full my-auto py-1 lg:py-4">
                 {/* Responsive Scale Container */}
                 <div 
                   className="relative flex items-center justify-center flex-shrink-0"
@@ -1098,7 +1108,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   </div> {/* Closing of Left Column (Preview Column) */}
 
   {/* Right Column: Scrollable Controls Column */}
-  <div className="flex-1 flex flex-col overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
+  <div className="flex-1 flex flex-col h-[62vh] lg:h-full overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
     <div className="w-full max-w-[700px] mx-auto flex flex-col gap-6">
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               {/* Tabs Header */}

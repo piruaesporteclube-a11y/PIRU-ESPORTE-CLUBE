@@ -2974,6 +2974,29 @@ export const api = {
       return [];
     }
   },
+  getAllEventMatches: async (): Promise<EventMatch[]> => {
+    try {
+      const q = query(collection(db, "event_matches"));
+      const querySnapshot = await getDocsWithCacheFallback(q, "all_event_matches");
+      const matches = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as EventMatch));
+      return matches.sort((a, b) => {
+        const timeA = a.created_at?.seconds || (a.created_at?.toMillis ? a.created_at.toMillis() : 0);
+        const timeB = b.created_at?.seconds || (b.created_at?.toMillis ? b.created_at.toMillis() : 0);
+        if (timeA !== timeB) return timeA - timeB;
+        
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        
+        const hourA = a.time || '';
+        const hourB = b.time || '';
+        return hourA.localeCompare(hourB);
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "event_matches");
+      return [];
+    }
+  },
   saveEventMatch: async (match: Partial<EventMatch>) => {
     try {
       const id = match.id || doc(collection(db, "event_matches")).id;

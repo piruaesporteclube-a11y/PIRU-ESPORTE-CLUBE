@@ -44,6 +44,7 @@ export const navItems: NavItem[] = [
   { id: 'attendance', label: 'Presença', icon: ClipboardCheck, roles: ['admin', 'professor'], description: 'Presença geral para treinos e jogos', color: 'text-green-500', category: 'arena' },
   { id: 'lineups', label: 'Escalações', icon: Trophy, roles: ['admin', 'student', 'professor'], description: 'Agenda e Convocações', color: 'text-theme-primary', category: 'arena' },
   { id: 'championships', label: 'Campeonatos', icon: Trophy, roles: ['admin', 'professor'], description: 'Glória e Troféus', color: 'text-theme-primary', category: 'arena' },
+  { id: 'top-scorers', label: 'Artilheiros', icon: Trophy, roles: ['admin', 'student', 'professor'], description: 'Gols e Artilharia', color: 'text-amber-500', category: 'arena' },
   { id: 'modalities', label: 'Modalidades', icon: ClipboardCheck, roles: ['admin', 'professor'], description: 'Esportes Ativos', color: 'text-theme-primary', category: 'arena' },
  
   // --- GRUPO: Centro de Treinamento (Preparação e Logística) ---

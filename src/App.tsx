@@ -37,6 +37,7 @@ import UniformManagement from './components/UniformManagement';
 import AnnouncementFlyer from './components/AnnouncementFlyer';
 import SchoolReportManagement from './components/SchoolReportManagement';
 import { AccessAudit } from './components/AccessAudit';
+import TopScorers from './components/TopScorers';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
@@ -1520,6 +1521,8 @@ export default function App() {
             : <StudentLineups athleteId={user.athlete_id || ''} athleteName={myAthleteData?.name || ''} />;
         case 'events':
           return <EventsManagement athletes={athletes} events={events} role={user?.role} loggedInUserId={user?.id} />;
+        case 'top-scorers':
+          return <TopScorers athletes={athletes} />;
         case 'birthdays':
           return <Birthdays athletes={athletes} professors={professors} />;
         case 'documents':
