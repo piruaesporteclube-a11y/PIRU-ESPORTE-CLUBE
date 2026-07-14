@@ -40,7 +40,7 @@ import { AccessAudit } from './components/AccessAudit';
 import TopScorers from './components/TopScorers';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
-import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore } from './types';
+import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
 import { api, clearCache, getUsageStats } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
@@ -215,6 +215,42 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
   const [upcomingActivities, setUpcomingActivities] = useState<any[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [currentMonthStats, setCurrentMonthStats] = useState<{ presence: number, absence: number, total: number } | null>(null);
+  const [todayBirthdays, setTodayBirthdays] = useState<(Athlete | Professor)[]>([]);
+
+  useEffect(() => {
+    if (user?.role === 'student' && !settings?.studentAccessPaused) {
+      const loadTodayBirthdays = async () => {
+        try {
+          const [allAthletes, allProfessors] = await Promise.all([
+            api.getAthletes(),
+            api.getProfessors()
+          ]);
+
+          const today = new Date();
+          const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+          const todayDay = String(today.getDate()).padStart(2, '0');
+          const todayMD = `${todayMonth}-${todayDay}`;
+
+          const filteredAthletes = allAthletes.filter(p => {
+            const isActive = p.status === 'Ativo';
+            if (!isActive || !p.birth_date || p.birth_date.length < 10) return false;
+            return p.birth_date.substring(5, 10) === todayMD;
+          });
+
+          const filteredProfessors = allProfessors.filter(p => {
+            if (!p.birth_date || p.birth_date.length < 10) return false;
+            return p.birth_date.substring(5, 10) === todayMD;
+          });
+
+          setTodayBirthdays([...filteredAthletes, ...filteredProfessors]);
+        } catch (error) {
+          console.error("Erro ao carregar aniversariantes do dia:", error);
+        }
+      };
+
+      loadTodayBirthdays();
+    }
+  }, [user?.role, settings?.studentAccessPaused]);
 
   useEffect(() => {
     const loadCurrentMonthAttendance = async () => {
@@ -380,6 +416,64 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
             </div>
           </section>
         )}
+
+        {/* Aniversariantes do Dia */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-1.5 bg-pink-500 rounded-full" />
+            <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+              <Cake className="text-pink-500 animate-bounce" size={24} />
+              Aniversariantes do Dia 🎉
+            </h3>
+          </div>
+          
+          {todayBirthdays.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-fade-in">
+              {todayBirthdays.map((person) => {
+                const isProf = 'professor_id' in person || 'phone' in person;
+                const roleLabel = isProf ? 'Professor' : 'Atleta';
+                const subCategoryLabel = isProf ? 'Comissão' : (person.birth_date ? getSubCategory(person.birth_date) : 'N/A');
+                
+                return (
+                  <div key={person.id} className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem] relative overflow-hidden flex items-center gap-4 hover:border-pink-500/30 transition-all group">
+                    <div className="absolute right-0 top-0 w-32 h-32 bg-pink-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-pink-500/10 transition-colors" />
+                    
+                    {person.photo ? (
+                      <img 
+                        src={person.photo} 
+                        alt={person.name} 
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-500 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-zinc-850 rounded-2xl flex items-center justify-center text-zinc-500 border border-zinc-800 group-hover:scale-105 transition-transform">
+                        <Cake size={24} className="text-pink-500/60" />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-pink-500 px-2 py-0.5 bg-pink-500/10 rounded-md">
+                        {roleLabel} • {subCategoryLabel}
+                      </span>
+                      <h4 className="text-base font-black text-white uppercase line-clamp-1 mt-1 leading-tight">{person.name}</h4>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-tight">Parabéns pelo seu dia! 🎈</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-zinc-900/50 border border-zinc-800/80 p-8 rounded-[2rem] text-center max-w-md mx-auto space-y-3">
+              <div className="w-12 h-12 bg-zinc-800/40 rounded-2xl flex items-center justify-center text-zinc-600 mx-auto">
+                <Cake size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-zinc-400 uppercase tracking-tight">Nenhum aniversariante hoje</p>
+                <p className="text-xs text-zinc-600 font-medium">Não temos atletas ou professores comemorando aniversário na data de hoje.</p>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="space-y-12">
           {[
