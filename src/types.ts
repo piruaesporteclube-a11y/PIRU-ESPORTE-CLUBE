@@ -464,17 +464,60 @@ export type PlayerProfile = {
   secondary_position?: string;
   current_club?: string;
   contract_duration?: string;
-  // Características Físicas e Técnicas
+  category?: string;
+  // Características Físicas
   height?: string;
   weight?: string;
   wingspan?: string;
-  dominant_foot?: "Destro" | "Canhoto" | "Ambidestro" | "";
+  imc?: string;
+  dominant_foot?: "Destro" | "Canhoto" | "Ambidestro" | "Direito" | "Esquerdo" | "";
+  jersey_number?: string;
+  // Habilidades Específicas / Observações Gerais
   skills_passing?: string;
   skills_heading?: string;
   skills_dribbling?: string;
   skills_speed?: string;
   skills_tactical?: string;
   decision_making?: string;
+  
+  // 5. Informações Técnicas (Ratings 0 to 10)
+  rating_passing?: number;
+  rating_finishing?: number;
+  rating_trapping?: number;
+  rating_dribbling?: number;
+  rating_crossing?: number;
+  rating_heading?: number;
+  rating_marking?: number;
+  rating_tackling?: number;
+  rating_vision?: number;
+  rating_positioning?: number;
+  rating_ball_control?: number;
+
+  // 6. Capacidades Físicas (Ratings 0 to 10)
+  rating_speed?: number;
+  rating_acceleration?: number;
+  rating_stamina?: number;
+  rating_strength?: number;
+  rating_agility?: number;
+  rating_jumping?: number;
+  rating_coordination?: number;
+
+  // 7. Aspectos Táticos (Ratings 0 to 10)
+  rating_tactical_intelligence?: number;
+  rating_game_reading?: number;
+  rating_space_occupation?: number;
+  rating_decision_making?: number;
+  rating_offensive_participation?: number;
+  rating_defensive_participation?: number;
+
+  // 8. Aspectos Comportamentais (Ratings 0 to 10)
+  rating_discipline?: number;
+  rating_leadership?: number;
+  rating_teamwork?: number;
+  rating_commitment?: number;
+  rating_communication?: number;
+  rating_sportsmanship?: number;
+
   // Histórico Médico e Físico
   routine_exams?: string;
   injury_history?: string;

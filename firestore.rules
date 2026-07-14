@@ -168,16 +168,49 @@ service cloud.firestore {
              (!('secondary_position' in data) || data.secondary_position is string) &&
              (!('current_club' in data) || data.current_club is string) &&
              (!('contract_duration' in data) || data.contract_duration is string) &&
+             (!('category' in data) || data.category is string) &&
              (!('height' in data) || data.height is string) &&
              (!('weight' in data) || data.weight is string) &&
              (!('wingspan' in data) || data.wingspan is string) &&
+             (!('imc' in data) || data.imc is string) &&
              (!('dominant_foot' in data) || data.dominant_foot is string) &&
+             (!('jersey_number' in data) || data.jersey_number is string) &&
              (!('skills_passing' in data) || data.skills_passing is string) &&
              (!('skills_heading' in data) || data.skills_heading is string) &&
              (!('skills_dribbling' in data) || data.skills_dribbling is string) &&
              (!('skills_speed' in data) || data.skills_speed is string) &&
              (!('skills_tactical' in data) || data.skills_tactical is string) &&
              (!('decision_making' in data) || data.decision_making is string) &&
+             (!('rating_passing' in data) || data.rating_passing is number) &&
+             (!('rating_finishing' in data) || data.rating_finishing is number) &&
+             (!('rating_trapping' in data) || data.rating_trapping is number) &&
+             (!('rating_dribbling' in data) || data.rating_dribbling is number) &&
+             (!('rating_crossing' in data) || data.rating_crossing is number) &&
+             (!('rating_heading' in data) || data.rating_heading is number) &&
+             (!('rating_marking' in data) || data.rating_marking is number) &&
+             (!('rating_tackling' in data) || data.rating_tackling is number) &&
+             (!('rating_vision' in data) || data.rating_vision is number) &&
+             (!('rating_positioning' in data) || data.rating_positioning is number) &&
+             (!('rating_ball_control' in data) || data.rating_ball_control is number) &&
+             (!('rating_speed' in data) || data.rating_speed is number) &&
+             (!('rating_acceleration' in data) || data.rating_acceleration is number) &&
+             (!('rating_stamina' in data) || data.rating_stamina is number) &&
+             (!('rating_strength' in data) || data.rating_strength is number) &&
+             (!('rating_agility' in data) || data.rating_agility is number) &&
+             (!('rating_jumping' in data) || data.rating_jumping is number) &&
+             (!('rating_coordination' in data) || data.rating_coordination is number) &&
+             (!('rating_tactical_intelligence' in data) || data.rating_tactical_intelligence is number) &&
+             (!('rating_game_reading' in data) || data.rating_game_reading is number) &&
+             (!('rating_space_occupation' in data) || data.rating_space_occupation is number) &&
+             (!('rating_decision_making' in data) || data.rating_decision_making is number) &&
+             (!('rating_offensive_participation' in data) || data.rating_offensive_participation is number) &&
+             (!('rating_defensive_participation' in data) || data.rating_defensive_participation is number) &&
+             (!('rating_discipline' in data) || data.rating_discipline is number) &&
+             (!('rating_leadership' in data) || data.rating_leadership is number) &&
+             (!('rating_teamwork' in data) || data.rating_teamwork is number) &&
+             (!('rating_commitment' in data) || data.rating_commitment is number) &&
+             (!('rating_communication' in data) || data.rating_communication is number) &&
+             (!('rating_sportsmanship' in data) || data.rating_sportsmanship is number) &&
              (!('routine_exams' in data) || data.routine_exams is string) &&
              (!('injury_history' in data) || data.injury_history is string) &&
              (!('performance_tests' in data) || data.performance_tests is string);

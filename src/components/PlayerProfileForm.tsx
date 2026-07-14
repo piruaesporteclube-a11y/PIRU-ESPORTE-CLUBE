@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Athlete, Anamnesis, PlayerProfile, getSubCategory } from '../types';
+import { Athlete, Anamnesis, PlayerProfile, getSubCategory, categories } from '../types';
 import { 
   Save, 
   FileText, 
@@ -27,6 +27,85 @@ import { useTheme } from '../contexts/ThemeContext';
 import AthleteSearchSelect from './AthleteSearchSelect';
 import { differenceInYears, parseISO } from 'date-fns';
 
+type RatingField = {
+  key: keyof PlayerProfile;
+  label: string;
+  description: string;
+};
+
+const technicalFields: RatingField[] = [
+  { key: 'rating_passing', label: 'Passe', description: 'Precisão, visão de jogo e passes curtos/longos' },
+  { key: 'rating_finishing', label: 'Finalização', description: 'Precisão, posicionamento e potência de chute' },
+  { key: 'rating_trapping', label: 'Domínio de Bola', description: 'Amortecimento e recepção da bola sob pressão' },
+  { key: 'rating_dribbling', label: 'Drible', description: 'Habilidade de finta no 1 contra 1 e agilidade' },
+  { key: 'rating_crossing', label: 'Cruzamento', description: 'Bolas alçadas na área a partir das laterais' },
+  { key: 'rating_heading', label: 'Cabeceio', description: 'Tempo de bola, impulsão e precisão cabeceando' },
+  { key: 'rating_marking', label: 'Marcação', description: 'Abordagem defensiva, cobertura e encurtamento' },
+  { key: 'rating_tackling', label: 'Desarme', description: 'Divididas no tempo certo e interceptações' },
+  { key: 'rating_vision', label: 'Visão de Jogo', description: 'Leitura espacial e antecipação de linhas de passe' },
+  { key: 'rating_positioning', label: 'Posicionamento', description: 'Leitura de espaço ofensivo/defensivo sem a bola' },
+  { key: 'rating_ball_control', label: 'Controle de Bola', description: 'Condução, proteção e manutenção da posse' },
+];
+
+const physicalFields: RatingField[] = [
+  { key: 'rating_speed', label: 'Velocidade', description: 'Velocidade linear máxima do atleta' },
+  { key: 'rating_acceleration', label: 'Aceleração', description: 'Arranque explosivo e aceleração rápida' },
+  { key: 'rating_stamina', label: 'Resistência', description: 'Condicionamento físico e energia em campo' },
+  { key: 'rating_strength', label: 'Força', description: 'Combates físicos, divididas e impulsão corporal' },
+  { key: 'rating_agility', label: 'Agilidade', description: 'Mudanças bruscas de direção e reflexos rápidos' },
+  { key: 'rating_jumping', label: 'Impulsão', description: 'Salto vertical estacionário ou em movimento' },
+  { key: 'rating_coordination', label: 'Coordenação Motora', description: 'Sincronia física e controle corporal amplo' },
+];
+
+const tacticalFields: RatingField[] = [
+  { key: 'rating_tactical_intelligence', label: 'Inteligência Tática', description: 'Entendimento de esquemas de jogo complexos' },
+  { key: 'rating_game_reading', label: 'Leitura de Jogo', description: 'Capacidade de antecipar as ações do adversário' },
+  { key: 'rating_space_occupation', label: 'Ocupação de Espaço', description: 'Preenchimento inteligente de lacunas e setores' },
+  { key: 'rating_decision_making', label: 'Tomada de Decisão', description: 'Escolha rápida e precisa do melhor lance' },
+  { key: 'rating_offensive_participation', label: 'Participação Ofensiva', description: 'Apoio, ultrapassagens e infiltrações no ataque' },
+  { key: 'rating_defensive_participation', label: 'Participação Defensiva', description: 'Auxílio na recomposição e marcação baixa' },
+];
+
+const behavioralFields: RatingField[] = [
+  { key: 'rating_discipline', label: 'Disciplina', description: 'Respeito ao treinador, arbitragem e normas' },
+  { key: 'rating_leadership', label: 'Liderança', description: 'Orientação construtiva e inspiração aos colegas' },
+  { key: 'rating_teamwork', label: 'Trabalho em Equipe', description: 'Colaboração coletiva e cooperação em campo' },
+  { key: 'rating_commitment', label: 'Comprometimento', description: 'Foco, raça e dedicação nos treinos e partidas' },
+  { key: 'rating_communication', label: 'Comunicação', description: 'Falar de forma objetiva para apoiar o time' },
+  { key: 'rating_sportsmanship', label: 'Espírito Esportivo', description: 'Fair play e maturidade diante de adversidades' },
+];
+
+const calculateIMC = (w?: string, h?: string) => {
+  if (!w || !h) return '';
+  const weightNum = parseFloat(w.replace(',', '.').replace(/[^0-9.]/g, ''));
+  let heightNum = parseFloat(h.replace(',', '.').replace(/[^0-9.]/g, ''));
+  if (!weightNum || !heightNum) return '';
+  if (heightNum > 3) {
+    heightNum = heightNum / 100; // converter cm para metros
+  }
+  const imcVal = weightNum / (heightNum * heightNum);
+  return isNaN(imcVal) ? '' : imcVal.toFixed(1);
+};
+
+const getRatingLabel = (score: number | undefined) => {
+  if (score === undefined || score === null) {
+    return { text: 'Não avaliado', color: 'text-zinc-500 bg-zinc-800/50 border-zinc-800/50', barColor: 'bg-zinc-800' };
+  }
+  if (score <= 2) {
+    return { text: 'Ruim', color: 'text-red-500 bg-red-500/10 border-red-500/20', barColor: 'bg-red-500' };
+  }
+  if (score <= 4) {
+    return { text: 'Regular', color: 'text-orange-500 bg-orange-500/10 border-orange-500/20', barColor: 'bg-orange-500' };
+  }
+  if (score <= 6) {
+    return { text: 'Bom', color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20', barColor: 'bg-yellow-500' };
+  }
+  if (score <= 8) {
+    return { text: 'Muito Bom', color: 'text-green-500 bg-green-500/10 border-green-500/20', barColor: 'bg-green-500' };
+  }
+  return { text: 'Excelente', color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', barColor: 'bg-emerald-400' };
+};
+
 interface PlayerProfileFormProps {
   athlete?: Athlete;
   onSave?: () => void;
@@ -51,6 +130,17 @@ export default function PlayerProfileForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeRatingTab, setActiveRatingTab] = useState<'technical' | 'physical' | 'tactical' | 'behavioral'>('technical');
+
+  // Auto-calculate IMC when height or weight changes in edit mode
+  useEffect(() => {
+    if (isEditing) {
+      const calculated = calculateIMC(profile.weight, profile.height);
+      if (calculated && profile.imc !== calculated) {
+        setProfile(prev => ({ ...prev, imc: calculated }));
+      }
+    }
+  }, [profile.weight, profile.height, isEditing]);
 
   // Sync selected athlete from props
   useEffect(() => {
@@ -271,7 +361,7 @@ export default function PlayerProfileForm({
             <div className="lg:col-span-2 space-y-8">
               
               <form onSubmit={handleSave} className="space-y-8">
-                {/* Section 1: Dados Contratuais e Origem */}
+                {/* Section 1: Características e Registro do Jogador */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6 relative">
                   
                   {/* Edit Toggle for Staff */}
@@ -290,8 +380,8 @@ export default function PlayerProfileForm({
                       <FileText size={18} />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-white uppercase tracking-wider">1. Dados de Registro e Origem</h3>
-                      <p className="text-[10px] text-zinc-500 uppercase">Nacionalidade, posição e detalhes do vínculo esportivo</p>
+                      <h3 className="text-base font-black text-white uppercase tracking-wider">1. Características e Registro do Jogador</h3>
+                      <p className="text-[10px] text-zinc-500 uppercase">Dados de identificação, categoria, posições e pé dominante</p>
                     </div>
                   </div>
 
@@ -300,7 +390,7 @@ export default function PlayerProfileForm({
                   {isLoading ? (
                     <div className="py-12 text-center text-zinc-500">Carregando informações...</div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                       
                       {/* Nacionalidade */}
                       <div className="space-y-2">
@@ -308,7 +398,7 @@ export default function PlayerProfileForm({
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: Brasileiro"
+                            placeholder="Ex: BRASILEIRO"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.nationality || ''}
                             onChange={e => setProfile(prev => ({ ...prev, nationality: e.target.value.toUpperCase() }))}
@@ -326,7 +416,7 @@ export default function PlayerProfileForm({
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: São Paulo - SP"
+                            placeholder="Ex: SÃO PAULO - SP"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.birth_place || ''}
                             onChange={e => setProfile(prev => ({ ...prev, birth_place: e.target.value.toUpperCase() }))}
@@ -338,13 +428,34 @@ export default function PlayerProfileForm({
                         )}
                       </div>
 
+                      {/* Categoria */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Categoria</label>
+                        {isEditing ? (
+                          <select
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.category || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, category: e.target.value }))}
+                          >
+                            <option value="">Selecione a Categoria</option>
+                            {categories.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.category || <span className="text-zinc-600">Não informado</span>}
+                          </div>
+                        )}
+                      </div>
+
                       {/* Posição Principal */}
                       <div className="space-y-2">
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Posição Principal</label>
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: Centroavante"
+                            placeholder="Ex: CENTROAVANTE"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.primary_position || ''}
                             onChange={e => setProfile(prev => ({ ...prev, primary_position: e.target.value.toUpperCase() }))}
@@ -363,7 +474,7 @@ export default function PlayerProfileForm({
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: Meia-Atacante"
+                            placeholder="Ex: MEIA-ATACANTE"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.secondary_position || ''}
                             onChange={e => setProfile(prev => ({ ...prev, secondary_position: e.target.value.toUpperCase() }))}
@@ -375,13 +486,52 @@ export default function PlayerProfileForm({
                         )}
                       </div>
 
+                      {/* Pé Dominante */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pé Dominante</label>
+                        {isEditing ? (
+                          <select
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.dominant_foot || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, dominant_foot: e.target.value as any }))}
+                          >
+                            <option value="">Selecione...</option>
+                            <option value="DIREITO">DIREITO</option>
+                            <option value="ESQUERDO">ESQUERDO</option>
+                            <option value="AMBIDESTRO">AMBIDESTRO</option>
+                          </select>
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.dominant_foot || <span className="text-zinc-600">Não informado</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Número da Camisa */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Número da Camisa</label>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            placeholder="Ex: 9"
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.jersey_number || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, jersey_number: e.target.value || undefined }))}
+                          />
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.jersey_number !== undefined ? `#${profile.jersey_number}` : <span className="text-zinc-600">Não informado</span>}
+                          </div>
+                        )}
+                      </div>
+
                       {/* Clube Atual */}
                       <div className="space-y-2">
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Clube Atual</label>
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: Piruá Esporte Clube"
+                            placeholder="Ex: PIRUÁ ESPORTE CLUBE"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.current_club || ''}
                             onChange={e => setProfile(prev => ({ ...prev, current_club: e.target.value.toUpperCase() }))}
@@ -399,7 +549,7 @@ export default function PlayerProfileForm({
                         {isEditing ? (
                           <input
                             type="text"
-                            placeholder="Ex: 2 Anos (Até Julho/2028)"
+                            placeholder="Ex: 2 ANOS (ATÉ JULHO/2028)"
                             className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
                             value={profile.contract_duration || ''}
                             onChange={e => setProfile(prev => ({ ...prev, contract_duration: e.target.value.toUpperCase() }))}
@@ -415,15 +565,15 @@ export default function PlayerProfileForm({
                   )}
                 </div>
 
-                {/* Section 2: Características Físicas e Técnicas */}
+                {/* Section 2: Dados Físicos */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
                       <Scale size={18} />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-white uppercase tracking-wider">2. Características Físicas e Técnicas</h3>
-                      <p className="text-[10px] text-zinc-500 uppercase">Biometria, pé dominante e avaliação de habilidades chave</p>
+                      <h3 className="text-base font-black text-white uppercase tracking-wider">2. Dados Físicos</h3>
+                      <p className="text-[10px] text-zinc-500 uppercase">Medidas biométricas e Índice de Massa Corporal (IMC)</p>
                     </div>
                   </div>
 
@@ -432,185 +582,238 @@ export default function PlayerProfileForm({
                   {isLoading ? (
                     <div className="py-12 text-center text-zinc-500">Carregando informações...</div>
                   ) : (
-                    <div className="space-y-8">
-                      {/* Biometrics row */}
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-                        {/* Altura */}
-                        <div className="space-y-2">
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Altura</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              placeholder="Ex: 1.78 m"
-                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                              value={profile.height || ''}
-                              onChange={e => setProfile(prev => ({ ...prev, height: e.target.value.toUpperCase() }))}
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
-                              {profile.height || <span className="text-zinc-600">--</span>}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Peso */}
-                        <div className="space-y-2">
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Peso</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              placeholder="Ex: 72 kg"
-                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                              value={profile.weight || ''}
-                              onChange={e => setProfile(prev => ({ ...prev, weight: e.target.value.toUpperCase() }))}
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
-                              {profile.weight || <span className="text-zinc-600">--</span>}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Envergadura */}
-                        <div className="space-y-2">
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Envergadura</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              placeholder="Ex: 1.82 m"
-                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                              value={profile.wingspan || ''}
-                              onChange={e => setProfile(prev => ({ ...prev, wingspan: e.target.value.toUpperCase() }))}
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
-                              {profile.wingspan || <span className="text-zinc-600">--</span>}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Pé Bom */}
-                        <div className="space-y-2">
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pé Dominante</label>
-                          {isEditing ? (
-                            <select
-                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                              value={profile.dominant_foot || ''}
-                              onChange={e => setProfile(prev => ({ ...prev, dominant_foot: e.target.value as any }))}
-                            >
-                              <option value="">SELECIONAR...</option>
-                              <option value="Destro">DESTRO</option>
-                              <option value="Canhoto">CANHOTO</option>
-                              <option value="Ambidestro">AMBIDESTRO</option>
-                            </select>
-                          ) : (
-                            <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
-                              {profile.dominant_foot || <span className="text-zinc-600">Não informado</span>}
-                            </div>
-                          )}
-                        </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                      
+                      {/* Altura */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Altura</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            placeholder="Ex: 1.78 m"
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.height || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, height: e.target.value.toUpperCase() }))}
+                          />
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.height || <span className="text-zinc-600">--</span>}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="w-full h-px bg-zinc-800/50" />
+                      {/* Peso */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Peso</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            placeholder="Ex: 72 kg"
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.weight || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, weight: e.target.value.toUpperCase() }))}
+                          />
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.weight || <span className="text-zinc-600">--</span>}
+                          </div>
+                        )}
+                      </div>
 
-                      {/* Technical Abilities block */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                          <Award size={14} className="text-theme-primary" />
-                          Habilidades Específicas
-                        </h4>
+                      {/* Envergadura */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Envergadura (Opcional)</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            placeholder="Ex: 1.82 m"
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.wingspan || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, wingspan: e.target.value.toUpperCase() }))}
+                          />
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase">
+                            {profile.wingspan || <span className="text-zinc-600">--</span>}
+                          </div>
+                        )}
+                      </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          {/* Qualidade no Passe */}
-                          <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Qualidade no Passe</label>
-                            {isEditing ? (
-                              <textarea
-                                placeholder="Descreva a qualidade no passe do atleta..."
-                                rows={2}
-                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                                value={profile.skills_passing || ''}
-                                onChange={e => setProfile(prev => ({ ...prev, skills_passing: e.target.value.toUpperCase() }))}
-                              />
+                      {/* IMC */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">IMC (Opcional)</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            placeholder="Ex: 22.7"
+                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
+                            value={profile.imc || ''}
+                            onChange={e => setProfile(prev => ({ ...prev, imc: e.target.value.toUpperCase() }))}
+                          />
+                        ) : (
+                          <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-semibold uppercase flex items-center gap-2">
+                            {profile.imc ? (
+                              <>
+                                <span className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  parseFloat(profile.imc) >= 18.5 && parseFloat(profile.imc) < 25 ? "bg-green-500" : "bg-amber-500"
+                                )} />
+                                <span>{profile.imc}</span>
+                              </>
                             ) : (
-                              <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-medium uppercase min-h-[50px]">
-                                {profile.skills_passing || <span className="text-zinc-600">Sem observações cadastradas</span>}
-                              </div>
+                              <span className="text-zinc-600">--</span>
                             )}
                           </div>
+                        )}
+                      </div>
 
-                          {/* Cabeceio */}
-                          <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cabeceio</label>
-                            {isEditing ? (
-                              <textarea
-                                placeholder="Descreva a habilidade de cabeceio..."
-                                rows={2}
-                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                                value={profile.skills_heading || ''}
-                                onChange={e => setProfile(prev => ({ ...prev, skills_heading: e.target.value.toUpperCase() }))}
-                              />
-                            ) : (
-                              <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-medium uppercase min-h-[50px]">
-                                {profile.skills_heading || <span className="text-zinc-600">Sem observações cadastradas</span>}
-                              </div>
-                            )}
-                          </div>
+                    </div>
+                  )}
+                </div>
 
-                          {/* Drible */}
-                          <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Drible / Recursos individuais</label>
-                            {isEditing ? (
-                              <textarea
-                                placeholder="Descreva a qualidade do drible..."
-                                rows={2}
-                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                                value={profile.skills_dribbling || ''}
-                                onChange={e => setProfile(prev => ({ ...prev, skills_dribbling: e.target.value.toUpperCase() }))}
-                              />
-                            ) : (
-                              <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-medium uppercase min-h-[50px]">
-                                {profile.skills_dribbling || <span className="text-zinc-600">Sem observações cadastradas</span>}
-                              </div>
-                            )}
-                          </div>
+                {/* Section 3: Avaliações de Desempenho */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
+                        <Award size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-white uppercase tracking-wider">3. Ficha de Avaliação de Desempenho</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase">Notas de 0 a 10 para habilidades técnicas, físicas, táticas e comportamentais</p>
+                      </div>
+                    </div>
+                  </div>
 
-                          {/* Velocidade */}
-                          <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Velocidade / Arranque</label>
-                            {isEditing ? (
-                              <textarea
-                                placeholder="Descreva a explosão e velocidade do atleta..."
-                                rows={2}
-                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                                value={profile.skills_speed || ''}
-                                onChange={e => setProfile(prev => ({ ...prev, skills_speed: e.target.value.toUpperCase() }))}
-                              />
-                            ) : (
-                              <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-medium uppercase min-h-[50px]">
-                                {profile.skills_speed || <span className="text-zinc-600">Sem observações cadastradas</span>}
-                              </div>
-                            )}
-                          </div>
+                  <div className="w-full h-px bg-zinc-800" />
 
-                          {/* Posicionamento Tático */}
-                          <div className="space-y-2 sm:col-span-2">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Posicionamento Tático e Leitura de Espaço</label>
-                            {isEditing ? (
-                              <textarea
-                                placeholder="Descreva a inteligência posicional e tática..."
-                                rows={2}
-                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                                value={profile.skills_tactical || ''}
-                                onChange={e => setProfile(prev => ({ ...prev, skills_tactical: e.target.value.toUpperCase() }))}
-                              />
-                            ) : (
-                              <div className="px-4 py-3 bg-zinc-950 rounded-xl text-xs text-zinc-300 font-medium uppercase min-h-[50px]">
-                                {profile.skills_tactical || <span className="text-zinc-600">Sem observações cadastradas</span>}
+                  {isLoading ? (
+                    <div className="py-12 text-center text-zinc-500">Carregando informações...</div>
+                  ) : (
+                    <div className="space-y-6">
+                      
+                      {/* Custom Tab Selector */}
+                      <div className="flex flex-wrap gap-2 p-1.5 bg-zinc-950 rounded-2xl border border-zinc-800/80">
+                        <button
+                          type="button"
+                          onClick={() => setActiveRatingTab('technical')}
+                          className={cn(
+                            "flex-1 min-w-[125px] py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border",
+                            activeRatingTab === 'technical'
+                              ? "bg-theme-primary text-black border-theme-primary font-black shadow-md shadow-theme-primary/20"
+                              : "text-zinc-400 border-transparent hover:bg-zinc-900 hover:text-white"
+                          )}
+                        >
+                          <Award size={14} />
+                          Técnico
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRatingTab('physical')}
+                          className={cn(
+                            "flex-1 min-w-[125px] py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border",
+                            activeRatingTab === 'physical'
+                              ? "bg-theme-primary text-black border-theme-primary font-black shadow-md shadow-theme-primary/20"
+                              : "text-zinc-400 border-transparent hover:bg-zinc-900 hover:text-white"
+                          )}
+                        >
+                          <Activity size={14} />
+                          Físico
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRatingTab('tactical')}
+                          className={cn(
+                            "flex-1 min-w-[125px] py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border",
+                            activeRatingTab === 'tactical'
+                              ? "bg-theme-primary text-black border-theme-primary font-black shadow-md shadow-theme-primary/20"
+                              : "text-zinc-400 border-transparent hover:bg-zinc-900 hover:text-white"
+                          )}
+                        >
+                          <Target size={14} />
+                          Tático
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRatingTab('behavioral')}
+                          className={cn(
+                            "flex-1 min-w-[125px] py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border",
+                            activeRatingTab === 'behavioral'
+                              ? "bg-theme-primary text-black border-theme-primary font-black shadow-md shadow-theme-primary/20"
+                              : "text-zinc-400 border-transparent hover:bg-zinc-900 hover:text-white"
+                          )}
+                        >
+                          <TrendingUp size={14} />
+                          Comportamento
+                        </button>
+                      </div>
+
+                      {/* Ratings Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        {(activeRatingTab === 'technical' ? technicalFields :
+                          activeRatingTab === 'physical' ? physicalFields :
+                          activeRatingTab === 'tactical' ? tacticalFields :
+                          behavioralFields).map((field) => {
+                            const currentValue = profile[field.key] as number | undefined;
+                            const ratingDetails = getRatingLabel(currentValue);
+
+                            return (
+                              <div key={field.key} className="space-y-3 bg-zinc-950/40 p-5 rounded-2xl border border-zinc-800/60 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <div>
+                                      <label className="block text-xs font-black text-zinc-300 uppercase tracking-wider">
+                                        {field.label}
+                                      </label>
+                                      <span className="text-[10px] text-zinc-500 block">{field.description}</span>
+                                    </div>
+                                    <div className={cn("text-xs font-black uppercase px-2.5 py-1 rounded-md border flex items-center gap-1.5", ratingDetails.color)}>
+                                      <span className="text-sm font-black">
+                                        {currentValue !== undefined && currentValue !== null ? currentValue : '--'}
+                                      </span>
+                                      <span className="opacity-60">/10</span>
+                                    </div>
+                                  </div>
+
+                                  {(currentValue !== undefined && currentValue !== null) && (
+                                    <div className="space-y-1">
+                                      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div 
+                                          className={cn("h-full transition-all duration-500", ratingDetails.barColor)}
+                                          style={{ width: `${(currentValue / 10) * 100}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block">
+                                        Status: <span className="text-zinc-300">{ratingDetails.text}</span>
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {isEditing && (
+                                    <div className="space-y-2 pt-1">
+                                      <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Definir Nota (0 a 10):</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                                          <button
+                                            key={score}
+                                            type="button"
+                                            onClick={() => setProfile(prev => ({ ...prev, [field.key]: score }))}
+                                            className={cn(
+                                              "w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-all border",
+                                              currentValue === score
+                                                ? "bg-theme-primary text-black border-theme-primary font-black scale-105 shadow-md shadow-theme-primary/20"
+                                                : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                                            )}
+                                          >
+                                            {score}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
+                            );
+                          })}
                       </div>
 
                       <div className="w-full h-px bg-zinc-800/50" />
@@ -640,15 +843,15 @@ export default function PlayerProfileForm({
                   )}
                 </div>
 
-                {/* Section 3: Histórico Médico e Físico */}
+                {/* Section 4: Histórico Clínico e Performance Física */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-theme-primary/10 text-theme-primary rounded-xl">
                       <Activity size={18} />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-white uppercase tracking-wider">3. Histórico Clínico e Performance Física</h3>
-                      <p className="text-[10px] text-zinc-500 uppercase">Laudos de exames, acompanhamento de lesões e testes atléticos</p>
+                      <h3 className="text-base font-black text-white uppercase tracking-wider">4. Histórico Clínico e Performance Física</h3>
+                      <p className="text-[10px] text-zinc-500 uppercase">Laudos de exames, acompanhamento de lesões e testes de performance</p>
                     </div>
                   </div>
 
