@@ -472,17 +472,78 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     <option value="Administrativo">Administrativo</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Permissão / Nível de Acesso</label>
-                  <select 
-                    required
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
-                    value={formData.systemRole || 'professor'}
-                    onChange={e => setFormData({...formData, systemRole: e.target.value as any})}
-                  >
-                    <option value="professor">Comissão Técnica (Professor / Auxiliar)</option>
-                    <option value="admin">Administrador Geral (Acesso Total)</option>
-                  </select>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Permissão e Nível de Acesso (Marque uma ou ambas as opções)</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Option 1: Apenas Membro da Comissão */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentRole = formData.systemRole || 'professor';
+                        if (currentRole === 'professor') {
+                          // Toggle: if only professor is checked and we toggle it, we check admin (both)
+                          setFormData({ ...formData, systemRole: 'admin' });
+                        } else if (currentRole === 'admin') {
+                          // Toggle: if both are checked and we toggle professor off, we should show warning or switch
+                          // Let's toggle to only professor for simplicity, or warn
+                          toast.info("Todo membro desta guia deve ter pelo menos um nível de acesso marcado.");
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-3 rounded-xl border text-xs font-bold uppercase transition-all text-left flex items-center justify-between",
+                        (formData.systemRole === 'professor' || formData.systemRole === 'admin')
+                          ? "bg-theme-primary/10 border-theme-primary text-theme-primary"
+                          : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-white">Membro da Comissão Técnica</span>
+                        <span className="text-[10px] text-zinc-400 font-medium normal-case mt-0.5">Professor, Auxiliar ou Líder Técnico</span>
+                      </div>
+                      <div className={cn(
+                        "w-5 h-5 rounded-lg border-2 flex items-center justify-center text-xs transition-colors shrink-0 ml-3",
+                        (formData.systemRole === 'professor' || formData.systemRole === 'admin')
+                          ? "border-theme-primary bg-theme-primary text-black"
+                          : "border-zinc-600"
+                      )}>
+                        {(formData.systemRole === 'professor' || formData.systemRole === 'admin') && "✓"}
+                      </div>
+                    </button>
+
+                    {/* Option 2: Acesso Total ao Sistema */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentRole = formData.systemRole || 'professor';
+                        if (currentRole === 'admin') {
+                          // Toggling admin off leaves only professor
+                          setFormData({ ...formData, systemRole: 'professor' });
+                        } else {
+                          // Toggling admin on makes it both (admin)
+                          setFormData({ ...formData, systemRole: 'admin' });
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-3 rounded-xl border text-xs font-bold uppercase transition-all text-left flex items-center justify-between",
+                        formData.systemRole === 'admin'
+                          ? "bg-theme-primary/10 border-theme-primary text-theme-primary"
+                          : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600"
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-white">Acesso Total ao Sistema</span>
+                        <span className="text-[10px] text-zinc-400 font-medium normal-case mt-0.5">Administrador Geral do Clube</span>
+                      </div>
+                      <div className={cn(
+                        "w-5 h-5 rounded-lg border-2 flex items-center justify-center text-xs transition-colors shrink-0 ml-3",
+                        formData.systemRole === 'admin'
+                          ? "border-theme-primary bg-theme-primary text-black"
+                          : "border-zinc-600"
+                      )}>
+                        {formData.systemRole === 'admin' && "✓"}
+                      </div>
+                    </button>
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Cargos / Funções (Selecione um ou mais)</label>

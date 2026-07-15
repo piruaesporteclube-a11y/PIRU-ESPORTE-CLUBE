@@ -294,7 +294,7 @@ export default function PlayerProfileForm({
       clone.style.transform = 'none';
       clone.style.margin = '0';
       clone.style.padding = '40px';
-      clone.style.width = '850px';
+      clone.style.width = '800px';
       clone.style.height = 'auto';
       clone.style.backgroundColor = '#ffffff';
       clone.style.color = '#000000';
@@ -319,8 +319,7 @@ export default function PlayerProfileForm({
           'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
           'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
           'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
-          'backgroundRepeat', 'gap', 'columnGap', 'rowGap', 'gridTemplateColumns',
-          'flexGrow', 'flexShrink', 'flexBasis', 'width', 'height', 'padding', 'margin'
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap'
         ];
         
         propsToCopy.forEach(prop => {
@@ -353,12 +352,12 @@ export default function PlayerProfileForm({
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 850,
+        width: 800,
         onclone: (clonedDoc) => {
           fixHtml2CanvasColors(clonedDoc.body);
         }
@@ -378,20 +377,12 @@ export default function PlayerProfileForm({
       let finalHeight = contentHeight;
 
       if (finalHeight > (pdfHeight - margin * 2)) {
-        let remainingHeight = finalHeight;
-        let pageCount = 0;
-        while (remainingHeight > 0) {
-          if (pageCount > 0) {
-            pdf.addPage();
-          }
-          pdf.addImage(imgData, 'PNG', margin, margin - (pageCount * (pdfHeight - margin * 2)), finalWidth, finalHeight);
-          remainingHeight -= (pdfHeight - margin * 2);
-          pageCount++;
-        }
-      } else {
-        const x = (pdfWidth - finalWidth) / 2;
-        pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
+        finalHeight = pdfHeight - margin * 2;
+        finalWidth = (imgProps.width * finalHeight) / imgProps.height;
       }
+
+      const x = (pdfWidth - finalWidth) / 2;
+      pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
 
       pdf.save(`ficha_tecnica_${selectedAthlete.name?.replace(/\s+/g, '_')}.pdf`);
       toast.success('PDF gerado com sucesso!', { id: loadingToast });
@@ -1239,7 +1230,7 @@ export default function PlayerProfileForm({
           </div>
 
           {/* Hidden Print Content */}
-          <div className="hidden print-only bg-white text-black p-6 font-sans select-none border-4 border-double border-black rounded-lg max-w-[850px] mx-auto" ref={printRef} style={{ fontSize: '11px', lineHeight: '1.4' }}>
+          <div className="hidden print-only bg-white text-black p-6 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '11px', lineHeight: '1.4' }}>
             <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
               <div className="flex items-center gap-3">
                 {crestDataUrl ? (
@@ -1269,12 +1260,12 @@ export default function PlayerProfileForm({
                 <div 
                   className="border-2 border-zinc-800 rounded bg-zinc-50 flex items-center justify-center overflow-hidden"
                   style={{
-                    width: '3cm',
-                    height: '4cm',
-                    minWidth: '3cm',
-                    minHeight: '4cm',
-                    maxWidth: '3cm',
-                    maxHeight: '4cm',
+                    width: '113px',
+                    height: '151px',
+                    minWidth: '113px',
+                    minHeight: '151px',
+                    maxWidth: '113px',
+                    maxHeight: '151px',
                     boxSizing: 'border-box'
                   }}
                 >
