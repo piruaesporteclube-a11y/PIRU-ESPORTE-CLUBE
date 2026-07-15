@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { fixHtml2CanvasColors } from '../utils';
 import { api } from '../api';
 import { Athlete, Anamnesis, PlayerProfile, getSubCategory, categories } from '../types';
 import { 
@@ -131,6 +134,51 @@ export default function PlayerProfileForm({
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeRatingTab, setActiveRatingTab] = useState<'technical' | 'physical' | 'tactical' | 'behavioral'>('technical');
+  const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url) {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(settings?.schoolCrest || '', setCrestDataUrl);
+  }, [settings?.schoolCrest]);
 
   // Auto-calculate IMC when height or weight changes in edit mode
   useEffect(() => {
@@ -209,6 +257,155 @@ export default function PlayerProfileForm({
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!printRef.current || !selectedAthlete) return;
+    
+    setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF da ficha técnica...');
+    
+    let container: HTMLDivElement | null = null;
+    try {
+      // Ensure images are loaded before capturing
+      const images = printRef.current.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 3000); // 3s timeout for each image
+          img.onload = () => { clearTimeout(timeout); resolve(null); };
+          img.onerror = () => { clearTimeout(timeout); resolve(null); };
+        });
+      }));
+
+      // Create a temporary container for capture
+      container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '1200px';
+      container.style.height = 'auto';
+      container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
+      document.body.appendChild(container);
+
+      const clone = printRef.current.cloneNode(true) as HTMLElement;
+      
+      // Reset styles for capture to ensure proportionality
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.padding = '40px';
+      clone.style.width = '850px';
+      clone.style.height = 'auto';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.visibility = 'visible';
+      clone.style.display = 'block';
+      clone.style.boxSizing = 'border-box';
+      clone.classList.remove('hidden'); // Ensure it's visible for capture
+
+      // Force explicit font sizes and dimensions in the clone
+      const originalElements = printRef.current.querySelectorAll('*');
+      const cloneElements = clone.querySelectorAll('*');
+      for (let i = 0; i < originalElements.length; i++) {
+        const orig = originalElements[i] as HTMLElement;
+        const cln = cloneElements[i] as HTMLElement;
+        const style = window.getComputedStyle(orig);
+        
+        // Essential layout and typography styles
+        const propsToCopy = [
+          'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'letterSpacing', 
+          'textTransform', 'color', 
+          'display', 'flexDirection', 'alignItems', 'justifyContent', 'textAlign',
+          'borderRadius', 'borderWidth', 'borderColor', 'borderStyle', 'boxSizing',
+          'objectFit', 'position', 'top', 'left', 'right', 'bottom', 'opacity',
+          'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+          'backgroundRepeat', 'gap', 'columnGap', 'rowGap', 'gridTemplateColumns',
+          'flexGrow', 'flexShrink', 'flexBasis', 'width', 'height', 'padding', 'margin'
+        ];
+        
+        propsToCopy.forEach(prop => {
+          (cln.style as any)[prop] = (style as any)[prop];
+        });
+
+        const tagName = orig.tagName.toLowerCase();
+        if (tagName === 'img' || tagName === 'svg') {
+          cln.style.width = style.width;
+          cln.style.height = style.height;
+        }
+      }
+
+      // Replace images in clone with data URLs if available
+      const clonedImages = clone.querySelectorAll('img');
+      clonedImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src === settings?.schoolCrest && crestDataUrl) {
+          img.setAttribute('src', crestDataUrl);
+        }
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.display = 'block';
+        img.setAttribute('crossOrigin', 'anonymous');
+      });
+
+      container.appendChild(clone);
+
+      // Wait for clone to be ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 850,
+        onclone: (clonedDoc) => {
+          fixHtml2CanvasColors(clonedDoc.body);
+        }
+      });
+      
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+      let finalWidth = contentWidth;
+      let finalHeight = contentHeight;
+
+      if (finalHeight > (pdfHeight - margin * 2)) {
+        let remainingHeight = finalHeight;
+        let pageCount = 0;
+        while (remainingHeight > 0) {
+          if (pageCount > 0) {
+            pdf.addPage();
+          }
+          pdf.addImage(imgData, 'PNG', margin, margin - (pageCount * (pdfHeight - margin * 2)), finalWidth, finalHeight);
+          remainingHeight -= (pdfHeight - margin * 2);
+          pageCount++;
+        }
+      } else {
+        const x = (pdfWidth - finalWidth) / 2;
+        pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
+      }
+
+      pdf.save(`ficha_tecnica_${selectedAthlete.name?.replace(/\s+/g, '_')}.pdf`);
+      toast.success('PDF gerado com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF. Tente usar a opção de imprimir.', { id: loadingToast });
+    } finally {
+      if (container && container.parentNode) {
+        document.body.removeChild(container);
+      }
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Selection Header - Only if not standalone and not student */}
@@ -233,6 +430,50 @@ export default function PlayerProfileForm({
 
       {selectedAthlete ? (
         <div className="space-y-8">
+          {/* Action buttons (Print and PDF) */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 p-6 rounded-[2.5rem] shadow-2xl no-print">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-theme-primary/10 text-theme-primary rounded-xl">
+                <FileText size={22} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Ficha Técnica e Desempenho</h3>
+                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{selectedAthlete.name}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-850 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md"
+              >
+                <svg className="w-4 h-4 text-theme-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 022-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Imprimir Ficha
+              </button>
+              <button
+                type="button"
+                disabled={isGeneratingPDF}
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 px-5 py-2.5 bg-theme-primary text-black hover:bg-theme-primary/95 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-md"
+              >
+                {isGeneratingPDF ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Salvar em PDF
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
           {/* Main Card Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
@@ -991,6 +1232,288 @@ export default function PlayerProfileForm({
             </div>
 
           </div>
+
+          {/* Hidden Print Content */}
+          <div className="hidden print-only bg-white text-black p-8 min-h-screen" ref={printRef}>
+            <div className="flex items-center justify-between mb-6 border-b-2 border-black pb-4">
+              <div className="flex items-center gap-4">
+                {crestDataUrl ? (
+                  <img src={crestDataUrl} alt="Crest" className="w-16 h-16 object-contain animate-none" referrerPolicy="no-referrer" />
+                ) : settings?.schoolCrest ? (
+                  <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain animate-none" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-16 h-16 bg-zinc-850 rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
+                )}
+                <div className="text-left">
+                  <h1 className="text-xl font-black uppercase leading-tight text-black">Piruá Esporte Clube</h1>
+                  <h2 className="text-xs font-bold uppercase text-zinc-600">Ficha Técnica e Avaliação de Desempenho</h2>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-black uppercase text-zinc-500">Data de Emissão:</p>
+                <p className="text-xs font-bold text-black">{new Date().toLocaleDateString('pt-BR')}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-6 mb-6">
+              <div className="col-span-1">
+                <div className="w-full aspect-[3/4] border border-zinc-300 rounded-lg overflow-hidden flex items-center justify-center bg-zinc-50">
+                  {selectedAthlete.photo && selectedAthlete.photo !== "no-image" ? (
+                    <img src={selectedAthlete.photo} className="w-full h-full object-cover animate-none" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase text-zinc-400">Sem Foto</span>
+                  )}
+                </div>
+              </div>
+              <div className="col-span-3 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Nome do Atleta</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{selectedAthlete.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Apelido</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{selectedAthlete.nickname || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Nascimento</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                      {selectedAthlete.birth_date ? `${selectedAthlete.birth_date.split('-').reverse().join('/')} (${getAge(selectedAthlete.birth_date)} anos)` : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Categoria / Gênero</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 uppercase text-black">
+                      {selectedAthlete.birth_date ? getSubCategory(selectedAthlete.birth_date) : 'N/A'} / {selectedAthlete.gender || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Nº Camisa / Pé Dominante</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 uppercase text-black">
+                      #{selectedAthlete.jersey_number || 'N/A'} - {profile.dominant_foot || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Posição Principal</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.primary_position || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Posição Secundária</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.secondary_position || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Biometria & Dados Físicos</h3>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Altura</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.height ? `${profile.height} m` : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Peso</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.weight ? `${profile.weight} kg` : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Envergadura</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.wingspan ? `${profile.wingspan} cm` : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">IMC (Índice de Massa Corporal)</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.imc || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Tomada de Decisão (Leitura sob Pressão)</h3>
+              <div className="p-4 border border-zinc-200 rounded-lg flex items-center justify-between bg-zinc-50">
+                <div className="text-left">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Leitura de Jogo sob Pressão</p>
+                  <p className="text-xs font-medium text-zinc-600">Escolha rápida e precisa do melhor lance sob alta pressão</p>
+                </div>
+                <div className="px-6 py-2 bg-yellow-500 text-black border border-yellow-650 rounded-lg text-sm font-black uppercase tracking-wider">
+                  {profile.decision_making || "NÃO INFORMADO"}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Avaliação de Desempenho (Escala de 0 a 10)</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Técnico</h4>
+                    <div className="space-y-2">
+                      {technicalFields.map(f => {
+                        const val = profile[f.key] as number | undefined;
+                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
+                        return (
+                          <div key={f.key} className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-600 font-medium">{f.label}</span>
+                            <span className="font-bold text-black">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Físico</h4>
+                    <div className="space-y-2">
+                      {physicalFields.map(f => {
+                        const val = profile[f.key] as number | undefined;
+                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
+                        return (
+                          <div key={f.key} className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-600 font-medium">{f.label}</span>
+                            <span className="font-bold text-black">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Tático</h4>
+                    <div className="space-y-2">
+                      {tacticalFields.map(f => {
+                        const val = profile[f.key] as number | undefined;
+                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
+                        return (
+                          <div key={f.key} className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-600 font-medium">{f.label}</span>
+                            <span className="font-bold text-black">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Comportamental</h4>
+                    <div className="space-y-2">
+                      {behavioralFields.map(f => {
+                        const val = profile[f.key] as number | undefined;
+                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
+                        return (
+                          <div key={f.key} className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-600 font-medium">{f.label}</span>
+                            <span className="font-bold text-black">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Observações de Habilidades</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Passe</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_passing || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Cabeceio</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_heading || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Drible</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_dribbling || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade em Velocidade</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_speed || 'Não informado'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade Tática</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_tactical || 'Não informado'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Histórico de Performance & Clínico</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Exames de Rotina</p>
+                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
+                    {profile.routine_exams || 'Sem exames de rotina registrados.'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Histórico de Lesões</p>
+                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
+                    {profile.injury_history || 'Sem histórico de lesões registrado.'}
+                  </p>
+                </div>
+                <div className="col-span-2 text-left">
+                  <p className="text-[9px] font-black uppercase text-zinc-500">Testes de Performance</p>
+                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
+                    {profile.performance_tests || 'Sem testes de performance registrados.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {anamnesis.athlete_id && (
+              <div className="mb-6 text-left">
+                <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Ficha de Saúde (Anamnese)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Restrições Alimentares</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                      {anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Alergias Registradas</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                      {anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Problemas Cardíacos / Respiratórios</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                      {[
+                        anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Cardíaco: ${anamnesis.cardiac_problems}` : null,
+                        anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Respiratório: ${anamnesis.respiratory_problems}` : null
+                      ].filter(Boolean).join(' | ') || 'Nenhum'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-zinc-500">Medicações Controladas</p>
+                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                      {anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-12 space-y-8">
+              <div className="flex justify-between gap-12">
+                <div className="flex-1 border-t border-black text-center pt-2">
+                  <p className="text-[9px] font-bold uppercase text-zinc-600">Assinatura do Treinador / Professor</p>
+                </div>
+                <div className="flex-1 border-t border-black text-center pt-2">
+                  <p className="text-[9px] font-bold uppercase text-zinc-600">Assinatura da Coordenação</p>
+                </div>
+              </div>
+              <div className="text-center pt-4">
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest font-semibold">Piruá Esporte Clube - Formando Atletas, Cidadãos e Campeões</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       ) : (
         <div className="p-12 text-center bg-zinc-900 rounded-[2.5rem] border border-zinc-800 text-zinc-500">
