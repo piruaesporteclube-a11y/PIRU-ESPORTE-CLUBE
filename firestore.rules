@@ -312,6 +312,22 @@ service cloud.firestore {
              data.error_message is string;
     }
 
+    function isValidStudentDailyRead(data) {
+      return data.athlete_id is string && data.athlete_id.size() > 0 && data.athlete_id.size() < 100 &&
+             data.athlete_name is string && data.athlete_name.size() > 0 && data.athlete_name.size() < 150 &&
+             data.reads is number &&
+             data.date is string && data.date.size() == 10 &&
+             (!('updated_at' in data) || data.updated_at is timestamp);
+    }
+
+    function isValidAdminDailyRead(data) {
+      return data.user_id is string && data.user_id.size() > 0 && data.user_id.size() < 100 &&
+             data.user_name is string && data.user_name.size() > 0 && data.user_name.size() < 150 &&
+             data.reads is number &&
+             data.date is string && data.date.size() == 10 &&
+             (!('updated_at' in data) || data.updated_at is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -480,6 +496,16 @@ service cloud.firestore {
     match /login_errors/{errorId} {
       allow read: if isAdmin();
       allow create: if isValidLoginError(request.resource.data);
+    }
+
+    match /student_daily_reads/{readId} {
+      allow read: if isStaff();
+      allow create, update: if isAuthenticated() && isValidStudentDailyRead(request.resource.data) && (isStaff() || isDataOwner(request.resource.data.athlete_id));
+    }
+
+    match /admin_daily_reads/{readId} {
+      allow read: if isStaff();
+      allow create, update: if isAuthenticated() && isValidAdminDailyRead(request.resource.data) && (isStaff() || request.auth.uid == request.resource.data.user_id);
     }
 
     match /test/connection {

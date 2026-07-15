@@ -202,7 +202,7 @@ const getStatConfig = (label: string, statsVal: number) => {
   }
 };
 
-const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen }: { 
+const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen, pendingReportsCount = 0 }: { 
   stats: any, 
   athletes: Athlete[], 
   professors: Professor[],
@@ -211,7 +211,8 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
   settings: Settings,
   activeTab: string,
   setActiveTab: (tab: string) => void,
-  setIsAthleteFormOpen: (open: boolean) => void
+  setIsAthleteFormOpen: (open: boolean) => void,
+  pendingReportsCount?: number
 }) => {
   const [upcomingActivities, setUpcomingActivities] = useState<any[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
@@ -881,6 +882,14 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
                         getCardColorClasses(itemColor, isSelected, cat.id)
                       )}
                     >
+                      {/* Real-time Pending school reports notification badge */}
+                      {item.id === 'school-reports' && pendingReportsCount > 0 && (
+                        <div className="absolute top-3 left-3 bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full flex items-center justify-center gap-1 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-bounce uppercase z-10">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping shrink-0" />
+                          <span>{pendingReportsCount} novo{pendingReportsCount > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+
                       {/* Ghost background icon */}
                       <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-300 pointer-events-none group-hover:scale-110">
                         <item.icon size={110} />
@@ -1142,6 +1151,28 @@ export default function App() {
   const [stats, setStats] = useState({ athletes: 0, active: 0, suspended: 0, events: 0 });
   const [myAthleteData, setMyAthleteData] = useState<Athlete | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id || (user.role !== 'admin' && user.role !== 'professor')) {
+      setPendingReportsCount(0);
+      return;
+    }
+
+    try {
+      const q = query(collection(db, "school_reports"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const pending = snapshot.docs.filter(doc => doc.data().status === 'Pendente');
+        setPendingReportsCount(pending.length);
+      }, (error) => {
+        console.error("Error listening to school reports:", error);
+      });
+
+      return () => unsubscribe();
+    } catch (e) {
+      console.error("Failed to setup real-time school report listener:", e);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Optimized data fetching to save Firestore quota
@@ -1389,6 +1420,7 @@ export default function App() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
+              pendingReportsCount={pendingReportsCount}
             />
           );
         case 'athletes':
@@ -1686,6 +1718,7 @@ export default function App() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
+              pendingReportsCount={pendingReportsCount}
             />
           );
       }

@@ -468,6 +468,30 @@
         "updated_at": { "type": "string" }
       },
       "required": ["excluded_ids"]
+    },
+    "StudentDailyRead": {
+      "title": "StudentDailyRead",
+      "description": "Daily database read usage metrics for student/athlete users",
+      "type": "object",
+      "properties": {
+        "athlete_id": { "type": "string" },
+        "athlete_name": { "type": "string" },
+        "reads": { "type": "number" },
+        "date": { "type": "string" }
+      },
+      "required": ["athlete_id", "athlete_name", "reads", "date"]
+    },
+    "AdminDailyRead": {
+      "title": "AdminDailyRead",
+      "description": "Daily database read usage metrics for admin/staff/professor users",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "reads": { "type": "number" },
+        "date": { "type": "string" }
+      },
+      "required": ["user_id", "user_name", "reads", "date"]
     }
   },
   "firestore": {
@@ -566,6 +590,14 @@
     "/travel_exclusions/{eventId}": {
       "schema": "TravelExclusion",
       "description": "Travel exclusions collection to exclude specific passengers from the travel list of an event"
+    },
+    "/student_daily_reads/{readId}": {
+      "schema": "StudentDailyRead",
+      "description": "Daily database read tracking records for student/athlete users"
+    },
+    "/admin_daily_reads/{readId}": {
+      "schema": "AdminDailyRead",
+      "description": "Daily database read tracking records for admin/staff/professor users"
     }
   }
 }

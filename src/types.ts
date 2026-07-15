@@ -184,6 +184,7 @@ export type Settings = {
   studentAccessPaused?: boolean;
   studentAccessPauseMessage?: string;
   studentReadsLimit?: number;
+  adminReadsLimit?: number;
 };
 
 export type User = {

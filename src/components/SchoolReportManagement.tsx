@@ -117,7 +117,14 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Boletins Escolares</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Boletins Escolares</h2>
+            {isAdmin && reports.filter(r => r.status === 'Pendente').length > 0 && (
+              <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                {reports.filter(r => r.status === 'Pendente').length} Pendente{reports.filter(r => r.status === 'Pendente').length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mt-1">
             {isAdmin ? 'Gerenciamento de notas escolares dos atletas' : 'Acompanhamento do seu rendimento escolar'}
           </p>

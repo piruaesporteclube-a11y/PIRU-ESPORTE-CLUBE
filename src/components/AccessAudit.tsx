@@ -33,8 +33,10 @@ export const AccessAudit: React.FC = () => {
 
   // Portal Control States
   const [studentReads, setStudentReads] = useState<any[]>([]);
+  const [adminReads, setAdminReads] = useState<any[]>([]);
   const [athletes, setAthletes] = useState<any[]>([]);
   const [studentReadsLimit, setStudentReadsLimit] = useState(20000);
+  const [adminReadsLimit, setAdminReadsLimit] = useState(30000);
   const [studentAccessPaused, setStudentAccessPaused] = useState(false);
   const [studentAccessPauseMessage, setStudentAccessPauseMessage] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -52,20 +54,28 @@ export const AccessAudit: React.FC = () => {
       setLoginErrors(errors);
     });
 
-    // 2. Fetch global settings for student access
+    // 2. Fetch global settings for student/admin access
     api.getSettings().then((s) => {
       if (s) {
         setStudentReadsLimit(s.studentReadsLimit !== undefined ? s.studentReadsLimit : 20000);
+        setAdminReadsLimit((s as any).adminReadsLimit !== undefined ? (s as any).adminReadsLimit : 30000);
         setStudentAccessPaused(!!s.studentAccessPaused);
         setStudentAccessPauseMessage(s.studentAccessPauseMessage || '');
       }
     });
 
-    // 3. Subscribe to student reads today
     const today = new Date().toISOString().split('T')[0];
+
+    // 3. Subscribe to student reads today
     const unsubReads = api.subscribeToStudentDailyReads(today, (reads) => {
       const sorted = [...reads].sort((a, b) => (b.reads || 0) - (a.reads || 0));
       setStudentReads(sorted);
+    });
+
+    // 3b. Subscribe to admin reads today
+    const unsubAdminReads = api.subscribeToAdminDailyReads(today, (reads) => {
+      const sorted = [...reads].sort((a, b) => (b.reads || 0) - (a.reads || 0));
+      setAdminReads(sorted);
     });
 
     // 4. Subscribe to athletes for the approval directory
@@ -77,6 +87,7 @@ export const AccessAudit: React.FC = () => {
       unsubAccess();
       unsubErrors();
       unsubReads();
+      unsubAdminReads();
       unsubAthletes();
     };
   }, []);
@@ -87,6 +98,7 @@ export const AccessAudit: React.FC = () => {
     try {
       await api.saveSettings({
         studentReadsLimit,
+        adminReadsLimit,
         studentAccessPaused,
         studentAccessPauseMessage
       });
@@ -144,6 +156,8 @@ export const AccessAudit: React.FC = () => {
   // Calculate stats
   const totalStudentReadsToday = studentReads.reduce((sum, item) => sum + (item.reads || 0), 0);
   const percentUsed = studentReadsLimit > 0 ? Math.min(100, Math.round((totalStudentReadsToday / studentReadsLimit) * 100)) : 0;
+  const totalAdminReadsToday = adminReads.reduce((sum, item) => sum + (item.reads || 0), 0);
+  const percentAdminUsed = adminReadsLimit > 0 ? Math.min(100, Math.round((totalAdminReadsToday / adminReadsLimit) * 100)) : 0;
   const pendingCount = athletes.filter(a => a.confirmation === 'Pendente').length;
 
   return (
@@ -307,7 +321,7 @@ export const AccessAudit: React.FC = () => {
               className="space-y-6"
             >
               {/* Quota and Pause Dashboard Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 {/* Reads Quota Card */}
                 <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-between">
@@ -334,6 +348,35 @@ export const AccessAudit: React.FC = () => {
                     <p className="text-[10px] text-zinc-500 font-medium mt-1.5 flex justify-between">
                       <span>{percentUsed}% da quota do aluno consumida</span>
                       <span>Restam {(studentReadsLimit - totalStudentReadsToday).toLocaleString('pt-BR')}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Admin Reads Quota Card */}
+                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-zinc-400">Leituras de Admins Hoje</span>
+                      <Database size={18} className="text-blue-500" />
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-3xl font-black text-white">{totalAdminReadsToday.toLocaleString('pt-BR')}</span>
+                      <span className="text-xs text-zinc-500">/ {adminReadsLimit.toLocaleString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full transition-all duration-500",
+                          percentAdminUsed > 85 ? "bg-red-500" : percentAdminUsed > 50 ? "bg-amber-500" : "bg-blue-500"
+                        )}
+                        style={{ width: `${percentAdminUsed}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-medium mt-1.5 flex justify-between">
+                      <span>{percentAdminUsed}% da quota admin consumida</span>
+                      <span>Restam {(adminReadsLimit - totalAdminReadsToday).toLocaleString('pt-BR')}</span>
                     </p>
                   </div>
                 </div>
@@ -419,7 +462,7 @@ export const AccessAudit: React.FC = () => {
                   AJUSTAR PARÂMETROS DO PORTAL DO ALUNO
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Limite Diário de Leituras para Alunos</label>
                     <div className="flex items-center gap-2">
@@ -434,7 +477,25 @@ export const AccessAudit: React.FC = () => {
                       <span className="text-xs text-zinc-500 shrink-0">leituras/dia</span>
                     </div>
                     <p className="text-[10px] text-zinc-500">
-                      Evita que os alunos estourem os 50k limites de leitura diários gratuitos do Firebase. Valor sugerido: 20.000.
+                      Evita que os alunos estourem os limites de leitura do Firebase. Valor sugerido: 20.000.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Limite Diário de Leituras para Admins</label>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number"
+                        min="1000"
+                        step="5000"
+                        value={adminReadsLimit}
+                        onChange={(e) => setAdminReadsLimit(Number(e.target.value))}
+                        className="bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white font-bold w-full focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                      />
+                      <span className="text-xs text-zinc-500 shrink-0">leituras/dia</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500">
+                      Controle de leituras para administradores e professores. Valor sugerido: 30.000.
                     </p>
                   </div>
 
@@ -448,7 +509,7 @@ export const AccessAudit: React.FC = () => {
                       className="bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white w-full focus:outline-none focus:ring-1 focus:ring-theme-primary text-sm"
                     />
                     <p className="text-[10px] text-zinc-500">
-                      Esta mensagem será exibida na tela de login caso o aluno tente entrar enquanto o portal estiver suspenso.
+                      Esta mensagem será exibida na tela de login caso o aluno tente entrar com acesso suspenso.
                     </p>
                   </div>
                 </div>
@@ -599,6 +660,51 @@ export const AccessAudit: React.FC = () => {
                   ) : (
                     <div className="text-center py-12 text-zinc-500">
                       Nenhum aluno encontrado correspondente ao filtro.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Admin Daily Reads Directory */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mt-6">
+                <div className="p-6 border-b border-zinc-800">
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider flex items-center gap-2">
+                    <Database size={16} className="text-blue-500" />
+                    CONSUMO E LEITURAS DE ADMINISTRADORES E PROFESSORES
+                  </h3>
+                  <p className="text-zinc-500 text-xs mt-0.5">Acompanhe em tempo real as leituras consumidas por administradores, professores e coordenadores hoje.</p>
+                </div>
+
+                <div className="divide-y divide-zinc-800 max-h-[300px] overflow-y-auto">
+                  {adminReads.length > 0 ? (
+                    adminReads.map((admin) => (
+                      <div key={admin.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-zinc-900/50 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 font-bold flex items-center justify-center uppercase border border-blue-500/20">
+                            {admin.user_name?.substring(0, 2) || "AD"}
+                          </div>
+                          <div>
+                            <h4 className="text-white font-bold text-sm">{admin.user_name || "Administrador / Professor"}</h4>
+                            <p className="text-zinc-500 text-xs mt-0.5">
+                              ID do Usuário: {admin.user_id}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-left md:text-right shrink-0">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Consumo Hoje</span>
+                          <span className={cn(
+                            "font-mono font-bold text-sm",
+                            admin.reads > 1000 ? "text-amber-500" : "text-blue-400"
+                          )}>
+                            {(admin.reads || 0).toLocaleString('pt-BR')} leituras
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-zinc-500 text-sm">
+                      Nenhum administrador ou professor consumiu leituras hoje.
                     </div>
                   )}
                 </div>

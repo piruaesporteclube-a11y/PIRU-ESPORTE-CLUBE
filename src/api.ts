@@ -90,6 +90,41 @@ const syncStudentReads = (athleteId: string, athleteName: string, amount: number
   }, 5000);
 };
 
+let accumulatedAdminReads = 0;
+let syncAdminTimeout: any = null;
+
+const syncAdminReads = (userId: string, userName: string, amount: number) => {
+  if (quotaExceededToday) return;
+  
+  accumulatedAdminReads += amount;
+  
+  if (syncAdminTimeout) return;
+  
+  syncAdminTimeout = setTimeout(async () => {
+    syncAdminTimeout = null;
+    if (accumulatedAdminReads <= 0) return;
+    const readsToSync = accumulatedAdminReads;
+    accumulatedAdminReads = 0;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const docId = `${today}_${userId}`;
+      const docRef = doc(db, "admin_daily_reads", docId);
+      
+      await _setDoc(docRef, {
+        user_id: userId,
+        user_name: userName,
+        reads: increment(readsToSync),
+        date: today,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.error("Error syncing admin reads:", err);
+      accumulatedAdminReads += readsToSync;
+    }
+  }, 5000);
+};
+
 export const trackUsage = (type: 'reads' | 'writes', amount: number) => {
   try {
     const stats = getUsageStats();
@@ -101,8 +136,12 @@ export const trackUsage = (type: 'reads' | 'writes', amount: number) => {
       const userStr = localStorage.getItem('pirua_user');
       if (userStr) {
         const userObj = JSON.parse(userStr);
-        if (userObj && userObj.role === 'student' && userObj.athlete_id) {
-          syncStudentReads(userObj.athlete_id, userObj.name, amount);
+        if (userObj) {
+          if (userObj.role === 'student' && userObj.athlete_id) {
+            syncStudentReads(userObj.athlete_id, userObj.name, amount);
+          } else if (userObj.role === 'admin' || userObj.role === 'professor' || userObj.role === 'coordenador') {
+            syncAdminReads(userObj.id, userObj.name, amount);
+          }
         }
       }
     }
@@ -953,6 +992,20 @@ export const api = {
             }
           }
         }
+      } else {
+        // Check admin/professor read limit
+        const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
+        if (settingsSnap.exists()) {
+          const settingsData = settingsSnap.data() as Settings;
+          const limitValue = settingsData?.adminReadsLimit !== undefined ? settingsData.adminReadsLimit : 30000;
+          if (limitValue > 0) {
+            const todayReads = await api.getTodayAdminReads();
+            if (todayReads >= limitValue) {
+              await signOut(auth);
+              throw new Error(`O limite de acessos para administradores e professores (${limitValue.toLocaleString('pt-BR')} leituras hoje) foi atingido para economizar recursos de banco de dados. O acesso será restaurado amanhã.`);
+            }
+          }
+        }
       }
 
       // Check if athlete is pending before allowing login
@@ -1085,6 +1138,20 @@ export const api = {
             if (todayReads >= limitValue) {
               await signOut(auth);
               throw new Error(`O limite de acessos para alunos (${limitValue.toLocaleString('pt-BR')} leituras hoje) foi atingido para economizar recursos de banco de dados. O acesso será restaurado amanhã.`);
+            }
+          }
+        }
+      } else {
+        // Check admin/professor read limit
+        const settingsSnap = await getDoc(doc(db, "settings", "global_settings"));
+        if (settingsSnap.exists()) {
+          const settingsData = settingsSnap.data() as Settings;
+          const limitValue = settingsData?.adminReadsLimit !== undefined ? settingsData.adminReadsLimit : 30000;
+          if (limitValue > 0) {
+            const todayReads = await api.getTodayAdminReads();
+            if (todayReads >= limitValue) {
+              await signOut(auth);
+              throw new Error(`O limite de acessos para administradores e professores (${limitValue.toLocaleString('pt-BR')} leituras hoje) foi atingido para economizar recursos de banco de dados. O acesso será restaurado amanhã.`);
             }
           }
         }
@@ -3319,6 +3386,32 @@ export const api = {
 
   subscribeToStudentDailyReads: (date: string, callback: (reads: any[]) => void) => {
     const q = query(collection(db, "student_daily_reads"), where("date", "==", date));
+    return onSnapshot(q, (snapshot) => {
+      const reads = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      callback(reads);
+    }, (error) => {
+      // ignore
+    });
+  },
+
+  getTodayAdminReads: async (): Promise<number> => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const q = query(collection(db, "admin_daily_reads"), where("date", "==", today));
+      const snap = await _getDocs(q);
+      let total = 0;
+      snap.forEach((doc) => {
+        total += doc.data().reads || 0;
+      });
+      return total;
+    } catch (e) {
+      console.error("Error getting today's admin reads:", e);
+      return 0;
+    }
+  },
+
+  subscribeToAdminDailyReads: (date: string, callback: (reads: any[]) => void) => {
+    const q = query(collection(db, "admin_daily_reads"), where("date", "==", date));
     return onSnapshot(q, (snapshot) => {
       const reads = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       callback(reads);

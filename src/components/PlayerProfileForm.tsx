@@ -1229,43 +1229,44 @@ export default function PlayerProfileForm({
 
           </div>
 
-          {/* Hidden Print Content */}
-          <div className="hidden print-only bg-white text-black p-6 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '11px', lineHeight: '1.4' }}>
-            <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+          <div className="hidden print-only bg-white text-black p-4 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '10.5px', lineHeight: '1.3' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b-2 border-zinc-900 pb-2 mb-3">
               <div className="flex items-center gap-3">
                 {crestDataUrl ? (
-                  <img src={crestDataUrl} alt="Brasão" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
+                  <img src={crestDataUrl} alt="Brasão" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                 ) : settings?.schoolCrest ? (
-                  <img src={settings.schoolCrest} alt="Brasão" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
+                  <img src={settings.schoolCrest} alt="Brasão" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-14 h-14 bg-zinc-100 border border-zinc-400 rounded flex items-center justify-center text-black font-extrabold text-lg">P</div>
+                  <div className="w-12 h-12 bg-zinc-100 border border-zinc-400 rounded flex items-center justify-center text-black font-extrabold text-lg">P</div>
                 )}
                 <div className="text-left">
-                  <h1 className="text-lg font-black uppercase tracking-tight text-black">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-600">Ficha Técnica e Avaliação de Desempenho do Atleta</p>
+                  <h1 className="text-base font-black uppercase tracking-tight text-black">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
+                  <p className="text-[9px] font-extrabold uppercase tracking-widest text-zinc-650">Ficha Técnica e Avaliação de Desempenho do Atleta</p>
                 </div>
               </div>
-              <div className="text-right flex flex-col justify-between h-14">
-                <span className="text-[9px] font-extrabold uppercase text-zinc-500">Documento Oficial</span>
+              <div className="text-right flex flex-col justify-between h-12">
+                <span className="text-[8px] font-extrabold uppercase text-zinc-500">Documento Oficial</span>
                 <div className="text-right">
-                  <p className="text-[8px] font-bold uppercase text-zinc-500">Emissão:</p>
-                  <p className="text-[10px] font-black text-black">{new Date().toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[7px] font-bold uppercase text-zinc-500">Emissão:</p>
+                  <p className="text-[9px] font-black text-black">{new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-4 mb-4">
+            {/* Photo & Core Information */}
+            <div className="grid grid-cols-12 gap-4 mb-3">
               {/* Photo 3x4 strictly bounded */}
               <div className="col-span-3 flex flex-col items-center justify-start gap-1">
                 <div 
-                  className="border-2 border-zinc-800 rounded bg-zinc-50 flex items-center justify-center overflow-hidden"
+                  className="border-2 border-zinc-900 rounded bg-zinc-100 flex items-center justify-center overflow-hidden shadow-sm"
                   style={{
-                    width: '113px',
-                    height: '151px',
-                    minWidth: '113px',
-                    minHeight: '151px',
-                    maxWidth: '113px',
-                    maxHeight: '151px',
+                    width: '105px',
+                    height: '140px',
+                    minWidth: '105px',
+                    minHeight: '140px',
+                    maxWidth: '105px',
+                    maxHeight: '140px',
                     boxSizing: 'border-box'
                   }}
                 >
@@ -1273,121 +1274,128 @@ export default function PlayerProfileForm({
                     <img 
                       src={selectedAthlete.photo} 
                       alt="Foto do Atleta" 
-                      className="object-cover animate-none animate-none" 
+                      className="object-cover animate-none" 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       referrerPolicy="no-referrer" 
                     />
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-2 text-zinc-400">
-                      <svg className="w-6 h-6 mb-1 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex flex-col items-center justify-center text-center p-2 text-zinc-500">
+                      <svg className="w-6 h-6 mb-1 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       <span className="text-[8px] font-bold uppercase tracking-widest leading-tight">FOTO 3x4</span>
                     </div>
                   )}
                 </div>
-                <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Identificação</p>
+                <p className="text-[8px] font-black uppercase text-zinc-600 tracking-wider">Identificação</p>
               </div>
 
               {/* Metadata Fields */}
-              <div className="col-span-9 grid grid-cols-3 gap-y-2.5 gap-x-4">
+              <div className="col-span-9 grid grid-cols-3 gap-y-2 gap-x-3.5">
                 <div className="col-span-2">
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Nome do Atleta</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{selectedAthlete.name || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Nome do Atleta</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900 truncate">{selectedAthlete.name || 'N/A'}</p>
                 </div>
                 <div className="col-span-1">
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Apelido</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{selectedAthlete.nickname || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Apelido</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900 truncate">{selectedAthlete.nickname || 'N/A'}</p>
                 </div>
 
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Data de Nascimento</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Data de Nascimento</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900">
                     {selectedAthlete.birth_date ? `${selectedAthlete.birth_date.split('-').reverse().join('/')} (${getAge(selectedAthlete.birth_date)} anos)` : 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Gênero</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">{selectedAthlete.gender || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Gênero</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900">{selectedAthlete.gender || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Categoria</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 uppercase text-black">
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Categoria</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 uppercase text-zinc-900">
                     {selectedAthlete.birth_date ? getSubCategory(selectedAthlete.birth_date) : 'N/A'}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Nº Camisa</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">#{selectedAthlete.jersey_number || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Nº Camisa</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900">#{selectedAthlete.jersey_number || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Pé Dominante</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 uppercase text-black">{profile.dominant_foot || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Pé Dominante</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 uppercase text-zinc-900">{profile.dominant_foot || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Principal</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{profile.primary_position || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Posição Principal</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900 truncate">{profile.primary_position || 'N/A'}</p>
                 </div>
 
                 <div className="col-span-3">
-                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Secundária</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{profile.secondary_position || 'N/A'}</p>
+                  <p className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Posição Secundária</p>
+                  <p className="text-xs font-black border-b-2 border-zinc-300 pb-0.5 text-zinc-900 truncate">{profile.secondary_position || 'N/A'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mb-4">
-              <h3 className="text-[9px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-2">Biometria & Dados Físicos</h3>
-              <div className="grid grid-cols-4 gap-4 bg-zinc-50 p-2.5 rounded border border-zinc-200">
-                <div>
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Altura</span>
-                  <span className="text-xs font-extrabold text-black">{profile.height ? `${profile.height} m` : 'N/A'}</span>
+            {/* Consolidated Biometrics & Decision Making row */}
+            <div className="grid grid-cols-12 gap-4 mb-3">
+              <div className="col-span-8">
+                <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Biometria & Dados Físicos</h3>
+                <div className="grid grid-cols-4 gap-2 bg-zinc-50 p-2 rounded border border-zinc-300">
+                  <div>
+                    <span className="text-[7.5px] font-bold text-zinc-500 uppercase block">Altura</span>
+                    <span className="text-xs font-black text-zinc-900">{profile.height ? `${profile.height} m` : 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-zinc-500 uppercase block">Peso</span>
+                    <span className="text-xs font-black text-zinc-900">{profile.weight ? `${profile.weight} kg` : 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-zinc-500 uppercase block">Envergadura</span>
+                    <span className="text-xs font-black text-zinc-900">{profile.wingspan ? `${profile.wingspan} cm` : 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-zinc-500 uppercase block">IMC (Corporal)</span>
+                    <span className="text-xs font-black text-zinc-900">{profile.imc || 'N/A'}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Peso</span>
-                  <span className="text-xs font-extrabold text-black">{profile.weight ? `${profile.weight} kg` : 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Envergadura</span>
-                  <span className="text-xs font-extrabold text-black">{profile.wingspan ? `${profile.wingspan} cm` : 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">IMC (Massa Corporal)</span>
-                  <span className="text-xs font-extrabold text-black">{profile.imc || 'N/A'}</span>
+              </div>
+
+              <div className="col-span-4 flex flex-col justify-between">
+                <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Tomada de Decisão</h3>
+                <div className="grid grid-cols-12 items-center bg-zinc-50 border border-zinc-300 rounded p-1.5 h-full">
+                  <div className="col-span-8 pr-1.5 leading-tight">
+                    <span className="text-[7px] font-bold uppercase text-zinc-500 block">Capacidade Geral</span>
+                    <span className="text-[8.5px] font-medium text-zinc-650 leading-none">Visão sob pressão.</span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <div className="bg-amber-400 text-black border border-amber-600 rounded px-1.5 py-1 font-black uppercase text-[9px] tracking-wider truncate">
+                      {profile.decision_making || "N/A"}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="mb-4 grid grid-cols-12 gap-4 items-center">
-              <div className="col-span-9 bg-zinc-50 px-2.5 py-1.5 rounded border border-zinc-200 flex flex-col justify-center">
-                <span className="text-[8px] font-black uppercase text-zinc-500">Tomada de Decisão</span>
-                <p className="text-[10px] font-medium text-zinc-650 leading-tight">Capacidade de leitura de jogo rápida e escolha precisa sob pressão em campo.</p>
-              </div>
-              <div className="col-span-3 text-center">
-                <div className="bg-amber-500 text-black border-2 border-amber-650 rounded px-2 py-1.5 font-black uppercase text-xs tracking-wider">
-                  {profile.decision_making || "NÃO INFORMADO"}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <h3 className="text-[9px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-2">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
+            {/* Attributes Evaluations */}
+            <div className="mb-3">
+              <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
               <div className="grid grid-cols-2 gap-3">
                 {/* Técnico */}
-                <div className="border border-zinc-200 rounded p-2 bg-white">
-                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÉCNICO</h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="border border-zinc-300 rounded p-2 bg-white flex flex-col justify-between">
+                  <h4 className="text-[8.5px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÉCNICO</h4>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
-                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                        <div key={f.key} className="flex justify-between items-center text-[8.5px] leading-none">
+                          <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
                           <div className="flex items-center gap-1">
-                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
-                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
                             </div>
-                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
+                            <span className="font-black text-black text-[8.5px] w-3 text-right">{val !== undefined ? val : '-'}</span>
                           </div>
                         </div>
                       );
@@ -1395,130 +1403,138 @@ export default function PlayerProfileForm({
                   </div>
                 </div>
 
-                {/* Físico */}
-                <div className="border border-zinc-200 rounded p-2 bg-white">
-                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">FÍSICO</h4>
-                  <div className="space-y-1">
-                    {physicalFields.map(f => {
-                      const val = profile[f.key] as number | undefined;
-                      return (
-                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
-                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                {/* Other columns */}
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Físico */}
+                  <div className="border border-zinc-300 rounded p-1.5 bg-white">
+                    <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">FÍSICO</h4>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      {physicalFields.map(f => {
+                        const val = profile[f.key] as number | undefined;
+                        return (
+                          <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
+                            <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                            <div className="flex items-center gap-1">
+                              <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                              </div>
+                              <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
                             </div>
-                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* Tático */}
-                <div className="border border-zinc-200 rounded p-2 bg-white">
-                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÁTICO</h4>
-                  <div className="space-y-1">
-                    {tacticalFields.map(f => {
-                      const val = profile[f.key] as number | undefined;
-                      return (
-                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
-                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                  {/* Tático & Comportamental side by side */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Tático */}
+                    <div className="border border-zinc-300 rounded p-1.5 bg-white">
+                      <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">TÁTICO</h4>
+                      <div className="space-y-0.5">
+                        {tacticalFields.map(f => {
+                          const val = profile[f.key] as number | undefined;
+                          return (
+                            <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
+                              <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                              <div className="flex items-center gap-0.5">
+                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                                </div>
+                                <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
+                              </div>
                             </div>
-                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                {/* Comportamental */}
-                <div className="border border-zinc-200 rounded p-2 bg-white">
-                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">COMPORTAMENTAL</h4>
-                  <div className="space-y-1">
-                    {behavioralFields.map(f => {
-                      const val = profile[f.key] as number | undefined;
-                      return (
-                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
-                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                    {/* Comportamental */}
+                    <div className="border border-zinc-300 rounded p-1.5 bg-white">
+                      <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">COMPORTAMENTO</h4>
+                      <div className="space-y-0.5">
+                        {behavioralFields.map(f => {
+                          const val = profile[f.key] as number | undefined;
+                          return (
+                            <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
+                              <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                              <div className="flex items-center gap-0.5">
+                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                                </div>
+                                <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
+                              </div>
                             </div>
-                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            {/* Performance and Medical history */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               {/* Notes */}
-              <div className="border border-zinc-200 rounded p-2.5 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider">Habilidades & Performance</h4>
-                <div className="space-y-1 text-[9px]">
+              <div className="border border-zinc-300 rounded p-2 bg-zinc-50">
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Habilidades & Performance</h4>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[8.5px]">
                   <div>
-                    <span className="font-black text-zinc-700">Passe: </span>
-                    <span className="text-zinc-600">{profile.skills_passing || 'Não informado'}</span>
+                    <span className="font-black text-zinc-800">Passe: </span>
+                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="font-black text-zinc-700">Cabeceio: </span>
-                    <span className="text-zinc-600">{profile.skills_heading || 'Não informado'}</span>
+                    <span className="font-black text-zinc-800">Cabeceio: </span>
+                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="font-black text-zinc-700">Drible: </span>
-                    <span className="text-zinc-600">{profile.skills_dribbling || 'Não informado'}</span>
+                    <span className="font-black text-zinc-800">Drible: </span>
+                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="font-black text-zinc-700">Velocidade: </span>
-                    <span className="text-zinc-600">{profile.skills_speed || 'Não informado'}</span>
+                    <span className="font-black text-zinc-800">Velocidade: </span>
+                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
                   </div>
-                  <div>
-                    <span className="font-black text-zinc-700">Tática: </span>
-                    <span className="text-zinc-600">{profile.skills_tactical || 'Não informado'}</span>
+                  <div className="col-span-2">
+                    <span className="font-black text-zinc-800">Tática: </span>
+                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[220px]" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Medical History */}
-              <div className="border border-zinc-200 rounded p-2.5 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider">Histórico Clínico & Exames</h4>
-                <div className="space-y-1.5 text-[9px]">
+              <div className="border border-zinc-300 rounded p-2 bg-zinc-50 flex flex-col justify-between">
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Histórico Clínico & Exames</h4>
+                <div className="grid grid-cols-2 gap-2 text-[8px]">
                   <div>
-                    <span className="font-black text-zinc-700 uppercase text-[8px] block">Exames de Rotina:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 break-words">{profile.routine_exams || 'Sem observações.'}</p>
+                    <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Exames de Rotina:</span>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-0.5 rounded border border-zinc-200 truncate h-5 flex items-center">{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
                   <div>
-                    <span className="font-black text-zinc-700 uppercase text-[8px] block">Histórico de Lesões:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 break-words">{profile.injury_history || 'Sem registro.'}</p>
+                    <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Histórico de Lesões:</span>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-0.5 rounded border border-zinc-200 truncate h-5 flex items-center">{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Anamnesis block (if available) */}
             {anamnesis.athlete_id && (
-              <div className="mb-4 border border-zinc-200 rounded p-2.5 bg-zinc-50">
+              <div className="mb-3 border border-zinc-300 rounded p-2 bg-zinc-50">
                 <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Ficha de Saúde (Anamnese do Atleta)</h4>
-                <div className="grid grid-cols-4 gap-2 text-[9px]">
+                <div className="grid grid-cols-4 gap-2 text-[8px]">
                   <div>
-                    <span className="font-bold text-zinc-500 block text-[8px]">Restrições Alimentares:</span>
-                    <span className="font-extrabold text-black truncate block">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
+                    <span className="font-bold text-zinc-500 block text-[7.5px]">Restrições Alimentares:</span>
+                    <span className="font-black text-zinc-950 truncate block">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-zinc-500 block text-[8px]">Alergias Registradas:</span>
-                    <span className="font-extrabold text-black truncate block">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
+                    <span className="font-bold text-zinc-500 block text-[7.5px]">Alergias Registradas:</span>
+                    <span className="font-black text-zinc-950 truncate block">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-zinc-500 block text-[8px]">Cardíacos / Respiratórios:</span>
-                    <span className="font-extrabold text-black truncate block">
+                    <span className="font-bold text-zinc-500 block text-[7.5px]">Cardíacos / Respiratórios:</span>
+                    <span className="font-black text-zinc-950 truncate block">
                       {[
                         anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Card.: ${anamnesis.cardiac_problems}` : null,
                         anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Resp.: ${anamnesis.respiratory_problems}` : null
@@ -1526,22 +1542,23 @@ export default function PlayerProfileForm({
                     </span>
                   </div>
                   <div>
-                    <span className="font-bold text-zinc-500 block text-[8px]">Medicações de Uso Contínuo:</span>
-                    <span className="font-extrabold text-black truncate block">{anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}</span>
+                    <span className="font-bold text-zinc-500 block text-[7.5px]">Medicações Contínuas:</span>
+                    <span className="font-black text-zinc-950 truncate block">{anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}</span>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="mt-8 space-y-4">
-              <div className="flex justify-between gap-12">
+            {/* Signatures Footer */}
+            <div className="mt-5 space-y-3">
+              <div className="flex justify-between gap-8 pt-2">
                 {/* Commission Signatures */}
                 <div className="flex-1 text-center flex flex-col justify-end">
-                  <div className="border-b border-black w-56 mx-auto mb-1.5"></div>
-                  <p className="text-[10px] font-black uppercase text-black">
+                  <div className="border-b border-zinc-900 w-48 mx-auto mb-1"></div>
+                  <p className="text-[9px] font-black uppercase text-black">
                     {coachName || 'Comissão Técnica / Professor'}
                   </p>
-                  <p className="text-[8px] font-bold uppercase text-zinc-500 tracking-wider">
+                  <p className="text-[7.5px] font-bold uppercase text-zinc-500 tracking-wider">
                     Treinador / Professor
                   </p>
                   {assistantName && (
@@ -1551,11 +1568,11 @@ export default function PlayerProfileForm({
 
                 {/* Board Signatures */}
                 <div className="flex-1 text-center flex flex-col justify-end">
-                  <div className="border-b border-black w-56 mx-auto mb-1.5"></div>
-                  <p className="text-[10px] font-black uppercase text-black">
+                  <div className="border-b border-zinc-900 w-48 mx-auto mb-1"></div>
+                  <p className="text-[9px] font-black uppercase text-black">
                     {presidentName || technicalDirectorName || 'Diretoria / Coordenação'}
                   </p>
-                  <p className="text-[8px] font-bold uppercase text-zinc-500 tracking-wider">
+                  <p className="text-[7.5px] font-bold uppercase text-zinc-500 tracking-wider">
                     {presidentName ? 'Presidente - Diretoria' : technicalDirectorName ? 'Diretor Técnico' : 'Coordenação / Diretoria'}
                   </p>
                   {presidentName && technicalDirectorName && (
@@ -1564,7 +1581,7 @@ export default function PlayerProfileForm({
                 </div>
               </div>
               
-              <div className="text-center pt-2 border-t border-zinc-200 flex justify-between items-center text-[8px] text-zinc-400 font-bold uppercase tracking-widest">
+              <div className="text-center pt-1.5 border-t border-zinc-300 flex justify-between items-center text-[7.5px] text-zinc-400 font-bold uppercase tracking-widest">
                 <span>{settings?.schoolName || 'Piruá Esporte Clube'}</span>
                 <span>Formando Atletas, Cidadãos e Campeões</span>
                 <span>© {new Date().getFullYear()}</span>
