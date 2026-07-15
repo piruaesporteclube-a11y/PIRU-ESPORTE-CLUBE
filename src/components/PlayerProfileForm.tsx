@@ -406,6 +406,11 @@ export default function PlayerProfileForm({
     }
   };
 
+  const coachName = settings?.coaches ? settings.coaches.split(/,|\n/)[0].trim() : '';
+  const assistantName = settings?.assistants ? settings.assistants.split(/,|\n/)[0].trim() : '';
+  const presidentName = settings?.president || '';
+  const technicalDirectorName = settings?.technicalDirector || '';
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Selection Header - Only if not standalone and not student */}
@@ -1234,282 +1239,344 @@ export default function PlayerProfileForm({
           </div>
 
           {/* Hidden Print Content */}
-          <div className="hidden print-only bg-white text-black p-8 min-h-screen" ref={printRef}>
-            <div className="flex items-center justify-between mb-6 border-b-2 border-black pb-4">
-              <div className="flex items-center gap-4">
+          <div className="hidden print-only bg-white text-black p-6 font-sans select-none border-4 border-double border-black rounded-lg max-w-[850px] mx-auto" ref={printRef} style={{ fontSize: '11px', lineHeight: '1.4' }}>
+            <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+              <div className="flex items-center gap-3">
                 {crestDataUrl ? (
-                  <img src={crestDataUrl} alt="Crest" className="w-16 h-16 object-contain animate-none" referrerPolicy="no-referrer" />
+                  <img src={crestDataUrl} alt="Brasão" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
                 ) : settings?.schoolCrest ? (
-                  <img src={settings.schoolCrest} alt="Crest" className="w-16 h-16 object-contain animate-none" referrerPolicy="no-referrer" />
+                  <img src={settings.schoolCrest} alt="Brasão" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-16 h-16 bg-zinc-850 rounded-lg flex items-center justify-center text-black font-black text-xl">P</div>
+                  <div className="w-14 h-14 bg-zinc-100 border border-zinc-400 rounded flex items-center justify-center text-black font-extrabold text-lg">P</div>
                 )}
                 <div className="text-left">
-                  <h1 className="text-xl font-black uppercase leading-tight text-black">Piruá Esporte Clube</h1>
-                  <h2 className="text-xs font-bold uppercase text-zinc-600">Ficha Técnica e Avaliação de Desempenho</h2>
+                  <h1 className="text-lg font-black uppercase tracking-tight text-black">{settings?.schoolName || 'Piruá Esporte Clube'}</h1>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-600">Ficha Técnica e Avaliação de Desempenho do Atleta</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black uppercase text-zinc-500">Data de Emissão:</p>
-                <p className="text-xs font-bold text-black">{new Date().toLocaleDateString('pt-BR')}</p>
+              <div className="text-right flex flex-col justify-between h-14">
+                <span className="text-[9px] font-extrabold uppercase text-zinc-500">Documento Oficial</span>
+                <div className="text-right">
+                  <p className="text-[8px] font-bold uppercase text-zinc-500">Emissão:</p>
+                  <p className="text-[10px] font-black text-black">{new Date().toLocaleDateString('pt-BR')}</p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-6 mb-6">
-              <div className="col-span-1">
-                <div className="w-full aspect-[3/4] border border-zinc-300 rounded-lg overflow-hidden flex items-center justify-center bg-zinc-50">
+            <div className="grid grid-cols-12 gap-4 mb-4">
+              {/* Photo 3x4 strictly bounded */}
+              <div className="col-span-3 flex flex-col items-center justify-start gap-1">
+                <div 
+                  className="border-2 border-zinc-800 rounded bg-zinc-50 flex items-center justify-center overflow-hidden"
+                  style={{
+                    width: '3cm',
+                    height: '4cm',
+                    minWidth: '3cm',
+                    minHeight: '4cm',
+                    maxWidth: '3cm',
+                    maxHeight: '4cm',
+                    boxSizing: 'border-box'
+                  }}
+                >
                   {selectedAthlete.photo && selectedAthlete.photo !== "no-image" ? (
-                    <img src={selectedAthlete.photo} className="w-full h-full object-cover animate-none" referrerPolicy="no-referrer" />
+                    <img 
+                      src={selectedAthlete.photo} 
+                      alt="Foto do Atleta" 
+                      className="object-cover animate-none animate-none" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      referrerPolicy="no-referrer" 
+                    />
                   ) : (
-                    <span className="text-[10px] font-bold uppercase text-zinc-400">Sem Foto</span>
+                    <div className="flex flex-col items-center justify-center text-center p-2 text-zinc-400">
+                      <svg className="w-6 h-6 mb-1 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="text-[8px] font-bold uppercase tracking-widest leading-tight">FOTO 3x4</span>
+                    </div>
                   )}
                 </div>
+                <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Identificação</p>
               </div>
-              <div className="col-span-3 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Nome do Atleta</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{selectedAthlete.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Apelido</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{selectedAthlete.nickname || 'N/A'}</p>
-                  </div>
+
+              {/* Metadata Fields */}
+              <div className="col-span-9 grid grid-cols-3 gap-y-2.5 gap-x-4">
+                <div className="col-span-2">
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Nome do Atleta</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{selectedAthlete.name || 'N/A'}</p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Nascimento</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
-                      {selectedAthlete.birth_date ? `${selectedAthlete.birth_date.split('-').reverse().join('/')} (${getAge(selectedAthlete.birth_date)} anos)` : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Categoria / Gênero</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 uppercase text-black">
-                      {selectedAthlete.birth_date ? getSubCategory(selectedAthlete.birth_date) : 'N/A'} / {selectedAthlete.gender || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Nº Camisa / Pé Dominante</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 uppercase text-black">
-                      #{selectedAthlete.jersey_number || 'N/A'} - {profile.dominant_foot || 'N/A'}
-                    </p>
-                  </div>
+                <div className="col-span-1">
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Apelido</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{selectedAthlete.nickname || 'N/A'}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Posição Principal</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.primary_position || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Posição Secundária</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.secondary_position || 'N/A'}</p>
-                  </div>
+
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Data de Nascimento</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">
+                    {selectedAthlete.birth_date ? `${selectedAthlete.birth_date.split('-').reverse().join('/')} (${getAge(selectedAthlete.birth_date)} anos)` : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Gênero</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">{selectedAthlete.gender || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Categoria</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 uppercase text-black">
+                    {selectedAthlete.birth_date ? getSubCategory(selectedAthlete.birth_date) : 'N/A'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Nº Camisa</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black">#{selectedAthlete.jersey_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Pé Dominante</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 uppercase text-black">{profile.dominant_foot || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Principal</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{profile.primary_position || 'N/A'}</p>
+                </div>
+
+                <div className="col-span-3">
+                  <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Secundária</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{profile.secondary_position || 'N/A'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Biometria & Dados Físicos</h3>
-              <div className="grid grid-cols-4 gap-4">
+            <div className="mb-4">
+              <h3 className="text-[9px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-2">Biometria & Dados Físicos</h3>
+              <div className="grid grid-cols-4 gap-4 bg-zinc-50 p-2.5 rounded border border-zinc-200">
                 <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Altura</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.height ? `${profile.height} m` : 'N/A'}</p>
+                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Altura</span>
+                  <span className="text-xs font-extrabold text-black">{profile.height ? `${profile.height} m` : 'N/A'}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Peso</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.weight ? `${profile.weight} kg` : 'N/A'}</p>
+                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Peso</span>
+                  <span className="text-xs font-extrabold text-black">{profile.weight ? `${profile.weight} kg` : 'N/A'}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Envergadura</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.wingspan ? `${profile.wingspan} cm` : 'N/A'}</p>
+                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">Envergadura</span>
+                  <span className="text-xs font-extrabold text-black">{profile.wingspan ? `${profile.wingspan} cm` : 'N/A'}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">IMC (Índice de Massa Corporal)</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.imc || 'N/A'}</p>
+                  <span className="text-[8px] font-bold text-zinc-500 uppercase block">IMC (Massa Corporal)</span>
+                  <span className="text-xs font-extrabold text-black">{profile.imc || 'N/A'}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Tomada de Decisão (Leitura sob Pressão)</h3>
-              <div className="p-4 border border-zinc-200 rounded-lg flex items-center justify-between bg-zinc-50">
-                <div className="text-left">
-                  <p className="text-[10px] font-black uppercase text-zinc-500">Leitura de Jogo sob Pressão</p>
-                  <p className="text-xs font-medium text-zinc-600">Escolha rápida e precisa do melhor lance sob alta pressão</p>
-                </div>
-                <div className="px-6 py-2 bg-yellow-500 text-black border border-yellow-650 rounded-lg text-sm font-black uppercase tracking-wider">
+            <div className="mb-4 grid grid-cols-12 gap-4 items-center">
+              <div className="col-span-9 bg-zinc-50 px-2.5 py-1.5 rounded border border-zinc-200 flex flex-col justify-center">
+                <span className="text-[8px] font-black uppercase text-zinc-500">Tomada de Decisão</span>
+                <p className="text-[10px] font-medium text-zinc-650 leading-tight">Capacidade de leitura de jogo rápida e escolha precisa sob pressão em campo.</p>
+              </div>
+              <div className="col-span-3 text-center">
+                <div className="bg-amber-500 text-black border-2 border-amber-650 rounded px-2 py-1.5 font-black uppercase text-xs tracking-wider">
                   {profile.decision_making || "NÃO INFORMADO"}
                 </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Avaliação de Desempenho (Escala de 0 a 10)</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Técnico</h4>
-                    <div className="space-y-2">
-                      {technicalFields.map(f => {
-                        const val = profile[f.key] as number | undefined;
-                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
-                        return (
-                          <div key={f.key} className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-600 font-medium">{f.label}</span>
-                            <span className="font-bold text-black">{label}</span>
+            <div className="mb-4">
+              <h3 className="text-[9px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-2">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
+              <div className="grid grid-cols-4 gap-4">
+                {/* Técnico */}
+                <div className="border border-zinc-200 rounded p-2 bg-white">
+                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÉCNICO</h4>
+                  <div className="space-y-1">
+                    {technicalFields.map(f => {
+                      const val = profile[f.key] as number | undefined;
+                      return (
+                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
+                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
+                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            </div>
+                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Físico</h4>
-                    <div className="space-y-2">
-                      {physicalFields.map(f => {
-                        const val = profile[f.key] as number | undefined;
-                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
-                        return (
-                          <div key={f.key} className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-600 font-medium">{f.label}</span>
-                            <span className="font-bold text-black">{label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Tático</h4>
-                    <div className="space-y-2">
-                      {tacticalFields.map(f => {
-                        const val = profile[f.key] as number | undefined;
-                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
-                        return (
-                          <div key={f.key} className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-600 font-medium">{f.label}</span>
-                            <span className="font-bold text-black">{label}</span>
+
+                {/* Físico */}
+                <div className="border border-zinc-200 rounded p-2 bg-white">
+                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">FÍSICO</h4>
+                  <div className="space-y-1">
+                    {physicalFields.map(f => {
+                      const val = profile[f.key] as number | undefined;
+                      return (
+                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
+                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
+                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            </div>
+                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase text-zinc-700 mb-2 border-b border-zinc-300 pb-0.5">Comportamental</h4>
-                    <div className="space-y-2">
-                      {behavioralFields.map(f => {
-                        const val = profile[f.key] as number | undefined;
-                        const label = val !== undefined ? `${val}/10` : 'Não avaliado';
-                        return (
-                          <div key={f.key} className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-600 font-medium">{f.label}</span>
-                            <span className="font-bold text-black">{label}</span>
+                </div>
+
+                {/* Tático */}
+                <div className="border border-zinc-200 rounded p-2 bg-white">
+                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÁTICO</h4>
+                  <div className="space-y-1">
+                    {tacticalFields.map(f => {
+                      const val = profile[f.key] as number | undefined;
+                      return (
+                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
+                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
+                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            </div>
+                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Comportamental */}
+                <div className="border border-zinc-200 rounded p-2 bg-white">
+                  <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">COMPORTAMENTAL</h4>
+                  <div className="space-y-1">
+                    {behavioralFields.map(f => {
+                      const val = profile[f.key] as number | undefined;
+                      return (
+                        <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
+                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
+                              <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            </div>
+                            <span className="font-extrabold text-black text-[9px] w-3 text-right">{val !== undefined ? val : '-'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Observações de Habilidades</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Passe</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_passing || 'Não informado'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Cabeceio</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_heading || 'Não informado'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade no Drible</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_dribbling || 'Não informado'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade em Velocidade</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_speed || 'Não informado'}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Habilidade Tática</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">{profile.skills_tactical || 'Não informado'}</p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Notes */}
+              <div className="border border-zinc-200 rounded p-2.5 bg-zinc-50">
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider">Habilidades & Performance</h4>
+                <div className="space-y-1 text-[9px]">
+                  <div>
+                    <span className="font-black text-zinc-700">Passe: </span>
+                    <span className="text-zinc-600">{profile.skills_passing || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="font-black text-zinc-700">Cabeceio: </span>
+                    <span className="text-zinc-600">{profile.skills_heading || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="font-black text-zinc-700">Drible: </span>
+                    <span className="text-zinc-600">{profile.skills_dribbling || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="font-black text-zinc-700">Velocidade: </span>
+                    <span className="text-zinc-600">{profile.skills_speed || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="font-black text-zinc-700">Tática: </span>
+                    <span className="text-zinc-600">{profile.skills_tactical || 'Não informado'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Histórico de Performance & Clínico</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Exames de Rotina</p>
-                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
-                    {profile.routine_exams || 'Sem exames de rotina registrados.'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Histórico de Lesões</p>
-                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
-                    {profile.injury_history || 'Sem histórico de lesões registrado.'}
-                  </p>
-                </div>
-                <div className="col-span-2 text-left">
-                  <p className="text-[9px] font-black uppercase text-zinc-500">Testes de Performance</p>
-                  <p className="text-xs text-zinc-700 border border-zinc-200 p-2 rounded min-h-[50px] whitespace-pre-line bg-zinc-50 text-black">
-                    {profile.performance_tests || 'Sem testes de performance registrados.'}
-                  </p>
+              {/* Medical History */}
+              <div className="border border-zinc-200 rounded p-2.5 bg-zinc-50">
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider">Histórico Clínico & Exames</h4>
+                <div className="space-y-1.5 text-[9px]">
+                  <div>
+                    <span className="font-black text-zinc-700 uppercase text-[8px] block">Exames de Rotina:</span>
+                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 max-h-[35px] overflow-hidden truncate">{profile.routine_exams || 'Sem observações.'}</p>
+                  </div>
+                  <div>
+                    <span className="font-black text-zinc-700 uppercase text-[8px] block">Histórico de Lesões:</span>
+                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 max-h-[35px] overflow-hidden truncate">{profile.injury_history || 'Sem registro.'}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {anamnesis.athlete_id && (
-              <div className="mb-6 text-left">
-                <h3 className="text-xs font-black uppercase bg-zinc-100 p-1.5 mb-3 text-black">Ficha de Saúde (Anamnese)</h3>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4 border border-zinc-200 rounded p-2.5 bg-zinc-50">
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Ficha de Saúde (Anamnese do Atleta)</h4>
+                <div className="grid grid-cols-4 gap-2 text-[9px]">
                   <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Restrições Alimentares</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
-                      {anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}
-                    </p>
+                    <span className="font-bold text-zinc-500 block text-[8px]">Restrições Alimentares:</span>
+                    <span className="font-extrabold text-black truncate block">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Alergias Registradas</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
-                      {anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}
-                    </p>
+                    <span className="font-bold text-zinc-500 block text-[8px]">Alergias Registradas:</span>
+                    <span className="font-extrabold text-black truncate block">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Problemas Cardíacos / Respiratórios</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
+                    <span className="font-bold text-zinc-500 block text-[8px]">Cardíacos / Respiratórios:</span>
+                    <span className="font-extrabold text-black truncate block">
                       {[
-                        anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Cardíaco: ${anamnesis.cardiac_problems}` : null,
-                        anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Respiratório: ${anamnesis.respiratory_problems}` : null
+                        anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Card.: ${anamnesis.cardiac_problems}` : null,
+                        anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Resp.: ${anamnesis.respiratory_problems}` : null
                       ].filter(Boolean).join(' | ') || 'Nenhum'}
-                    </p>
+                    </span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-500">Medicações Controladas</p>
-                    <p className="text-xs font-bold border-b border-zinc-200 pb-1 text-black">
-                      {anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}
-                    </p>
+                    <span className="font-bold text-zinc-500 block text-[8px]">Medicações de Uso Contínuo:</span>
+                    <span className="font-extrabold text-black truncate block">{anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}</span>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="mt-12 space-y-8">
+            <div className="mt-8 space-y-4">
               <div className="flex justify-between gap-12">
-                <div className="flex-1 border-t border-black text-center pt-2">
-                  <p className="text-[9px] font-bold uppercase text-zinc-600">Assinatura do Treinador / Professor</p>
+                {/* Commission Signatures */}
+                <div className="flex-1 text-center flex flex-col justify-end">
+                  <div className="border-b border-black w-56 mx-auto mb-1.5"></div>
+                  <p className="text-[10px] font-black uppercase text-black">
+                    {coachName || 'Comissão Técnica / Professor'}
+                  </p>
+                  <p className="text-[8px] font-bold uppercase text-zinc-500 tracking-wider">
+                    Treinador / Professor
+                  </p>
+                  {assistantName && (
+                    <p className="text-[7px] text-zinc-400 uppercase tracking-tighter">Auxiliar: {assistantName}</p>
+                  )}
                 </div>
-                <div className="flex-1 border-t border-black text-center pt-2">
-                  <p className="text-[9px] font-bold uppercase text-zinc-600">Assinatura da Coordenação</p>
+
+                {/* Board Signatures */}
+                <div className="flex-1 text-center flex flex-col justify-end">
+                  <div className="border-b border-black w-56 mx-auto mb-1.5"></div>
+                  <p className="text-[10px] font-black uppercase text-black">
+                    {presidentName || technicalDirectorName || 'Diretoria / Coordenação'}
+                  </p>
+                  <p className="text-[8px] font-bold uppercase text-zinc-500 tracking-wider">
+                    {presidentName ? 'Presidente - Diretoria' : technicalDirectorName ? 'Diretor Técnico' : 'Coordenação / Diretoria'}
+                  </p>
+                  {presidentName && technicalDirectorName && (
+                    <p className="text-[7px] text-zinc-400 uppercase tracking-tighter">Dir. Técnico: {technicalDirectorName}</p>
+                  )}
                 </div>
               </div>
-              <div className="text-center pt-4">
-                <p className="text-[9px] text-zinc-400 uppercase tracking-widest font-semibold">Piruá Esporte Clube - Formando Atletas, Cidadãos e Campeões</p>
+              
+              <div className="text-center pt-2 border-t border-zinc-200 flex justify-between items-center text-[8px] text-zinc-400 font-bold uppercase tracking-widest">
+                <span>{settings?.schoolName || 'Piruá Esporte Clube'}</span>
+                <span>Formando Atletas, Cidadãos e Campeões</span>
+                <span>© {new Date().getFullYear()}</span>
               </div>
             </div>
           </div>
