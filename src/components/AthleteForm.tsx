@@ -346,7 +346,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         logging: false,
         width: 800,
         onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
+          fixHtml2CanvasColors(clonedDoc.body, true);
         }
       });
       

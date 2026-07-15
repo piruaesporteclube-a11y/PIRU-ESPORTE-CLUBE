@@ -87,8 +87,8 @@ export function formatCPFOrRG(value: string): string {
   return value.toUpperCase();
 }
 
-export function fixHtml2CanvasColors(element: HTMLElement) {
-  const elements = element.querySelectorAll('*');
+export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) {
+  const elements = [element, ...Array.from(element.querySelectorAll('*'))];
   elements.forEach((el) => {
     const htmlEl = el as HTMLElement;
     const style = window.getComputedStyle(htmlEl);
@@ -130,7 +130,7 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
       }
 
       if (isThemeSecondary) {
-        const fallback = '#000000';
+        const fallback = isLightMode ? '#000000' : '#ffffff';
         if (prop === 'color') htmlEl.style.color = fallback;
         else if (prop === 'backgroundColor') htmlEl.style.backgroundColor = fallback;
         else if (prop === 'borderColor') htmlEl.style.borderColor = fallback;
@@ -151,29 +151,53 @@ export function fixHtml2CanvasColors(element: HTMLElement) {
             htmlEl.style.color = '#d4d4d8';
           } else if (htmlEl.classList.contains('text-zinc-600')) {
             htmlEl.style.color = '#52525b';
+          } else if (htmlEl.classList.contains('text-zinc-650')) {
+            htmlEl.style.color = '#4b5563';
+          } else if (htmlEl.classList.contains('text-zinc-700')) {
+            htmlEl.style.color = '#3f3f46';
+          } else if (htmlEl.classList.contains('text-black')) {
+            htmlEl.style.color = '#000000';
           } else {
-            // Default white text
-            htmlEl.style.color = '#ffffff';
+            // Default text color
+            htmlEl.style.color = isLightMode ? '#000000' : '#ffffff';
           }
         } else if (prop === 'backgroundColor') {
           if (htmlEl.classList.contains('bg-zinc-900')) {
-            htmlEl.style.backgroundColor = '#18181b';
+            htmlEl.style.backgroundColor = isLightMode ? '#111827' : '#18181b';
           } else if (htmlEl.classList.contains('bg-zinc-950')) {
-            htmlEl.style.backgroundColor = '#09090b';
+            htmlEl.style.backgroundColor = isLightMode ? '#030712' : '#09090b';
           } else if (htmlEl.classList.contains('bg-zinc-800')) {
-            htmlEl.style.backgroundColor = '#27272a';
+            htmlEl.style.backgroundColor = isLightMode ? '#1f2937' : '#27272a';
           } else if (htmlEl.classList.contains('bg-zinc-700')) {
-            htmlEl.style.backgroundColor = '#3f3f46';
+            htmlEl.style.backgroundColor = isLightMode ? '#374151' : '#3f3f46';
+          } else if (htmlEl.classList.contains('bg-zinc-50')) {
+            htmlEl.style.backgroundColor = '#f9fafb';
+          } else if (htmlEl.classList.contains('bg-zinc-100')) {
+            htmlEl.style.backgroundColor = '#f3f4f6';
+          } else if (htmlEl.classList.contains('bg-zinc-200')) {
+            htmlEl.style.backgroundColor = '#e5e7eb';
+          } else if (htmlEl.classList.contains('bg-white')) {
+            htmlEl.style.backgroundColor = '#ffffff';
           } else {
-            htmlEl.style.backgroundColor = '#000000';
+            htmlEl.style.backgroundColor = isLightMode ? '#ffffff' : '#000000';
           }
         } else if (prop === 'borderColor') {
-          htmlEl.style.borderColor = '#3f3f46';
+          if (htmlEl.classList.contains('border-zinc-200')) {
+            htmlEl.style.borderColor = '#e5e7eb';
+          } else if (htmlEl.classList.contains('border-zinc-300')) {
+            htmlEl.style.borderColor = '#d1d5db';
+          } else if (htmlEl.classList.contains('border-zinc-400')) {
+            htmlEl.style.borderColor = '#9ca3af';
+          } else if (htmlEl.classList.contains('border-zinc-800')) {
+            htmlEl.style.borderColor = '#1f2937';
+          } else {
+            htmlEl.style.borderColor = isLightMode ? '#e5e7eb' : '#3f3f46';
+          }
         } else if (prop === 'background') {
           if (value.includes('gradient')) {
-            htmlEl.style.background = value.replace(/oklch\(.*?\)/g, '#000000');
+            htmlEl.style.background = value.replace(/oklch\(.*?\)/g, isLightMode ? '#ffffff' : '#000000');
           } else {
-            htmlEl.style.background = '#000000';
+            htmlEl.style.background = isLightMode ? '#ffffff' : '#000000';
           }
         }
       }

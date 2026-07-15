@@ -194,7 +194,7 @@ export default function Documents() {
         logging: false,
         windowWidth: 1200, // Provides a wide virtual window to prevent any cropping or clipping of the right edge
         onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
+          fixHtml2CanvasColors(clonedDoc.body, true);
         }
       });
 
@@ -318,7 +318,7 @@ export default function Documents() {
         logging: false,
         windowWidth: 1200, // Provides a wide virtual window to prevent any cropping or clipping of the right edge
         onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
+          fixHtml2CanvasColors(clonedDoc.body, true);
         }
       });
       

@@ -293,7 +293,7 @@ export default function PlayerProfileForm({
       // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
       clone.style.margin = '0';
-      clone.style.padding = '40px';
+      clone.style.padding = '24px';
       clone.style.width = '800px';
       clone.style.height = 'auto';
       clone.style.backgroundColor = '#ffffff';
@@ -359,7 +359,7 @@ export default function PlayerProfileForm({
         logging: false,
         width: 800,
         onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
+          fixHtml2CanvasColors(clonedDoc.body, true);
         }
       });
       
@@ -1293,11 +1293,11 @@ export default function PlayerProfileForm({
               <div className="col-span-9 grid grid-cols-3 gap-y-2.5 gap-x-4">
                 <div className="col-span-2">
                   <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Nome do Atleta</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{selectedAthlete.name || 'N/A'}</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{selectedAthlete.name || 'N/A'}</p>
                 </div>
                 <div className="col-span-1">
                   <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Apelido</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{selectedAthlete.nickname || 'N/A'}</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{selectedAthlete.nickname || 'N/A'}</p>
                 </div>
 
                 <div>
@@ -1327,12 +1327,12 @@ export default function PlayerProfileForm({
                 </div>
                 <div>
                   <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Principal</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{profile.primary_position || 'N/A'}</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{profile.primary_position || 'N/A'}</p>
                 </div>
 
                 <div className="col-span-3">
                   <p className="text-[8px] font-extrabold uppercase text-zinc-500 tracking-wider">Posição Secundária</p>
-                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black truncate">{profile.secondary_position || 'N/A'}</p>
+                  <p className="text-xs font-bold border-b border-zinc-200 pb-0.5 text-black break-words">{profile.secondary_position || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -1382,7 +1382,7 @@ export default function PlayerProfileForm({
                       const val = profile[f.key] as number | undefined;
                       return (
                         <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
                               <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1403,7 +1403,7 @@ export default function PlayerProfileForm({
                       const val = profile[f.key] as number | undefined;
                       return (
                         <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
                               <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1424,7 +1424,7 @@ export default function PlayerProfileForm({
                       const val = profile[f.key] as number | undefined;
                       return (
                         <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
                               <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1445,7 +1445,7 @@ export default function PlayerProfileForm({
                       const val = profile[f.key] as number | undefined;
                       return (
                         <div key={f.key} className="flex justify-between items-center text-[9px] leading-none">
-                          <span className="text-zinc-600 font-bold truncate max-w-[55px]" title={f.label}>{f.label}</span>
+                          <span className="text-zinc-600 font-bold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-10 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
                               <div className="h-full bg-zinc-850 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1494,11 +1494,11 @@ export default function PlayerProfileForm({
                 <div className="space-y-1.5 text-[9px]">
                   <div>
                     <span className="font-black text-zinc-700 uppercase text-[8px] block">Exames de Rotina:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 max-h-[35px] overflow-hidden truncate">{profile.routine_exams || 'Sem observações.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 break-words">{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
                   <div>
                     <span className="font-black text-zinc-700 uppercase text-[8px] block">Histórico de Lesões:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 max-h-[35px] overflow-hidden truncate">{profile.injury_history || 'Sem registro.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white p-1 rounded border border-zinc-200 break-words">{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>

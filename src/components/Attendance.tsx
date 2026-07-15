@@ -1220,7 +1220,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         backgroundColor: '#ffffff',
         logging: false,
         onclone: (clonedDoc) => {
-          fixHtml2CanvasColors(clonedDoc.body);
+          fixHtml2CanvasColors(clonedDoc.body, true);
         }
       });
       
