@@ -825,16 +825,54 @@ export default function PlayerProfileForm({
                           Índice de Tomada de Decisão (Leitura de jogo sob pressão)
                         </h4>
                         {isEditing ? (
-                          <textarea
-                            placeholder="Descreva como o jogador se comporta sob alta pressão e sua precisão na tomada de decisão rápida..."
-                            rows={3}
-                            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase"
-                            value={profile.decision_making || ''}
-                            onChange={e => setProfile(prev => ({ ...prev, decision_making: e.target.value.toUpperCase() }))}
-                          />
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+                            {["RUIM", "REGULAR", "BOM", "ÓTIMO", "EXCELENTE"].map((opt) => {
+                              const isSelected = profile.decision_making === opt;
+                              let activeClass = "";
+                              
+                              if (opt === "RUIM") activeClass = isSelected ? "bg-red-500 text-black border-red-500 scale-[1.03] font-black" : "bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-red-400";
+                              else if (opt === "REGULAR") activeClass = isSelected ? "bg-orange-500 text-black border-orange-500 scale-[1.03] font-black" : "bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-orange-400";
+                              else if (opt === "BOM") activeClass = isSelected ? "bg-yellow-500 text-black border-yellow-500 scale-[1.03] font-black" : "bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-yellow-400";
+                              else if (opt === "ÓTIMO") activeClass = isSelected ? "bg-green-500 text-black border-green-500 scale-[1.03] font-black" : "bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-green-400";
+                              else activeClass = isSelected ? "bg-emerald-400 text-black border-emerald-400 scale-[1.03] font-black" : "bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-emerald-400";
+
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setProfile(prev => ({ ...prev, decision_making: opt }))}
+                                  className={cn(
+                                    "py-3 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 uppercase tracking-wider",
+                                    activeClass
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
                         ) : (
-                          <div className="p-4 bg-zinc-950 rounded-2xl text-xs text-zinc-300 font-medium uppercase border border-zinc-800/45 leading-relaxed">
-                            {profile.decision_making || <span className="text-zinc-600">Sem avaliação cadastrada para tomada de decisão.</span>}
+                          <div className="flex items-center gap-3">
+                            {profile.decision_making ? (
+                              (() => {
+                                let badgeClass = "bg-zinc-800 text-zinc-300 border-zinc-700";
+                                if (profile.decision_making === "RUIM") badgeClass = "bg-red-500/10 text-red-500 border-red-500/20";
+                                else if (profile.decision_making === "REGULAR") badgeClass = "bg-orange-500/10 text-orange-500 border-orange-500/20";
+                                else if (profile.decision_making === "BOM") badgeClass = "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+                                else if (profile.decision_making === "ÓTIMO") badgeClass = "bg-green-500/10 text-green-500 border-green-500/20";
+                                else if (profile.decision_making === "EXCELENTE") badgeClass = "bg-emerald-400/10 text-emerald-400 border-emerald-400/20";
+
+                                return (
+                                  <div className={cn("px-5 py-3.5 rounded-2xl text-xs font-black uppercase border tracking-wider", badgeClass)}>
+                                    {profile.decision_making}
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <div className="px-5 py-3.5 bg-zinc-950 text-zinc-600 rounded-2xl text-[10px] font-black border border-zinc-900 uppercase tracking-widest">
+                                Não informado
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
