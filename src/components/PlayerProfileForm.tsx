@@ -1373,11 +1373,11 @@ export default function PlayerProfileForm({
 
             <div className="mb-4">
               <h3 className="text-[9px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-2">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Técnico */}
                 <div className="border border-zinc-200 rounded p-2 bg-white">
                   <h4 className="text-[9px] font-black uppercase text-zinc-700 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÉCNICO</h4>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
