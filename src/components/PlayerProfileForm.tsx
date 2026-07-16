@@ -1464,13 +1464,13 @@ export default function PlayerProfileForm({
                   <h4 className="text-[8.5px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
                     TÉCNICO
                   </h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'x-12px y-4px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '12px', rowGap: '4px', width: '100%', boxSizing: 'border-box' }}>
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
-                        <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
-                          <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                        <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
+                          <span style={{ fontWeight: '950', color: '#000000', flex: '1', minWidth: '0', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{f.label}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', flexShrink: 0 }}>
                             <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
                               <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                             </div>
@@ -1489,13 +1489,13 @@ export default function PlayerProfileForm({
                     <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
                       FÍSICO
                     </h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'x-12px y-4px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '12px', rowGap: '4px', width: '100%', boxSizing: 'border-box' }}>
                       {physicalFields.map(f => {
                         const val = profile[f.key] as number | undefined;
                         return (
-                          <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
-                            <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                          <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
+                            <span style={{ fontWeight: '950', color: '#000000', flex: '1', minWidth: '0', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{f.label}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', flexShrink: 0 }}>
                               <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
                                 <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                               </div>
@@ -1518,9 +1518,9 @@ export default function PlayerProfileForm({
                         {tacticalFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
-                              <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
+                              <span style={{ fontWeight: '950', color: '#000000', flex: '1', minWidth: '0', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{f.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', flexShrink: 0 }}>
                                 <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
                                   <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                                 </div>
@@ -1541,9 +1541,9 @@ export default function PlayerProfileForm({
                         {behavioralFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
-                              <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
+                              <span style={{ fontWeight: '950', color: '#000000', flex: '1', minWidth: '0', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{f.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', flexShrink: 0 }}>
                                 <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
                                   <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                                 </div>
@@ -1568,41 +1568,41 @@ export default function PlayerProfileForm({
                 </h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '8.5px', boxSizing: 'border-box' }}>
                   <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Passe:</span>
-                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_passing || 'N/A'}</span>
+                    <span style={{ fontWeight: '950', color: '#000000', width: '55px', flexShrink: 0 }}>Passe:</span>
+                    <span style={{ color: '#111827', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{profile.skills_passing || 'N/A'}</span>
                   </div>
                   <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Cabeceio:</span>
-                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_heading || 'N/A'}</span>
+                    <span style={{ fontWeight: '950', color: '#000000', width: '55px', flexShrink: 0 }}>Cabeceio:</span>
+                    <span style={{ color: '#111827', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{profile.skills_heading || 'N/A'}</span>
                   </div>
                   <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Drible:</span>
-                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_dribbling || 'N/A'}</span>
+                    <span style={{ fontWeight: '950', color: '#000000', width: '55px', flexShrink: 0 }}>Drible:</span>
+                    <span style={{ color: '#111827', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{profile.skills_dribbling || 'N/A'}</span>
                   </div>
                   <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Velocidade:</span>
-                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_speed || 'N/A'}</span>
+                    <span style={{ fontWeight: '950', color: '#000000', width: '55px', flexShrink: 0 }}>Velocidade:</span>
+                    <span style={{ color: '#111827', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{profile.skills_speed || 'N/A'}</span>
                   </div>
                   <div style={{ width: '100%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Tática:</span>
-                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_tactical || 'N/A'}</span>
+                    <span style={{ fontWeight: '950', color: '#000000', width: '55px', flexShrink: 0 }}>Tática:</span>
+                    <span style={{ color: '#111827', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{profile.skills_tactical || 'N/A'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Medical History */}
-              <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
+              <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '6px', boxSizing: 'border-box' }}>
                 <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">
                   Histórico Clínico & Exames
                 </h4>
-                <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
-                  <div style={{ width: '50%', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Exames de Rotina:</span>
-                    <p style={{ color: '#52525b', lineHeight: '1.2', fontStyle: 'italic', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.routine_exams || 'Sem observações.'}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ width: '100%', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Exames de Rotina:</span>
+                    <p style={{ color: '#111827', lineHeight: '1.25', fontStyle: 'normal', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
-                  <div style={{ width: '50%', boxSizing: 'border-box' }}>
-                    <span style={{ fontWeight: '900', color: '#27272a', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Histórico de Lesões:</span>
-                    <p style={{ color: '#52525b', lineHeight: '1.2', fontStyle: 'italic', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.injury_history || 'Sem registro.'}</p>
+                  <div style={{ width: '100%', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Histórico de Lesões:</span>
+                    <p style={{ color: '#111827', lineHeight: '1.25', fontStyle: 'normal', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>
