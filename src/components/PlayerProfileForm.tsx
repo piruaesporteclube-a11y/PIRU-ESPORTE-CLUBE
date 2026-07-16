@@ -1274,7 +1274,7 @@ export default function PlayerProfileForm({
 
           </div>
 
-          <div className="hidden print-only bg-white text-black p-4 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '10.5px', lineHeight: '1.3' }}>
+          <div className="print-only-layout bg-white text-black p-4 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '10.5px', lineHeight: '1.3' }}>
             {/* Header */}
             <div className="flex items-center justify-between border-b-2 border-zinc-900 pb-2 mb-3">
               <div className="flex items-center gap-3">
@@ -1434,13 +1434,13 @@ export default function PlayerProfileForm({
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
-                        <div key={f.key} className="flex justify-between items-center text-[8.5px] leading-none">
-                          <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                        <div key={f.key} className="grid grid-cols-12 items-center text-[8.5px] leading-none">
+                          <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
+                          <div className="col-span-6 flex items-center justify-end gap-1">
+                            <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
                               <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
                             </div>
-                            <span className="font-black text-black text-[8.5px] w-3 text-right">{val !== undefined ? val : '-'}</span>
+                            <span className="font-black text-black text-[8.5px] w-3 text-right shrink-0">{val !== undefined ? val : '-'}</span>
                           </div>
                         </div>
                       );
@@ -1457,13 +1457,13 @@ export default function PlayerProfileForm({
                       {physicalFields.map(f => {
                         const val = profile[f.key] as number | undefined;
                         return (
-                          <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                            <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
-                            <div className="flex items-center gap-1">
-                              <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                          <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
+                            <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
+                            <div className="col-span-6 flex items-center justify-end gap-1">
+                              <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
                                 <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
                               </div>
-                              <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
+                              <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
                             </div>
                           </div>
                         );
@@ -1480,13 +1480,13 @@ export default function PlayerProfileForm({
                         {tacticalFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                              <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
-                              <div className="flex items-center gap-0.5">
-                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                            <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
+                              <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
+                              <div className="col-span-6 flex items-center justify-end gap-0.5">
+                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
                                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
                                 </div>
-                                <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
+                                <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
                               </div>
                             </div>
                           );
@@ -1501,13 +1501,13 @@ export default function PlayerProfileForm({
                         {behavioralFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                              <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
-                              <div className="flex items-center gap-0.5">
-                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
+                            <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
+                              <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
+                              <div className="col-span-6 flex items-center justify-end gap-0.5">
+                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
                                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
                                 </div>
-                                <span className="font-black text-black text-[8px] w-2.5 text-right">{val !== undefined ? val : '-'}</span>
+                                <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
                               </div>
                             </div>
                           );
@@ -1524,41 +1524,41 @@ export default function PlayerProfileForm({
               {/* Notes */}
               <div className="border border-zinc-300 rounded p-2 bg-zinc-50">
                 <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">Habilidades & Performance</h4>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[8.5px]">
-                  <div>
-                    <span className="font-black text-zinc-800">Passe: </span>
-                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
+                <div className="grid grid-cols-12 gap-y-1 gap-x-2.5 text-[8.5px]">
+                  <div className="col-span-6 grid grid-cols-12 items-baseline">
+                    <span className="col-span-4 font-black text-zinc-800">Passe:</span>
+                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
                   </div>
-                  <div>
-                    <span className="font-black text-zinc-800">Cabeceio: </span>
-                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
+                  <div className="col-span-6 grid grid-cols-12 items-baseline">
+                    <span className="col-span-4 font-black text-zinc-800">Cabeceio:</span>
+                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
                   </div>
-                  <div>
-                    <span className="font-black text-zinc-800">Drible: </span>
-                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
+                  <div className="col-span-6 grid grid-cols-12 items-baseline">
+                    <span className="col-span-4 font-black text-zinc-800">Drible:</span>
+                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
                   </div>
-                  <div>
-                    <span className="font-black text-zinc-800">Velocidade: </span>
-                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
+                  <div className="col-span-6 grid grid-cols-12 items-baseline">
+                    <span className="col-span-4 font-black text-zinc-800">Velocidade:</span>
+                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="font-black text-zinc-800">Tática: </span>
-                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
+                  <div className="col-span-12 grid grid-cols-12 items-baseline">
+                    <span className="col-span-2 font-black text-zinc-800">Tática:</span>
+                    <span className="col-span-10 text-zinc-700 font-medium break-words" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Medical History */}
-              <div className="border border-zinc-300 rounded p-2 bg-zinc-50 flex flex-col justify-between">
-                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">Histórico Clínico & Exames</h4>
+              <div className="border border-zinc-300 rounded p-2 bg-zinc-50 flex flex-col gap-2">
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">Histórico Clínico & Exames</h4>
                 <div className="grid grid-cols-2 gap-2 text-[8px]">
                   <div>
                     <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Exames de Rotina:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words text-[7.5px]">{profile.routine_exams || 'Sem observações.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words whitespace-pre-wrap text-[7.5px]">{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
                   <div>
                     <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Histórico de Lesões:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words text-[7.5px]">{profile.injury_history || 'Sem registro.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words whitespace-pre-wrap text-[7.5px]">{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>
@@ -1574,15 +1574,15 @@ export default function PlayerProfileForm({
                   <div className="space-y-1">
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições Alimentares:</span>
-                      <span className="font-black text-zinc-950 block break-words">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Alergias Registradas:</span>
-                      <span className="font-black text-zinc-950 block break-words">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições a Medicamentos:</span>
-                      <span className="font-black text-zinc-950 block break-words">{anamnesis.medication_restriction && anamnesis.medication_restriction !== 'NÃO' ? anamnesis.medication_restriction : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.medication_restriction && anamnesis.medication_restriction !== 'NÃO' ? anamnesis.medication_restriction : 'Nenhuma'}</span>
                     </div>
                   </div>
 
@@ -1590,7 +1590,7 @@ export default function PlayerProfileForm({
                   <div className="space-y-1">
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Problemas Cardíacos & Respiratórios:</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {[
                           anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Cardíaco: ${anamnesis.cardiac_problems}` : null,
                           anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Respiratório: ${anamnesis.respiratory_problems}` : null
@@ -1599,7 +1599,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Outros Diagnósticos (Pressão/Epilepsia/Diabetes):</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {[
                           anamnesis.hypertension && anamnesis.hypertension !== 'NÃO' ? `Hipertensão: ${anamnesis.hypertension}` : null,
                           anamnesis.hypotension && anamnesis.hypotension !== 'NÃO' ? `Hipotensão: ${anamnesis.hypotension}` : null,
@@ -1610,7 +1610,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Tratamento & Medicação Contínua:</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {[
                           anamnesis.medical_treatment && anamnesis.medical_treatment !== 'NÃO' ? `Tratamento: ${anamnesis.medical_treatment}` : null,
                           anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? `Med. Controlada: ${anamnesis.controlled_medication}` : null
@@ -1623,7 +1623,7 @@ export default function PlayerProfileForm({
                   <div className="space-y-1">
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Patologias (Ex: TDAH, TEA, TOD):</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {(() => {
                           try {
                             const paths = JSON.parse(anamnesis.pathologies || '[]');
@@ -1640,7 +1640,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Sono & Fadiga:</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {[
                           anamnesis.sleep_time ? `Dorme às: ${anamnesis.sleep_time}` : null,
                           anamnesis.wake_up_difficulty && anamnesis.wake_up_difficulty !== 'NÃO' ? `Dificuldade para acordar: ${anamnesis.wake_up_difficulty}` : null
@@ -1649,7 +1649,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Fraturas & Outros Exercícios:</span>
-                      <span className="font-black text-zinc-950 block break-words">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
                         {[
                           anamnesis.fractures && anamnesis.fractures !== 'NÃO' ? `Histórico de Fraturas: ${anamnesis.fractures}` : null,
                           anamnesis.other_exercises && anamnesis.other_exercises !== 'NÃO' ? `Pratica outro exercício: ${anamnesis.other_exercises}` : null

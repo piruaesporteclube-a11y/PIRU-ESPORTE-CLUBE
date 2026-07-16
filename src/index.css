@@ -127,3 +127,22 @@
 .print-only, .list-print-only {
   display: none;
 }
+
+.print-only-layout {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media print {
+  .print-only-layout {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: block !important;
+  }
+}
