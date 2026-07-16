@@ -1435,7 +1435,7 @@ export default function PlayerProfileForm({
                       const val = profile[f.key] as number | undefined;
                       return (
                         <div key={f.key} className="flex justify-between items-center text-[8.5px] leading-none">
-                          <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                          <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
                               <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1458,7 +1458,7 @@ export default function PlayerProfileForm({
                         const val = profile[f.key] as number | undefined;
                         return (
                           <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                            <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                            <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
                             <div className="flex items-center gap-1">
                               <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
                                 <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1481,7 +1481,7 @@ export default function PlayerProfileForm({
                           const val = profile[f.key] as number | undefined;
                           return (
                             <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                              <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                              <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
                               <div className="flex items-center gap-0.5">
                                 <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
                                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
@@ -1502,7 +1502,7 @@ export default function PlayerProfileForm({
                           const val = profile[f.key] as number | undefined;
                           return (
                             <div key={f.key} className="flex justify-between items-center text-[8px] leading-none">
-                              <span className="text-zinc-600 font-extrabold truncate flex-1 min-w-0 pr-1" title={f.label}>{f.label}</span>
+                              <span className="text-zinc-900 font-black pr-1 text-left block whitespace-nowrap" style={{ wordBreak: 'keep-all' }}>{f.label}</span>
                               <div className="flex items-center gap-0.5">
                                 <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300">
                                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
