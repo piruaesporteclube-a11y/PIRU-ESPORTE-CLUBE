@@ -160,6 +160,10 @@ export const AccessAudit: React.FC = () => {
   const percentAdminUsed = adminReadsLimit > 0 ? Math.min(100, Math.round((totalAdminReadsToday / adminReadsLimit) * 100)) : 0;
   const pendingCount = athletes.filter(a => a.confirmation === 'Pendente').length;
 
+  const studentAccesses = accessLogs
+    .filter(log => log.role === 'student')
+    .slice(0, 10);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -227,8 +231,10 @@ export const AccessAudit: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <AnimatePresence mode="popLayout">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            <AnimatePresence mode="popLayout">
           {activeTab === 'access' && (
             filteredAccess.length > 0 ? (
               filteredAccess.map((log) => (
@@ -715,5 +721,57 @@ export const AccessAudit: React.FC = () => {
         </AnimatePresence>
       </div>
     </div>
+
+    {/* Sidebar: Últimos 10 Acessos de Alunos */}
+    <div className="space-y-6 lg:col-span-1">
+      <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-xl h-fit">
+        <div className="flex items-center gap-2.5 mb-4 border-b border-zinc-800 pb-3">
+          <Users size={18} className="text-emerald-400" />
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-white">
+              Últimos 10 Acessos
+            </h3>
+            <p className="text-[10px] text-zinc-500 font-medium">Acessos mais recentes de alunos</p>
+          </div>
+        </div>
+
+        {studentAccesses.length > 0 ? (
+          <div className="space-y-2.5">
+            {studentAccesses.map((log) => (
+              <div 
+                key={log.id} 
+                className="p-3 bg-zinc-950/40 border border-zinc-850 rounded-xl hover:border-emerald-500/20 transition-all flex flex-col gap-1"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">
+                    {log.user_name?.substring(0, 2).toUpperCase() || "AL"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-zinc-200 font-bold text-xs truncate" title={log.user_name}>
+                      {log.user_name}
+                    </h4>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[10px] text-zinc-500 font-medium">
+                  <span className="truncate max-w-[120px]">
+                    {log.doc ? `CPF: ${log.doc}` : `ID: ${log.user_id?.substring(0, 8)}...`}
+                  </span>
+                  <span className="shrink-0 flex items-center gap-1 font-mono text-[9px] text-zinc-400">
+                    <Clock size={10} className="text-emerald-500/50" />
+                    {formatDate(log.created_at)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 text-zinc-500 text-xs">
+            Nenhum acesso de aluno registrado recentemente.
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
   );
 };

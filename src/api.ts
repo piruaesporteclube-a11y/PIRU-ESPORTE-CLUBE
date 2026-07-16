@@ -3295,6 +3295,7 @@ export const api = {
         user_id: user.id,
         user_name: user.name,
         role: user.role,
+        doc: user.doc || null,
         created_at: serverTimestamp()
       };
       await setDoc(doc(db, "access_logs", logId), sanitizeData(logData));
@@ -3345,7 +3346,7 @@ export const api = {
   },
 
   subscribeToAccessLogs: (callback: (logs: any[]) => void) => {
-    const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"), limit(50));
+    const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"), limit(150));
     return onSnapshot(q, (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       callback(logs);
