@@ -105,6 +105,9 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
       const hasBlackBgClass = htmlEl.classList.contains('bg-black') || 
                               htmlEl.classList.contains('bg-zinc-950') || 
                               htmlEl.classList.contains('bg-zinc-900') ||
+                              htmlEl.closest('.bg-black') ||
+                              htmlEl.closest('.bg-zinc-950') ||
+                              htmlEl.closest('.bg-zinc-900') ||
                               value === '#000000' ||
                               value === 'rgb(0, 0, 0)';
       
@@ -112,15 +115,22 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
                                  htmlEl.classList.contains('text-yellow-500') || 
                                  htmlEl.classList.contains('text-amber-400') || 
                                  htmlEl.classList.contains('text-amber-500') ||
+                                 htmlEl.closest('.text-yellow-400') ||
+                                 htmlEl.closest('.text-yellow-500') ||
+                                 htmlEl.closest('.text-amber-400') ||
+                                 htmlEl.closest('.text-amber-500') ||
                                  value.includes('yellow') ||
                                  value.includes('amber') ||
                                  value.includes('#facc15') ||
                                  value.includes('#eab308');
 
       if (hasBlackBgClass && (prop === 'backgroundColor' || prop === 'background')) {
-        htmlEl.style.backgroundColor = '#000000';
-        htmlEl.style.background = '#000000';
-        return;
+        // Only set background on elements that are actually intended to have the background, not children inheriting color
+        if (htmlEl.classList.contains('bg-black') || htmlEl.classList.contains('bg-zinc-950') || htmlEl.classList.contains('bg-zinc-900')) {
+          htmlEl.style.backgroundColor = '#000000';
+          htmlEl.style.background = '#000000';
+          return;
+        }
       }
       if (hasYellowTextClass && prop === 'color') {
         htmlEl.style.color = '#facc15'; // Tailwind yellow-400

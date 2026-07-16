@@ -331,7 +331,27 @@ export default function PlayerProfileForm({
       container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
-      const clone = printRef.current.cloneNode(true) as HTMLElement;
+      // Temporarily make the original visible in the DOM to get correct computed styles
+      const original = printRef.current;
+      const hasHidden = original.classList.contains('hidden');
+      const hasPrintOnly = original.classList.contains('print-only');
+
+      if (hasHidden) original.classList.remove('hidden');
+      if (hasPrintOnly) original.classList.remove('print-only');
+
+      const originalDisplay = original.style.display;
+      const originalPosition = original.style.position;
+      const originalLeft = original.style.left;
+      const originalVisibility = original.style.visibility;
+      const originalOpacity = original.style.opacity;
+
+      original.style.display = 'block';
+      original.style.position = 'fixed';
+      original.style.left = '-9999px';
+      original.style.visibility = 'visible';
+      original.style.opacity = '1';
+
+      const clone = original.cloneNode(true) as HTMLElement;
       
       // Reset styles for capture to ensure proportionality
       clone.style.transform = 'none';
@@ -345,9 +365,10 @@ export default function PlayerProfileForm({
       clone.style.display = 'block';
       clone.style.boxSizing = 'border-box';
       clone.classList.remove('hidden'); // Ensure it's visible for capture
+      clone.classList.remove('print-only');
 
       // Force explicit font sizes and dimensions in the clone
-      const originalElements = printRef.current.querySelectorAll('*');
+      const originalElements = original.querySelectorAll('*');
       const cloneElements = clone.querySelectorAll('*');
       for (let i = 0; i < originalElements.length; i++) {
         const orig = originalElements[i] as HTMLElement;
@@ -375,6 +396,15 @@ export default function PlayerProfileForm({
           cln.style.height = style.height;
         }
       }
+
+      // Restore original element visibility state immediately
+      if (hasHidden) original.classList.add('hidden');
+      if (hasPrintOnly) original.classList.add('print-only');
+      original.style.display = originalDisplay;
+      original.style.position = originalPosition;
+      original.style.left = originalLeft;
+      original.style.visibility = originalVisibility;
+      original.style.opacity = originalOpacity;
 
       // Replace images in clone with data URLs if available
       const clonedImages = clone.querySelectorAll('img');
@@ -1424,23 +1454,27 @@ export default function PlayerProfileForm({
             </div>
 
             {/* Attributes Evaluations */}
-            <div className="mb-3">
-              <h3 className="text-[9px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 flex items-center">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="mb-3" style={{ boxSizing: 'border-box' }}>
+              <h3 className="text-[9px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 flex items-center justify-center">
+                Avaliação de Atributos do Atleta (Escala de 1 a 10)
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', width: '100%', boxSizing: 'border-box' }}>
                 {/* Técnico */}
-                <div className="border border-zinc-300 rounded p-2 bg-white flex flex-col justify-between">
-                  <h4 className="text-[8.5px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">TÉCNICO</h4>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+                  <h4 className="text-[8.5px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
+                    TÉCNICO
+                  </h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'x-12px y-4px', width: '100%', boxSizing: 'border-box' }}>
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
-                        <div key={f.key} className="grid grid-cols-12 items-center text-[8.5px] leading-none">
-                          <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
-                          <div className="col-span-6 flex items-center justify-end gap-1">
-                            <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
-                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                        <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
+                          <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                            <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                              <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                             </div>
-                            <span className="font-black text-black text-[8.5px] w-3 text-right shrink-0">{val !== undefined ? val : '-'}</span>
+                            <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                           </div>
                         </div>
                       );
@@ -1448,22 +1482,24 @@ export default function PlayerProfileForm({
                   </div>
                 </div>
 
-                {/* Other columns */}
-                <div className="grid grid-cols-1 gap-2">
+                {/* Right Column containing Fisico, Tatico, Comportamental */}
+                <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '8px', boxSizing: 'border-box' }}>
                   {/* Físico */}
-                  <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                    <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">FÍSICO</h4>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  <div style={{ border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}>
+                    <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
+                      FÍSICO
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'x-12px y-4px', width: '100%', boxSizing: 'border-box' }}>
                       {physicalFields.map(f => {
                         const val = profile[f.key] as number | undefined;
                         return (
-                          <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
-                            <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
-                            <div className="col-span-6 flex items-center justify-end gap-1">
-                              <div className="w-8 h-1.5 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
-                                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                          <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
+                            <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                              <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                               </div>
-                              <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
+                              <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                             </div>
                           </div>
                         );
@@ -1472,21 +1508,23 @@ export default function PlayerProfileForm({
                   </div>
 
                   {/* Tático & Comportamental side by side */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
                     {/* Tático */}
-                    <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">TÁTICO</h4>
-                      <div className="space-y-0.5">
+                    <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '6px 8px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">
+                        TÁTICO
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
                         {tacticalFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
-                              <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
-                              <div className="col-span-6 flex items-center justify-end gap-0.5">
-                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
-                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
+                              <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                                <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                  <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                                 </div>
-                                <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
+                                <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                               </div>
                             </div>
                           );
@@ -1495,19 +1533,21 @@ export default function PlayerProfileForm({
                     </div>
 
                     {/* Comportamental */}
-                    <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">COMPORTAMENTO</h4>
-                      <div className="space-y-0.5">
+                    <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '6px 8px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">
+                        COMPORTAMENTAL
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
                         {behavioralFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} className="grid grid-cols-12 items-center text-[8px] leading-none">
-                              <span className="col-span-6 text-zinc-900 font-black truncate text-left">{f.label}</span>
-                              <div className="col-span-6 flex items-center justify-end gap-0.5">
-                                <div className="w-6 h-1.2 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-300 shrink-0">
-                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(val || 0) * 10}%` }} />
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8px', lineHeight: '1', height: '14px', boxSizing: 'border-box' }}>
+                              <span style={{ fontWeight: '900', color: '#18181b', width: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{f.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '45%', gap: '4px', flexShrink: 0 }}>
+                                <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                  <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
                                 </div>
-                                <span className="font-black text-black text-[8px] w-2.5 text-right shrink-0">{val !== undefined ? val : '-'}</span>
+                                <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                               </div>
                             </div>
                           );
@@ -1520,45 +1560,49 @@ export default function PlayerProfileForm({
             </div>
 
             {/* Performance and Medical history */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}>
               {/* Notes */}
-              <div className="border border-zinc-300 rounded p-2 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">Habilidades & Performance</h4>
-                <div className="grid grid-cols-12 gap-y-1 gap-x-2.5 text-[8.5px]">
-                  <div className="col-span-6 grid grid-cols-12 items-baseline">
-                    <span className="col-span-4 font-black text-zinc-800">Passe:</span>
-                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
+              <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#fafafa', boxSizing: 'border-box' }}>
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
+                  Habilidades & Performance
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '8.5px', boxSizing: 'border-box' }}>
+                  <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Passe:</span>
+                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_passing || 'N/A'}</span>
                   </div>
-                  <div className="col-span-6 grid grid-cols-12 items-baseline">
-                    <span className="col-span-4 font-black text-zinc-800">Cabeceio:</span>
-                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
+                  <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Cabeceio:</span>
+                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_heading || 'N/A'}</span>
                   </div>
-                  <div className="col-span-6 grid grid-cols-12 items-baseline">
-                    <span className="col-span-4 font-black text-zinc-800">Drible:</span>
-                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
+                  <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Drible:</span>
+                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_dribbling || 'N/A'}</span>
                   </div>
-                  <div className="col-span-6 grid grid-cols-12 items-baseline">
-                    <span className="col-span-4 font-black text-zinc-800">Velocidade:</span>
-                    <span className="col-span-8 text-zinc-700 font-medium break-words" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
+                  <div style={{ width: '48%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Velocidade:</span>
+                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_speed || 'N/A'}</span>
                   </div>
-                  <div className="col-span-12 grid grid-cols-12 items-baseline">
-                    <span className="col-span-2 font-black text-zinc-800">Tática:</span>
-                    <span className="col-span-10 text-zinc-700 font-medium break-words" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
+                  <div style={{ width: '100%', display: 'flex', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', width: '55px', flexShrink: 0 }}>Tática:</span>
+                    <span style={{ color: '#3f3f46', fontWeight: '500', wordBreak: 'break-word' }}>{profile.skills_tactical || 'N/A'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Medical History */}
-              <div className="border border-zinc-300 rounded p-2 bg-zinc-50 flex flex-col gap-2">
-                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">Histórico Clínico & Exames</h4>
-                <div className="grid grid-cols-2 gap-2 text-[8px]">
-                  <div>
-                    <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Exames de Rotina:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words whitespace-pre-wrap text-[7.5px]">{profile.routine_exams || 'Sem observações.'}</p>
+              <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '8px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">
+                  Histórico Clínico & Exames
+                </h4>
+                <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ width: '50%', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Exames de Rotina:</span>
+                    <p style={{ color: '#52525b', lineHeight: '1.2', fontStyle: 'italic', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
-                  <div>
-                    <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Histórico de Lesões:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words whitespace-pre-wrap text-[7.5px]">{profile.injury_history || 'Sem registro.'}</p>
+                  <div style={{ width: '50%', boxSizing: 'border-box' }}>
+                    <span style={{ fontWeight: '900', color: '#27272a', textTransform: 'uppercase', fontSize: '7.5px', display: 'block' }}>Histórico de Lesões:</span>
+                    <p style={{ color: '#52525b', lineHeight: '1.2', fontStyle: 'italic', backgroundColor: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e4e4e7', minHeight: '32px', boxSizing: 'border-box', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: '7.5px', marginTop: '2px' }}>{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>
@@ -1566,31 +1610,31 @@ export default function PlayerProfileForm({
 
             {/* Anamnesis block (if available) */}
             {anamnesis.athlete_id && (
-              <div className="mb-3 border border-zinc-300 rounded p-2 bg-zinc-50">
+              <div className="mb-3 border border-zinc-300 rounded p-2 bg-zinc-50" style={{ boxSizing: 'border-box' }}>
                 <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">FICHA DE SAÚDE (ANAMNESE DO ATLETA)</h4>
                 
-                <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8px] leading-tight">
+                <div style={{ display: 'flex', gap: '12px', width: '100%', boxSizing: 'border-box' }}>
                   {/* Col 1: Restrições & Alergias */}
-                  <div className="space-y-1">
+                  <div style={{ width: '33.33%', display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições Alimentares:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Alergias Registradas:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições a Medicamentos:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">{anamnesis.medication_restriction && anamnesis.medication_restriction !== 'NÃO' ? anamnesis.medication_restriction : 'Nenhuma'}</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">{anamnesis.medication_restriction && anamnesis.medication_restriction !== 'NÃO' ? anamnesis.medication_restriction : 'Nenhuma'}</span>
                     </div>
                   </div>
 
                   {/* Col 2: Condições Crônicas & Tratamento */}
-                  <div className="space-y-1">
+                  <div style={{ width: '33.33%', display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Problemas Cardíacos & Respiratórios:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {[
                           anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Cardíaco: ${anamnesis.cardiac_problems}` : null,
                           anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Respiratório: ${anamnesis.respiratory_problems}` : null
@@ -1598,8 +1642,8 @@ export default function PlayerProfileForm({
                       </span>
                     </div>
                     <div>
-                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Outros Diagnósticos (Pressão/Epilepsia/Diabetes):</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Outros Diagnósticos:</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {[
                           anamnesis.hypertension && anamnesis.hypertension !== 'NÃO' ? `Hipertensão: ${anamnesis.hypertension}` : null,
                           anamnesis.hypotension && anamnesis.hypotension !== 'NÃO' ? `Hipotensão: ${anamnesis.hypotension}` : null,
@@ -1610,7 +1654,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Tratamento & Medicação Contínua:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {[
                           anamnesis.medical_treatment && anamnesis.medical_treatment !== 'NÃO' ? `Tratamento: ${anamnesis.medical_treatment}` : null,
                           anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? `Med. Controlada: ${anamnesis.controlled_medication}` : null
@@ -1620,10 +1664,10 @@ export default function PlayerProfileForm({
                   </div>
 
                   {/* Col 3: Patologias & Hábitos */}
-                  <div className="space-y-1">
+                  <div style={{ width: '33.33%', display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
                     <div>
-                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Patologias (Ex: TDAH, TEA, TOD):</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Patologias (TDAH, TEA, TOD):</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {(() => {
                           try {
                             const paths = JSON.parse(anamnesis.pathologies || '[]');
@@ -1640,7 +1684,7 @@ export default function PlayerProfileForm({
                     </div>
                     <div>
                       <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Sono & Fadiga:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {[
                           anamnesis.sleep_time ? `Dorme às: ${anamnesis.sleep_time}` : null,
                           anamnesis.wake_up_difficulty && anamnesis.wake_up_difficulty !== 'NÃO' ? `Dificuldade para acordar: ${anamnesis.wake_up_difficulty}` : null
@@ -1648,11 +1692,11 @@ export default function PlayerProfileForm({
                       </span>
                     </div>
                     <div>
-                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Fraturas & Outros Exercícios:</span>
-                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap">
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Fraturas & Exercícios:</span>
+                      <span className="font-black text-zinc-950 block break-words whitespace-pre-wrap text-[7.5px]">
                         {[
-                          anamnesis.fractures && anamnesis.fractures !== 'NÃO' ? `Histórico de Fraturas: ${anamnesis.fractures}` : null,
-                          anamnesis.other_exercises && anamnesis.other_exercises !== 'NÃO' ? `Pratica outro exercício: ${anamnesis.other_exercises}` : null
+                          anamnesis.fractures && anamnesis.fractures !== 'NÃO' ? `Fraturas: ${anamnesis.fractures}` : null,
+                          anamnesis.other_exercises && anamnesis.other_exercises !== 'NÃO' ? `Exercícios: ${anamnesis.other_exercises}` : null
                         ].filter(Boolean).join(' | ') || 'Nenhum'}
                       </span>
                     </div>
