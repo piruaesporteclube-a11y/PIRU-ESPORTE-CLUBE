@@ -101,7 +101,33 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
       
       if (!value) return;
 
-      // FIRST: Unconditionally detect and convert theme-primary / theme-secondary variables or classes
+      // FIRST: Unconditionally preserve custom black/dark backgrounds and yellow/amber text
+      const hasBlackBgClass = htmlEl.classList.contains('bg-black') || 
+                              htmlEl.classList.contains('bg-zinc-950') || 
+                              htmlEl.classList.contains('bg-zinc-900') ||
+                              value === '#000000' ||
+                              value === 'rgb(0, 0, 0)';
+      
+      const hasYellowTextClass = htmlEl.classList.contains('text-yellow-400') || 
+                                 htmlEl.classList.contains('text-yellow-500') || 
+                                 htmlEl.classList.contains('text-amber-400') || 
+                                 htmlEl.classList.contains('text-amber-500') ||
+                                 value.includes('yellow') ||
+                                 value.includes('amber') ||
+                                 value.includes('#facc15') ||
+                                 value.includes('#eab308');
+
+      if (hasBlackBgClass && (prop === 'backgroundColor' || prop === 'background')) {
+        htmlEl.style.backgroundColor = '#000000';
+        htmlEl.style.background = '#000000';
+        return;
+      }
+      if (hasYellowTextClass && prop === 'color') {
+        htmlEl.style.color = '#facc15'; // Tailwind yellow-400
+        return;
+      }
+
+      // SECOND: Unconditionally detect and convert theme-primary / theme-secondary variables or classes
       const isThemePrimary = 
         value.includes('var(--theme-primary)') || 
         value.includes('var(--color-theme-primary)') ||
