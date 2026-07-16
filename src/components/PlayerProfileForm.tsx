@@ -1386,7 +1386,7 @@ export default function PlayerProfileForm({
             {/* Consolidated Biometrics & Decision Making row */}
             <div className="grid grid-cols-12 gap-4 mb-3">
               <div className="col-span-8">
-                <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Biometria & Dados Físicos</h3>
+                <h3 className="text-[9px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 flex items-center">Biometria & Dados Físicos</h3>
                 <div className="grid grid-cols-4 gap-2 bg-zinc-50 p-2 rounded border border-zinc-300">
                   <div>
                     <span className="text-[7.5px] font-bold text-zinc-500 uppercase block">Altura</span>
@@ -1408,7 +1408,7 @@ export default function PlayerProfileForm({
               </div>
 
               <div className="col-span-4 flex flex-col justify-between">
-                <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Tomada de Decisão</h3>
+                <h3 className="text-[9px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 flex items-center">Tomada de Decisão</h3>
                 <div className="grid grid-cols-12 items-center bg-zinc-50 border border-zinc-300 rounded p-1.5 h-full">
                   <div className="col-span-8 pr-1.5 leading-tight">
                     <span className="text-[7px] font-bold uppercase text-zinc-500 block">Capacidade Geral</span>
@@ -1425,11 +1425,11 @@ export default function PlayerProfileForm({
 
             {/* Attributes Evaluations */}
             <div className="mb-3">
-              <h3 className="text-[8.5px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded mb-1.5">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
+              <h3 className="text-[9px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 flex items-center">Avaliação de Atributos do Atleta (Escala de 1 a 10)</h3>
               <div className="grid grid-cols-2 gap-3">
                 {/* Técnico */}
                 <div className="border border-zinc-300 rounded p-2 bg-white flex flex-col justify-between">
-                  <h4 className="text-[8.5px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1.5">TÉCNICO</h4>
+                  <h4 className="text-[8.5px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">TÉCNICO</h4>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
@@ -1452,7 +1452,7 @@ export default function PlayerProfileForm({
                 <div className="grid grid-cols-1 gap-2">
                   {/* Físico */}
                   <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                    <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">FÍSICO</h4>
+                    <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">FÍSICO</h4>
                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                       {physicalFields.map(f => {
                         const val = profile[f.key] as number | undefined;
@@ -1475,7 +1475,7 @@ export default function PlayerProfileForm({
                   <div className="grid grid-cols-2 gap-2">
                     {/* Tático */}
                     <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                      <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">TÁTICO</h4>
+                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">TÁTICO</h4>
                       <div className="space-y-0.5">
                         {tacticalFields.map(f => {
                           const val = profile[f.key] as number | undefined;
@@ -1496,7 +1496,7 @@ export default function PlayerProfileForm({
 
                     {/* Comportamental */}
                     <div className="border border-zinc-300 rounded p-1.5 bg-white">
-                      <h4 className="text-[8px] font-black uppercase text-zinc-850 border-b-2 border-amber-400 pb-0.5 mb-1">COMPORTAMENTO</h4>
+                      <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">COMPORTAMENTO</h4>
                       <div className="space-y-0.5">
                         {behavioralFields.map(f => {
                           const val = profile[f.key] as number | undefined;
@@ -1523,7 +1523,7 @@ export default function PlayerProfileForm({
             <div className="grid grid-cols-2 gap-3 mb-3">
               {/* Notes */}
               <div className="border border-zinc-300 rounded p-2 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Habilidades & Performance</h4>
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">Habilidades & Performance</h4>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[8.5px]">
                   <div>
                     <span className="font-black text-zinc-800">Passe: </span>
@@ -1550,7 +1550,7 @@ export default function PlayerProfileForm({
 
               {/* Medical History */}
               <div className="border border-zinc-300 rounded p-2 bg-zinc-50 flex flex-col justify-between">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Histórico Clínico & Exames</h4>
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">Histórico Clínico & Exames</h4>
                 <div className="grid grid-cols-2 gap-2 text-[8px]">
                   <div>
                     <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Exames de Rotina:</span>
@@ -1567,7 +1567,7 @@ export default function PlayerProfileForm({
             {/* Anamnesis block (if available) */}
             {anamnesis.athlete_id && (
               <div className="mb-3 border border-zinc-300 rounded p-2 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider border-b border-zinc-200 pb-0.5">FICHA DE SAÚDE (ANAMNESE DO ATLETA)</h4>
+                <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">FICHA DE SAÚDE (ANAMNESE DO ATLETA)</h4>
                 
                 <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8px] leading-tight">
                   {/* Col 1: Restrições & Alergias */}
