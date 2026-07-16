@@ -135,8 +135,51 @@ export default function PlayerProfileForm({
   const [isEditing, setIsEditing] = useState(false);
   const [activeRatingTab, setActiveRatingTab] = useState<'technical' | 'physical' | 'tactical' | 'behavioral'>('technical');
   const [crestDataUrl, setCrestDataUrl] = useState<string | null>(null);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
+      if (!url || url === 'no-image') {
+        callback(null);
+        return;
+      }
+      if (url.startsWith('data:')) {
+        callback(url);
+        return;
+      }
+
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous');
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            callback(dataUrl);
+          } else {
+            callback(url);
+          }
+        } catch (e) {
+          console.warn('Failed to convert image to data URL', e);
+          callback(url);
+        }
+      };
+      img.onerror = () => {
+        console.warn('Failed to load image with CORS:', url);
+        callback(url);
+      };
+      const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+      img.src = url + cacheBuster;
+    };
+
+    convertToDataUrl(selectedAthlete?.photo || '', setPhotoDataUrl);
+  }, [selectedAthlete?.photo]);
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -339,6 +382,8 @@ export default function PlayerProfileForm({
         const src = img.getAttribute('src');
         if (src === settings?.schoolCrest && crestDataUrl) {
           img.setAttribute('src', crestDataUrl);
+        } else if ((src === selectedAthlete.photo || img.alt === "Foto do Atleta" || (selectedAthlete.photo && src?.includes(selectedAthlete.photo))) && photoDataUrl) {
+          img.setAttribute('src', photoDataUrl);
         }
         img.style.visibility = 'visible';
         img.style.opacity = '1';
@@ -1270,9 +1315,9 @@ export default function PlayerProfileForm({
                     boxSizing: 'border-box'
                   }}
                 >
-                  {selectedAthlete.photo && selectedAthlete.photo !== "no-image" ? (
+                  {(photoDataUrl || (selectedAthlete.photo && selectedAthlete.photo !== "no-image")) ? (
                     <img 
-                      src={selectedAthlete.photo} 
+                      src={photoDataUrl || selectedAthlete.photo} 
                       alt="Foto do Atleta" 
                       className="object-cover animate-none" 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
