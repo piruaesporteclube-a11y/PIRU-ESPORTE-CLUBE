@@ -1274,7 +1274,7 @@ export default function PlayerProfileForm({
 
           </div>
 
-          <div className="print-only-layout bg-white text-black p-4 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '10.5px', lineHeight: '1.3' }}>
+          <div className="hidden print-only bg-white text-black p-4 font-sans select-none border-0 max-w-[800px] mx-auto" ref={printRef} style={{ fontSize: '10.5px', lineHeight: '1.3' }}>
             {/* Header */}
             <div className="flex items-center justify-between border-b-2 border-zinc-900 pb-2 mb-3">
               <div className="flex items-center gap-3">
