@@ -1527,23 +1527,23 @@ export default function PlayerProfileForm({
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[8.5px]">
                   <div>
                     <span className="font-black text-zinc-800">Passe: </span>
-                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
+                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_passing || 'N/A'}>{profile.skills_passing || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="font-black text-zinc-800">Cabeceio: </span>
-                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
+                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_heading || 'N/A'}>{profile.skills_heading || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="font-black text-zinc-800">Drible: </span>
-                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
+                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_dribbling || 'N/A'}>{profile.skills_dribbling || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="font-black text-zinc-800">Velocidade: </span>
-                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[110px]" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
+                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_speed || 'N/A'}>{profile.skills_speed || 'N/A'}</span>
                   </div>
                   <div className="col-span-2">
                     <span className="font-black text-zinc-800">Tática: </span>
-                    <span className="text-zinc-700 font-medium truncate inline-block max-w-[220px]" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
+                    <span className="text-zinc-700 font-medium break-words" title={profile.skills_tactical || 'N/A'}>{profile.skills_tactical || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -1554,11 +1554,11 @@ export default function PlayerProfileForm({
                 <div className="grid grid-cols-2 gap-2 text-[8px]">
                   <div>
                     <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Exames de Rotina:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-0.5 rounded border border-zinc-200 truncate h-5 flex items-center">{profile.routine_exams || 'Sem observações.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words text-[7.5px]">{profile.routine_exams || 'Sem observações.'}</p>
                   </div>
                   <div>
                     <span className="font-black text-zinc-800 uppercase text-[7.5px] block">Histórico de Lesões:</span>
-                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-0.5 rounded border border-zinc-200 truncate h-5 flex items-center">{profile.injury_history || 'Sem registro.'}</p>
+                    <p className="text-zinc-600 leading-tight italic bg-white px-1.5 py-1 rounded border border-zinc-200 min-h-[32px] block break-words text-[7.5px]">{profile.injury_history || 'Sem registro.'}</p>
                   </div>
                 </div>
               </div>
@@ -1567,28 +1567,95 @@ export default function PlayerProfileForm({
             {/* Anamnesis block (if available) */}
             {anamnesis.athlete_id && (
               <div className="mb-3 border border-zinc-300 rounded p-2 bg-zinc-50">
-                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1 tracking-wider">Ficha de Saúde (Anamnese do Atleta)</h4>
-                <div className="grid grid-cols-4 gap-2 text-[8px]">
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[7.5px]">Restrições Alimentares:</span>
-                    <span className="font-black text-zinc-950 truncate block">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
+                <h4 className="text-[8px] font-black uppercase text-zinc-500 mb-1.5 tracking-wider border-b border-zinc-200 pb-0.5">FICHA DE SAÚDE (ANAMNESE DO ATLETA)</h4>
+                
+                <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8px] leading-tight">
+                  {/* Col 1: Restrições & Alergias */}
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições Alimentares:</span>
+                      <span className="font-black text-zinc-950 block break-words">{anamnesis.food_restriction && anamnesis.food_restriction !== 'NÃO' ? anamnesis.food_restriction : 'Nenhuma'}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Alergias Registradas:</span>
+                      <span className="font-black text-zinc-950 block break-words">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Restrições a Medicamentos:</span>
+                      <span className="font-black text-zinc-950 block break-words">{anamnesis.medication_restriction && anamnesis.medication_restriction !== 'NÃO' ? anamnesis.medication_restriction : 'Nenhuma'}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[7.5px]">Alergias Registradas:</span>
-                    <span className="font-black text-zinc-950 truncate block">{anamnesis.allergies && anamnesis.allergies !== 'NÃO' ? anamnesis.allergies : 'Nenhuma'}</span>
+
+                  {/* Col 2: Condições Crônicas & Tratamento */}
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Problemas Cardíacos & Respiratórios:</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {[
+                          anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Cardíaco: ${anamnesis.cardiac_problems}` : null,
+                          anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Respiratório: ${anamnesis.respiratory_problems}` : null
+                        ].filter(Boolean).join(' | ') || 'Nenhum'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Outros Diagnósticos (Pressão/Epilepsia/Diabetes):</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {[
+                          anamnesis.hypertension && anamnesis.hypertension !== 'NÃO' ? `Hipertensão: ${anamnesis.hypertension}` : null,
+                          anamnesis.hypotension && anamnesis.hypotension !== 'NÃO' ? `Hipotensão: ${anamnesis.hypotension}` : null,
+                          anamnesis.epilepsy && anamnesis.epilepsy !== 'NÃO' ? `Epilepsia: ${anamnesis.epilepsy}` : null,
+                          anamnesis.diabetes && anamnesis.diabetes !== 'NÃO' ? `Diabetes: ${anamnesis.diabetes}` : null
+                        ].filter(Boolean).join(' | ') || 'Sem observações'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Tratamento & Medicação Contínua:</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {[
+                          anamnesis.medical_treatment && anamnesis.medical_treatment !== 'NÃO' ? `Tratamento: ${anamnesis.medical_treatment}` : null,
+                          anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? `Med. Controlada: ${anamnesis.controlled_medication}` : null
+                        ].filter(Boolean).join(' | ') || 'Nenhum'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[7.5px]">Cardíacos / Respiratórios:</span>
-                    <span className="font-black text-zinc-950 truncate block">
-                      {[
-                        anamnesis.cardiac_problems && anamnesis.cardiac_problems !== 'NÃO' ? `Card.: ${anamnesis.cardiac_problems}` : null,
-                        anamnesis.respiratory_problems && anamnesis.respiratory_problems !== 'NÃO' ? `Resp.: ${anamnesis.respiratory_problems}` : null
-                      ].filter(Boolean).join(' | ') || 'Nenhum'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[7.5px]">Medicações Contínuas:</span>
-                    <span className="font-black text-zinc-950 truncate block">{anamnesis.controlled_medication && anamnesis.controlled_medication !== 'NÃO' ? anamnesis.controlled_medication : 'Nenhuma'}</span>
+
+                  {/* Col 3: Patologias & Hábitos */}
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Patologias (Ex: TDAH, TEA, TOD):</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {(() => {
+                          try {
+                            const paths = JSON.parse(anamnesis.pathologies || '[]');
+                            const pathStr = paths.length > 0 ? paths.join(', ') : 'Nenhuma';
+                            if (anamnesis.pathologies_description) {
+                              return `${pathStr} (${anamnesis.pathologies_description})`;
+                            }
+                            return pathStr;
+                          } catch (_) {
+                            return 'Nenhuma';
+                          }
+                        })()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Sono & Fadiga:</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {[
+                          anamnesis.sleep_time ? `Dorme às: ${anamnesis.sleep_time}` : null,
+                          anamnesis.wake_up_difficulty && anamnesis.wake_up_difficulty !== 'NÃO' ? `Dificuldade para acordar: ${anamnesis.wake_up_difficulty}` : null
+                        ].filter(Boolean).join(' | ') || 'Sem registros'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-zinc-500 block text-[7.5px] uppercase">Fraturas & Outros Exercícios:</span>
+                      <span className="font-black text-zinc-950 block break-words">
+                        {[
+                          anamnesis.fractures && anamnesis.fractures !== 'NÃO' ? `Histórico de Fraturas: ${anamnesis.fractures}` : null,
+                          anamnesis.other_exercises && anamnesis.other_exercises !== 'NÃO' ? `Pratica outro exercício: ${anamnesis.other_exercises}` : null
+                        ].filter(Boolean).join(' | ') || 'Nenhum'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

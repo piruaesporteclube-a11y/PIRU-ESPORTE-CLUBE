@@ -45,6 +45,35 @@ const formatCreatedAt = (created_at: any): string => {
   }
 };
 
+const getBirthYear = (birthDate?: string): string => {
+  if (!birthDate) return '';
+  const trimmed = birthDate.trim();
+  if (trimmed.includes('-')) {
+    const year = trimmed.split('-')[0];
+    if (year.length === 4 && !isNaN(Number(year))) {
+      return year;
+    }
+  }
+  if (trimmed.includes('/')) {
+    const parts = trimmed.split('/');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart.length === 4 && !isNaN(Number(lastPart))) {
+      return lastPart;
+    }
+    const firstPart = parts[0];
+    if (firstPart.length === 4 && !isNaN(Number(firstPart))) {
+      return firstPart;
+    }
+  }
+  try {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      return d.getFullYear().toString();
+    }
+  } catch (_) {}
+  return '';
+};
+
 export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: AthleteListProps) {
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
@@ -67,6 +96,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [filterModality, setFilterModality] = useState('Todos');
   const [filterGender, setFilterGender] = useState('Todos');
+  const [filterBirthYear, setFilterBirthYear] = useState('Todos');
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'created_new' | 'created_old'>('name_asc');
 
   const uniqueModalities = Array.from(
@@ -77,6 +107,14 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         .flatMap(m => m!.split(',').map(s => s.trim()))
     )
   ).sort();
+
+  const uniqueBirthYears = Array.from(
+    new Set(
+      athletes
+        .map(a => getBirthYear(a.birth_date))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => b.localeCompare(a));
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [athleteToDelete, setAthleteToDelete] = useState<string | null>(null);
@@ -160,7 +198,8 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       const matchesStatus = filterStatus === 'Todos' || a.status === filterStatus;
       const matchesModality = filterModality === 'Todos' || (a.modality && a.modality.split(',').map(s => s.trim().toLowerCase()).includes(filterModality.toLowerCase()));
       const matchesGender = filterGender === 'Todos' || a.gender === filterGender;
-      return matchesSearch && matchesSub && matchesStatus && matchesModality && matchesGender;
+      const matchesBirthYear = filterBirthYear === 'Todos' || getBirthYear(a.birth_date) === filterBirthYear;
+      return matchesSearch && matchesSub && matchesStatus && matchesModality && matchesGender && matchesBirthYear;
     })
     .sort((a, b) => {
       // Sorting Logic - For "recent" viewMode, if the sort is default 'name_asc', default to 'created_new' (newest first)
@@ -324,9 +363,9 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 no-print">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 no-print">
         {viewMode === 'recent' && (
-          <div className="sm:col-span-2 md:col-span-3 xl:col-span-6 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
+          <div className="sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-7 bg-theme-primary/10 border border-theme-primary/30 p-4 rounded-xl flex items-center gap-4">
             <div className="p-3 bg-theme-primary/20 rounded-full text-theme-primary">
               <Clock size={24} />
             </div>
@@ -380,6 +419,19 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             <option value="Todos">Todos os Sexos</option>
             <option value="Masculino">Masculino</option>
             <option value="Feminino">Feminino</option>
+          </select>
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <select 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
+            value={filterBirthYear}
+            onChange={(e) => setFilterBirthYear(e.target.value)}
+          >
+            <option value="Todos">Todos os Anos</option>
+            {uniqueBirthYears.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
           </select>
         </div>
         <div className="relative">
