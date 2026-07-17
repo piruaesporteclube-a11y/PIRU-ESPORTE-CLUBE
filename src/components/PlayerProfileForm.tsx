@@ -448,16 +448,35 @@ export default function PlayerProfileForm({
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
 
-      let finalWidth = contentWidth;
-      let finalHeight = contentHeight;
+      const pageHeightLimit = pdfHeight - (margin * 2);
+      const x = (pdfWidth - contentWidth) / 2;
 
-      if (finalHeight > (pdfHeight - margin * 2)) {
-        finalHeight = pdfHeight - margin * 2;
-        finalWidth = (imgProps.width * finalHeight) / imgProps.height;
+      if (contentHeight <= pageHeightLimit) {
+        // Fits on a single page perfectly
+        pdf.addImage(imgData, 'PNG', x, margin, contentWidth, contentHeight);
+      } else {
+        // Multi-page slicing using negative Y offset
+        let heightLeft = contentHeight;
+        let position = margin;
+        let page = 0;
+
+        while (heightLeft > 0) {
+          if (page > 0) {
+            pdf.addPage();
+          }
+          
+          position = margin - (page * pageHeightLimit);
+          pdf.addImage(imgData, 'PNG', x, position, contentWidth, contentHeight);
+          
+          // Cover the top and bottom margins with clean white rectangles to hide bleeding text
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(0, 0, pdfWidth, margin, 'F');
+          pdf.rect(0, pdfHeight - margin, pdfWidth, margin, 'F');
+          
+          page++;
+          heightLeft -= pageHeightLimit;
+        }
       }
-
-      const x = (pdfWidth - finalWidth) / 2;
-      pdf.addImage(imgData, 'PNG', x, margin, finalWidth, finalHeight);
 
       pdf.save(`ficha_tecnica_${selectedAthlete.name?.replace(/\s+/g, '_')}.pdf`);
       toast.success('PDF gerado com sucesso!', { id: loadingToast });
@@ -1560,24 +1579,27 @@ export default function PlayerProfileForm({
                   <h4 className="text-[8.5px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
                     TÉCNICO
                   </h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '12px', rowGap: '4px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'block', width: '100%', boxSizing: 'border-box' }}>
                     {technicalFields.map(f => {
                       const val = profile[f.key] as number | undefined;
                       return (
-                        <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
-                          <span style={{ fontWeight: '950', color: '#000000', width: '120px', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', boxSizing: 'border-box' }}>{f.label}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', width: '52px', flexShrink: 0, marginLeft: 'auto', boxSizing: 'border-box' }}>
-                            <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
-                              <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                        <div key={f.key} style={{ width: '100%', display: 'flex', flexDirection: 'column', fontSize: '8px', lineHeight: '1.2', marginBottom: '5px', borderBottom: '1px dashed #e4e4e7', paddingBottom: '3px', boxSizing: 'border-box' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+                            <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px' }}>{f.label}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', boxSizing: 'border-box' }}>
+                              <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                              </div>
+                              <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                             </div>
-                            <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                           </div>
+                          <span style={{ color: '#52525b', fontSize: '6.5px', lineHeight: '1', display: 'block', fontStyle: 'italic', marginTop: '0.5px' }}>{f.description}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-
+ 
                 {/* Right Column containing Fisico, Tatico, Comportamental */}
                 <div style={{ width: '50%', display: 'block', boxSizing: 'border-box' }}>
                   {/* Físico */}
@@ -1585,24 +1607,27 @@ export default function PlayerProfileForm({
                     <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1.5 border border-zinc-900 text-center">
                       FÍSICO
                     </h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '12px', rowGap: '4px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'block', width: '100%', boxSizing: 'border-box' }}>
                       {physicalFields.map(f => {
                         const val = profile[f.key] as number | undefined;
                         return (
-                          <div key={f.key} style={{ width: '48%', display: 'flex', alignItems: 'center', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box' }}>
-                            <span style={{ fontWeight: '950', color: '#000000', width: '120px', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', boxSizing: 'border-box' }}>{f.label}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', width: '52px', flexShrink: 0, marginLeft: 'auto', boxSizing: 'border-box' }}>
-                              <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
-                                <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                          <div key={f.key} style={{ width: '100%', display: 'flex', flexDirection: 'column', fontSize: '8px', lineHeight: '1.2', marginBottom: '5px', borderBottom: '1px dashed #e4e4e7', paddingBottom: '3px', boxSizing: 'border-box' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+                              <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px' }}>{f.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', boxSizing: 'border-box' }}>
+                                <div style={{ width: '32px', height: '6px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                  <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                                </div>
+                                <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                               </div>
-                              <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                             </div>
+                            <span style={{ color: '#52525b', fontSize: '6.5px', lineHeight: '1', display: 'block', fontStyle: 'italic', marginTop: '0.5px' }}>{f.description}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-
+ 
                   {/* Tático & Comportamental side by side */}
                   <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
                     {/* Tático */}
@@ -1614,20 +1639,23 @@ export default function PlayerProfileForm({
                         {tacticalFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: '950', color: '#000000', width: '110px', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', boxSizing: 'border-box' }}>{f.label}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', width: '48px', flexShrink: 0, marginLeft: 'auto', boxSizing: 'border-box' }}>
-                                <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
-                                  <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                            <div key={f.key} style={{ display: 'flex', flexDirection: 'column', fontSize: '8px', lineHeight: '1.2', marginBottom: '5px', borderBottom: '1px dashed #e4e4e7', paddingBottom: '3px', boxSizing: 'border-box' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+                                <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px' }}>{f.label}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', boxSizing: 'border-box' }}>
+                                  <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                    <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                                  </div>
+                                  <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                                 </div>
-                                <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                               </div>
+                              <span style={{ color: '#52525b', fontSize: '6.5px', lineHeight: '1', display: 'block', fontStyle: 'italic', marginTop: '0.5px' }}>{f.description}</span>
                             </div>
                           );
                         })}
                       </div>
                     </div>
-
+ 
                     {/* Comportamental */}
                     <div style={{ width: '50%', border: '1px solid #d4d4d8', borderRadius: '4px', padding: '6px 8px', backgroundColor: '#ffffff', display: 'block', boxSizing: 'border-box' }}>
                       <h4 className="text-[8px] font-black uppercase tracking-wider bg-black text-yellow-400 px-2 py-1 rounded mb-1 border border-zinc-900 text-center">
@@ -1637,14 +1665,17 @@ export default function PlayerProfileForm({
                         {behavioralFields.map(f => {
                           const val = profile[f.key] as number | undefined;
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', fontSize: '8px', lineHeight: '1.1', minHeight: '14px', boxSizing: 'border-box', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: '950', color: '#000000', width: '110px', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', boxSizing: 'border-box' }}>{f.label}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', width: '48px', flexShrink: 0, marginLeft: 'auto', boxSizing: 'border-box' }}>
-                                <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
-                                  <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                            <div key={f.key} style={{ display: 'flex', flexDirection: 'column', fontSize: '8px', lineHeight: '1.2', marginBottom: '5px', borderBottom: '1px dashed #e4e4e7', paddingBottom: '3px', boxSizing: 'border-box' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+                                <span style={{ fontWeight: '950', color: '#000000', textTransform: 'uppercase', fontSize: '7.5px' }}>{f.label}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', boxSizing: 'border-box' }}>
+                                  <div style={{ width: '28px', height: '5px', backgroundColor: '#f4f4f5', borderRadius: '9999px', overflow: 'hidden', position: 'relative', border: '1px solid #d4d4d8', flexShrink: 0 }}>
+                                    <div style={{ height: '100%', backgroundColor: '#f59e0b', borderRadius: '9999px', width: `${(val || 0) * 10}%` }} />
+                                  </div>
+                                  <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                                 </div>
-                                <span style={{ fontWeight: '900', color: '#000000', width: '12px', textAlign: 'right', flexShrink: 0 }}>{val !== undefined ? val : '-'}</span>
                               </div>
+                              <span style={{ color: '#52525b', fontSize: '6.5px', lineHeight: '1', display: 'block', fontStyle: 'italic', marginTop: '0.5px' }}>{f.description}</span>
                             </div>
                           );
                         })}

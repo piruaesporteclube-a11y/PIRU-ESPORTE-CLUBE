@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Championship, ChampionshipTeam, ChampionshipMatch, categories } from '../types';
+import { Championship, ChampionshipTeam, ChampionshipMatch, categories, Athlete } from '../types';
 import { Trophy, Plus, Users, Calendar, MapPin, Clock, Save, X, Trash2, Search, Link as LinkIcon, Check, AlertCircle, ClipboardList, Trophy as TrophyIcon, Shield, FileText, Upload, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../utils';
@@ -336,6 +336,7 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   const [activeTab, setActiveTab] = useState<'teams' | 'matches'>('teams');
   const [teams, setTeams] = useState<ChampionshipTeam[]>([]);
   const [matches, setMatches] = useState<ChampionshipMatch[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [matchCategoryFilter, setMatchCategoryFilter] = useState<string>('all');
   const [settings, setSettings] = useState<any>(null);
   const [isMatchFormOpen, setIsMatchFormOpen] = useState(false);
@@ -364,14 +365,16 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
   }, [championship.id, championship.categories]);
 
   const loadData = async () => {
-    const [teamsData, matchesData, settingsData] = await Promise.all([
+    const [teamsData, matchesData, settingsData, athletesData] = await Promise.all([
       api.getChampionshipTeams(championship.id),
       api.getChampionshipMatches(championship.id),
-      api.getSettings()
+      api.getSettings(),
+      api.getAthletes()
     ]);
     setTeams(teamsData);
     setMatches(matchesData);
     setSettings(settingsData);
+    setAthletes(athletesData);
   };
 
   const handlePrintSumula = (match: ChampionshipMatch) => {
@@ -679,6 +682,7 @@ function ChampionshipDetails({ championship, onBack }: { championship: Champions
         <MatchReportModal 
           match={selectedMatch}
           teams={teams}
+          athletes={athletes}
           onClose={() => {
             setIsReportOpen(false);
             setSelectedMatch(null);
@@ -1117,7 +1121,81 @@ function MatchForm({ championship, teams, match, onClose, onSave }: { championsh
   );
 }
 
-function MatchReportModal({ match, teams, onClose, onSave }: { match: ChampionshipMatch, teams: ChampionshipTeam[], onClose: () => void, onSave: () => void }) {
+function AthleteAutocompleteInput({
+  value,
+  onChange,
+  athletes,
+  placeholder,
+  className
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  athletes: Athlete[];
+  placeholder?: string;
+  className?: string;
+}) {
+  const [searchTerm, setSearchTerm] = useState(value);
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearchTerm(value);
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = (athletes || []).filter(a => {
+    const nameNorm = a.name.toLowerCase();
+    const nickNorm = (a.nickname || '').toLowerCase();
+    const queryNorm = searchTerm.toLowerCase();
+    return queryNorm.length > 0 && (nameNorm.includes(queryNorm) || nickNorm.includes(queryNorm));
+  }).slice(0, 5);
+
+  return (
+    <div className="relative flex-1 animate-in fade-in duration-100" ref={containerRef}>
+      <input
+        type="text"
+        placeholder={placeholder}
+        className={className}
+        value={searchTerm}
+        onFocus={() => setIsOpen(true)}
+        onChange={e => {
+          const val = e.target.value;
+          setSearchTerm(val);
+          onChange(val.toUpperCase());
+          setIsOpen(true);
+        }}
+      />
+      {isOpen && filtered.length > 0 && (
+        <div className="absolute left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden max-h-40 divide-y divide-zinc-800/50">
+          {filtered.map(athlete => (
+            <div
+              key={athlete.id}
+              onClick={() => {
+                onChange(athlete.name.toUpperCase());
+                setSearchTerm(athlete.name.toUpperCase());
+                setIsOpen(false);
+              }}
+              className="px-3 py-2 text-[11px] text-zinc-300 font-bold uppercase hover:bg-theme-primary hover:text-black cursor-pointer transition-colors"
+            >
+              {athlete.name} {athlete.nickname ? `(${athlete.nickname})` : ''}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchReportModal({ match, teams, athletes, onClose, onSave }: { match: ChampionshipMatch, teams: ChampionshipTeam[], athletes: Athlete[], onClose: () => void, onSave: () => void }) {
   const [report, setReport] = useState<any>(match.match_report || { goals: [], cards: [], observations: '' });
   const teamA = teams.find(t => t.id === match.team_a_id);
   const teamB = teams.find(t => t.id === match.team_b_id);
@@ -1172,15 +1250,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 </div>
                 {report.goals.filter((g: any) => g.team_id === match.team_a_id).map((g: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <input 
-                      type="text" 
+                    <AthleteAutocompleteInput 
                       placeholder="Nome do Atleta" 
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white uppercase"
                       value={g.player_name}
-                      onChange={e => {
+                      athletes={athletes}
+                      onChange={val => {
                         const newGoals = [...report.goals];
                         const idx = report.goals.indexOf(g);
-                        newGoals[idx].player_name = e.target.value.toUpperCase();
+                        newGoals[idx].player_name = val;
                         setReport({...report, goals: newGoals});
                       }}
                     />
@@ -1220,15 +1298,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 {report.cards.filter((c: any) => c.team_id === match.team_a_id).map((c: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
                     <div className={cn("w-2 h-3 rounded-sm flex-shrink-0", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
-                    <input 
-                      type="text" 
+                    <AthleteAutocompleteInput 
                       placeholder="Nome do Atleta" 
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white uppercase"
                       value={c.player_name}
-                      onChange={e => {
+                      athletes={athletes}
+                      onChange={val => {
                         const newCards = [...report.cards];
                         const idx = report.cards.indexOf(c);
-                        newCards[idx].player_name = e.target.value.toUpperCase();
+                        newCards[idx].player_name = val;
                         setReport({...report, cards: newCards});
                       }}
                     />
@@ -1274,15 +1352,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 </div>
                 {report.goals.filter((g: any) => g.team_id === match.team_b_id).map((g: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <input 
-                      type="text" 
+                    <AthleteAutocompleteInput 
                       placeholder="Nome do Atleta" 
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white uppercase"
                       value={g.player_name}
-                      onChange={e => {
+                      athletes={athletes}
+                      onChange={val => {
                         const newGoals = [...report.goals];
                         const idx = report.goals.indexOf(g);
-                        newGoals[idx].player_name = e.target.value.toUpperCase();
+                        newGoals[idx].player_name = val;
                         setReport({...report, goals: newGoals});
                       }}
                     />
@@ -1322,15 +1400,15 @@ function MatchReportModal({ match, teams, onClose, onSave }: { match: Championsh
                 {report.cards.filter((c: any) => c.team_id === match.team_b_id).map((c: any, i: number) => (
                   <div key={i} className="flex gap-2 items-center">
                     <div className={cn("w-2 h-3 rounded-sm flex-shrink-0", c.type === 'Amarelo' ? "bg-yellow-500" : "bg-red-500")} />
-                    <input 
-                      type="text" 
+                    <AthleteAutocompleteInput 
                       placeholder="Nome do Atleta" 
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white uppercase"
                       value={c.player_name}
-                      onChange={e => {
+                      athletes={athletes}
+                      onChange={val => {
                         const newCards = [...report.cards];
                         const idx = report.cards.indexOf(c);
-                        newCards[idx].player_name = e.target.value.toUpperCase();
+                        newCards[idx].player_name = val;
                         setReport({...report, cards: newCards});
                       }}
                     />

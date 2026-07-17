@@ -131,6 +131,8 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   const [scorersB, setScorersB] = useState<{ name: string; goals: number }[]>([]);
   const [newScorerNameA, setNewScorerNameA] = useState('');
   const [newScorerNameB, setNewScorerNameB] = useState('');
+  const [focusedA, setFocusedA] = useState(false);
+  const [focusedB, setFocusedB] = useState(false);
 
   const updateScorersA = (newScorers: { name: string; goals: number }[]) => {
     setScorersA(newScorers);
@@ -2551,45 +2553,23 @@ Muito obrigado!
                                 )}
 
                                 <div className="space-y-1">
-                                  <select
-                                    className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold text-[9px] focus:ring-1 focus:ring-theme-primary outline-none"
-                                    value=""
-                                    onChange={e => {
-                                      const name = e.target.value;
-                                      if (name) {
-                                        const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
-                                        if (existingIndex !== -1) {
-                                          const updated = [...scorersA];
-                                          updated[existingIndex].goals += 1;
-                                          updateScorersA(updated);
-                                        } else {
-                                          updateScorersA([...scorersA, { name, goals: 1 }]);
-                                        }
-                                      }
-                                    }}
-                                  >
-                                    <option value="" disabled>+ Selecionar atleta do clube...</option>
-                                    {athletes
-                                      ?.slice()
-                                      ?.sort((a, b) => a.name.localeCompare(b.name))
-                                      ?.map(a => (
-                                        <option key={a.id} value={a.name}>{a.name}</option>
-                                      ))
-                                    }
-                                  </select>
-
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-1 relative">
                                     <input
                                       type="text"
                                       className="flex-1 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-[9px] placeholder-zinc-600"
-                                      placeholder="Ou digite o nome de outro..."
+                                      placeholder="Pesquise ou digite o nome..."
                                       value={newScorerNameA}
-                                      onChange={e => setNewScorerNameA(e.target.value)}
+                                      onChange={e => {
+                                        setNewScorerNameA(e.target.value);
+                                        setFocusedA(true);
+                                      }}
+                                      onFocus={() => setFocusedA(true)}
+                                      onBlur={() => setTimeout(() => setFocusedA(false), 200)}
                                       onKeyDown={e => {
                                         if (e.key === 'Enter') {
                                           e.preventDefault();
                                           if (newScorerNameA.trim()) {
-                                            const name = newScorerNameA.trim();
+                                            const name = newScorerNameA.trim().toUpperCase();
                                             const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
                                             if (existingIndex !== -1) {
                                               const updated = [...scorersA];
@@ -2607,7 +2587,7 @@ Muito obrigado!
                                       type="button"
                                       onClick={() => {
                                         if (newScorerNameA.trim()) {
-                                          const name = newScorerNameA.trim();
+                                          const name = newScorerNameA.trim().toUpperCase();
                                           const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
                                           if (existingIndex !== -1) {
                                             const updated = [...scorersA];
@@ -2623,6 +2603,38 @@ Muito obrigado!
                                     >
                                       Add
                                     </button>
+
+                                    {focusedA && newScorerNameA.trim().length > 0 && (
+                                      <div className="absolute left-0 right-0 top-full mt-1 bg-zinc-950 border border-zinc-850 rounded-xl shadow-2xl z-50 overflow-hidden max-h-32 divide-y divide-zinc-900">
+                                        {(athletes || [])
+                                          .filter(a => {
+                                            const q = newScorerNameA.toLowerCase();
+                                            return a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q));
+                                          })
+                                          .slice(0, 5)
+                                          .map(a => (
+                                            <div
+                                              key={a.id}
+                                              onMouseDown={() => {
+                                                const name = a.name.toUpperCase();
+                                                const existingIndex = scorersA.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                                if (existingIndex !== -1) {
+                                                  const updated = [...scorersA];
+                                                  updated[existingIndex].goals += 1;
+                                                  updateScorersA(updated);
+                                                } else {
+                                                  updateScorersA([...scorersA, { name, goals: 1 }]);
+                                                }
+                                                setNewScorerNameA('');
+                                              }}
+                                              className="px-2 py-1.5 text-[8px] text-zinc-300 font-bold uppercase hover:bg-theme-primary hover:text-black cursor-pointer transition-colors"
+                                            >
+                                              {a.name} {a.nickname ? `(${a.nickname})` : ''}
+                                            </div>
+                                          ))
+                                        }
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -2734,45 +2746,23 @@ Muito obrigado!
                                 )}
 
                                 <div className="space-y-1">
-                                  <select
-                                    className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold text-[9px] focus:ring-1 focus:ring-theme-primary outline-none"
-                                    value=""
-                                    onChange={e => {
-                                      const name = e.target.value;
-                                      if (name) {
-                                        const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
-                                        if (existingIndex !== -1) {
-                                          const updated = [...scorersB];
-                                          updated[existingIndex].goals += 1;
-                                          updateScorersB(updated);
-                                        } else {
-                                          updateScorersB([...scorersB, { name, goals: 1 }]);
-                                        }
-                                      }
-                                    }}
-                                  >
-                                    <option value="" disabled>+ Selecionar atleta do clube...</option>
-                                    {athletes
-                                      ?.slice()
-                                      ?.sort((a, b) => a.name.localeCompare(b.name))
-                                      ?.map(a => (
-                                        <option key={a.id} value={a.name}>{a.name}</option>
-                                      ))
-                                    }
-                                  </select>
-
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-1 relative">
                                     <input
                                       type="text"
                                       className="flex-1 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-bold text-[9px] placeholder-zinc-600"
-                                      placeholder="Ou digite o nome de outro..."
+                                      placeholder="Pesquise ou digite o nome..."
                                       value={newScorerNameB}
-                                      onChange={e => setNewScorerNameB(e.target.value)}
+                                      onChange={e => {
+                                        setNewScorerNameB(e.target.value);
+                                        setFocusedB(true);
+                                      }}
+                                      onFocus={() => setFocusedB(true)}
+                                      onBlur={() => setTimeout(() => setFocusedB(false), 200)}
                                       onKeyDown={e => {
                                         if (e.key === 'Enter') {
                                           e.preventDefault();
                                           if (newScorerNameB.trim()) {
-                                            const name = newScorerNameB.trim();
+                                            const name = newScorerNameB.trim().toUpperCase();
                                             const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
                                             if (existingIndex !== -1) {
                                               const updated = [...scorersB];
@@ -2790,7 +2780,7 @@ Muito obrigado!
                                       type="button"
                                       onClick={() => {
                                         if (newScorerNameB.trim()) {
-                                          const name = newScorerNameB.trim();
+                                          const name = newScorerNameB.trim().toUpperCase();
                                           const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
                                           if (existingIndex !== -1) {
                                             const updated = [...scorersB];
@@ -2806,6 +2796,38 @@ Muito obrigado!
                                     >
                                       Add
                                     </button>
+
+                                    {focusedB && newScorerNameB.trim().length > 0 && (
+                                      <div className="absolute left-0 right-0 top-full mt-1 bg-zinc-950 border border-zinc-850 rounded-xl shadow-2xl z-50 overflow-hidden max-h-32 divide-y divide-zinc-900">
+                                        {(athletes || [])
+                                          .filter(a => {
+                                            const q = newScorerNameB.toLowerCase();
+                                            return a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q));
+                                          })
+                                          .slice(0, 5)
+                                          .map(a => (
+                                            <div
+                                              key={a.id}
+                                              onMouseDown={() => {
+                                                const name = a.name.toUpperCase();
+                                                const existingIndex = scorersB.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+                                                if (existingIndex !== -1) {
+                                                  const updated = [...scorersB];
+                                                  updated[existingIndex].goals += 1;
+                                                  updateScorersB(updated);
+                                                } else {
+                                                  updateScorersB([...scorersB, { name, goals: 1 }]);
+                                                }
+                                                setNewScorerNameB('');
+                                              }}
+                                              className="px-2 py-1.5 text-[8px] text-zinc-300 font-bold uppercase hover:bg-theme-primary hover:text-black cursor-pointer transition-colors"
+                                            >
+                                              {a.name} {a.nickname ? `(${a.nickname})` : ''}
+                                            </div>
+                                          ))
+                                        }
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
