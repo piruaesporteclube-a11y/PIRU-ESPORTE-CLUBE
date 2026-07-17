@@ -58,6 +58,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [selectedTrainingId, setSelectedTrainingId] = useState<string>('all');
   const [customTimes, setCustomTimes] = useState<{ [key: string]: string }>({});
   const [customCategories, setCustomCategories] = useState<{ [key: string]: string }>({});
+  const [customLocations, setCustomLocations] = useState<{ [key: string]: string }>({});
 
   const activeTrainings = selectedTrainingId === 'all' 
     ? trainings 
@@ -932,6 +933,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                             className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
                           />
                         </div>
+                        <div className="col-span-2">
+                          <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Local do Treino / Evento</label>
+                          <input
+                            type="text"
+                            value={customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : (t.location || '')}
+                            onChange={(e) => setCustomLocations(prev => ({ ...prev, [`${t.id}-loc`]: e.target.value }))}
+                            className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                            placeholder="Ex: Arena Principal, Quadra Coberta..."
+                          />
+                        </div>
                       </div>
                     </div>
                   );
@@ -940,6 +951,16 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div key={t.id} className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-3">
                       <div className="text-[9px] font-black text-theme-primary uppercase italic mb-1">
                         {t.modality} ({t.schedules?.length} horários)
+                      </div>
+                      <div>
+                        <label className="text-[8px] font-black text-zinc-500 uppercase block mb-1">Local do Treino / Evento</label>
+                        <input
+                          type="text"
+                          value={customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : (t.location || '')}
+                          onChange={(e) => setCustomLocations(prev => ({ ...prev, [`${t.id}-loc`]: e.target.value }))}
+                          className="w-full px-2 py-1.5 bg-black border border-zinc-850 rounded-lg text-white text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                          placeholder="Ex: Arena Principal, Quadra Coberta..."
+                        />
                       </div>
                       {t.schedules?.map((s, si) => {
                         const timeKey = `${t.id}-${si}-time`;
@@ -1333,11 +1354,22 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right"
                     )}>
                       <h3 
-                        className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-tight"
+                        className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-none"
                         style={{ color: '#EAB308' }}
                       >
                         {t.modality}
                       </h3>
+                      {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
+                        <div className={cn(
+                          "flex items-center gap-0.5 mt-0.5",
+                          infoAlign === 'left' ? "justify-start" : "justify-end"
+                        )}>
+                          <MapPin size={7} className="text-white/60 shrink-0" />
+                          <span className="text-[7.5px] font-black text-white/80 uppercase tracking-tight truncate max-w-full">
+                            {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className={cn(colsCount === 2 ? "grid grid-cols-2 gap-1.5" : "space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
