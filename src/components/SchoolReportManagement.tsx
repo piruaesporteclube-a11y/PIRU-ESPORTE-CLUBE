@@ -9,7 +9,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  Download
 } from 'lucide-react';
 import { api } from '../api';
 import { SchoolReport, User, Athlete } from '../types';
@@ -31,6 +32,7 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
   const [selectedReport, setSelectedReport] = useState<SchoolReport | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeViewerImage, setActiveViewerImage] = useState<{ src: string, title: string } | null>(null);
 
   const isAdmin = user.role === 'admin';
 
@@ -203,7 +205,10 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                     src={report.report_card_image} 
                     alt={report.period} 
                     className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => window.open(report.report_card_image, '_blank')}
+                    onClick={() => setActiveViewerImage({ 
+                      src: report.report_card_image, 
+                      title: `${report.period} - ${report.year} ${report.athlete_name ? `(${report.athlete_name})` : ''}`
+                    })}
                   />
                 ) : (
                   <FileText className="text-zinc-700 w-12 h-12" />
@@ -273,7 +278,10 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                     )
                   )}
                   <button 
-                    onClick={() => window.open(report.report_card_image, '_blank')}
+                    onClick={() => setActiveViewerImage({ 
+                      src: report.report_card_image, 
+                      title: `${report.period} - ${report.year} ${report.athlete_name ? `(${report.athlete_name})` : ''}`
+                    })}
                     className="p-3 bg-zinc-800 text-zinc-400 hover:text-theme-primary rounded-xl transition-all border border-zinc-700 ml-auto"
                     title="Ver Foto"
                   >
@@ -482,6 +490,64 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                     Aprovar (Visto)
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Visualizador de Imagem (Lightbox) */}
+      <AnimatePresence>
+        {activeViewerImage && (
+          <div 
+            className="fixed inset-0 z-[150] flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setActiveViewerImage(null)}
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="relative max-w-4xl w-full flex flex-col h-[85vh] bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-zinc-850 bg-zinc-900/40 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                    Boletim Escolar
+                  </h3>
+                  <p className="text-[10px] text-theme-primary font-black uppercase tracking-widest mt-0.5 animate-pulse">
+                    {activeViewerImage.title}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a 
+                    href={activeViewerImage.src} 
+                    download={`boletim_${activeViewerImage.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.png`}
+                    className="p-2 bg-zinc-900 hover:bg-theme-primary text-zinc-400 hover:text-black rounded-xl transition-all border border-zinc-800 hover:border-theme-primary/10 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
+                    title="Baixar Boletim"
+                  >
+                    <Download size={12} />
+                    <span>Baixar</span>
+                  </a>
+                  <button 
+                    onClick={() => setActiveViewerImage(null)}
+                    className="p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-all border border-zinc-800"
+                    title="Fechar"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Image Viewport */}
+              <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/30">
+                <img 
+                  src={activeViewerImage.src} 
+                  alt={activeViewerImage.title} 
+                  className="max-h-full max-w-full object-contain rounded-xl shadow-lg border border-zinc-900"
+                />
               </div>
             </motion.div>
           </div>
