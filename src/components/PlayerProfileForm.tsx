@@ -22,7 +22,12 @@ import {
   ChevronRight,
   ClipboardList,
   Flame,
-  Scale
+  Scale,
+  Sparkles,
+  Loader2,
+  Check,
+  Brain,
+  ListPlus
 } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
@@ -138,6 +143,96 @@ export default function PlayerProfileForm({
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+
+  const [isGeneratingTest, setIsGeneratingTest] = useState(false);
+  const [activeTestModal, setActiveTestModal] = useState(false);
+  const [generatedTest, setGeneratedTest] = useState<any>(null);
+  const [selectedFieldForTest, setSelectedFieldForTest] = useState<any>(null);
+  const [isSavingTestAsActivity, setIsSavingTestAsActivity] = useState(false);
+  const [savedActivitySuccess, setSavedActivitySuccess] = useState(false);
+
+  const handleGenerateTest = async (field: any) => {
+    setSelectedFieldForTest(field);
+    setGeneratedTest(null);
+    setSavedActivitySuccess(false);
+    setActiveTestModal(true);
+    setIsGeneratingTest(true);
+
+    let categoryLabel = "Técnico";
+    if (activeRatingTab === "physical") categoryLabel = "Físico";
+    else if (activeRatingTab === "tactical") categoryLabel = "Tático";
+    else if (activeRatingTab === "behavioral") categoryLabel = "Comportamental";
+
+    try {
+      const response = await fetch("/api/gemini/generate-assessment-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fieldName: field.label,
+          fieldCategory: categoryLabel,
+          description: field.description,
+          modality: selectedAthlete?.modality || "Futebol"
+        })
+      });
+
+      const data = await response.json();
+      if (data.success && data.test) {
+        setGeneratedTest(data.test);
+      } else {
+        toast.error("Não foi possível gerar a atividade técnica de avaliação.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro de conexão ao gerar atividade.");
+    } finally {
+      setIsGeneratingTest(false);
+    }
+  };
+
+  const saveTestAsTrainingActivity = async () => {
+    if (!generatedTest || !selectedFieldForTest) return;
+    setIsSavingTestAsActivity(true);
+
+    let actCategory: any = "Fundamento";
+    if (activeRatingTab === "physical") {
+      if (selectedFieldForTest.label.toLowerCase().includes("coordenação")) {
+        actCategory = "Coordenação Motora";
+      } else if (selectedFieldForTest.label.toLowerCase().includes("agilidade")) {
+        actCategory = "Agilidade";
+      } else {
+        actCategory = "Físico";
+      }
+    } else if (activeRatingTab === "tactical") {
+      actCategory = "Tático";
+    } else if (activeRatingTab === "behavioral") {
+      actCategory = "Conscientização";
+    }
+
+    try {
+      const formattedDescription = `**OBJETIVO:**\n${generatedTest.objective}\n\n**MATERIAIS:**\n${generatedTest.materials.join(", ")}\n\n**COMO MONTAR:**\n${generatedTest.setup}\n\n**EXECUÇÃO:**\n${generatedTest.execution.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}\n\n**DICAS DO TREINADOR:**\n${generatedTest.tips.join("\n")}`;
+
+      await api.saveActivity({
+        name: generatedTest.testName,
+        description: formattedDescription,
+        modality: (selectedAthlete?.modality as any) || "Futebol",
+        category: actCategory,
+        intensity: "Média",
+        difficulty: "Intermediário",
+        duration: 15,
+        equipment: generatedTest.materials.join(", ")
+      });
+
+      setSavedActivitySuccess(true);
+      toast.success("Atividade de teste salva no banco de treinos com sucesso!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar atividade no banco de treinos.");
+    } finally {
+      setIsSavingTestAsActivity(false);
+    }
+  };
 
   useEffect(() => {
     const convertToDataUrl = (url: string, callback: (dataUrl: string | null) => void) => {
@@ -1141,6 +1236,20 @@ export default function PlayerProfileForm({
                                       </div>
                                     </div>
                                   )}
+
+                                  <div className="pt-3 border-t border-zinc-900/60 mt-3 flex justify-between items-center gap-2">
+                                    <span className="text-[9px] text-zinc-500 font-black uppercase tracking-wider">
+                                      Protocolo de Avaliação
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGenerateTest(field)}
+                                      className="py-1.5 px-3 rounded-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 hover:text-purple-100 border border-purple-800/40 transition-all text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                    >
+                                      <Sparkles size={11} className="text-purple-400 animate-pulse" />
+                                      Gerar Teste IA
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1876,6 +1985,210 @@ export default function PlayerProfileForm({
       ) : (
         <div className="p-12 text-center bg-zinc-900 rounded-[2.5rem] border border-zinc-800 text-zinc-500">
           <p className="uppercase text-sm font-bold tracking-widest">Nenhum jogador selecionado para exibir a Ficha Técnica.</p>
+        </div>
+      )}
+
+      {/* AI Test Assessment Modal */}
+      {activeTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800/80 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col my-8">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-zinc-850 bg-gradient-to-r from-purple-950/20 via-zinc-900 to-zinc-900">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                  <Brain className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white uppercase tracking-wider">
+                    Gerador de Testes IA
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 uppercase font-semibold">
+                    Ficha Técnica / {selectedFieldForTest?.label}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTestModal(false)}
+                className="p-1.5 rounded-xl bg-zinc-800/40 text-zinc-400 hover:bg-zinc-800 hover:text-white border border-zinc-700/30 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
+              {isGeneratingTest ? (
+                <div className="py-16 flex flex-col items-center justify-center space-y-4">
+                  <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-black text-white uppercase tracking-widest animate-pulse">
+                      Analisando Atributo de {selectedFieldForTest?.label}...
+                    </p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                      O Gemini está desenvolvendo um protocolo científico de teste
+                    </p>
+                  </div>
+                </div>
+              ) : generatedTest ? (
+                <div className="space-y-6">
+                  {/* Test Title & Objective */}
+                  <div className="p-5 bg-zinc-950/40 rounded-2xl border border-zinc-800/60 space-y-2">
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                      {generatedTest.testName}
+                    </h4>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      {generatedTest.objective}
+                    </p>
+                  </div>
+
+                  {/* Materials */}
+                  <div className="space-y-3">
+                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                      Materiais Necessários
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {generatedTest.materials.map((mat: string, i: number) => (
+                        <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-950/30 border border-zinc-850">
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                          <span className="text-xs text-zinc-300">{mat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Setup */}
+                  <div className="space-y-3">
+                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                      Como Montar a Estrutura
+                    </h5>
+                    <div className="p-4 rounded-2xl bg-zinc-950/20 border border-zinc-850/80 text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
+                      {generatedTest.setup}
+                    </div>
+                  </div>
+
+                  {/* Execution */}
+                  <div className="space-y-3">
+                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                      Execução / Passo a Passo
+                    </h5>
+                    <div className="space-y-2.5">
+                      {generatedTest.execution.map((step: string, i: number) => (
+                        <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-zinc-950/30 border border-zinc-850/60">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold flex items-center justify-center">
+                            {i + 1}
+                          </span>
+                          <span className="text-xs text-zinc-300 leading-relaxed pt-0.5">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Scoring Criteria Table */}
+                  <div className="space-y-3">
+                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                      Métricas de Nota (0 a 10)
+                    </h5>
+                    <div className="rounded-2xl border border-zinc-800/80 overflow-hidden bg-zinc-950/40">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400">
+                            <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-1/3">Nota recomendada</th>
+                            <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-2/3">Critério Prático</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800/40">
+                          {generatedTest.scoringCriteria.map((cri: any, i: number) => (
+                            <tr key={i} className="hover:bg-zinc-900/30">
+                              <td className="p-3.5 font-bold text-white whitespace-nowrap">
+                                <span className={cn(
+                                  "px-2 py-1 rounded-md text-[10px] uppercase font-black tracking-wider border",
+                                  cri.scoreRange.includes("9") || cri.scoreRange.includes("Excelente") ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                  cri.scoreRange.includes("7") || cri.scoreRange.includes("Bom") ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                  cri.scoreRange.includes("5") || cri.scoreRange.includes("Regular") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                  "bg-red-500/10 text-red-400 border-red-500/20"
+                                )}>
+                                  {cri.scoreRange}
+                                </span>
+                              </td>
+                              <td className="p-3.5 text-zinc-400 leading-relaxed">{cri.criteria}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Tips */}
+                  <div className="space-y-3">
+                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                      Dicas e Recomendações
+                    </h5>
+                    <div className="space-y-2">
+                      {generatedTest.tips.map((tip: string, i: number) => (
+                        <div key={i} className="flex gap-2.5 items-start text-xs text-zinc-400">
+                          <span className="text-purple-400 text-sm mt-px">•</span>
+                          <span className="leading-relaxed">{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-zinc-500 uppercase text-xs font-bold">
+                  Erro ao carregar o teste.
+                </div>
+              )}
+            </div>
+
+            {/* Footer / CTA Actions */}
+            <div className="p-6 border-t border-zinc-850 bg-zinc-950/40 flex flex-wrap gap-3 justify-between items-center">
+              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">
+                Gerador de Treinos Alinhados à Metodologia
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTestModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-750 hover:text-white transition-all text-xs font-black uppercase tracking-wider cursor-pointer border border-transparent"
+                >
+                  Fechar
+                </button>
+                {generatedTest && (
+                  <button
+                    type="button"
+                    disabled={isSavingTestAsActivity || savedActivitySuccess}
+                    onClick={saveTestAsTrainingActivity}
+                    className={cn(
+                      "px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer border",
+                      savedActivitySuccess
+                        ? "bg-emerald-500 text-black border-emerald-500 scale-102"
+                        : "bg-theme-primary text-black border-theme-primary hover:opacity-90"
+                    )}
+                  >
+                    {isSavingTestAsActivity ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Salvando...
+                      </>
+                    ) : savedActivitySuccess ? (
+                      <>
+                        <Check size={14} />
+                        Salvo no Banco!
+                      </>
+                    ) : (
+                      <>
+                        <ListPlus size={14} />
+                        Salvar no Banco de Treinos
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
     </div>

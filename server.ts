@@ -193,6 +193,37 @@ const getFallbackSuggestions = (modality: string): any[] => {
   ];
 };
 
+// Generates beautiful fallback assessment tests if Gemini fails or is not configured
+const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, description: string, modality: string = "Futebol") => {
+  return {
+    testName: `Protocolo de Teste Prático: ${fieldName}`,
+    objective: `Avaliar com precisão e objetividade o atributo de ${fieldName} (${fieldCategory}) com base na descrição: "${description}".`,
+    materials: [
+      "Cones de marcação (6 unidades)",
+      "Cronômetro digital ou smartphone",
+      "Prancheta e caneta para anotações do treinador",
+      modality === "Vôlei" ? "Rede e bolas de vôlei" : modality === "Basquete" ? "Tabela e bolas de basquete" : "Bolas de futebol/futsal"
+    ],
+    setup: `Demarque uma área retangular de 15x10 metros utilizando os cones. Posicione uma estação de partida no cone inicial e crie 3 pontos de passagem intermediários com distância de 3 metros entre si, finalizando no cone oposto para registro de tempo ou precisão das repetições.`,
+    execution: [
+      `O atleta se posiciona na estação de partida em postura ativa.`,
+      `Ao sinal do treinador, realiza a movimentação máxima direcionada a testar o atributo (ex: tiro de velocidade, condução com passe final, marcação sob pressão).`,
+      `A atividade é repetida 5 vezes por atleta para mitigar variações de fadiga e obter uma média confiável.`,
+      `O treinador anota o tempo final, número de acertos ou qualidade de execução.`
+    ],
+    scoringCriteria: [
+      { scoreRange: "9 - 10 (Excelente)", criteria: "Execução perfeita em todas as 5 tentativas. Tempo excepcional ou 100% de precisão nos passes/ações com total domínio corporal." },
+      { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Execução limpa em 4 tentativas. Ótimo controle, postura adequada e tempo dentro da média esperada de atletas destacados." },
+      { scoreRange: "5 - 6 (Regular)", criteria: "Execução satisfatória em 3 tentativas. Erros pontuais de postura ou controle, mas consegue concluir o percurso dentro do tempo limite." },
+      { scoreRange: "1 - 4 (Ruim)", criteria: "Execução inconsistente, cometendo erros técnicos frequentes em mais de 3 tentativas, ou tempo muito acima do ideal para a categoria." }
+    ],
+    tips: [
+      "Certifique-se de que o atleta realizou um aquecimento prévio adequado de 10 minutos antes do início do teste.",
+      "Mantenha a mesma distância e os mesmos equipamentos para garantir a isonomia da avaliação com todo o elenco."
+    ]
+  };
+};
+
 export async function createExpressApp() {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
@@ -391,6 +422,64 @@ export async function createExpressApp() {
         console.error("[Fatal Suggestions Fallback Error]", fallbackError);
         res.status(500).json({ success: false, error: "Erro interno ao gerar sugestões de treino." });
       }
+    }
+  });
+
+  // Gemini API - Generate Assessment Test to help fill Player Profile (Ficha Técnica)
+  app.post("/api/gemini/generate-assessment-test", async (req, res) => {
+    const { fieldName, fieldCategory, description, modality } = req.body;
+    if (!fieldName || !fieldCategory) {
+      return res.status(400).json({ success: false, error: "Nome do campo e categoria são obrigatórios." });
+    }
+
+    try {
+      const prompt = `Gere uma atividade física/técnica ou protocolo de teste altamente profissional para avaliar o atributo "${fieldName}" (Categoria: ${fieldCategory}, Descrição: ${description}) na modalidade esportiva "${modality || 'Futebol'}".
+      O objetivo deste teste é servir de critério objetivo e prático para que o treinador possa avaliar o atleta e atribuir uma nota de 0 a 10 para esse atributo específico na Ficha Técnica.
+      O teste deve conter uma estrutura de pontuação clara e detalhada que relacione o desempenho prático (ex: tempo em segundos, acertos em repetições, comportamento observado) com a nota de 0 a 10 correspondente.
+      Escreva tudo em Português-BR e retorne as informações estruturadas no formato JSON especificado.`;
+
+      const ai = getAI();
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              testName: { type: Type.STRING },
+              objective: { type: Type.STRING },
+              materials: { type: Type.ARRAY, items: { type: Type.STRING } },
+              setup: { type: Type.STRING },
+              execution: { type: Type.ARRAY, items: { type: Type.STRING } },
+              scoringCriteria: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    scoreRange: { type: Type.STRING, description: "Nota (ex: '9-10 (Excelente)', '5-6 (Regular)', etc.)" },
+                    criteria: { type: Type.STRING, description: "Critério prático necessário para atingir essa nota" }
+                  },
+                  required: ['scoreRange', 'criteria']
+                }
+              },
+              tips: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ['testName', 'objective', 'materials', 'setup', 'execution', 'scoringCriteria', 'tips']
+          } as any
+        }
+      });
+
+      const text = response.text;
+      if (!text) {
+        throw new Error("Resposta em branco do Gemini API");
+      }
+      const result = JSON.parse(text);
+      res.json({ success: true, test: result });
+    } catch (error: any) {
+      console.warn("[Gemini Assessment Test API Error] Falling back to procedural fallback due to:", error.message || error);
+      const fallbackTest = getFallbackAssessmentTest(fieldName, fieldCategory, description, modality);
+      res.json({ success: true, test: fallbackTest, fallback: true });
     }
   });
 
