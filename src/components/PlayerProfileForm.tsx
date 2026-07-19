@@ -27,7 +27,8 @@ import {
   Loader2,
   Check,
   Brain,
-  ListPlus
+  ListPlus,
+  Youtube
 } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
@@ -211,7 +212,10 @@ export default function PlayerProfileForm({
     }
 
     try {
-      const formattedDescription = `**OBJETIVO:**\n${generatedTest.objective}\n\n**MATERIAIS:**\n${generatedTest.materials.join(", ")}\n\n**COMO MONTAR:**\n${generatedTest.setup}\n\n**EXECUÇÃO:**\n${generatedTest.execution.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}\n\n**DICAS DO TREINADOR:**\n${generatedTest.tips.join("\n")}`;
+      const youtubeLink = generatedTest.youtubeSearchQuery 
+        ? `https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`
+        : '';
+      const formattedDescription = `**OBJETIVO:**\n${generatedTest.objective}\n\n**MATERIAIS:**\n${generatedTest.materials.join(", ")}\n\n**COMO MONTAR:**\n${generatedTest.setup}\n\n**EXECUÇÃO:**\n${generatedTest.execution.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}\n\n**DICAS DO TREINADOR:**\n${generatedTest.tips.join("\n")}${youtubeLink ? `\n\n**VÍDEO DE DEMONSTRAÇÃO (YOUTUBE):**\n${youtubeLink}` : ''}`;
 
       await api.saveActivity({
         name: generatedTest.testName,
@@ -2042,6 +2046,31 @@ export default function PlayerProfileForm({
                       {generatedTest.objective}
                     </p>
                   </div>
+
+                  {/* YouTube Support Video Suggestion */}
+                  {generatedTest.youtubeSearchQuery && (
+                    <div className="p-5 rounded-2xl border border-red-950/40 bg-red-950/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <Youtube size={18} className="fill-red-400 text-red-500" />
+                          <h5 className="text-xs font-black uppercase tracking-wider">
+                            Vídeo de Apoio no YouTube
+                          </h5>
+                        </div>
+                        <p className="text-xs text-zinc-300 leading-relaxed">
+                          Assista a vídeos de demonstração e tutoriais práticos buscando por: <strong className="text-white italic">"{generatedTest.youtubeSearchQuery}"</strong>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`, '_blank', 'noopener,noreferrer')}
+                        className="flex-shrink-0 flex items-center gap-2 py-2 px-4 rounded-xl bg-red-600 text-white hover:bg-red-700 font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
+                      >
+                        <Youtube size={14} className="fill-white text-white" />
+                        Ver Vídeo
+                      </button>
+                    </div>
+                  )}
 
                   {/* Materials */}
                   <div className="space-y-3">

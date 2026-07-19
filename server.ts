@@ -220,7 +220,8 @@ const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, des
     tips: [
       "Certifique-se de que o atleta realizou um aquecimento prévio adequado de 10 minutos antes do início do teste.",
       "Mantenha a mesma distância e os mesmos equipamentos para garantir a isonomia da avaliação com todo o elenco."
-    ]
+    ],
+    youtubeSearchQuery: `treinamento de ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`
   };
 };
 
@@ -436,6 +437,7 @@ export async function createExpressApp() {
       const prompt = `Gere uma atividade física/técnica ou protocolo de teste altamente profissional para avaliar o atributo "${fieldName}" (Categoria: ${fieldCategory}, Descrição: ${description}) na modalidade esportiva "${modality || 'Futebol'}".
       O objetivo deste teste é servir de critério objetivo e prático para que o treinador possa avaliar o atleta e atribuir uma nota de 0 a 10 para esse atributo específico na Ficha Técnica.
       O teste deve conter uma estrutura de pontuação clara e detalhada que relacione o desempenho prático (ex: tempo em segundos, acertos em repetições, comportamento observado) com a nota de 0 a 10 correspondente.
+      Além disso, forneça uma sugestão de termo de busca perfeito no YouTube para encontrar demonstrações visuais deste treinamento.
       Escreva tudo em Português-BR e retorne as informações estruturadas no formato JSON especificado.`;
 
       const ai = getAI();
@@ -463,9 +465,10 @@ export async function createExpressApp() {
                   required: ['scoreRange', 'criteria']
                 }
               },
-              tips: { type: Type.ARRAY, items: { type: Type.STRING } }
+              tips: { type: Type.ARRAY, items: { type: Type.STRING } },
+              youtubeSearchQuery: { type: Type.STRING, description: "Termo de busca perfeito no YouTube para demonstração deste exercício (ex: 'treino de finalização de voleio no futebol')" }
             },
-            required: ['testName', 'objective', 'materials', 'setup', 'execution', 'scoringCriteria', 'tips']
+            required: ['testName', 'objective', 'materials', 'setup', 'execution', 'scoringCriteria', 'tips', 'youtubeSearchQuery']
           } as any
         }
       });
