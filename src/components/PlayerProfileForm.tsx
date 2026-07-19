@@ -34,6 +34,7 @@ import { cn } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import AthleteSearchSelect from './AthleteSearchSelect';
+import DrillVisualizer from './DrillVisualizer';
 import { differenceInYears, parseISO } from 'date-fns';
 
 type RatingField = {
@@ -152,6 +153,20 @@ export default function PlayerProfileForm({
   const [isSavingTestAsActivity, setIsSavingTestAsActivity] = useState(false);
   const [savedActivitySuccess, setSavedActivitySuccess] = useState(false);
 
+  const mockActivity = React.useMemo(() => {
+    if (!generatedTest) return null;
+    return {
+      id: 'mock-test-activity',
+      name: generatedTest.testName,
+      description: generatedTest.objective,
+      modality: (selectedAthlete?.modality as any) || "Futebol",
+      category: "Fundamento" as any,
+      intensity: "Média" as any,
+      difficulty: "Intermediário" as any,
+      visualData: JSON.stringify(generatedTest.visualObjects || [])
+    };
+  }, [generatedTest, selectedAthlete]);
+
   const handleGenerateTest = async (field: any) => {
     setSelectedFieldForTest(field);
     setGeneratedTest(null);
@@ -225,7 +240,8 @@ export default function PlayerProfileForm({
         intensity: "Média",
         difficulty: "Intermediário",
         duration: 15,
-        equipment: generatedTest.materials.join(", ")
+        equipment: generatedTest.materials.join(", "),
+        visualData: JSON.stringify(generatedTest.visualObjects || [])
       });
 
       setSavedActivitySuccess(true);
@@ -1995,7 +2011,7 @@ export default function PlayerProfileForm({
       {/* AI Test Assessment Modal */}
       {activeTestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800/80 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col my-8">
+          <div className="relative w-full max-w-5xl bg-zinc-900 border border-zinc-800/80 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col my-8">
             
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-zinc-850 bg-gradient-to-r from-purple-950/20 via-zinc-900 to-zinc-900">
@@ -2022,147 +2038,189 @@ export default function PlayerProfileForm({
             </div>
 
             {/* Content Body */}
-            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
+            <div className="p-6 overflow-y-auto max-h-[75vh] scrollbar-thin scrollbar-thumb-zinc-800">
               {isGeneratingTest ? (
-                <div className="py-16 flex flex-col items-center justify-center space-y-4">
-                  <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
-                  <div className="text-center space-y-1">
-                    <p className="text-xs font-black text-white uppercase tracking-widest animate-pulse">
+                <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                  <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-black text-white uppercase tracking-widest animate-pulse">
                       Analisando Atributo de {selectedFieldForTest?.label}...
                     </p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                      O Gemini está desenvolvendo um protocolo científico de teste
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider">
+                      O Gemini está desenvolvendo o protocolo de teste científico e a simulação de movimentação
                     </p>
                   </div>
                 </div>
               ) : generatedTest ? (
-                <div className="space-y-6">
-                  {/* Test Title & Objective */}
-                  <div className="p-5 bg-zinc-950/40 rounded-2xl border border-zinc-800/60 space-y-2">
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">
-                      {generatedTest.testName}
-                    </h4>
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      {generatedTest.objective}
-                    </p>
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  
+                  {/* Left Column: Test details and instructions (7/12 width) */}
+                  <div className="lg:col-span-7 space-y-6">
+                    {/* Test Title & Objective */}
+                    <div className="p-5 bg-zinc-950/40 rounded-2xl border border-zinc-800/60 space-y-2">
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        {generatedTest.testName}
+                      </h4>
+                      <p className="text-xs text-zinc-300 leading-relaxed">
+                        {generatedTest.objective}
+                      </p>
+                    </div>
 
-                  {/* YouTube Support Video Suggestion */}
-                  {generatedTest.youtubeSearchQuery && (
-                    <div className="p-5 rounded-2xl border border-red-950/40 bg-red-950/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-red-400">
-                          <Youtube size={18} className="fill-red-400 text-red-500" />
-                          <h5 className="text-xs font-black uppercase tracking-wider">
-                            Vídeo de Apoio no YouTube
-                          </h5>
-                        </div>
-                        <p className="text-xs text-zinc-300 leading-relaxed">
-                          Assista a vídeos de demonstração e tutoriais práticos buscando por: <strong className="text-white italic">"{generatedTest.youtubeSearchQuery}"</strong>
-                        </p>
+                    {/* Materials */}
+                    <div className="space-y-3">
+                      <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                        Materiais Necessários
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {generatedTest.materials.map((mat: string, i: number) => (
+                          <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-950/30 border border-zinc-850">
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                            <span className="text-xs text-zinc-300">{mat}</span>
+                          </div>
+                        ))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`, '_blank', 'noopener,noreferrer')}
-                        className="flex-shrink-0 flex items-center gap-2 py-2 px-4 rounded-xl bg-red-600 text-white hover:bg-red-700 font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
-                      >
-                        <Youtube size={14} className="fill-white text-white" />
-                        Ver Vídeo
-                      </button>
                     </div>
-                  )}
 
-                  {/* Materials */}
-                  <div className="space-y-3">
-                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
-                      Materiais Necessários
-                    </h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {generatedTest.materials.map((mat: string, i: number) => (
-                        <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-950/30 border border-zinc-850">
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                          <span className="text-xs text-zinc-300">{mat}</span>
-                        </div>
-                      ))}
+                    {/* Setup */}
+                    <div className="space-y-3">
+                      <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                        Como Montar a Estrutura
+                      </h5>
+                      <div className="p-4 rounded-2xl bg-zinc-950/20 border border-zinc-850/80 text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
+                        {generatedTest.setup}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Setup */}
-                  <div className="space-y-3">
-                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
-                      Como Montar a Estrutura
-                    </h5>
-                    <div className="p-4 rounded-2xl bg-zinc-950/20 border border-zinc-850/80 text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
-                      {generatedTest.setup}
+                    {/* Execution */}
+                    <div className="space-y-3">
+                      <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                        Execução / Passo a Passo
+                      </h5>
+                      <div className="space-y-2.5">
+                        {generatedTest.execution.map((step: string, i: number) => (
+                          <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-zinc-950/30 border border-zinc-850/60">
+                            <span className="flex-shrink-0 w-5 h-5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                            <span className="text-xs text-zinc-300 leading-relaxed pt-0.5">{step}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Execution */}
-                  <div className="space-y-3">
-                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
-                      Execução / Passo a Passo
-                    </h5>
-                    <div className="space-y-2.5">
-                      {generatedTest.execution.map((step: string, i: number) => (
-                        <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-zinc-950/30 border border-zinc-850/60">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold flex items-center justify-center">
-                            {i + 1}
-                          </span>
-                          <span className="text-xs text-zinc-300 leading-relaxed pt-0.5">{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Scoring Criteria Table */}
-                  <div className="space-y-3">
-                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
-                      Métricas de Nota (0 a 10)
-                    </h5>
-                    <div className="rounded-2xl border border-zinc-800/80 overflow-hidden bg-zinc-950/40">
-                      <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400">
-                            <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-1/3">Nota recomendada</th>
-                            <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-2/3">Critério Prático</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-800/40">
-                          {generatedTest.scoringCriteria.map((cri: any, i: number) => (
-                            <tr key={i} className="hover:bg-zinc-900/30">
-                              <td className="p-3.5 font-bold text-white whitespace-nowrap">
-                                <span className={cn(
-                                  "px-2 py-1 rounded-md text-[10px] uppercase font-black tracking-wider border",
-                                  cri.scoreRange.includes("9") || cri.scoreRange.includes("Excelente") ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                                  cri.scoreRange.includes("7") || cri.scoreRange.includes("Bom") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                  cri.scoreRange.includes("5") || cri.scoreRange.includes("Regular") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
-                                  "bg-red-500/10 text-red-400 border-red-500/20"
-                                )}>
-                                  {cri.scoreRange}
-                                </span>
-                              </td>
-                              <td className="p-3.5 text-zinc-400 leading-relaxed">{cri.criteria}</td>
+                    {/* Scoring Criteria Table */}
+                    <div className="space-y-3">
+                      <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                        Métricas de Nota (0 a 10)
+                      </h5>
+                      <div className="rounded-2xl border border-zinc-800/80 overflow-hidden bg-zinc-950/40">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400">
+                              <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-1/3">Nota recomendada</th>
+                              <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] w-2/3">Critério Prático</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-800/40">
+                            {generatedTest.scoringCriteria.map((cri: any, i: number) => (
+                              <tr key={i} className="hover:bg-zinc-900/30">
+                                <td className="p-3.5 font-bold text-white whitespace-nowrap">
+                                  <span className={cn(
+                                    "px-2 py-1 rounded-md text-[10px] uppercase font-black tracking-wider border",
+                                    cri.scoreRange.includes("9") || cri.scoreRange.includes("Excelente") ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                    cri.scoreRange.includes("7") || cri.scoreRange.includes("Bom") ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                    cri.scoreRange.includes("5") || cri.scoreRange.includes("Regular") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                    "bg-red-500/10 text-red-400 border-red-500/20"
+                                  )}>
+                                    {cri.scoreRange}
+                                  </span>
+                                </td>
+                                <td className="p-3.5 text-zinc-400 leading-relaxed">{cri.criteria}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Tips */}
+                    <div className="space-y-3">
+                      <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
+                        Dicas e Recomendações
+                      </h5>
+                      <div className="space-y-2">
+                        {generatedTest.tips.map((tip: string, i: number) => (
+                          <div key={i} className="flex gap-2.5 items-start text-xs text-zinc-400">
+                            <span className="text-purple-400 text-sm mt-px">•</span>
+                            <span className="leading-relaxed">{tip}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tips */}
-                  <div className="space-y-3">
-                    <h5 className="text-[11px] font-black text-purple-300 uppercase tracking-wider">
-                      Dicas e Recomendações
-                    </h5>
-                    <div className="space-y-2">
-                      {generatedTest.tips.map((tip: string, i: number) => (
-                        <div key={i} className="flex gap-2.5 items-start text-xs text-zinc-400">
-                          <span className="text-purple-400 text-sm mt-px">•</span>
-                          <span className="leading-relaxed">{tip}</span>
-                        </div>
-                      ))}
+                  {/* Right Column: 2D/3D Animated Tactic Board & YouTube demonstrations (5/12 width) */}
+                  <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-0">
+                    
+                    {/* Simulated 3D Animated Video Explainer / Tactic Board */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-[11px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          Simulador Animado da Atividade
+                        </h5>
+                        <span className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">
+                          Visualizador 2D/3D Interativo
+                        </span>
+                      </div>
+                      <div className="p-1 bg-zinc-950/40 rounded-[2rem] border border-zinc-800/80 overflow-hidden shadow-inner h-[320px] sm:h-[380px] lg:h-[400px]">
+                        {mockActivity && (
+                          <DrillVisualizer
+                            activity={mockActivity as any}
+                            onChange={(newVisualData) => {
+                              setGeneratedTest((prev: any) => ({
+                                ...prev,
+                                visualObjects: JSON.parse(newVisualData)
+                              }));
+                            }}
+                            isEditable={true}
+                          />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed uppercase font-bold text-center">
+                        Dica: Clique no <strong className="text-zinc-300">Play</strong> para simular a corrida de teste, ou arraste os atletas e cones para personalizar!
+                      </p>
                     </div>
+
+                    {/* YouTube Support Video Card */}
+                    {generatedTest.youtubeSearchQuery && (
+                      <div className="p-5 rounded-2xl border border-red-950/40 bg-gradient-to-br from-red-950/10 to-transparent flex flex-col gap-4 shadow-lg">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-red-400">
+                            <Youtube size={18} className="fill-red-400 text-red-500 animate-pulse" />
+                            <h5 className="text-xs font-black uppercase tracking-wider">
+                              Demonstração Prática no YouTube
+                            </h5>
+                          </div>
+                          <p className="text-xs text-zinc-300 leading-relaxed">
+                            Buscamos o termo técnico exato para você encontrar vídeos e exercícios idênticos a esse teste no YouTube:
+                          </p>
+                          <div className="p-3 rounded-xl bg-black/40 border border-zinc-800 text-xs font-mono text-zinc-200 select-all italic text-center mt-2">
+                            "{generatedTest.youtubeSearchQuery}"
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`, '_blank', 'noopener,noreferrer')}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 text-white hover:bg-red-700 font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
+                        >
+                          <Youtube size={14} className="fill-white text-white" />
+                          Abrir Busca de Vídeos Reais
+                        </button>
+                      </div>
+                    )}
                   </div>
+
                 </div>
               ) : (
                 <div className="py-12 text-center text-zinc-500 uppercase text-xs font-bold">

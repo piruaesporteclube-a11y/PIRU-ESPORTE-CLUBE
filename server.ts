@@ -221,7 +221,15 @@ const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, des
       "Certifique-se de que o atleta realizou um aquecimento prévio adequado de 10 minutos antes do início do teste.",
       "Mantenha a mesma distância e os mesmos equipamentos para garantir a isonomia da avaliação com todo o elenco."
     ],
-    youtubeSearchQuery: `treinamento de ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`
+    youtubeSearchQuery: `treinamento de ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`,
+    visualObjects: [
+      { id: 'cone1', type: 'cone', x: 20, y: 30 },
+      { id: 'cone2', type: 'cone', x: 20, y: 70 },
+      { id: 'cone3', type: 'cone', x: 80, y: 30 },
+      { id: 'cone4', type: 'cone', x: 80, y: 70 },
+      { id: 'player1', type: 'player', x: 25, y: 50, team: 'A', label: '9', animate: true, toX: 75, toY: 50 },
+      { id: 'ball1', type: 'ball', x: 27, y: 50, animate: true, toX: 73, toY: 50 }
+    ]
   };
 };
 
@@ -437,7 +445,15 @@ export async function createExpressApp() {
       const prompt = `Gere uma atividade física/técnica ou protocolo de teste altamente profissional para avaliar o atributo "${fieldName}" (Categoria: ${fieldCategory}, Descrição: ${description}) na modalidade esportiva "${modality || 'Futebol'}".
       O objetivo deste teste é servir de critério objetivo e prático para que o treinador possa avaliar o atleta e atribuir uma nota de 0 a 10 para esse atributo específico na Ficha Técnica.
       O teste deve conter uma estrutura de pontuação clara e detalhada que relacione o desempenho prático (ex: tempo em segundos, acertos em repetições, comportamento observado) com a nota de 0 a 10 correspondente.
-      Além disso, forneça uma sugestão de termo de busca perfeito no YouTube para encontrar demonstrações visuais deste treinamento.
+      Além disso, forneça uma sugestão de termo de busca perfeito e extremamente específico no YouTube para encontrar demonstrações visuais excelentes deste treinamento.
+      
+      E o mais importante: GERE UMA LISTA DE OBJETOS TÁTICOS (visualObjects) para simular e ilustrar de forma interativa e animada esta atividade em um tabuleiro/quadro tático 2D/3D (com 100x100 de coordenadas).
+      Posicione estrategicamente:
+      - Cones ('cone') para delimitar os limites, marcações ou percursos descritos no setup (ex: cones em (20,30), (20,70), (80,30), (80,70)).
+      - Atletas ('player') da Equipe 'A' (azul) ou 'B' (vermelho) simulando a execução dos movimentos.
+      - Pelo menos uma bola ('ball') se o teste envolver bola.
+      - Configure as propriedades de destino 'toX' e 'toY' e defina 'animate': true para os objetos que se movem, simulando a animação real do exercício!
+      
       Escreva tudo em Português-BR e retorne as informações estruturadas no formato JSON especificado.`;
 
       const ai = getAI();
@@ -466,9 +482,28 @@ export async function createExpressApp() {
                 }
               },
               tips: { type: Type.ARRAY, items: { type: Type.STRING } },
-              youtubeSearchQuery: { type: Type.STRING, description: "Termo de busca perfeito no YouTube para demonstração deste exercício (ex: 'treino de finalização de voleio no futebol')" }
+              youtubeSearchQuery: { type: Type.STRING, description: "Termo de busca perfeito no YouTube para demonstração deste exercício (ex: 'treino de finalização de voleio no futebol')" },
+              visualObjects: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    type: { type: Type.STRING, description: "cone, player, ball, arrow, barrier, stake" },
+                    x: { type: Type.NUMBER, description: "Posição X (0-100)" },
+                    y: { type: Type.NUMBER, description: "Posição Y (0-100)" },
+                    toX: { type: Type.NUMBER, description: "Posição X final para animar (0-100, opcional)" },
+                    toY: { type: Type.NUMBER, description: "Posição Y final para animar (0-100, opcional)" },
+                    team: { type: Type.STRING, description: "A ou B se player (opcional)" },
+                    label: { type: Type.STRING, description: "Número ou texto do player/cone (opcional)" },
+                    animate: { type: Type.BOOLEAN, description: "true ou false se move (opcional)" }
+                  },
+                  required: ['id', 'type', 'x', 'y']
+                },
+                description: "Lista de 4 a 10 objetos táticos simulando o teste no campo/quadra."
+              }
             },
-            required: ['testName', 'objective', 'materials', 'setup', 'execution', 'scoringCriteria', 'tips', 'youtubeSearchQuery']
+            required: ['testName', 'objective', 'materials', 'setup', 'execution', 'scoringCriteria', 'tips', 'youtubeSearchQuery', 'visualObjects']
           } as any
         }
       });
