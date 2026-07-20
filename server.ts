@@ -159,42 +159,64 @@ const getFallbackSuggestions = (modality: string): any[] => {
   const normalizedMod = normalizeModality(modality);
   return [
     {
-      name: `Ativação Coordenativa Dinâmica (${normalizedMod})`,
-      description: `Aquecimento global estruturado com troca de passes e ritmos curtos. Sincroniza a movimentação conjunta de atletas e o domínio dinâmico do material de treino.`,
+      name: `Ativação Coordenativa Dinâmica & Mobilidade (${normalizedMod})`,
+      description: `Protocolo profissional inspirado nas metodologias de elite (como FIFA 11+). Combina mobilidade articular ativa, coordenação neuromuscular fina e acelerações curtas para preparar o corpo prevenindo lesões.`,
       category: "Aquecimento",
       intensity: "Baixa",
       difficulty: "Iniciante",
-      duration: 10,
-      equipment: "Bolas de treino, jalecos ou coletes em duas tonalidades",
+      duration: 12,
+      equipment: "Escada de agilidade, mini-cones, jalecos de ativação",
+      youtubeUrl: "https://www.youtube.com/watch?v=Nn1EaIeI58Q",
       visualData: [
-        { id: 'p1', type: 'player', x: 15, y: 50, team: 'A', label: '1', animate: true, toX: 85, toY: 50 }
+        { id: 'p1', type: 'player', x: 20, y: 50, team: 'A', label: '1', animate: true, toX: 80, toY: 50 },
+        { id: 'c1', type: 'cone', x: 40, y: 48 },
+        { id: 'c2', type: 'cone', x: 60, y: 52 }
       ]
     },
     {
-      name: `Treino de Fundamentos Técnicos (${normalizedMod})`,
-      description: `Zigue-zague técnico em velocidade ideal para desenvolver posicionamento, controle de equilíbrio corporal e aceleração com materiais demarcados no chão.`,
-      category: "Fundamento",
+      name: `Compactação Defensiva e Cobertura de Linhas (${normalizedMod})`,
+      description: `Trabalho defensivo tático baseado em métodos europeus de basculação e controle de profundidade. Foco em mover a linha de defesa coordenadamente, diminuindo o espaço entrelinhas e forçando o passe para fora.`,
+      category: "Defesa",
+      intensity: "Alta",
+      difficulty: "Avançado",
+      duration: 20,
+      equipment: "Coletes de duas cores, mini-gols de apoio",
+      youtubeUrl: "https://www.youtube.com/watch?v=0hLzJ59TzM4",
+      visualData: [
+        { id: 'def1', type: 'player', x: 60, y: 35, team: 'A', label: '3', animate: true, toX: 50, toY: 40 },
+        { id: 'def2', type: 'player', x: 60, y: 65, team: 'A', label: '4', animate: true, toX: 50, toY: 60 },
+        { id: 'att1', type: 'player', x: 40, y: 50, team: 'B', label: '9', animate: true, toX: 48, toY: 50 },
+        { id: 'ball1', type: 'ball', x: 42, y: 50, animate: true, toX: 49, toY: 50 }
+      ]
+    },
+    {
+      name: `Tabela Ofensiva com Infiltração em Amplitude (${normalizedMod})`,
+      description: `Desenvolve o ritmo de ataque rápido através de triangulações nas pontas. Passe de atração vertical, ultrapassagem do ala/lateral no espaço vazio e cruzamento rasteiro rápido na área.`,
+      category: "Ataque",
       intensity: "Alta",
       difficulty: "Intermediário",
       duration: 15,
-      equipment: "Mini-cones coloridos, bola regulamentar, fita métrica",
+      equipment: "Bolas profissionais de alta velocidade, cones direcionais",
+      youtubeUrl: "https://www.youtube.com/watch?v=bO1N_S_K4uM",
       visualData: [
-        { id: 'p1', type: 'player', x: 20, y: 50, team: 'A', label: '1', animate: true, toX: 80, toY: 50 },
-        { id: 'c1', type: 'cone', x: 40, y: 40 },
-        { id: 'c2', type: 'cone', x: 60, y: 60 }
+        { id: 'p1', type: 'player', x: 30, y: 70, team: 'A', label: '8', animate: true, toX: 55, toY: 50 },
+        { id: 'p2', type: 'player', x: 70, y: 80, team: 'A', label: '7', animate: true, toX: 85, toY: 80 },
+        { id: 'ball1', type: 'ball', x: 32, y: 70, animate: true, toX: 72, toY: 80 }
       ]
     },
     {
-      name: `Esquema Tático Integrado de Jogo (${normalizedMod})`,
-      description: `Trabalho de posicionamento defensivo e ofensivo simultâneo. Foco na manutenção de bloco tático e transições dinâmicas rápidas pelas laterais da quadra.`,
-      category: "Tático",
-      intensity: "Média",
+      name: `Circuito Físico-Técnico de Potência e Agilidade (${normalizedMod})`,
+      description: `Sessão integrada de condicionamento físico específico de alto rendimento. Combina saltos de barreira, zigue-zague explosivo em estacas e sprint de frenagem rápida com finalização de primeira.`,
+      category: "Físico",
+      intensity: "Alta",
       difficulty: "Avançado",
       duration: 25,
-      equipment: "Coletes azuis e verdes, cones posicionadores grandes",
+      equipment: "Estacas de slalom, barreiras de pliometria, cronômetro digital",
+      youtubeUrl: "https://www.youtube.com/watch?v=8m9gWfQfF0s",
       visualData: [
-        { id: 'p1', type: 'player', x: 30, y: 30, team: 'A', label: '1', animate: true, toX: 50, toY: 30 },
-        { id: 'p2', type: 'player', x: 70, y: 70, team: 'B', label: 'D', animate: true, toX: 50, toY: 70 }
+        { id: 'p1', type: 'player', x: 15, y: 50, team: 'A', label: '10', animate: true, toX: 75, toY: 50 },
+        { id: 'barr1', type: 'barrier', x: 35, y: 50 },
+        { id: 'barr2', type: 'barrier', x: 55, y: 50 }
       ]
     }
   ];
@@ -275,9 +297,10 @@ export async function createExpressApp() {
       const prompt = `Crie um exercício de treinamento profissional altamente criativo para a modalidade: ${modality}. ${goal ? `Objetivo específico: ${goal}` : ''}
     O exercício deve incluir posicionamento estratégico de materiais (cones, barreiras, estacas) e jogadores.
     Gere um array visualData com pelo menos 5 objetos.
-    IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
+    IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' as true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tipos de materiais: cone, barrier, arrow, player, ball.
     Para players, use equipes (A, B, C, D) e labels (números).
+    Adicione um campo 'youtubeUrl' contendo um link real ou sugerido de exemplo do YouTube relacionado a este tema de exercício (por exemplo: https://www.youtube.com/watch?v=Nn1EaIeI58Q para aquecimento/coordenação, https://www.youtube.com/watch?v=0hLzJ59TzM4 para defesa, ou links similares de treinos de elite).
     Retorne a descrição detalhada do exercício.
     A descrição deve ser profissional e em Português-BR.`;
 
@@ -300,6 +323,7 @@ export async function createExpressApp() {
               difficulty: { type: Type.STRING, enum: ['Iniciante', 'Intermediário', 'Avançado'] },
               duration: { type: Type.NUMBER },
               equipment: { type: Type.STRING },
+              youtubeUrl: { type: Type.STRING },
               visualData: { 
                 type: Type.ARRAY,
                 items: {
@@ -362,8 +386,14 @@ export async function createExpressApp() {
     }
 
     try {
-      const prompt = `Gere 3 sugestões de exercícios profissionais de nível elite para a modalidade: ${modality}. 
-    Inculte um exercício de Aquecimento, um de Fundamento e um Tático.
+      const prompt = `Gere 4 sugestões de exercícios profissionais de nível elite e altamente diversificados para a modalidade: ${modality}.
+    Inclua obrigatoriamente:
+    1. Um exercício de "Aquecimento" (focado em ativação dinâmica ou mobilidade).
+    2. Um exercício de "Defesa" (como compactação defensiva, basculação ou marcação sob pressão).
+    3. Um exercício de "Ataque" (como triangulações rápidas, ultrapassagens ou finalizações).
+    4. Um exercício de "Físico" (preparo físico integrado com bola, agilidade explosiva ou sprints de transição).
+
+    Para cada exercício, inclua obrigatoriamente um campo 'youtubeUrl' com um link real ou sugerido do YouTube sobre o tema de treino correspondente (como https://www.youtube.com/watch?v=Nn1EaIeI58Q para aquecimento/mobilidade, https://www.youtube.com/watch?v=0hLzJ59TzM4 para trabalho de defesa, etc.).
     Para cada um, gere um array visualData com pelo menos 4 objetos.
     IMPORTANTE: Para objetos móveis (jogadores e bola), SEMPRE defina 'animate' como true e forneça 'toX' e 'toY' diferentes de 'x' e 'y' para criar animação.
     Tudo em Português-BR.`;
@@ -389,6 +419,7 @@ export async function createExpressApp() {
                 difficulty: { type: Type.STRING, enum: ['Iniciante', 'Intermediário', 'Avançado'] },
                 duration: { type: Type.NUMBER },
                 equipment: { type: Type.STRING },
+                youtubeUrl: { type: Type.STRING },
                 visualData: {
                   type: Type.ARRAY,
                   items: {

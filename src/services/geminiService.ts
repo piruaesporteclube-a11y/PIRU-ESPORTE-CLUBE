@@ -8,6 +8,7 @@ export interface GeneratedDrill {
   duration: number;
   equipment: string;
   visualData: string; // JSON string
+  youtubeUrl?: string;
 }
 
 const getFallbackDrill = (modality: string, goal: string = ""): GeneratedDrill => {

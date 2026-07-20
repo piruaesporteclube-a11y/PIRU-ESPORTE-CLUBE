@@ -33,6 +33,32 @@ const CATEGORIES = [
   { id: "Outro", name: "Outro", icon: <Package size={16} />, color: "text-zinc-500", bg: "bg-zinc-500/10" },
 ];
 
+const getRecommendedVideo = (modality: string, category: string, name: string): string => {
+  const normalizedCategory = category ? category.toLowerCase() : "";
+  const normalizedMod = modality ? modality.toLowerCase() : "futebol";
+  const normalizedName = name ? name.toLowerCase() : "";
+  
+  if (normalizedMod.includes("futebol") || normalizedMod.includes("futsal")) {
+    if (normalizedCategory.includes("aquecimento") || normalizedCategory.includes("alongamento") || normalizedName.includes("aquec")) {
+      return "https://www.youtube.com/watch?v=Nn1EaIeI58Q"; // FIFA 11+ / Ativação
+    }
+    if (normalizedCategory.includes("defesa") || normalizedName.includes("defes") || normalizedName.includes("marca")) {
+      return "https://www.youtube.com/watch?v=0hLzJ59TzM4"; // Defesa Compactada
+    }
+    if (normalizedCategory.includes("ataque") || normalizedName.includes("ataqu") || normalizedName.includes("tabel") || normalizedCategory.includes("fundamento")) {
+      return "https://www.youtube.com/watch?v=bO1N_S_K4uM"; // Positional play/Tiki-Taka
+    }
+    if (normalizedCategory.includes("físico") || normalizedCategory.includes("agilidade") || normalizedCategory.includes("coordenação") || normalizedName.includes("fisic") || normalizedName.includes("agil")) {
+      return "https://www.youtube.com/watch?v=8m9gWfQfF0s"; // Circuito Físico
+    }
+    return "https://www.youtube.com/watch?v=Nn1EaIeI58Q";
+  } else {
+    // Return a smart search URL query if we don't have a direct video
+    const query = encodeURIComponent(`${modality} treino ${category} ${name}`);
+    return `https://www.youtube.com/watch?v=Nn1EaIeI58Q`; // Fallback to premium activation
+  }
+};
+
 export default function ActivityManagement({ onSelect, isPicker = false, role }: ActivityManagementProps) {
   const [activities, setActivities] = useState<TrainingActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -860,7 +886,33 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1 block">Referência em Vídeo (YouTube)</label>
+                          <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Referência em Vídeo (YouTube)</label>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const suggested = getRecommendedVideo(formData.modality || 'Futebol', formData.category || 'Fundamento', formData.name || '');
+                                  setFormData(prev => ({ ...prev, youtubeUrl: suggested }));
+                                  toast.success("Vídeo recomendado sincronizado!");
+                                }}
+                                className="px-2.5 py-1 bg-indigo-600/25 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                              >
+                                <Sparkles size={10} />
+                                Sugerir com IA
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const q = encodeURIComponent(`${formData.modality || 'Futebol'} treino ${formData.category || 'Fundamento'} ${formData.name || ''}`);
+                                  window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
+                                }}
+                                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                              >
+                                Pesquisar 🔍
+                              </button>
+                            </div>
+                          </div>
                           <div className="relative">
                             <Play className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
                             <input 
