@@ -168,14 +168,20 @@ export default function PlayerProfileForm({
     };
   }, [generatedTest, selectedAthlete]);
 
-  const getLocalAssessmentTestFallback = (fieldName: string, fieldCategory: string, description: string, modality: string = "Futebol") => {
-    const fieldLower = fieldName.toLowerCase();
+  const getLocalAssessmentTestFallback = (fieldName: any, fieldCategory: any, description: any, modality: any = "Futebol") => {
+    const safeFieldName = typeof fieldName === "string" && fieldName ? fieldName : "Atributo";
+    const safeCategory = typeof fieldCategory === "string" && fieldCategory ? fieldCategory : "Técnico";
+    const safeDesc = typeof description === "string" && description ? description : "";
+    const safeModality = typeof modality === "string" && modality ? modality : "Futebol";
+
+    const fieldLower = safeFieldName.toLowerCase();
+    const modalityLower = safeModality.toLowerCase();
     
     // 1. Passing / Crossing / Long Balls
     if (fieldLower.includes("passe") || fieldLower.includes("cruzamento") || fieldLower.includes("lançamento") || fieldLower.includes("assistência")) {
       return {
-        testName: `Protocolo de Precisão e Conexão de Passe: ${fieldName}`,
-        objective: `Mensurar a acurácia, velocidade de bola e tomada de decisão no passe curto e médio (${fieldCategory}) sob pressão controlada.`,
+        testName: `Protocolo de Precisão e Conexão de Passe: ${safeFieldName}`,
+        objective: `Mensurar a acurácia, velocidade de bola e tomada de decisão no passe curto e médio (${safeCategory}) sob pressão controlada.`,
         materials: [
           "4 cones para delimitar o quadrado inicial",
           "2 estacas verticais ou mini-balizas a 12 metros",
@@ -199,7 +205,7 @@ export default function PlayerProfileForm({
           "Oriente o atleta a golpear a bola com o peito do pé ou parte interna (chapa) dependendo da modalidade.",
           "Certifique-se de manter o mesmo distanciamento para a isonomia da nota com todos os atletas."
         ],
-        youtubeSearchQuery: `treinamento de passe de precisão no ${modality.toLowerCase()}`,
+        youtubeSearchQuery: `treinamento de passe de precisão no ${modalityLower}`,
         visualObjects: [
           { id: 'cone1', type: 'cone', x: 20, y: 30 },
           { id: 'cone2', type: 'cone', x: 20, y: 70 },
@@ -214,8 +220,8 @@ export default function PlayerProfileForm({
     // 2. Shooting / Finishing / Heading / Volley shot / Serve
     if (fieldLower.includes("chute") || fieldLower.includes("finalização") || fieldLower.includes("cabeceio") || fieldLower.includes("arremesso") || fieldLower.includes("saque") || fieldLower.includes("ataque")) {
       return {
-        testName: `Protocolo de Finalização e Eficácia de Chute: ${fieldName}`,
-        objective: `Avaliar a precisão, força e técnica de golpeio na finalização (${fieldCategory}) sob movimento e tempo limitado.`,
+        testName: `Protocolo de Finalização e Eficácia de Chute: ${safeFieldName}`,
+        objective: `Avaliar a precisão, força e técnica de golpeio na finalização (${safeCategory}) sob movimento e tempo limitado.`,
         materials: [
           "Gol/baliza regulamentar ou rede oficial",
           "4 cones para demarcar os cantos superiores/inferiores da baliza",
@@ -239,7 +245,7 @@ export default function PlayerProfileForm({
           "Insista para o atleta finalizar com o corpo equilibrado, sem pressa excessiva.",
           "O passe do lançador deve ser consistente para manter o padrão do teste."
         ],
-        youtubeSearchQuery: `treinamento de finalização de primeira no ${modality.toLowerCase()}`,
+        youtubeSearchQuery: `treinamento de finalização de primeira no ${modalityLower}`,
         visualObjects: [
           { id: 'goal_back', type: 'barrier', x: 90, y: 35 },
           { id: 'goal_back2', type: 'barrier', x: 90, y: 65 },
@@ -254,8 +260,8 @@ export default function PlayerProfileForm({
     // 3. Speed / Acceleration / Agility / Coordination
     if (fieldLower.includes("velocidade") || fieldLower.includes("aceleração") || fieldLower.includes("agilidade") || fieldLower.includes("coordenação") || fieldLower.includes("físico") || fieldLower.includes("impulso") || fieldLower.includes("respiratório")) {
       return {
-        testName: `Teste de Agilidade e Velocidade Multidirecional: ${fieldName}`,
-        objective: `Medir a capacidade de mudança de direção rápida, aceleração linear e coordenação motora (${fieldCategory}).`,
+        testName: `Teste de Agilidade e Velocidade Multidirecional: ${safeFieldName}`,
+        objective: `Medir a capacidade de mudança de direção rápida, aceleração linear e coordenação motora (${safeCategory}).`,
         materials: [
           "8 cones sinalizadores",
           "Cronômetro centesimal digital",
@@ -275,10 +281,10 @@ export default function PlayerProfileForm({
           { scoreRange: "1 - 4 (Ruim)", criteria: "Tempo insatisfatório (acima de 18 segundos) ou frequente queda/toque de cones." }
         ],
         tips: [
-          "Utilize calçado com tração adequada para o piso do teste, evitando escorregões.",
+          "Utilize calçado com tração adequada para o piso do teste, avoiding escorregões.",
           "Insista para o atleta focar no centro de gravidade baixo nas curvas rápidas."
         ],
-        youtubeSearchQuery: `teste de agilidade illinois agility drill ${modality.toLowerCase()}`,
+        youtubeSearchQuery: `teste de agilidade illinois agility drill ${modalityLower}`,
         visualObjects: [
           { id: 'cone_s1', type: 'cone', x: 20, y: 20 },
           { id: 'cone_s2', type: 'cone', x: 20, y: 80 },
@@ -294,8 +300,8 @@ export default function PlayerProfileForm({
     // 4. Marking / Defense / Tackling / Positioning (Tactical / Behavioral / Defensive)
     if (fieldLower.includes("marcação") || fieldLower.includes("desarme") || fieldLower.includes("posicionamento") || fieldLower.includes("cobertura") || fieldLower.includes("tático") || fieldLower.includes("comportamental") || fieldLower.includes("liderança") || fieldLower.includes("comunicação")) {
       return {
-        testName: `Simulação de Duelo 1x1 Defensivo de Elite: ${fieldName}`,
-        objective: `Avaliar o tempo de reação, posicionamento de marcação e eficiência de desarme (${fieldCategory}) em contexto real.`,
+        testName: `Simulação de Duelo 1x1 Defensivo de Elite: ${safeFieldName}`,
+        objective: `Avaliar o tempo de reação, posicionamento de marcação e eficiência de desarme (${safeCategory}) em contexto real.`,
         materials: [
           "4 cones para delimitar a zona de duelo (12x12 metros)",
           "2 mini-traves nas linhas de fundo",
@@ -318,7 +324,7 @@ export default function PlayerProfileForm({
           "Instrua o atleta a manter o peso do corpo nos calcanhares e as pernas semiflexionadas.",
           "Monitore o uso do corpo para que o contato seja lícito e seguro para ambos."
         ],
-        youtubeSearchQuery: `defending 1v1 football drills ${modality.toLowerCase()}`,
+        youtubeSearchQuery: `defending 1v1 football drills ${modalityLower}`,
         visualObjects: [
           { id: 'cone_d1', type: 'cone', x: 30, y: 20 },
           { id: 'cone_d2', type: 'cone', x: 30, y: 80 },
@@ -333,8 +339,8 @@ export default function PlayerProfileForm({
 
     // 5. Default Fallback
     return {
-      testName: `Protocolo Técnico de Avaliação Prática: ${fieldName}`,
-      objective: `Avaliar com precisão o atributo técnico/físico de ${fieldName} (${fieldCategory}) com base na descrição fornecida.`,
+      testName: `Protocolo Técnico de Avaliação Prática: ${safeFieldName}`,
+      objective: `Avaliar com precisão o atributo técnico/físico de ${safeFieldName} (${safeCategory}) com base na descrição fornecida.`,
       materials: [
         "6 cones de marcação coloridos",
         "Cronômetro ou trena de medição",
@@ -357,7 +363,7 @@ export default function PlayerProfileForm({
         "Assegure-se de que o aquecimento prévio de 10 minutos foi concluído.",
         "Mantenha sempre os mesmos padrões climáticos, gramado/quadra e bolas para o teste ser justo."
       ],
-      youtubeSearchQuery: `como treinar ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`,
+      youtubeSearchQuery: `como treinar ${fieldLower} no ${modalityLower}`,
       visualObjects: [
         { id: 'cone1', type: 'cone', x: 20, y: 30 },
         { id: 'cone2', type: 'cone', x: 20, y: 70 },

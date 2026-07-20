@@ -18,7 +18,7 @@ try {
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("Chave da API Gemini não configurada no servidor (GEMINI_API_KEY).");
     }
@@ -201,15 +201,23 @@ const getFallbackSuggestions = (modality: string): any[] => {
 };
 
 // Generates beautiful fallback assessment tests if Gemini fails or is not configured
-const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, description: string, modality: string = "Futebol") => {
+const getFallbackAssessmentTest = (fieldName: any, fieldCategory: any, description: any, modality: any = "Futebol") => {
+  const safeFieldName = typeof fieldName === "string" && fieldName ? fieldName : "Atributo";
+  const safeCategory = typeof fieldCategory === "string" && fieldCategory ? fieldCategory : "Técnico";
+  const safeDesc = typeof description === "string" && description ? description : "";
+  const safeModality = typeof modality === "string" && modality ? modality : "Futebol";
+
+  const fieldLower = safeFieldName.toLowerCase();
+  const modalityLower = safeModality.toLowerCase();
+
   return {
-    testName: `Protocolo de Teste Prático: ${fieldName}`,
-    objective: `Avaliar com precisão e objetividade o atributo de ${fieldName} (${fieldCategory}) com base na descrição: "${description}".`,
+    testName: `Protocolo de Teste Prático: ${safeFieldName}`,
+    objective: `Avaliar com precisão e objetividade o atributo de ${safeFieldName} (${safeCategory}) com base na descrição: "${safeDesc}".`,
     materials: [
       "Cones de marcação (6 unidades)",
       "Cronômetro digital ou smartphone",
       "Prancheta e caneta para anotações do treinador",
-      modality === "Vôlei" ? "Rede e bolas de vôlei" : modality === "Basquete" ? "Tabela e bolas de basquete" : "Bolas de futebol/futsal"
+      safeModality === "Vôlei" ? "Rede e bolas de vôlei" : safeModality === "Basquete" ? "Tabela e bolas de basquete" : "Bolas de futebol/futsal"
     ],
     setup: `Demarque uma área retangular de 15x10 metros utilizando os cones. Posicione uma estação de partida no cone inicial e crie 3 pontos de passagem intermediários com distância de 3 metros entre si, finalizando no cone oposto para registro de tempo ou precisão das repetições.`,
     execution: [
@@ -228,7 +236,7 @@ const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, des
       "Certifique-se de que o atleta realizou um aquecimento prévio adequado de 10 minutos antes do início do teste.",
       "Mantenha a mesma distância e os mesmos equipamentos para garantir a isonomia da avaliação com todo o elenco."
     ],
-    youtubeSearchQuery: `treinamento de ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`,
+    youtubeSearchQuery: `treinamento de ${fieldLower} no ${modalityLower}`,
     visualObjects: [
       { id: 'cone1', type: 'cone', x: 20, y: 30 },
       { id: 'cone2', type: 'cone', x: 20, y: 70 },
