@@ -589,8 +589,9 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
           break;
         case 'player':
           const teamColor = TEAM_COLORS[obj.team || 'A'];
+          const r = fw * 0.024; // Base responsive sizing token
           
-          // Rotate player wedge indicating moving direction
+          // Rotate player direction indicators if a movement path is defined
           let playerAngle = 0;
           if (hasPath) {
             const tx = fieldBorder + (Number(obj.toX) / 100) * fw;
@@ -600,99 +601,154 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
           element = (
             <Group>
-              {/* Sombra projetada no chão que acompanha o pulo/bobbing */}
+              {/* Globo-Style Neon Selection Ring under the boneco */}
+              {isSelected && (
+                <Ellipse 
+                  x={0} 
+                  y={6} 
+                  radiusX={r * 1.5} 
+                  radiusY={r * 0.7} 
+                  stroke="#10b981" 
+                  strokeWidth={2} 
+                  dash={[4, 2]}
+                  shadowBlur={8}
+                  shadowColor="#10b981"
+                  shadowOpacity={0.9}
+                />
+              )}
+
+              {/* Realistic Ground Shadow that scales/moves with bobbing */}
               <Ellipse 
                 x={0} 
-                y={playerBob + 6} 
-                radiusX={fw * 0.02} 
-                radiusY={fw * 0.007} 
+                y={playerBob + 7} 
+                radiusX={r * 1.25} 
+                radiusY={r * 0.45} 
                 fill="#000000" 
-                opacity={Math.max(0.12, 0.4 - (playerBob * 0.04))} 
+                opacity={Math.max(0.12, 0.38 - (playerBob * 0.04))} 
               />
 
-              {/* Direction wedge */}
+              {/* Glowing Tactical Direct Path Pointer - Electronic Pen effect */}
               {hasPath && (
                 <Group rotation={playerAngle}>
                   <Line
-                    points={[fw * 0.024, -4, fw * 0.038, 0, fw * 0.024, 4]}
-                    fill={teamColor}
+                    points={[r * 1.1, 0, r * 2.2, 0]}
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    opacity={0.85}
+                  />
+                  <Line
+                    points={[r * 1.8, -4, r * 2.2, 0, r * 1.8, 4]}
+                    stroke="#10b981"
+                    strokeWidth={2.5}
                     closed
-                    opacity={0.9}
+                    opacity={0.85}
                   />
                 </Group>
               )}
 
-              {/* Jersey circular token with professional glow */}
-              <Circle 
-                x={0} 
-                y={0} 
-                radius={fw * 0.024} 
-                fill={teamColor} 
-                stroke={isSelected ? '#ffffff' : '#0f172a'} 
-                strokeWidth={isSelected ? 3 : 1.8} 
-                shadowBlur={isSelected ? 10 : 4} 
-                shadowColor={isSelected ? '#ffffff' : '#000000'}
-                shadowOpacity={0.65}
+              {/* 3D Weighted figurine base ring (Subbuteo pedestal effect) */}
+              <Ellipse
+                x={0}
+                y={5}
+                radiusX={r * 0.95}
+                radiusY={r * 0.42}
+                fill="#1e293b"
+                stroke="#0f172a"
+                strokeWidth={1.5}
               />
-              
-              {/* Inner details to feel like a real tactic board chip */}
-              <Group clipFunc={(ctx) => {
-                ctx.arc(0, 0, (fw * 0.024) - 1.5, 0, Math.PI * 2, false);
-              }}>
-                {/* Visual patterns depending on team */}
-                {obj.team === 'A' && (
-                  <Group>
-                    <Line points={[-10, -20, -10, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
-                    <Line points={[0, -20, 0, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
-                    <Line points={[10, -20, 10, 20]} stroke="#ffffff" strokeWidth={2} opacity={0.25} />
-                  </Group>
-                )}
-                {obj.team === 'B' && (
-                  <Line points={[-20, -20, 20, 20]} stroke="#ffffff" strokeWidth={4} opacity={0.3} />
-                )}
-                {obj.team === 'C' && (
-                  <Circle x={0} y={-12} radius={8} fill="#ffffff" opacity={0.25} />
-                )}
-                {obj.team === 'D' && (
-                  <Line points={[-20, 0, 20, 0]} stroke="#000000" strokeWidth={3} opacity={0.2} />
-                )}
-                {(obj.team === 'GK_A' || obj.team === 'GK_B') && (
-                  <Group opacity={0.4}>
-                    <Line points={[-20, -10, 20, -10]} stroke="#ffffff" strokeWidth={3} />
-                    <Line points={[-20, 0, 20, 0]} stroke="#ffffff" strokeWidth={3} />
-                    <Line points={[-20, 10, 20, 10]} stroke="#ffffff" strokeWidth={3} />
-                  </Group>
-                )}
-                {obj.team === 'REF' && (
-                  <Group opacity={0.45}>
-                    <Line points={[-12, -20, -12, 20]} stroke="#ffffff" strokeWidth={3} />
-                    <Line points={[-4, -20, -4, 20]} stroke="#ffffff" strokeWidth={3} />
-                    <Line points={[4, -20, 4, 20]} stroke="#ffffff" strokeWidth={3} />
-                    <Line points={[12, -20, 12, 20]} stroke="#ffffff" strokeWidth={3} />
-                  </Group>
-                )}
-                
-                {/* Subtle shirt collar highlight */}
-                <Line
-                  points={[-5, -(fw * 0.024), 0, -(fw * 0.01), 5, -(fw * 0.024)]}
-                  stroke="#ffffff"
-                  strokeWidth={1.5}
-                  opacity={0.5}
-                />
-              </Group>
+              <Ellipse
+                x={0}
+                y={3}
+                radiusX={r * 0.95}
+                radiusY={r * 0.42}
+                fill="#334155"
+                stroke="#475569"
+                strokeWidth={1}
+              />
 
-              {/* Player Number text */}
+              {/* Standing Figurine Torso (Jersey Body) */}
+              <Line
+                points={[
+                  -r * 0.75, 3,
+                  -r * 0.42, -r * 1.0,
+                  r * 0.42, -r * 1.0,
+                  r * 0.75, 3
+                ]}
+                fill={teamColor}
+                stroke="#0f172a"
+                strokeWidth={1.5}
+                closed
+              />
+
+              {/* Custom High-Fidelity Team Uniform Graphics */}
+              {obj.team === 'A' && (
+                <Line
+                  points={[-r * 0.42, -r * 1.0, r * 0.65, 1.5]}
+                  stroke="#ffffff"
+                  strokeWidth={r * 0.25}
+                  opacity={0.4}
+                />
+              )}
+              {obj.team === 'B' && (
+                <Line
+                  points={[-r * 0.58, -r * 0.3, r * 0.58, -r * 0.3]}
+                  stroke="#ffffff"
+                  strokeWidth={r * 0.3}
+                  opacity={0.4}
+                />
+              )}
+              {obj.team === 'REF' && (
+                <Group opacity={0.35}>
+                  <Line points={[-r * 0.2, -r * 1.0, -r * 0.2, 3]} stroke="#ffffff" strokeWidth={2} />
+                  <Line points={[0, -r * 1.0, 0, 3]} stroke="#ffffff" strokeWidth={2} />
+                  <Line points={[r * 0.2, -r * 1.0, r * 0.2, 3]} stroke="#ffffff" strokeWidth={2} />
+                </Group>
+              )}
+              {(obj.team === 'GK_A' || obj.team === 'GK_B') && (
+                <Group opacity={0.35}>
+                  <Line points={[-r * 0.6, 0, -r * 0.45, -r * 0.5]} stroke="#ffffff" strokeWidth={3} />
+                  <Line points={[r * 0.6, 0, r * 0.45, -r * 0.5]} stroke="#ffffff" strokeWidth={3} />
+                </Group>
+              )}
+
+              {/* Figurine Shirt Collar Outline */}
+              <Line
+                points={[-r * 0.18, -r * 1.0, 0, -r * 0.75, r * 0.18, -r * 1.0]}
+                stroke="#0f172a"
+                strokeWidth={1.2}
+                opacity={0.7}
+              />
+
+              {/* Standing Figurine Human Head (Boneco effect) */}
+              <Circle
+                x={0}
+                y={-r * 1.3}
+                radius={r * 0.3}
+                fill="#fdb388"
+                stroke="#0f172a"
+                strokeWidth={1.2}
+              />
+              <Ellipse
+                x={0}
+                y={-r * 1.5}
+                radiusX={r * 0.25}
+                radiusY={r * 0.12}
+                fill="#374151"
+              />
+
+              {/* Player Number/Label on the Chest */}
               <Text 
-                x={-15} 
-                y={-6} 
+                x={-r} 
+                y={-r * 0.6} 
                 text={obj.label || ''} 
-                fontSize={fw * 0.018} 
+                fontSize={r * 0.52} 
                 fill={obj.team === 'D' ? '#0f172a' : '#ffffff'} 
                 fontStyle="bold" 
                 align="center" 
-                width={30} 
+                width={r * 2} 
                 shadowBlur={1}
                 shadowColor={obj.team === 'D' ? '#ffffff' : '#000000'}
+                shadowOpacity={0.8}
               />
             </Group>
           );
@@ -998,14 +1054,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
           </div>
         </div>
 
-        {isEditable && (
-          <div className="absolute top-8 left-4 pointer-events-none flex flex-col gap-2 z-10">
-            <div className="bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-2xl">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-[8px] font-black text-white uppercase tracking-widest">Mesa Tática Interativa</span>
-            </div>
-          </div>
-        )}
+        {/* Field Area Container */}
       </div>
 
       {/* HUD de Narração Dinâmica da Simulação da IA (Auto-Explicativo) */}

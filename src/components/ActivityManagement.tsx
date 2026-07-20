@@ -716,20 +716,8 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
 
               <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
                 {/* Left Side: Editor */}
-                <div className="flex-1 bg-black relative flex flex-col min-h-[400px] lg:min-h-0 overflow-y-auto custom-scrollbar p-4 lg:p-6">
-                  <div className="absolute top-6 left-6 z-10 pointer-events-none">
-                    <div className="bg-black/60 backdrop-blur-md border border-zinc-800 p-4 rounded-2xl flex items-center gap-3">
-                      <div className="p-2 bg-zinc-800 rounded-xl text-theme-primary">
-                        <Move size={16} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Editor Visual</p>
-                        <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tight">Posicionamento Realista</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full bg-zinc-900/10">
+                <div className="flex-1 bg-black relative flex flex-col min-h-0 h-full overflow-hidden p-4 lg:p-6">
+                  <div className="flex-1 w-full bg-zinc-900/10 overflow-hidden flex flex-col">
                     <DrillVisualizer 
                       activity={formData as any} 
                       isEditable={true} 
