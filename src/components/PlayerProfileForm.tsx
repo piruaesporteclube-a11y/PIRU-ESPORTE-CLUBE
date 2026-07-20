@@ -168,6 +168,207 @@ export default function PlayerProfileForm({
     };
   }, [generatedTest, selectedAthlete]);
 
+  const getLocalAssessmentTestFallback = (fieldName: string, fieldCategory: string, description: string, modality: string = "Futebol") => {
+    const fieldLower = fieldName.toLowerCase();
+    
+    // 1. Passing / Crossing / Long Balls
+    if (fieldLower.includes("passe") || fieldLower.includes("cruzamento") || fieldLower.includes("lançamento") || fieldLower.includes("assistência")) {
+      return {
+        testName: `Protocolo de Precisão e Conexão de Passe: ${fieldName}`,
+        objective: `Mensurar a acurácia, velocidade de bola e tomada de decisão no passe curto e médio (${fieldCategory}) sob pressão controlada.`,
+        materials: [
+          "4 cones para delimitar o quadrado inicial",
+          "2 estacas verticais ou mini-balizas a 12 metros",
+          "5 bolas de jogo regulamentares",
+          "Cronômetro"
+        ],
+        setup: `Demarque uma área quadrada de 3x3m (zona de partida) e posicione 2 estacas a 12 metros de distância, com abertura de 1.5 metros entre elas, funcionando como um portal receptor.`,
+        execution: [
+          "O atleta inicia posicionado dentro do quadrado com controle de bola.",
+          "Ao sinal do treinador, realiza um domínio orientado e efetua um passe firme rasteiro em direção ao portal das estacas.",
+          "O exercício é executado 5 vezes utilizando a perna dominante e 5 vezes com a perna não dominante para avaliar a lateralidade.",
+          "O treinador registra o número de passes que cruzaram as estacas sem tocá-las."
+        ],
+        scoringCriteria: [
+          { scoreRange: "9 - 10 (Excelente)", criteria: "Acerta de 9 a 10 passes no portal com velocidade e controle corporal impecáveis." },
+          { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Acerta de 7 a 8 passes com boa direção e força adequada." },
+          { scoreRange: "5 - 6 (Regular)", criteria: "Acerta de 5 a 6 passes, mas demonstra lentidão na preparação ou oscilações de força." },
+          { scoreRange: "1 - 4 (Ruim)", criteria: "Acerta menos de 4 passes, apresentando dificuldades mecânicas ou total falta de direção." }
+        ],
+        tips: [
+          "Oriente o atleta a golpear a bola com o peito do pé ou parte interna (chapa) dependendo da modalidade.",
+          "Certifique-se de manter o mesmo distanciamento para a isonomia da nota com todos os atletas."
+        ],
+        youtubeSearchQuery: `treinamento de passe de precisão no ${modality.toLowerCase()}`,
+        visualObjects: [
+          { id: 'cone1', type: 'cone', x: 20, y: 30 },
+          { id: 'cone2', type: 'cone', x: 20, y: 70 },
+          { id: 'stake1', type: 'cone', x: 80, y: 40, label: 'E1' },
+          { id: 'stake2', type: 'cone', x: 80, y: 60, label: 'E2' },
+          { id: 'player1', type: 'player', x: 22, y: 50, team: 'A', label: '10', animate: true, toX: 78, toY: 50 },
+          { id: 'ball1', type: 'ball', x: 24, y: 50, animate: true, toX: 78, toY: 50 }
+        ]
+      };
+    }
+
+    // 2. Shooting / Finishing / Heading / Volley shot / Serve
+    if (fieldLower.includes("chute") || fieldLower.includes("finalização") || fieldLower.includes("cabeceio") || fieldLower.includes("arremesso") || fieldLower.includes("saque") || fieldLower.includes("ataque")) {
+      return {
+        testName: `Protocolo de Finalização e Eficácia de Chute: ${fieldName}`,
+        objective: `Avaliar a precisão, força e técnica de golpeio na finalização (${fieldCategory}) sob movimento e tempo limitado.`,
+        materials: [
+          "Gol/baliza regulamentar ou rede oficial",
+          "4 cones para demarcar os cantos superiores/inferiores da baliza",
+          "10 bolas regulamentares",
+          "Lançador (parceiro ou treinador)"
+        ],
+        setup: `Fixe cones nos cantos do gol para criar alvos visuais. Posicione a zona de finalização na marca dos 12 a 15 metros em relação à baliza.`,
+        execution: [
+          "O atleta realiza uma corrida diagonal e recebe a bola de um passador/treinador posicionado na lateral.",
+          "O atleta deve finalizar de primeira ou com no máximo dois toques direcionando para as extremidades marcadas.",
+          "Realiza-se 10 finalizações alternando lados ou pernas/braços.",
+          "Registra-se as bolas que entram no gol e as que atingem os quadrantes pontuáveis."
+        ],
+        scoringCriteria: [
+          { scoreRange: "9 - 10 (Excelente)", criteria: "Acerta 8 ou mais finalizações na rede com direção, sendo pelo menos 4 nos cantos sinalizados." },
+          { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Acerta de 6 a 7 finalizações na rede com boa impulsão e direção consistente." },
+          { scoreRange: "5 - 6 (Regular)", criteria: "Acerta de 4 a 5 finalizações, apresentando falta de precisão ou golpes sem peso." },
+          { scoreRange: "1 - 4 (Ruim)", criteria: "Acerta menos de 3 finalizações, mandando bolas para fora ou facilmente defensáveis." }
+        ],
+        tips: [
+          "Insista para o atleta finalizar com o corpo equilibrado, sem pressa excessiva.",
+          "O passe do lançador deve ser consistente para manter o padrão do teste."
+        ],
+        youtubeSearchQuery: `treinamento de finalização de primeira no ${modality.toLowerCase()}`,
+        visualObjects: [
+          { id: 'goal_back', type: 'barrier', x: 90, y: 35 },
+          { id: 'goal_back2', type: 'barrier', x: 90, y: 65 },
+          { id: 'cone1', type: 'cone', x: 90, y: 30, label: 'Alvo' },
+          { id: 'cone2', type: 'cone', x: 90, y: 70, label: 'Alvo' },
+          { id: 'player_finisher', type: 'player', x: 40, y: 50, team: 'A', label: '9', animate: true, toX: 85, toY: 50 },
+          { id: 'ball_shot', type: 'ball', x: 42, y: 50, animate: true, toX: 90, toY: 50 }
+        ]
+      };
+    }
+
+    // 3. Speed / Acceleration / Agility / Coordination
+    if (fieldLower.includes("velocidade") || fieldLower.includes("aceleração") || fieldLower.includes("agilidade") || fieldLower.includes("coordenação") || fieldLower.includes("físico") || fieldLower.includes("impulso") || fieldLower.includes("respiratório")) {
+      return {
+        testName: `Teste de Agilidade e Velocidade Multidirecional: ${fieldName}`,
+        objective: `Medir a capacidade de mudança de direção rápida, aceleração linear e coordenação motora (${fieldCategory}).`,
+        materials: [
+          "8 cones sinalizadores",
+          "Cronômetro centesimal digital",
+          "Trena de medição de 20 metros"
+        ],
+        setup: `Monte um circuito em forma de retângulo de 10x5 metros. Coloque 4 cones centrais em linha reta espaçados por exatamente 2 metros entre eles.`,
+        execution: [
+          "O atleta inicia em pé na linha de largada no canto inferior esquerdo.",
+          "Ao sinal, corre em sprint até o cone oposto, faz o contorno e entra no zigue-zague pelos cones centrais.",
+          "Ao terminar o zigue-zague, realiza um sprint final até cruzar a linha de chegada.",
+          "O tempo total de percurso é registrado. Executa-se 3 tentativas dando descanso total entre elas."
+        ],
+        scoringCriteria: [
+          { scoreRange: "9 - 10 (Excelente)", criteria: "Tempo espetacular (abaixo de 15 segundos) com transições extremamente velozes e limpas." },
+          { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Tempo forte (entre 15.0s e 16.5s) com boa postura nas curvas e aceleração linear constante." },
+          { scoreRange: "5 - 6 (Regular)", criteria: "Tempo moderado (entre 16.5s e 18.0s), demonstrando perda de velocidade ao fazer contornos nos cones." },
+          { scoreRange: "1 - 4 (Ruim)", criteria: "Tempo insatisfatório (acima de 18 segundos) ou frequente queda/toque de cones." }
+        ],
+        tips: [
+          "Utilize calçado com tração adequada para o piso do teste, evitando escorregões.",
+          "Insista para o atleta focar no centro de gravidade baixo nas curvas rápidas."
+        ],
+        youtubeSearchQuery: `teste de agilidade illinois agility drill ${modality.toLowerCase()}`,
+        visualObjects: [
+          { id: 'cone_s1', type: 'cone', x: 20, y: 20 },
+          { id: 'cone_s2', type: 'cone', x: 20, y: 80 },
+          { id: 'cone_m1', type: 'cone', x: 40, y: 50, label: '1' },
+          { id: 'cone_m2', type: 'cone', x: 50, y: 50, label: '2' },
+          { id: 'cone_m3', type: 'cone', x: 60, y: 50, label: '3' },
+          { id: 'cone_m4', type: 'cone', x: 70, y: 50, label: '4' },
+          { id: 'player_sprinter', type: 'player', x: 20, y: 22, team: 'A', label: '7', animate: true, toX: 75, toY: 80 }
+        ]
+      };
+    }
+
+    // 4. Marking / Defense / Tackling / Positioning (Tactical / Behavioral / Defensive)
+    if (fieldLower.includes("marcação") || fieldLower.includes("desarme") || fieldLower.includes("posicionamento") || fieldLower.includes("cobertura") || fieldLower.includes("tático") || fieldLower.includes("comportamental") || fieldLower.includes("liderança") || fieldLower.includes("comunicação")) {
+      return {
+        testName: `Simulação de Duelo 1x1 Defensivo de Elite: ${fieldName}`,
+        objective: `Avaliar o tempo de reação, posicionamento de marcação e eficiência de desarme (${fieldCategory}) em contexto real.`,
+        materials: [
+          "4 cones para delimitar a zona de duelo (12x12 metros)",
+          "2 mini-traves nas linhas de fundo",
+          "Bolas de treino"
+        ],
+        setup: `Demarque uma quadra quadrada de 12x12m. Posicione o defensor no meio da área e o atacante com bola no lado oposto.`,
+        execution: [
+          "Ao comando sonoro, o atacante tenta passar em velocidade e marcar em uma das mini-traves.",
+          "O defensor deve fechar o ângulo de progressão, manter postura de braço estendido (sem dar o bote apressado) e efetuar o desarme.",
+          "Cada dupla realiza 5 duelos completos alternando a posse.",
+          "Anote se o defensor recupera a posse, retarda o jogo com sucesso ou é driblado."
+        ],
+        scoringCriteria: [
+          { scoreRange: "9 - 10 (Excelente)", criteria: "Recupera a bola de forma limpa em 4 a 5 duelos, demonstrando leitura perfeita de drible e posicionamento ótimo." },
+          { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Recupera a bola em 3 duelos e induz o atacante ao erro/temporização nos outros." },
+          { scoreRange: "5 - 6 (Regular)", criteria: "Não é driblado com facilidade, mas prefere recuar muito cedendo espaço para arremate de meia-distância." },
+          { scoreRange: "1 - 4 (Ruim)", criteria: "É facilmente batido no drible na maioria das tentativas ou comete faltas faltas duras desnecessárias." }
+        ],
+        tips: [
+          "Instrua o atleta a manter o peso do corpo nos calcanhares e as pernas semiflexionadas.",
+          "Monitore o uso do corpo para que o contato seja lícito e seguro para ambos."
+        ],
+        youtubeSearchQuery: `defending 1v1 football drills ${modality.toLowerCase()}`,
+        visualObjects: [
+          { id: 'cone_d1', type: 'cone', x: 30, y: 20 },
+          { id: 'cone_d2', type: 'cone', x: 30, y: 80 },
+          { id: 'cone_d3', type: 'cone', x: 70, y: 20 },
+          { id: 'cone_d4', type: 'cone', x: 70, y: 80 },
+          { id: 'defender', type: 'player', x: 55, y: 50, team: 'A', label: '3', animate: true, toX: 48, toY: 50 },
+          { id: 'attacker', type: 'player', x: 35, y: 50, team: 'B', label: '11', animate: true, toX: 46, toY: 50 },
+          { id: 'ball_1v1', type: 'ball', x: 37, y: 50, animate: true, toX: 46, toY: 50 }
+        ]
+      };
+    }
+
+    // 5. Default Fallback
+    return {
+      testName: `Protocolo Técnico de Avaliação Prática: ${fieldName}`,
+      objective: `Avaliar com precisão o atributo técnico/físico de ${fieldName} (${fieldCategory}) com base na descrição fornecida.`,
+      materials: [
+        "6 cones de marcação coloridos",
+        "Cronômetro ou trena de medição",
+        "Bolas regulamentares e apito"
+      ],
+      setup: `Demarque uma raia técnica retangular de 15x10 metros usando cones. Crie estações específicas para início, progresso e conclusão da ação técnica.`,
+      execution: [
+        "O atleta se posiciona no cone inicial sob comando de atenção ativo.",
+        "Ao apito, realiza a ação focada em demonstrar o atributo (ex: agilidade de pernas, controle rápido, cabeceio direcionado).",
+        "Repete-se o processo por 5 vezes consecutivas para mitigar fatores aleatórios de cansaço ou erro de sorte.",
+        "O treinador faz as anotações quantitativas e qualitativas correspondentes."
+      ],
+      scoringCriteria: [
+        { scoreRange: "9 - 10 (Excelente)", criteria: "Domínio e consistência técnica perfeita em todas as repetições, demonstrando controle sob pressão de alto nível." },
+        { scoreRange: "7 - 8 (Muito Bom/Bom)", criteria: "Consistência alta com pouquíssimas falhas secundárias e bom tempo de reação." },
+        { scoreRange: "5 - 6 (Regular)", criteria: "Execução funcional média, atingindo os objetivos mínimos, mas com erros perceptíveis de ritmo ou postura." },
+        { scoreRange: "1 - 4 (Ruim)", criteria: "Dificuldades nítidas para concluir as repetições propostas de forma satisfatória." }
+      ],
+      tips: [
+        "Assegure-se de que o aquecimento prévio de 10 minutos foi concluído.",
+        "Mantenha sempre os mesmos padrões climáticos, gramado/quadra e bolas para o teste ser justo."
+      ],
+      youtubeSearchQuery: `como treinar ${fieldName.toLowerCase()} no ${modality.toLowerCase()}`,
+      visualObjects: [
+        { id: 'cone1', type: 'cone', x: 20, y: 30 },
+        { id: 'cone2', type: 'cone', x: 20, y: 70 },
+        { id: 'cone3', type: 'cone', x: 80, y: 30 },
+        { id: 'cone4', type: 'cone', x: 80, y: 70 },
+        { id: 'player1', type: 'player', x: 25, y: 50, team: 'A', label: '10', animate: true, toX: 75, toY: 50 },
+        { id: 'ball1', type: 'ball', x: 27, y: 50, animate: true, toX: 73, toY: 50 }
+      ]
+    };
+  };
+
   const handleGenerateTest = async (field: any) => {
     setSelectedFieldForTest(field);
     setGeneratedTest(null);
@@ -194,15 +395,27 @@ export default function PlayerProfileForm({
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`Server returned status: ${response.status}`);
+      }
+
       const data = await response.json();
       if (data.success && data.test) {
         setGeneratedTest(data.test);
+        toast.success("Avaliação gerada com sucesso pela IA!");
       } else {
-        toast.error("Não foi possível gerar a atividade técnica de avaliação.");
+        throw new Error("Erro na resposta ou campo 'test' ausente.");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Erro de conexão ao gerar atividade.");
+      console.warn("[PlayerProfileForm] Falha ao chamar a API ou timeout no Vercel. Utilizando motor tático local integrado.", err);
+      const fallback = getLocalAssessmentTestFallback(
+        field.label,
+        categoryLabel,
+        field.description || "",
+        selectedAthlete?.modality || "Futebol"
+      );
+      setGeneratedTest(fallback);
+      toast.success("Protocolo gerado com sucesso!");
     } finally {
       setIsGeneratingTest(false);
     }

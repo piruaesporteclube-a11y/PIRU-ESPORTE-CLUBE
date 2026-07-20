@@ -4,8 +4,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let __filename = "";
+let __dirname = "";
+try {
+  __filename = fileURLToPath(import.meta.url);
+  __dirname = path.dirname(__filename);
+} catch (e) {
+  __filename = "";
+  __dirname = process.cwd();
+}
 
 // Initialize Gemini SDK on server-side
 let aiInstance: GoogleGenAI | null = null;
@@ -236,9 +243,6 @@ const getFallbackAssessmentTest = (fieldName: string, fieldCategory: string, des
 export async function createExpressApp() {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
-
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
 
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -568,9 +572,6 @@ async function startServer() {
   const app = await createExpressApp();
   const PORT = 3000;
   
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-
   // Vite middleware
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const { createServer: createViteServer } = await import("vite");
