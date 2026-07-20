@@ -19,7 +19,7 @@ interface VisualObject {
   y: number;
   toX?: number;
   toY?: number;
-  team?: 'A' | 'B' | 'C' | 'D';
+  team?: 'A' | 'B' | 'C' | 'D' | 'GK_A' | 'GK_B' | 'REF';
   label?: string;
   animate?: boolean;
   color?: string;
@@ -38,7 +38,10 @@ const TEAM_COLORS = {
   A: '#2563eb', // Team A: Vibrant Royal Blue
   B: '#dc2626', // Team B: Intense Red
   C: '#16a34a', // Team C: Forest Green
-  D: '#facc15'  // Team D: Gold Yellow
+  D: '#facc15', // Team D: Gold Yellow
+  GK_A: '#10b981', // Goalkeeper A: Emerald Green
+  GK_B: '#f59e0b', // Goalkeeper B: Amber Gold
+  REF: '#ec4899'  // Referee: Hot Pink
 };
 
 // Preset plays to showcase Globo-style tactical animation instantly!
@@ -93,7 +96,7 @@ const PRESET_PLAYS: Record<string, { name: string, description: string, modality
 export default function DrillVisualizer({ activity, onChange, isEditable = false, executionSteps }: DrillVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
-  const [is3D, setIs3D] = useState(true); // Perspectiva 3D ativada por padrão para realismo supremo
+  const [is3D, setIs3D] = useState(!isEditable); // Flat 2D for editing, 3D by default for viewing
   
   // Timeline playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -249,7 +252,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   // Mathematically correct coordinate mapping (SOLVES DRAG-JUMPING BUG)
   const handleDragEnd = (id: string, isTarget: boolean, e: any) => {
     if (!isEditable) return;
-    const { x, y } = e.target.position();
+    const { x, y } = e.currentTarget.position();
     
     // Map absolute stage coordinates back to 0-100 percentages
     const nx = Math.max(0, Math.min(100, ((x - fieldBorder) / fw) * 100));
@@ -279,13 +282,21 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     handleUpdate(newObjects);
   };
 
-  const addObject = (type: VisualObject['type'], customTeam?: 'A' | 'B') => {
+  const addObject = (type: VisualObject['type'], customTeam?: 'A' | 'B' | 'C' | 'D' | 'GK_A' | 'GK_B' | 'REF') => {
+    const defaultLabel = (() => {
+      if (type !== 'player') return '';
+      if (customTeam === 'GK_A') return 'G1';
+      if (customTeam === 'GK_B') return 'G2';
+      if (customTeam === 'REF') return 'AR';
+      return (objects.filter(o => o.type === 'player' && o.team === (customTeam || 'A')).length + 1).toString();
+    })();
+
     const newObj: VisualObject = {
       id: Math.random().toString(36).substr(2, 9),
       type,
       x: 45,
       y: 45,
-      label: type === 'player' ? (objects.filter(o => o.type === 'player' && o.team === (customTeam || 'A')).length + 1).toString() : '',
+      label: defaultLabel,
       team: customTeam || 'A',
       color: type === 'arrow' ? '#3b82f6' : undefined
     };
@@ -645,6 +656,21 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
                 {obj.team === 'D' && (
                   <Line points={[-20, 0, 20, 0]} stroke="#000000" strokeWidth={3} opacity={0.2} />
                 )}
+                {(obj.team === 'GK_A' || obj.team === 'GK_B') && (
+                  <Group opacity={0.4}>
+                    <Line points={[-20, -10, 20, -10]} stroke="#ffffff" strokeWidth={3} />
+                    <Line points={[-20, 0, 20, 0]} stroke="#ffffff" strokeWidth={3} />
+                    <Line points={[-20, 10, 20, 10]} stroke="#ffffff" strokeWidth={3} />
+                  </Group>
+                )}
+                {obj.team === 'REF' && (
+                  <Group opacity={0.45}>
+                    <Line points={[-12, -20, -12, 20]} stroke="#ffffff" strokeWidth={3} />
+                    <Line points={[-4, -20, -4, 20]} stroke="#ffffff" strokeWidth={3} />
+                    <Line points={[4, -20, 4, 20]} stroke="#ffffff" strokeWidth={3} />
+                    <Line points={[12, -20, 12, 20]} stroke="#ffffff" strokeWidth={3} />
+                  </Group>
+                )}
                 
                 {/* Subtle shirt collar highlight */}
                 <Line
@@ -772,6 +798,15 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
             <button type="button" onClick={() => addObject('player', 'B')} className="p-2.5 bg-red-600/15 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
               <User size={14} className="fill-current" /> Vermelho (B)
             </button>
+            <button type="button" onClick={() => addObject('player', 'GK_A')} className="p-2.5 bg-emerald-600/15 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
+              <Shield size={14} /> Goleiro A
+            </button>
+            <button type="button" onClick={() => addObject('player', 'GK_B')} className="p-2.5 bg-amber-600/15 text-amber-400 rounded-xl hover:bg-amber-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
+              <Shield size={14} /> Goleiro B
+            </button>
+            <button type="button" onClick={() => addObject('player', 'REF')} className="p-2.5 bg-zinc-700/15 text-zinc-300 rounded-xl hover:bg-zinc-700 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
+              <User size={14} /> Árbitro
+            </button>
             <button type="button" onClick={() => addObject('ball')} className="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
               <Disc size={14} /> Bola
             </button>
@@ -847,16 +882,22 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
                   
                   {selectedObject.type === 'player' && (
                     <>
-                      <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg shrink-0">
-                        {(['A', 'B', 'C', 'D'] as const).map(team => (
+                      <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg shrink-0 overflow-x-auto max-w-[150px] no-scrollbar">
+                        {(['A', 'B', 'GK_A', 'GK_B', 'REF'] as const).map(team => (
                           <button
                             key={team}
                             type="button"
                             onClick={() => updateObject(selectedObject.id, { team })}
                             className={cn(
-                              "w-5 h-5 rounded-md transition-all border",
+                              "w-5 h-5 rounded-md transition-all border shrink-0",
                               selectedObject.team === team ? "border-white scale-110" : "border-transparent opacity-40"
                             )}
+                            title={
+                              team === 'A' ? "Time Azul" :
+                              team === 'B' ? "Time Vermelho" :
+                              team === 'GK_A' ? "Goleiro A" :
+                              team === 'GK_B' ? "Goleiro B" : "Árbitro"
+                            }
                             style={{ backgroundColor: TEAM_COLORS[team] }}
                           />
                         ))}
