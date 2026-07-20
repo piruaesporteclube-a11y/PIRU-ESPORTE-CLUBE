@@ -43,7 +43,7 @@ import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestor
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
 import { api, clearCache, getUsageStats } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database, Search } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -202,7 +202,22 @@ const getStatConfig = (label: string, statsVal: number) => {
   }
 };
 
-const Dashboard = ({ stats, athletes, professors, events, user, settings, activeTab, setActiveTab, setIsAthleteFormOpen, pendingReportsCount = 0 }: { 
+const Dashboard = ({ 
+  stats, 
+  athletes, 
+  professors, 
+  events, 
+  user, 
+  settings, 
+  activeTab, 
+  setActiveTab, 
+  setIsAthleteFormOpen, 
+  pendingReportsCount = 0,
+  setEditingAthlete,
+  setSelectedAthleteForAnamnesis,
+  setSelectedAthleteForCard,
+  setSelectedAthleteForProfile
+}: { 
   stats: any, 
   athletes: Athlete[], 
   professors: Professor[],
@@ -212,12 +227,37 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
   activeTab: string,
   setActiveTab: (tab: string) => void,
   setIsAthleteFormOpen: (open: boolean) => void,
-  pendingReportsCount?: number
+  pendingReportsCount?: number,
+  setEditingAthlete: (athlete: Athlete | null) => void,
+  setSelectedAthleteForAnamnesis: (athlete: Athlete | null) => void,
+  setSelectedAthleteForCard: (athlete: Athlete | null) => void,
+  setSelectedAthleteForProfile: (athlete: Athlete | null) => void
 }) => {
   const [upcomingActivities, setUpcomingActivities] = useState<any[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [currentMonthStats, setCurrentMonthStats] = useState<{ presence: number, absence: number, total: number } | null>(null);
   const [todayBirthdays, setTodayBirthdays] = useState<(Athlete | Professor)[]>([]);
+  const [globalSearch, setGlobalSearch] = useState('');
+
+  const filteredAthletes = React.useMemo(() => {
+    if (!globalSearch.trim()) return [];
+    const queryNorm = globalSearch.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return athletes.filter(athlete => {
+      const nameNorm = athlete.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const nickNorm = (athlete.nickname || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const modNorm = (athlete.modality || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const subCat = athlete.birth_date ? getSubCategory(athlete.birth_date).toLowerCase() : '';
+      const posNorm = (athlete.position || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const numNorm = (athlete.jersey_number || '').toLowerCase();
+      
+      return nameNorm.includes(queryNorm) || 
+             nickNorm.includes(queryNorm) || 
+             modNorm.includes(queryNorm) || 
+             subCat.includes(queryNorm) ||
+             posNorm.includes(queryNorm) ||
+             numNorm.includes(queryNorm);
+    });
+  }, [athletes, globalSearch]);
 
   useEffect(() => {
     if (user?.role === 'student' && !settings?.studentAccessPaused) {
@@ -679,6 +719,159 @@ const Dashboard = ({ stats, athletes, professors, events, user, settings, active
 
       {/* Firestore Daily Quotas Tracker */}
       <QuotaTrackerBar />
+
+      {/* Global Search Bar */}
+      <div className="bg-zinc-900/50 border border-zinc-800 p-6 sm:p-8 rounded-[2.5rem] shadow-xl space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2.5">
+              <Search className="text-theme-primary" size={24} />
+              Busca Inteligente de Atletas
+            </h3>
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">
+              Filtre instantaneamente por nome, apelido, categoria SUB ou modalidade
+            </p>
+          </div>
+          
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-xl w-full">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-500">
+              <Search size={18} />
+            </div>
+            <input
+              type="text"
+              placeholder="Digite o nome, apelido ou categoria (ex: SUB 11, Pedro, Futsal)..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="w-full pl-11 pr-10 py-3.5 bg-black/60 border border-zinc-800 rounded-2xl text-white text-sm font-bold uppercase placeholder-zinc-600 focus:outline-none focus:border-theme-primary/50 focus:ring-1 focus:ring-theme-primary/30 transition-all shadow-inner"
+            />
+            {globalSearch && (
+              <button
+                onClick={() => setGlobalSearch('')}
+                className="absolute inset-y-0 right-3 flex items-center px-2 text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search Results */}
+        {globalSearch.trim() !== '' && (
+          <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-850">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                Atletas Encontrados ({filteredAthletes.length})
+              </span>
+              {filteredAthletes.length > 0 && (
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                  Resultados em tempo real
+                </span>
+              )}
+            </div>
+
+            {filteredAthletes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1">
+                {filteredAthletes.map((athlete) => {
+                  const subCategory = athlete.birth_date ? getSubCategory(athlete.birth_date) : 'N/A';
+                  return (
+                    <div 
+                      key={athlete.id}
+                      className="bg-black/80 border border-zinc-850 hover:border-theme-primary/30 p-4 rounded-3xl transition-all flex items-center justify-between gap-3 group relative overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Photo or placeholder */}
+                        {athlete.photo ? (
+                          <img 
+                            src={athlete.photo} 
+                            alt={athlete.name} 
+                            className="w-12 h-12 rounded-xl object-cover border border-zinc-800 shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 border border-zinc-800 shrink-0">
+                            <Users className="text-zinc-500" size={20} />
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-black text-white uppercase truncate leading-tight group-hover:text-theme-primary transition-colors">
+                            {athlete.name}
+                            {athlete.nickname && <span className="text-zinc-500 font-bold ml-1.5">({athlete.nickname})</span>}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[8px] font-black uppercase tracking-wider text-theme-primary bg-theme-primary/10 px-1.5 py-0.5 rounded">
+                              {subCategory}
+                            </span>
+                            {athlete.jersey_number && (
+                              <span className="text-[8px] font-black uppercase tracking-wider text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-850">
+                                Nº {athlete.jersey_number}
+                              </span>
+                            )}
+                            <span className={cn(
+                              "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
+                              athlete.status === 'Ativo' ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"
+                            )}>
+                              {athlete.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Direct Shortcut Actions */}
+                      <div className="flex items-center gap-1 shrink-0 z-10">
+                        <button
+                          onClick={() => {
+                            setEditingAthlete(athlete);
+                            setIsAthleteFormOpen(true);
+                          }}
+                          className="p-2 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white rounded-xl transition-all border border-zinc-800 cursor-pointer"
+                          title="Editar Cadastro"
+                        >
+                          <UserPlus size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedAthleteForAnamnesis(athlete);
+                          }}
+                          className="p-2 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-rose-400 rounded-xl transition-all border border-zinc-800 cursor-pointer"
+                          title="Ficha Médica"
+                        >
+                          <Activity size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedAthleteForProfile(athlete);
+                            setActiveTab('player-profiles');
+                          }}
+                          className="p-2 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-theme-primary rounded-xl transition-all border border-zinc-800 cursor-pointer"
+                          title="Ficha Técnica"
+                        >
+                          <ClipboardList size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedAthleteForCard(athlete);
+                          }}
+                          className="p-2 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-blue-400 rounded-xl transition-all border border-zinc-800 cursor-pointer"
+                          title="Ver Carteirinha"
+                        >
+                          <CreditCard size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-black/40 border border-zinc-850 rounded-3xl space-y-2">
+                <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Nenhum atleta encontrado</p>
+                <p className="text-[10px] text-zinc-600 font-medium">Experimente buscar por termos mais genéricos ou certifique-se da grafia correta.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Stats */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -1144,6 +1337,7 @@ export default function App() {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [selectedAthleteForAnamnesis, setSelectedAthleteForAnamnesis] = useState<Athlete | null>(null);
   const [selectedAthleteForCard, setSelectedAthleteForCard] = useState<Athlete | null>(null);
+  const [selectedAthleteForProfile, setSelectedAthleteForProfile] = useState<Athlete | null>(null);
   const [selectedEventIdForTravel, setSelectedEventIdForTravel] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -1421,6 +1615,10 @@ export default function App() {
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
               pendingReportsCount={pendingReportsCount}
+              setEditingAthlete={setEditingAthlete}
+              setSelectedAthleteForAnamnesis={setSelectedAthleteForAnamnesis}
+              setSelectedAthleteForCard={setSelectedAthleteForCard}
+              setSelectedAthleteForProfile={setSelectedAthleteForProfile}
             />
           );
         case 'athletes':
@@ -1612,6 +1810,8 @@ export default function App() {
               <PlayerProfileForm 
                 userRole={user.role as any} 
                 athletes={athletes}
+                athlete={selectedAthleteForProfile || undefined}
+                onSave={() => setSelectedAthleteForProfile(null)}
               />
             </div>
           );
@@ -1719,6 +1919,10 @@ export default function App() {
               setActiveTab={setActiveTab}
               setIsAthleteFormOpen={setIsAthleteFormOpen}
               pendingReportsCount={pendingReportsCount}
+              setEditingAthlete={setEditingAthlete}
+              setSelectedAthleteForAnamnesis={setSelectedAthleteForAnamnesis}
+              setSelectedAthleteForCard={setSelectedAthleteForCard}
+              setSelectedAthleteForProfile={setSelectedAthleteForProfile}
             />
           );
       }

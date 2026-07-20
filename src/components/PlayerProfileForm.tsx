@@ -28,7 +28,8 @@ import {
   Check,
   Brain,
   ListPlus,
-  Youtube
+  Youtube,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
@@ -2177,11 +2178,12 @@ export default function PlayerProfileForm({
                         {mockActivity && (
                           <DrillVisualizer
                             activity={mockActivity as any}
+                            executionSteps={generatedTest.execution}
                             onChange={(newVisualData) => {
-                              setGeneratedTest((prev: any) => ({
-                                ...prev,
-                                visualObjects: JSON.parse(newVisualData)
-                              }));
+                               setGeneratedTest((prev: any) => ({
+                                 ...prev,
+                                 visualObjects: JSON.parse(newVisualData)
+                               }));
                             }}
                             isEditable={true}
                           />
@@ -2209,14 +2211,37 @@ export default function PlayerProfileForm({
                             "{generatedTest.youtubeSearchQuery}"
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`, '_blank', 'noopener,noreferrer')}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 text-white hover:bg-red-700 font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
-                        >
-                          <Youtube size={14} className="fill-white text-white" />
-                          Abrir Busca de Vídeos Reais
-                        </button>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(generatedTest.youtubeSearchQuery)}`, '_blank', 'noopener,noreferrer')}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 text-white hover:bg-red-750 font-black text-[10px] uppercase tracking-wider transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
+                          >
+                            <Youtube size={14} className="fill-white text-white shrink-0" />
+                            Buscar Termo Técnico Principal
+                          </button>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(`${generatedTest.youtubeSearchQuery} drills profissional`)}`, '_blank', 'noopener,noreferrer')}
+                              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 font-bold text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                              title="Adiciona 'drills profissional' para obter sessões de treino reais de alto nível"
+                            >
+                              <Sparkles size={11} className="text-amber-400" />
+                              Drills de Elite
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(`${generatedTest.youtubeSearchQuery} como treinar passo a passo`)}`, '_blank', 'noopener,noreferrer')}
+                              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 font-bold text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                              title="Adiciona 'como treinar passo a passo' para obter vídeos explicativos e tutoriais práticos"
+                            >
+                              <HelpCircle size={11} className="text-blue-400" />
+                              Como Treinar
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

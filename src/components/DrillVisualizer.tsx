@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow } from 'react-konva';
-import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout } from 'lucide-react';
+import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout, Volume2, Sparkles, Tv, HelpCircle } from 'lucide-react';
 import { TrainingActivity } from '../types';
 import { cn } from '../utils';
 
@@ -9,6 +9,7 @@ interface DrillVisualizerProps {
   activity: TrainingActivity;
   onChange?: (visualData: string) => void;
   isEditable?: boolean;
+  executionSteps?: string[]; // Para narração do treino sincronizada com o playhead
 }
 
 interface VisualObject {
@@ -89,9 +90,10 @@ const PRESET_PLAYS: Record<string, { name: string, description: string, modality
   }
 };
 
-export default function DrillVisualizer({ activity, onChange, isEditable = false }: DrillVisualizerProps) {
+export default function DrillVisualizer({ activity, onChange, isEditable = false, executionSteps }: DrillVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
+  const [is3D, setIs3D] = useState(true); // Perspectiva 3D ativada por padrão para realismo supremo
   
   // Timeline playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -488,6 +490,8 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
       let currentX = ox;
       let currentY = oy;
+      let ballHeight = 0;
+      let playerBob = 0;
 
       const hasPath = obj.animate && obj.toX !== undefined && obj.toY !== undefined;
 
@@ -501,6 +505,16 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         const dy = (targetY - startY) * t;
         currentX = fieldBorder + ((startX + dx) / 100) * fw;
         currentY = fieldBorder + ((startY + dy) / 100) * fh;
+
+        if (obj.type === 'ball') {
+          // Parabola 3D realista
+          ballHeight = Math.sin(Math.PI * t) * (is3D ? 35 : 12);
+          currentY = currentY - ballHeight;
+        } else if (obj.type === 'player' && isPlaying) {
+          // Bobbing realista ao correr
+          playerBob = Math.abs(Math.sin(currentTime * 0.18)) * (is3D ? 4 : 1.8);
+          currentY = currentY - playerBob;
+        }
       }
 
       let element: any = null;
@@ -575,6 +589,16 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
           element = (
             <Group>
+              {/* Sombra projetada no chão que acompanha o pulo/bobbing */}
+              <Ellipse 
+                x={0} 
+                y={playerBob + 6} 
+                radiusX={fw * 0.02} 
+                radiusY={fw * 0.007} 
+                fill="#000000" 
+                opacity={Math.max(0.12, 0.4 - (playerBob * 0.04))} 
+              />
+
               {/* Direction wedge */}
               {hasPath && (
                 <Group rotation={playerAngle}>
@@ -650,14 +674,20 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         case 'ball':
           element = (
             <Group>
-              {/* Shadow */}
-              <Circle x={1} y={2} radius={fw * 0.015} fill="#000000" opacity={0.3} />
+              {/* Sombra projetada no chão que fica para trás conforme a bola sobe */}
+              <Circle 
+                x={0} 
+                y={ballHeight + 3} 
+                radius={Math.max(fw * 0.005, fw * 0.015 - ballHeight * 0.1)} 
+                fill="#000000" 
+                opacity={Math.max(0.08, 0.35 - (ballHeight * 0.006))} 
+              />
               
-              {/* Ball Body */}
+              {/* Corpo da Bola, aumenta ligeiramente de tamanho para simular proximidade (3D) */}
               <Circle 
                 x={0} 
                 y={0} 
-                radius={fw * 0.015} 
+                radius={fw * 0.015 + (ballHeight * 0.08)} 
                 fill="#ffffff" 
                 stroke="#0f172a" 
                 strokeWidth={1.5} 
@@ -665,11 +695,11 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
                 shadowColor="#000"
                 shadowOpacity={0.3}
               />
-              {/* Classic football hexagons */}
-              <Circle x={0} y={0} radius={fw * 0.005} fill="#000000" />
-              <Line points={[0, -(fw * 0.005), 0, -(fw * 0.015)]} stroke="#000" strokeWidth={1} />
-              <Line points={[-(fw * 0.004), (fw * 0.002), -(fw * 0.012), (fw * 0.009)]} stroke="#000" strokeWidth={1} />
-              <Line points={[(fw * 0.004), (fw * 0.002), (fw * 0.012), (fw * 0.009)]} stroke="#000" strokeWidth={1} />
+              {/* Pentágonos clássicos de futebol adaptados ao tamanho */}
+              <Circle x={0} y={0} radius={fw * 0.005 + (ballHeight * 0.02)} fill="#000000" />
+              <Line points={[0, -(fw * 0.005 + (ballHeight * 0.02)), 0, -(fw * 0.015 + (ballHeight * 0.08))]} stroke="#000" strokeWidth={1} />
+              <Line points={[-(fw * 0.004 + (ballHeight * 0.015)), (fw * 0.002 + (ballHeight * 0.01)), -(fw * 0.012 + (ballHeight * 0.06)), (fw * 0.009 + (ballHeight * 0.045))]} stroke="#000" strokeWidth={1} />
+              <Line points={[(fw * 0.004 + (ballHeight * 0.015)), (fw * 0.002 + (ballHeight * 0.01)), (fw * 0.012 + (ballHeight * 0.06)), (fw * 0.009 + (ballHeight * 0.045))]} stroke="#000" strokeWidth={1} />
             </Group>
           );
           break;
@@ -882,32 +912,53 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
         </div>
       )}
 
-      {/* The Stage / Pitch */}
+      {/* The Stage / Pitch with 3D perspective */}
       <div className="relative group flex-1">
-        <Stage 
-          width={w} 
-          height={h} 
-          className="rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950"
-          onClick={() => isEditable && setSelectedId(null)}
+        <div 
+          style={is3D ? {
+            perspective: '1200px',
+            perspectiveOrigin: '50% 100%'
+          } : undefined}
+          className="w-full flex justify-center py-4"
         >
-          <Layer>
-            {renderField()}
-            {renderTrailsAndTargets()}
-            {renderDrillObjects()}
-          </Layer>
-        </Stage>
-        
-        {objects.length === 0 && (
-           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[1.5px] rounded-3xl">
-              <Zap size={36} className="text-zinc-600 mb-2 animate-bounce" />
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic text-center px-4">
-                Lousa Tática Vazia.<br/>Adicione jogadores, cones ou clique em "Jogadas Globo"!
-              </p>
-           </div>
-        )}
+          <div
+            style={is3D ? {
+              transform: 'rotateX(28deg) rotateY(0deg) rotateZ(0deg) scale(1.02)',
+              transformStyle: 'preserve-3d',
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.65), 0 0 40px rgba(16, 185, 129, 0.1)',
+              borderRadius: '24px'
+            } : {
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              borderRadius: '24px'
+            }}
+            className="overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950 relative"
+          >
+            <Stage 
+              width={w} 
+              height={h} 
+              onClick={() => isEditable && setSelectedId(null)}
+            >
+              <Layer>
+                {renderField()}
+                {renderTrailsAndTargets()}
+                {renderDrillObjects()}
+              </Layer>
+            </Stage>
+
+            {objects.length === 0 && (
+               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[1.5px] rounded-3xl">
+                  <Zap size={36} className="text-zinc-600 mb-2 animate-bounce" />
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic text-center px-4">
+                    Lousa Tática Vazia.<br/>Adicione jogadores, cones ou clique em "Jogadas Globo"!
+                  </p>
+               </div>
+            )}
+          </div>
+        </div>
 
         {isEditable && (
-          <div className="absolute top-4 left-4 pointer-events-none flex flex-col gap-2">
+          <div className="absolute top-8 left-4 pointer-events-none flex flex-col gap-2 z-10">
             <div className="bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-2xl">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span className="text-[8px] font-black text-white uppercase tracking-widest">Mesa Tática Interativa</span>
@@ -915,6 +966,25 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
           </div>
         )}
       </div>
+
+      {/* HUD de Narração Dinâmica da Simulação da IA (Auto-Explicativo) */}
+      {executionSteps && executionSteps.length > 0 && (
+        <div className="bg-zinc-900/90 border border-zinc-800/80 p-3.5 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 transition-all shadow-xl">
+          <div className="p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/25 text-theme-primary shrink-0 animate-pulse">
+            <Volume2 className="w-4 h-4" />
+          </div>
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="text-[9px] uppercase font-black text-theme-primary tracking-widest flex items-center gap-1.5">
+              <span>NARRADOR TÁTICO DA IA</span>
+              <span className="text-[8px] text-zinc-500 font-bold">•</span>
+              <span className="text-zinc-400">PASSO {Math.min(executionSteps.length, Math.floor(t * executionSteps.length) + 1)} DE {executionSteps.length}</span>
+            </div>
+            <p className="text-xs text-zinc-200 font-medium leading-relaxed italic">
+              "{executionSteps[Math.min(executionSteps.length - 1, Math.floor(t * executionSteps.length))] || 'Posicionamento e preparação da atividade técnica...'}"
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Globo-Style Interactive Playback Control Deck */}
       <div className="bg-zinc-950/90 backdrop-blur-md border border-zinc-800 p-3.5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
@@ -999,14 +1069,28 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
           </span>
         </div>
 
-        {/* Right Controls: Trails and Looping Toggles */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+        {/* Right Controls: Trails, 3D and Looping Toggles */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {/* Perspectiva 3D Toggle */}
+          <button
+            type="button"
+            onClick={() => setIs3D(!is3D)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
+              is3D ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-zinc-900 text-zinc-500 border-zinc-800"
+            )}
+            title="Alternar entre visualização 2D plana e Perspectiva 3D"
+          >
+            <Tv size={10} />
+            Perspectiva 3D
+          </button>
+
           {/* Trails Toggle */}
           <button
             type="button"
             onClick={() => setShowTrails(!showTrails)}
             className={cn(
-              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer",
+              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
               showTrails ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
             )}
             title="Mostrar trajetos desenhados"

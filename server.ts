@@ -445,7 +445,7 @@ export async function createExpressApp() {
       const prompt = `Gere uma atividade física/técnica ou protocolo de teste altamente profissional para avaliar o atributo "${fieldName}" (Categoria: ${fieldCategory}, Descrição: ${description}) na modalidade esportiva "${modality || 'Futebol'}".
       O objetivo deste teste é servir de critério objetivo e prático para que o treinador possa avaliar o atleta e atribuir uma nota de 0 a 10 para esse atributo específico na Ficha Técnica.
       O teste deve conter uma estrutura de pontuação clara e detalhada que relacione o desempenho prático (ex: tempo em segundos, acertos em repetições, comportamento observado) com a nota de 0 a 10 correspondente.
-      Além disso, forneça uma sugestão de termo de busca perfeito e extremamente específico no YouTube para encontrar demonstrações visuais excelentes deste treinamento.
+      Além disso, forneça uma sugestão de termo de busca perfeito, extremamente preciso, técnico e livre de ruídos no YouTube para encontrar demonstrações visuais e exemplos reais idênticos a este teste (ex: 'teste de velocidade 30 metros futebol', 'treino passe de primeira futsal drills', 'teste de agilidade illinois futebol'). Evite termos genéricos como apenas 'treino de chute' e prefira termos estruturados de avaliação ou drills técnicos de elite.
       
       E o mais importante: GERE UMA LISTA DE OBJETOS TÁTICOS (visualObjects) para simular e ilustrar de forma interativa e animada esta atividade em um tabuleiro/quadro tático 2D/3D (com 100x100 de coordenadas).
       Posicione estrategicamente:
