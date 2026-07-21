@@ -35,7 +35,7 @@ export default function OfficialLetterGenerator() {
   const handleDownloadPDF = async () => {
     if (!editingLetter) return;
     
-    const element = printRef.current;
+    const element = printRef.current || document.getElementById('pdf-print-preview');
     if (!element) {
       toast.error("Erro ao localizar visualização do documento.");
       return;
@@ -72,11 +72,11 @@ export default function OfficialLetterGenerator() {
   };
 
   useEffect(() => {
-    if (autoDownloadPDF && isFormOpen && editingLetter && printRef.current) {
+    if (autoDownloadPDF && isFormOpen && editingLetter) {
       setAutoDownloadPDF(false);
       const timer = setTimeout(() => {
         handleDownloadPDF();
-      }, 600);
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [autoDownloadPDF, isFormOpen, editingLetter]);
@@ -231,9 +231,12 @@ export default function OfficialLetterGenerator() {
     }
   };
 
-  const PrintPreview = ({ letter }: { letter: Partial<OfficialLetter> }) => (
+  const PrintPreview = ({ letter, isPdf = false }: { letter: Partial<OfficialLetter>, isPdf?: boolean }) => (
     <div 
-      className="bg-white text-black mx-auto shadow-2xl flex flex-col font-serif print:shadow-none print:m-0 print-sheet" 
+      className={cn(
+        "bg-white text-black mx-auto flex flex-col font-serif print:shadow-none print:m-0 print-sheet",
+        isPdf ? "shadow-none" : "shadow-2xl"
+      )}
       style={{ 
         padding: `${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm`,
         fontSize: `${fontSize}pt`, 
@@ -899,16 +902,19 @@ export default function OfficialLetterGenerator() {
             </div>
           </div>
 
-          {/* Elemento oculto fora da tela para geração precisa do PDF (sem interferência de escala ou responsividade) */}
+          {/* Elemento oculto para geração precisa do PDF (atrás de tudo, com z-index negativo) */}
           <div 
             ref={printRef}
-            className="absolute left-[-9999px] top-[-9999px] no-print"
+            id="pdf-print-preview"
+            className="fixed top-0 left-0 pointer-events-none"
             style={{ 
+              zIndex: -9999,
               width: pageSize === 'A4' ? '210mm' : '215.9mm',
-              background: 'white'
+              background: 'white',
+              opacity: 0.99
             }}
           >
-            <PrintPreview letter={editingLetter} />
+            <PrintPreview letter={editingLetter} isPdf={true} />
           </div>
         </div>
       </div>
