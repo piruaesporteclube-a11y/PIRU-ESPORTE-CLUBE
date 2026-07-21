@@ -250,7 +250,23 @@ export default function OfficialLetterGenerator() {
       {/* Header */}
       <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
         {settings?.schoolCrest && (
-          <img src={settings.schoolCrest} alt="Crest" className="w-20 h-20 object-contain mb-3" referrerPolicy="no-referrer" />
+          <img 
+            src={settings.schoolCrest} 
+            alt="Crest" 
+            className="w-20 h-20 object-contain mb-3" 
+            style={{ 
+              width: '80px', 
+              height: '80px', 
+              minWidth: '80px',
+              minHeight: '80px',
+              maxWidth: '80px', 
+              maxHeight: '80px', 
+              objectFit: 'contain',
+              marginBottom: '12px',
+              display: 'block'
+            }} 
+            referrerPolicy="no-referrer" 
+          />
         )}
         <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable suppressContentEditableWarning={true} style={{ fontSize: `${fontSize + 2}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
       </div>
