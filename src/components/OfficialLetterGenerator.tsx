@@ -35,16 +35,54 @@ export default function OfficialLetterGenerator() {
   const handleDownloadPDF = async () => {
     if (!editingLetter) return;
     
-    const element = printRef.current || document.getElementById('pdf-print-preview');
-    if (!element) {
-      toast.error("Erro ao localizar visualização do documento.");
-      return;
-    }
-
     const toastId = toast.loading("Gerando arquivo PDF...");
 
     try {
-      // Configure html2pdf options
+      // Criar um elemento container temporário de renderização
+      const tempContainer = document.createElement('div');
+      tempContainer.id = 'temp-pdf-render-container';
+      
+      // Posicionar de forma absoluta fora da tela visível, garantindo layout completo
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = pageSize === 'A4' ? '210mm' : '215.9mm';
+      tempContainer.style.background = 'white';
+      tempContainer.style.margin = '0';
+      tempContainer.style.padding = '0';
+      tempContainer.style.boxSizing = 'border-box';
+      tempContainer.style.display = 'block';
+
+      // Obter o elemento de visualização original (ou o oculto se o visível não estiver carregado)
+      const originalPreview = document.getElementById('pdf-print-preview') || document.querySelector('.official-letter-preview-container .print-sheet');
+      
+      if (!originalPreview) {
+        throw new Error("Elemento de visualização não encontrado para geração do PDF.");
+      }
+      
+      // Clonar o elemento original
+      const clonedElement = originalPreview.cloneNode(true) as HTMLElement;
+      
+      // Resetar propriedades de z-index, sombras e posições fixas que possam interferir no clone
+      clonedElement.style.position = 'relative';
+      clonedElement.style.left = '0';
+      clonedElement.style.top = '0';
+      clonedElement.style.margin = '0';
+      clonedElement.style.boxShadow = 'none';
+      clonedElement.style.width = '100%';
+      clonedElement.style.opacity = '1';
+      clonedElement.style.zIndex = '1';
+      clonedElement.style.transform = 'none';
+      clonedElement.style.scale = '1';
+      
+      // Adicionar o clone ao container temporário e anexar ao body para a renderização completa de imagens/fontes
+      tempContainer.appendChild(clonedElement);
+      document.body.appendChild(tempContainer);
+
+      // Aguardar brevemente para que o motor do navegador processe o layout do clone no DOM
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Configurações otimizadas para o html2pdf.js
       const opt = {
         margin:       0,
         filename:     `Oficio_${editingLetter.number || '000'}_${editingLetter.year || new Date().getFullYear()}.pdf`,
@@ -53,7 +91,9 @@ export default function OfficialLetterGenerator() {
           scale: 2, 
           useCORS: true,
           logging: false,
-          letterRendering: true
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0
         },
         jsPDF:        { 
           unit: 'mm' as const, 
@@ -62,11 +102,19 @@ export default function OfficialLetterGenerator() {
         }
       };
 
-      // Generate the PDF
-      await html2pdf().set(opt).from(element).save();
+      // Gerar e baixar o PDF a partir do clone renderizado com precisão absoluta
+      await html2pdf().set(opt).from(clonedElement).save();
+      
+      // Remover o container temporário após a conclusão do download
+      document.body.removeChild(tempContainer);
       toast.success("PDF gerado e baixado com sucesso!", { id: toastId });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
+      // Garantir limpeza caso ocorra alguma falha
+      const temp = document.getElementById('temp-pdf-render-container');
+      if (temp) {
+        temp.remove();
+      }
       toast.error("Falha ao gerar o arquivo PDF. Tente usar a opção de Imprimir diretamente.", { id: toastId });
     }
   };
@@ -244,80 +292,157 @@ export default function OfficialLetterGenerator() {
         width: pageSize === 'A4' ? '210mm' : '215.9mm',
         minHeight: pageSize === 'A4' ? '297mm' : '279.4mm',
         boxSizing: 'border-box',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'white',
+        color: 'black'
       }}
     >
       {/* Header */}
-      <div className="flex flex-col items-center mb-6 border-b-2 border-black pb-4">
+      <div 
+        className="flex flex-col items-center mb-6 border-b-2 border-black pb-4"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          borderBottom: '2px solid black',
+          paddingBottom: '16px',
+          marginBottom: '24px'
+        }}
+      >
         {settings?.schoolCrest && (
-          <img 
-            src={settings.schoolCrest} 
-            alt="Crest" 
-            className="w-20 h-20 object-contain mb-3" 
+          <div 
             style={{ 
-              width: '80px', 
-              height: '80px', 
-              minWidth: '80px',
-              minHeight: '80px',
-              maxWidth: '80px', 
-              maxHeight: '80px', 
-              objectFit: 'contain',
-              marginBottom: '12px',
-              display: 'block'
-            }} 
-            referrerPolicy="no-referrer" 
-          />
+              width: '100%', 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}
+          >
+            <img 
+              src={settings.schoolCrest} 
+              alt="Crest" 
+              style={{ 
+                width: '80px', 
+                height: '80px', 
+                minWidth: '80px',
+                minHeight: '80px',
+                maxWidth: '80px', 
+                maxHeight: '80px', 
+                objectFit: 'contain',
+                display: 'block'
+              }} 
+              referrerPolicy="no-referrer" 
+            />
+          </div>
         )}
-        <h1 className="font-bold uppercase text-center focus:outline-none" contentEditable suppressContentEditableWarning={true} style={{ fontSize: `${fontSize + 2}pt` }}>{settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}</h1>
+        <h1 
+          className="font-bold uppercase text-center focus:outline-none" 
+          contentEditable 
+          suppressContentEditableWarning={true} 
+          style={{ 
+            fontSize: `${fontSize + 2}pt`,
+            textAlign: 'center',
+            width: '100%',
+            fontWeight: 'bold',
+            marginTop: '0px'
+          }}
+        >
+          {settings?.schoolName || 'PIRUÁ ESPORTE CLUBE'}
+        </h1>
       </div>
 
       {/* Title & Date */}
-      <div className="flex justify-between mb-4" style={{ fontSize: `${fontSize}pt` }}>
-        <p className="font-bold">OFÍCIO Nº {letter.number}/{letter.year}</p>
+      <div 
+        className="flex justify-between mb-4" 
+        style={{ 
+          fontSize: `${fontSize}pt`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: '100%',
+          marginBottom: '16px'
+        }}
+      >
+        <p className="font-bold" style={{ fontWeight: 'bold' }}>OFÍCIO Nº {letter.number}/{letter.year}</p>
         <p>{letter.date ? new Date(letter.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
       </div>
 
       {/* Recipient */}
-      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="mb-4" style={{ fontSize: `${fontSize}pt`, marginBottom: '16px', width: '100%' }}>
         <p>Ao Sr(a).</p>
-        <p className="font-bold uppercase leading-tight">{letter.recipient_name}</p>
-        <p className="italic leading-tight">{letter.recipient_role}</p>
+        <p className="font-bold uppercase leading-tight" style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{letter.recipient_name}</p>
+        <p className="italic leading-tight" style={{ fontStyle: 'italic' }}>{letter.recipient_role}</p>
         <p className="leading-tight">{letter.recipient_address}</p>
       </div>
 
       {/* Subject */}
-      <div className="mb-4" style={{ fontSize: `${fontSize}pt` }}>
-        <p><span className="font-bold">Assunto:</span> {letter.subject}</p>
+      <div className="mb-4" style={{ fontSize: `${fontSize}pt`, marginBottom: '16px', width: '100%' }}>
+        <p><span className="font-bold" style={{ fontWeight: 'bold' }}>Assunto:</span> {letter.subject}</p>
       </div>
       
       {/* Travel Info (Optional) */}
       {(letter.departure_location || letter.arrival_location || letter.return_departure_location || letter.return_arrival_location) && (
-        <div className="mb-6 p-3 border border-black/15 bg-zinc-50/50 rounded-lg">
-          <h4 className="font-bold mb-2 uppercase border-b border-black/20 pb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Informações de Logística / Viagem</h4>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3" style={{ fontSize: `${fontSize - 1}pt` }}>
+        <div 
+          className="mb-6 p-3 border border-black/15 bg-zinc-50/50 rounded-lg"
+          style={{
+            marginBottom: '24px',
+            padding: '12px',
+            border: '1px solid rgba(0,0,0,0.15)',
+            backgroundColor: 'rgba(250,250,250,0.5)',
+            borderRadius: '8px',
+            width: '100%'
+          }}
+        >
+          <h4 
+            className="font-bold mb-2 uppercase border-b border-black/20 pb-1" 
+            style={{ 
+              fontSize: `${fontSize - 2}pt`,
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              borderBottom: '1px solid rgba(0,0,0,0.2)',
+              paddingBottom: '4px',
+              marginBottom: '8px'
+            }}
+          >
+            Informações de Logística / Viagem
+          </h4>
+          <div 
+            className="grid grid-cols-2 gap-x-8 gap-y-3" 
+            style={{ 
+              fontSize: `${fontSize - 1}pt`,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              columnGap: '32px',
+              rowGap: '12px'
+            }}
+          >
             {/* Ida */}
             {(letter.departure_location || letter.arrival_location || letter.departure_time) && (
-              <div>
-                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Início da Viagem (Ida)</p>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt`, fontWeight: 'bold', textTransform: 'uppercase', color: '#3f3f46', marginBottom: '4px' }}>Início da Viagem (Ida)</p>
                 {letter.departure_location && (
-                  <p className="leading-tight italic"><span className="font-bold not-italic">Local de Partida:</span> {letter.departure_location}</p>
+                  <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Local de Partida:</span> {letter.departure_location}</p>
                 )}
                 {letter.arrival_location && (
-                  <p className="leading-tight italic"><span className="font-bold not-italic">Local de Chegada:</span> {letter.arrival_location}</p>
+                  <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Local de Chegada:</span> {letter.arrival_location}</p>
                 )}
                 {letter.departure_time && (
-                  <p className="leading-tight italic"><span className="font-bold not-italic">Previsão de Saída:</span> {letter.departure_time}</p>
+                  <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Previsão de Saída:</span> {letter.departure_time}</p>
                 )}
               </div>
             )}
             
             {/* Volta */}
             {(letter.return_departure_location || letter.return_arrival_location || letter.return_time || letter.arrival_time) && (
-              <div>
-                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt` }}>Retorno da Viagem (Volta)</p>
-                <p className="leading-tight italic"><span className="font-bold not-italic">Local de Partida:</span> {letter.return_departure_location || letter.arrival_location || 'LOCAL DO EVENTO'}</p>
-                <p className="leading-tight italic"><span className="font-bold not-italic">Local de Chegada:</span> {letter.return_arrival_location || letter.departure_location || 'SEDE DO CLUBE'}</p>
-                <p className="leading-tight italic"><span className="font-bold not-italic">Previsão de Retorno:</span> {letter.return_time || letter.arrival_time || ''}</p>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <p className="font-bold uppercase tracking-wider text-zinc-700 mb-1" style={{ fontSize: `${fontSize - 2}pt`, fontWeight: 'bold', textTransform: 'uppercase', color: '#3f3f46', marginBottom: '4px' }}>Retorno da Viagem (Volta)</p>
+                <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Local de Partida:</span> {letter.return_departure_location || letter.arrival_location || 'LOCAL DO EVENTO'}</p>
+                <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Local de Chegada:</span> {letter.return_arrival_location || letter.departure_location || 'SEDE DO CLUBE'}</p>
+                <p className="leading-tight italic" style={{ fontStyle: 'italic', margin: '2px 0' }}><span className="font-bold not-italic" style={{ fontWeight: 'bold', fontStyle: 'normal' }}>Previsão de Retorno:</span> {letter.return_time || letter.arrival_time || ''}</p>
               </div>
             )}
           </div>
@@ -325,24 +450,54 @@ export default function OfficialLetterGenerator() {
       )}
 
       {/* Salutation */}
-      <div className="mb-3" style={{ fontSize: `${fontSize}pt` }}>
+      <div className="mb-3" style={{ fontSize: `${fontSize}pt`, marginBottom: '12px', width: '100%' }}>
         <p>Prezado(a) Senhor(a),</p>
       </div>
 
       {/* Body */}
-      <div className="flex-1 whitespace-pre-wrap text-justify animate-fade-in" style={{ fontSize: `${fontSize}pt` }}>
+      <div 
+        className="flex-1 whitespace-pre-wrap text-justify animate-fade-in" 
+        style={{ 
+          fontSize: `${fontSize}pt`,
+          flex: '1 1 auto',
+          whiteSpace: 'pre-wrap',
+          textAlign: 'justify',
+          width: '100%',
+          marginBottom: '24px'
+        }}
+      >
         {letter.body}
       </div>
 
       {/* Closing */}
-      <div className="mt-4 text-center" style={{ fontSize: `${fontSize}pt` }}>
-        <p className="mb-6">{letter.closing}</p>
-        <div className="flex flex-col items-center">
-          <div className="w-64 border-t border-black mb-1"></div>
-          <p className="font-bold uppercase leading-tight">{letter.sender_name}</p>
-          <p className="uppercase leading-tight text-zinc-650" style={{ fontSize: `${fontSize - 1}pt` }}>{letter.sender_role}</p>
+      <div 
+        className="mt-4 text-center" 
+        style={{ 
+          fontSize: `${fontSize}pt`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          marginTop: '24px',
+          textAlign: 'center'
+        }}
+      >
+        <p className="mb-6" style={{ marginBottom: '24px' }}>{letter.closing}</p>
+        <div 
+          className="flex flex-col items-center"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div className="w-64 border-t border-black mb-1" style={{ width: '256px', borderTop: '1px solid black', marginBottom: '4px' }}></div>
+          <p className="font-bold uppercase leading-tight" style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{letter.sender_name}</p>
+          <p className="uppercase leading-tight text-zinc-650" style={{ fontSize: `${fontSize - 1}pt`, textTransform: 'uppercase' }}>{letter.sender_role}</p>
           {(letter.school_cnpj || letter.school_cpf) && (
-            <p className="uppercase mt-1 text-zinc-500" style={{ fontSize: `${fontSize - 3}pt` }}>
+            <p className="uppercase mt-1 text-zinc-500" style={{ fontSize: `${fontSize - 3}pt`, marginTop: '4px', textTransform: 'uppercase' }}>
               {letter.school_cnpj && <span>CNPJ: {letter.school_cnpj}</span>}
               {letter.school_cnpj && letter.school_cpf && <span className="mx-2">|</span>}
               {letter.school_cpf && <span>CPF: {letter.school_cpf}</span>}
@@ -352,11 +507,25 @@ export default function OfficialLetterGenerator() {
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-3 border-t border-black/10 text-zinc-500 text-center uppercase tracking-widest leading-relaxed" style={{ fontSize: `${fontSize - 3}pt` }}>
+      <div 
+        className="mt-auto pt-3 border-t border-black/10 text-zinc-500 text-center uppercase tracking-widest leading-relaxed" 
+        style={{ 
+          fontSize: `${fontSize - 3}pt`,
+          marginTop: 'auto',
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(0,0,0,0.1)',
+          color: '#71717a',
+          textAlign: 'center',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          lineHeight: '1.4',
+          width: '100%'
+        }}
+      >
         {letter.school_info && (
-          <p className="mb-1 text-black font-bold uppercase tracking-tight">{letter.school_info}</p>
+          <p className="mb-1 text-black font-bold uppercase tracking-tight" style={{ marginBottom: '4px', color: 'black', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 'normal' }}>{letter.school_info}</p>
         )}
-        <p className="opacity-50">Documento gerado oficialmente pelo sistema de gestão {settings?.schoolName || 'Piruá Esporte Clube'}</p>
+        <p className="opacity-50" style={{ opacity: 0.5 }}>Documento gerado oficialmente pelo sistema de gestão {settings?.schoolName || 'Piruá Esporte Clube'}</p>
       </div>
     </div>
   );
