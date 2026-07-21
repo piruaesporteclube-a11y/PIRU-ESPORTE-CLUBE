@@ -898,6 +898,18 @@ export default function OfficialLetterGenerator() {
               </div>
             </div>
           </div>
+
+          {/* Elemento oculto fora da tela para geração precisa do PDF (sem interferência de escala ou responsividade) */}
+          <div 
+            ref={printRef}
+            className="absolute left-[-9999px] top-[-9999px] no-print"
+            style={{ 
+              width: pageSize === 'A4' ? '210mm' : '215.9mm',
+              background: 'white'
+            }}
+          >
+            <PrintPreview letter={editingLetter} />
+          </div>
         </div>
       </div>
     );
