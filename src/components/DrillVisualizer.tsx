@@ -107,6 +107,8 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
 
   const [objects, setObjects] = useState<VisualObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hasLoadedDefault, setHasLoadedDefault] = useState(false);
+  const [loadedActivityId, setLoadedActivityId] = useState<string | null>(null);
 
   const t = useMemo(() => {
     return currentTime / 100;
@@ -222,20 +224,81 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
     return () => observer.disconnect();
   }, []);
 
+const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
+  const mod = modality || 'Futebol';
+  switch (mod) {
+    case 'Futsal':
+      return [
+        { id: 'p1', type: 'player', x: 20, y: 50, team: 'A', label: 'F', animate: true, toX: 35, toY: 30 },
+        { id: 'p2', type: 'player', x: 35, y: 20, team: 'A', label: 'A1', animate: true, toX: 65, toY: 25 },
+        { id: 'p3', type: 'player', x: 35, y: 80, team: 'A', label: 'A2', animate: true, toX: 65, toY: 75 },
+        { id: 'b1', type: 'ball', x: 22, y: 50, animate: true, toX: 63, toY: 75 }
+      ];
+    case 'Vôlei':
+      return [
+        { id: 'p1', type: 'player', x: 20, y: 20, team: 'A', label: '1', animate: true, toX: 25, toY: 25 },
+        { id: 'p2', type: 'player', x: 20, y: 50, team: 'A', label: '6', animate: true, toX: 25, toY: 50 },
+        { id: 'p3', type: 'player', x: 20, y: 80, team: 'A', label: '5', animate: true, toX: 25, toY: 75 },
+        { id: 'p4', type: 'player', x: 40, y: 30, team: 'A', label: '2', animate: true, toX: 45, toY: 35 },
+        { id: 'p5', type: 'player', x: 40, y: 70, team: 'A', label: '4', animate: true, toX: 45, toY: 65 },
+        { id: 'p6', type: 'player', x: 45, y: 50, team: 'A', label: '3', animate: true, toX: 48, toY: 50 },
+        { id: 'arr1', type: 'arrow', x: 45, y: 50, toX: 55, toY: 50, color: '#f87171' }
+      ];
+    case 'Basquete':
+      return [
+        { id: 'c1', type: 'cone', x: 20, y: 20 },
+        { id: 'c2', type: 'cone', x: 30, y: 30 },
+        { id: 'c3', type: 'cone', x: 20, y: 40 },
+        { id: 'p1', type: 'player', x: 10, y: 10, team: 'A', animate: true, toX: 80, toY: 50 },
+        { id: 'b1', type: 'ball', x: 12, y: 10, animate: true, toX: 85, toY: 50 }
+      ];
+    case 'Futebol de Areia':
+      return [
+        { id: 'p1', type: 'player', x: 50, y: 80, team: 'A', label: '1', animate: true, toX: 50, toY: 40 },
+        { id: 'p2', type: 'player', x: 20, y: 40, team: 'A', label: '2', animate: true, toX: 45, toY: 40 },
+        { id: 'b1', type: 'ball', x: 22, y: 40, animate: true, toX: 48, toY: 40 }
+      ];
+    case 'Futebol':
+    default:
+      return [
+        { id: 'p1', type: 'player', x: 30, y: 65, team: 'A', label: '8', animate: true, toX: 42, toY: 55 },
+        { id: 'p2', type: 'player', x: 45, y: 30, team: 'A', label: '10', animate: true, toX: 58, toY: 40 },
+        { id: 'p3', type: 'player', x: 55, y: 70, team: 'A', label: '9', animate: true, toX: 70, toY: 52 },
+        { id: 'b1', type: 'ball', x: 32, y: 65, animate: true, toX: 68, toY: 52 },
+        { id: 'd1', type: 'player', x: 52, y: 48, team: 'B', label: '3', animate: true, toX: 60, toY: 52 }
+      ];
+  }
+};
+
   // Track updates to prevent recursive loops
   const lastUpdateRef = useRef<string>('');
 
   useEffect(() => {
-    if (activity.visualData && activity.visualData !== lastUpdateRef.current) {
-      try {
-        const data = JSON.parse(activity.visualData);
-        setObjects(data);
-        lastUpdateRef.current = activity.visualData;
-      } catch (e) {
-        console.error("Failed to parse visualData", e);
+    if (loadedActivityId !== activity?.id) {
+      setLoadedActivityId(activity?.id || null);
+      setHasLoadedDefault(false);
+      return;
+    }
+
+    if (activity?.visualData && activity.visualData !== '[]' && activity.visualData !== '""') {
+      if (activity.visualData !== lastUpdateRef.current) {
+        try {
+          const data = JSON.parse(activity.visualData);
+          setObjects(data);
+          lastUpdateRef.current = activity.visualData;
+        } catch (e) {
+          console.error("Failed to parse visualData", e);
+        }
+      }
+    } else if (!hasLoadedDefault && (!activity?.visualData || activity.visualData === '[]' || activity.visualData === '""')) {
+      const defaultDemo = getDefaultDemoForModality(activity?.modality);
+      setObjects(defaultDemo);
+      setHasLoadedDefault(true);
+      if (isEditable && onChange) {
+        onChange(JSON.stringify(defaultDemo));
       }
     }
-  }, [activity.visualData]);
+  }, [activity, isEditable, hasLoadedDefault, loadedActivityId, onChange]);
 
   const handleUpdate = (newObjects: VisualObject[]) => {
     setObjects(newObjects);
