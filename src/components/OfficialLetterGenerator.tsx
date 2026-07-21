@@ -5,6 +5,8 @@ import { Plus, Search, FileText, Printer, Trash2, Edit, Save, X, ChevronLeft, Do
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 export default function OfficialLetterGenerator() {
   const { settings } = useTheme();
@@ -22,12 +24,62 @@ export default function OfficialLetterGenerator() {
   const [marginRight, setMarginRight] = useState<number>(3.0);
   const [marginPreset, setMarginPreset] = useState<string>('word_normal');
   const [fontSize, setFontSize] = useState<number>(11);
+  const [autoDownloadPDF, setAutoDownloadPDF] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadLetters();
     loadEvents();
   }, []);
+
+  const handleDownloadPDF = async () => {
+    if (!editingLetter) return;
+    
+    const element = printRef.current;
+    if (!element) {
+      toast.error("Erro ao localizar visualização do documento.");
+      return;
+    }
+
+    const toastId = toast.loading("Gerando arquivo PDF...");
+
+    try {
+      // Configure html2pdf options
+      const opt = {
+        margin:       0,
+        filename:     `Oficio_${editingLetter.number || '000'}_${editingLetter.year || new Date().getFullYear()}.pdf`,
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true,
+          logging: false,
+          letterRendering: true
+        },
+        jsPDF:        { 
+          unit: 'mm' as const, 
+          format: pageSize === 'A4' ? 'a4' as const : 'letter' as const, 
+          orientation: 'portrait' as const 
+        }
+      };
+
+      // Generate the PDF
+      await html2pdf().set(opt).from(element).save();
+      toast.success("PDF gerado e baixado com sucesso!", { id: toastId });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Falha ao gerar o arquivo PDF. Tente usar a opção de Imprimir diretamente.", { id: toastId });
+    }
+  };
+
+  useEffect(() => {
+    if (autoDownloadPDF && isFormOpen && editingLetter && printRef.current) {
+      setAutoDownloadPDF(false);
+      const timer = setTimeout(() => {
+        handleDownloadPDF();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDownloadPDF, isFormOpen, editingLetter]);
 
   const loadLetters = async () => {
     setLoading(true);
@@ -305,10 +357,6 @@ export default function OfficialLetterGenerator() {
           <div className="flex gap-2">
             <button 
               onClick={() => {
-                toast.info("Dica: Para Imprimir fisicamente, escolha a sua impressora conectada no painel que se abrirá.", {
-                  duration: 6000,
-                  position: 'top-center'
-                });
                 window.print();
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-zinc-700/50 text-xs uppercase tracking-tight"
@@ -318,15 +366,7 @@ export default function OfficialLetterGenerator() {
               Imprimir
             </button>
             <button 
-              onClick={() => {
-                toast.info("Dica: Para gerar o arquivo PDF, altere o campo 'Destino' para 'Salvar como PDF' na tela a seguir.", {
-                  duration: 7000,
-                  position: 'top-center'
-                });
-                setTimeout(() => {
-                  window.print();
-                }, 800);
-              }}
+              onClick={handleDownloadPDF}
               className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-zinc-700/50 text-xs uppercase tracking-tight"
               type="button"
             >
@@ -939,17 +979,11 @@ export default function OfficialLetterGenerator() {
                     onClick={() => {
                       setEditingLetter(letter);
                       setIsFormOpen(true);
-                      toast.info("Dica: Para gerar o arquivo PDF, altere o campo 'Destino' para 'Salvar como PDF' na tela a seguir.", {
-                        duration: 7000,
-                        position: 'top-center'
-                      });
-                      setTimeout(() => {
-                        window.print();
-                      }, 500);
+                      setAutoDownloadPDF(true);
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-theme-primary/10 hover:bg-theme-primary text-theme-primary hover:text-black rounded-xl transition-all font-bold text-xs uppercase"
                   >
-                    <Printer size={14} />
+                    <Download size={14} />
                     PDF
                   </button>
                   <button 
