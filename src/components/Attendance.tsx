@@ -861,14 +861,6 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       return;
     }
 
-    if (athlete && selectedTrainingId === 'geral' && !trainingId && !eventId) {
-      const hasScheduled = hasScheduledTrainingOrEventForAthlete(athlete, date, availableTrainings, availableEvents);
-      if (!hasScheduled) {
-        toast.error(`Não há treino ou evento cadastrado para a categoria/modalidade de ${athlete.name} nesta data.`);
-        return;
-      }
-    }
-    
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     let attendanceId = `${athleteId}_${date}`;
     if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
@@ -967,6 +959,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       [athleteId]: newRecords 
     }));
     setHasChanges(true);
+
+    // Auto-persist directly to database for immediate persistence
+    try {
+      await Promise.all(newRecords.map(r => api.saveAttendance(r)));
+    } catch (err) {
+      console.error("Erro ao auto-salvar presença no banco de dados:", err);
+    }
   };
 
   const clearAttendance = async (athleteId: string) => {
@@ -1102,12 +1101,6 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const activeAthletes = athletes.filter(a => {
     if (showOnlyActive && (a.status !== 'Ativo' || a.confirmation === 'Pendente')) return false;
-
-    // If we are in "geral", only show athletes with scheduled trainings or events on this date
-    if (selectedTrainingId === 'geral' && !trainingId && !eventId) {
-      return hasScheduledTrainingOrEventForAthlete(a, date, availableTrainings, availableEvents);
-    }
-
     return true;
   });
 
