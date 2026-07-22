@@ -4,24 +4,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { 
   Dumbbell, 
   RotateCcw, 
-  Eye, 
   Search, 
   Activity, 
   ShieldAlert, 
-  Sparkles, 
   Printer, 
   Maximize2, 
-  Info, 
   CheckCircle2, 
   Zap, 
   HeartPulse, 
-  ChevronRight, 
-  ChevronLeft,
   X,
   Layers,
-  HelpCircle,
-  Play,
-  Share2
+  Sparkles,
+  Info,
+  ChevronRight,
+  Flame,
+  Target
 } from 'lucide-react';
 import { cn } from '../utils';
 import { toast } from 'sonner';
@@ -49,55 +46,55 @@ export interface MuscleGroup {
 export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'peitoral',
-    name: 'Peitoral',
-    latinName: 'Pectoralis Major & Minor',
+    name: 'Peitoral Maior & Menor',
+    latinName: 'Pectoralis Major',
     category: 'tronco',
     side: 'anterior',
-    footballFunction: 'Crucial na proteção corporal em disputas no ombro a ombro, arremessos laterais fortes e equilíbrio no arranque.',
-    description: 'Composto pelo Peitoral Maior e Menor, é a principal massa muscular do tórax anterior.',
+    footballFunction: 'Proteção corporal no ombro a ombro, tração nos arremessos de lateral longos e equilíbrio postural nos sprints.',
+    description: 'Composto pelo Peitoral Maior e Menor. Forma a cobertura muscular frontal do tórax superior.',
     exercises: [
-      { name: 'Supino Reto / Inclinado', description: 'Desenvolve força de empurrão e estabilização de tronco.', type: 'Força' },
-      { name: 'Flexão de Braço (Push-up)', description: 'Excelente para estabilização de core e cintura escapular.', type: 'Estabilidade' },
-      { name: 'Arremesso com Ball Medicinal', description: 'Desenvolve explosão muscular para laterais longos.', type: 'Explosão' }
+      { name: 'Supino Reto / Inclinado', description: 'Empurrão com barra ou halteres para força máxima de tronco.', type: 'Força' },
+      { name: 'Flexão de Braço (Push-up)', description: 'Estabilização de core e cintura escapular.', type: 'Estabilidade' },
+      { name: 'Arremesso Medicinal Ball', description: 'Explosão para arremessos de lateral.', type: 'Explosão' }
     ],
-    prevention: 'Alongar a cadeia anterior para evitar projeção dos ombros e descompensação com a musculatura das costas.',
-    stretches: 'Alongamento em quina de parede ou barra vertical mantendo o peito aberto.',
+    prevention: 'Manter equilíbrio com os músculos das costas (romboides e trapézio) para evitar a rotação interna dos ombros.',
+    stretches: 'Alongamento em quina de parede com cotovelos a 90° e peito aberto.',
     injuryRisk: 'Médio',
     color: '#ef4444' // red
   },
   {
     id: 'deltoides',
     name: 'Ombros (Deltoides)',
-    latinName: 'Deltoideus (Anterior, Lateral, Posterior)',
+    latinName: 'Deltoideus',
     category: 'superiores',
     side: 'ambos',
-    footballFunction: 'Absorção de impactos em quedas, proteção do pescoço em disputas aéreas e impulsão dos braços no sprint.',
-    description: 'O deltoide envolve a articulação do ombro em três porções: anterior, lateral e posterior.',
+    footballFunction: 'Absorção de impactos em quedas no gramado, proteção articular e estabilização de braço no salto e corrida.',
+    description: 'Envolve a articulação do ombro em três porções distintas: anterior, lateral e posterior.',
     exercises: [
-      { name: 'Desenvolvimento com Halteres', description: 'Fortalecimento completo dos ombros.', type: 'Força' },
-      { name: 'Elevação Lateral', description: 'Fortalece porção média para absorção de carga lateral.', type: 'Hipertrofia' },
-      { name: 'Crucifixo Inverso', description: 'Fortalece porção posterior e postura escapular.', type: 'Estabilidade' }
+      { name: 'Desenvolvimento com Halteres', description: 'Fortalecimento geral da articulação glenoumeral.', type: 'Força' },
+      { name: 'Elevação Lateral', description: 'Foco na porção média para estabilidade nos contatos.', type: 'Hipertrofia' },
+      { name: 'Crucifixo Inverso', description: 'Ajuste postural da porção posterior do ombro.', type: 'Estabilidade' }
     ],
-    prevention: 'Fortalecimento constante do manguito rotador e controle de estabilidade da escápula.',
-    stretches: 'Puxada do braço em cruz sobre o peito e rotação escapular suave.',
+    prevention: 'Fortalecer os pequenos músculos do manguito rotador (supraespinhal, infraespinhal e redondo menor).',
+    stretches: 'Puxada do braço estendido sobre o peito com leve tração do cotovelo.',
     injuryRisk: 'Médio',
     color: '#f97316' // orange
   },
   {
     id: 'biceps',
     name: 'Bíceps Braquial',
-    latinName: 'Biceps Brachii & Brachialis',
+    latinName: 'Biceps Brachii',
     category: 'superiores',
     side: 'anterior',
-    footballFunction: 'Auxilia na postura de corrida com cotovelos flexionados e tração durante disputas de bola.',
-    description: 'Localizado na parte anterior do braço, atua na flexão do cotovelo e supinação do antebraço.',
+    footballFunction: 'Manutenção dos cotovelos fletidos na mecânica de corrida e sustentação de carga nas disputas de espaço.',
+    description: 'Músculo de duas cabeças localizado na parte anterior do braço, atuando na flexão do cotovelo.',
     exercises: [
-      { name: 'Rosca Direta com Barra / Halter', description: 'Isolamento básico para bíceps.', type: 'Hipertrofia' },
-      { name: 'Rosca Martelo', description: 'Fortalece braquial e antebraço para pegada e força.', type: 'Força' },
-      { name: 'Barra Fixa Supinada', description: 'Trabalho composto de bíceps e costas.', type: 'Força' }
+      { name: 'Rosca Direta', description: 'Construção de força flexora de cotovelo.', type: 'Hipertrofia' },
+      { name: 'Rosca Martelo', description: 'Aumenta a força da pegada e braquiorradial.', type: 'Força' },
+      { name: 'Barra Fixa Supinada', description: 'Exercício composto funcional para braços e costas.', type: 'Força' }
     ],
-    prevention: 'Evitar hiperextensão abrupta com cargas excessivas sem aquecimento prévio.',
-    stretches: 'Extensão completa do braço com dedos puxados para trás.',
+    prevention: 'Evitar cargas excessivas em extensão completa brusca sem prévio aquecimento.',
+    stretches: 'Extensão de braço com palma da mão voltada para baixo e dedos puxados para trás.',
     injuryRisk: 'Baixo',
     color: '#eab308' // yellow
   },
@@ -107,195 +104,195 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
     latinName: 'Triceps Brachii',
     category: 'superiores',
     side: 'posterior',
-    footballFunction: 'Impulsão para se levantar rapidamente do chão, empurrão de defesa de posição e arremessos.',
-    description: 'Compreende 60% do volume do braço, dividido em cabeça longa, lateral e medial.',
+    footballFunction: 'Impulsão para levantar-se do chão em velocidade, proteção em quedas e arremessos fortes.',
+    description: 'Representa aproximadamente 60% da massa muscular do braço, composto por três cabeças.',
     exercises: [
-      { name: 'Tríceps Testa / Pulley', description: 'Construção de força estendendo o cotovelo.', type: 'Hipertrofia' },
-      { name: 'Flexão Diamante (Fechada)', description: 'Força funcional com peso corporal.', type: 'Explosão' },
-      { name: 'Mergulho em Paralelas', description: 'Trabalho composto para tríceps e peitoral.', type: 'Força' }
+      { name: 'Tríceps Testa na Barra W', description: 'Isolamento de força na extensão do cotovelo.', type: 'Hipertrofia' },
+      { name: 'Flexão Fechada (Diamante)', description: 'Explosão muscular com o peso do próprio corpo.', type: 'Explosão' },
+      { name: 'Tríceps Pulley', description: 'Trabalho contínuo de resistência e hipertrofia.', type: 'Hipertrofia' }
     ],
-    prevention: 'Fortalecer tendão quadricipital do cotovelo e manter bom aquecimento.',
-    stretches: 'Elevação do braço acima da cabeça dobrando o cotovelo para trás da nuca.',
+    prevention: 'Aquecer adequadamente os cotovelos e evitar bloqueios articulares bruscos com alta carga.',
+    stretches: 'Elevação do braço acima da cabeça, dobrando o cotovelo atrás da nuca.',
     injuryRisk: 'Baixo',
     color: '#3b82f6' // blue
   },
   {
     id: 'antebravos',
     name: 'Antebraços',
-    latinName: 'Flexor & Extensor Carpi',
+    latinName: 'Flexores & Extensores Digitais',
     category: 'superiores',
     side: 'ambos',
-    footballFunction: 'Fundamental para goleiros na firmeza da agarre e jogadores de linha na proteção de quedas.',
-    description: 'Músculos da parte inferior do braço responsáveis pelo movimento de punhos e dedos.',
+    footballFunction: 'Crucial para goleiros na firmeza de encaixe de bola e jogadores de linha na firmeza das disputas.',
+    description: 'Conjunto de flexores e extensores do punho e dedos na porção distal do membro superior.',
     exercises: [
-      { name: 'Rosca Punho Direta e Inversa', description: 'Fortalece flexores e extensores do punho.', type: 'Estabilidade' },
-      { name: 'Caminhada do Fazendeiro (Farmer Walk)', description: 'Aumenta força de preensão manual e antebraço.', type: 'Força' }
+      { name: 'Rosca Punho Direta e Inversa', description: 'Aumenta a resistência e estabilidade articular do punho.', type: 'Estabilidade' },
+      { name: 'Farmer Walk (Caminhada do Fazendeiro)', description: 'Fortalecimento severo da pegada isométrica.', type: 'Força' }
     ],
-    prevention: 'Evitar sobrecarga repetitiva do punho e fortalecer estabilização articular.',
-    stretches: 'Extensão e flexão passiva do punho com os dedos estendidos.',
+    prevention: 'Realizar mobilidade de punho periodicamente para evitar tendinites.',
+    stretches: 'Flexão e extensão passiva dos punhos com os dedos estendidos.',
     injuryRisk: 'Baixo',
     color: '#06b6d4' // cyan
   },
   {
     id: 'abdomen',
     name: 'Abdômen & Core',
-    latinName: 'Rectus Abdominis, Obliques & Transversus',
+    latinName: 'Rectus Abdominis & Obliques',
     category: 'tronco',
     side: 'anterior',
-    footballFunction: 'O "motor central" do futebolista: transfere força das pernas para o tronco no chute, rotação e impulsão.',
-    description: 'Inclui o reto abdominal, oblíquos internos/externos e o transverso (cinturão de estabilidade).',
+    footballFunction: 'Centro de gravidade e transferência de energia cinética das pernas para o chute, giros e cabeceios.',
+    description: 'Compreende o Reto Abdominal, Oblíquo Interno/Externo e o Transverso do Abdômen.',
     exercises: [
-      { name: 'Prancha Frontal e Lateral', description: 'Estabilidade isométrica do núcleo do corpo.', type: 'Estabilidade' },
-      { name: 'Pallof Press com Elástico', description: 'Anti-rotação essencial para mudanças de direção.', type: 'Estabilidade' },
-      { name: 'Abdominal Infra na Barra', description: 'Desenvolve força na porção inferior e flexores de quadril.', type: 'Força' }
+      { name: 'Prancha Frontal e Lateral', description: 'Isometria para estabilização da coluna vertebral.', type: 'Estabilidade' },
+      { name: 'Pallof Press com Elástico', description: 'Anti-rotação indispensável para atletas de campo.', type: 'Estabilidade' },
+      { name: 'Abdominal Infra Suspenso', description: 'Força na porção inferior e flexores do quadril.', type: 'Força' }
     ],
-    prevention: 'Essencial na prevenção de pubalgia quando trabalhado em equilíbrio com os adutores.',
-    stretches: 'Postura da cobra (extensão abdominal suave) e rotação de tronco no solo.',
+    prevention: 'A estabilização do core é a primeira linha de defesa contra a pubalgia e dores lombares.',
+    stretches: 'Postura da Cobra (extensão suave do tronco no chão) e rotações de quadril.',
     injuryRisk: 'Alto',
     color: '#10b981' // emerald
   },
   {
     id: 'trapezio',
     name: 'Trapézio & Pescoço',
-    latinName: 'Trapezius & Sternocleidomastoid',
+    latinName: 'Trapezius',
     category: 'tronco',
     side: 'posterior',
-    footballFunction: 'Absorve impactos no cabeceio, reduz risco de concussão e protege a coluna cervical.',
-    description: 'Músculo largo em formato de diamante que cobre a nuca, ombros e meio das costas.',
+    footballFunction: 'Absorção de impactos no cabeceio, prevenção de concussão e proteção cervical.',
+    description: 'Músculo triangular largo que se estende da base do crânio até o meio das costas.',
     exercises: [
-      { name: 'Encolhimento de Ombros com Barra', description: 'Desenvolvimento do trapézio superior.', type: 'Força' },
-      { name: 'Isometria Cervical com Faixa', description: 'Aumenta a resistência do pescoço contra impactos.', type: 'Estabilidade' },
-      { name: 'Face Pull na Polia', description: 'Fortalece trapézio médio/inferior e postura.', type: 'Estabilidade' }
+      { name: 'Encolhimento com Halteres', description: 'Fortalecimento da porção superior do trapézio.', type: 'Força' },
+      { name: 'Isometria Cervical Guiada', description: 'Reduz comprovadamente a aceleração da cabeça em impactos.', type: 'Estabilidade' },
+      { name: 'Face Pull na Polia', description: 'Trabalho de postura escapular e porção média/inferior.', type: 'Estabilidade' }
     ],
-    prevention: 'O fortalecimento cervical reduz comprovadamente o risco de traumatismo e chicotada no cabeceio.',
-    stretches: 'Inclinação lateral da cabeça com leve tração manual.',
+    prevention: 'Treinar fortalecimento de pescoço diminui o risco de traumas e chicoteamento cervical.',
+    stretches: 'Inclinação lateral suave do pescoço mantendo o ombro oposto abaixado.',
     injuryRisk: 'Médio',
     color: '#a855f7' // purple
   },
   {
     id: 'dorsal',
-    name: 'Costas (Dorsal & Romboides)',
-    latinName: 'Latissimus Dorsi & Rhomboids',
+    name: 'Dorsal / Costas',
+    latinName: 'Latissimus Dorsi',
     category: 'tronco',
     side: 'posterior',
-    footballFunction: 'Garante postura ereta nas corridas intensas, tração de braços no arranque e proteção nas disputas.',
-    description: 'Garante a largura das costas (asa) e a aproximação das escápulas.',
+    footballFunction: 'Manutenção da postura atlética na corrida, tração de braço nos sprints e estabilidade de tronco.',
+    description: 'Maior músculo da parte superior do corpo, cobrindo as laterais das costas.',
     exercises: [
-      { name: 'Puxada Frontal / Barra Fixa', description: 'Construção de largura e força de puxada.', type: 'Força' },
-      { name: 'Remada Curvada / Cavalinho', description: 'Densidade muscular para postura corporal.', type: 'Hipertrofia' },
-      { name: 'Remada Unilateral com Halter', description: 'Trabalho isolado e simétrico de costas.', type: 'Força' }
+      { name: 'Puxada Frontal / Barra Fixa', description: 'Construção de largura e força de tração vertical.', type: 'Força' },
+      { name: 'Remada Curvada com Barra', description: 'Densidade muscular e postura escapular.', type: 'Força' },
+      { name: 'Remada Unilateral com Halter', description: 'Equilíbrio e simetria lateral das costas.', type: 'Hipertrofia' }
     ],
-    prevention: 'Fortalecer para contrabalançar o peitoral e evitar hipercifose e dores nas costas.',
-    stretches: 'Abraçar os joelhos flexionados no solo ou pendurar-se na barra fixa.',
+    prevention: 'Fortalecer a cadeia posterior para evitar hiperlordose e compensações posturais.',
+    stretches: 'Pendurar-se na barra fixa ou alongamento da dorsal segurando em um suporte vertical.',
     injuryRisk: 'Baixo',
     color: '#8b5cf6' // violet
   },
   {
     id: 'lombar',
     name: 'Lombar (Erretores da Espinha)',
-    latinName: 'Erector Spinae & Multifidus',
+    latinName: 'Erector Spinae',
     category: 'tronco',
     side: 'posterior',
-    footballFunction: 'Sustentação da coluna em saltos de cabeceio, giros bruscos e aterrisagens.',
-    description: 'Músculos profundos que correm ao longo da coluna vertebral inferior.',
+    footballFunction: 'Sustentação nos saltos para cabecear, aterrissagens, mudanças bruscas de direção e chutes.',
+    description: 'Grupo de músculos profundos ao longo do canal vertebral inferior.',
     exercises: [
-      { name: 'Extensão Lombar no Banco 45°', description: 'Fortalecimento da cadeia posterior baixa.', type: 'Estabilidade' },
-      { name: 'Stiff / Levantamento Terra', description: 'Exercício composto de grande ativação da lombar.', type: 'Força' },
-      { name: 'Prancha Super-Homem', description: 'Ativação postural suave.', type: 'Estabilidade' }
+      { name: 'Extensão Lombar no Banco 45°', description: 'Fortalecimento direto da lombar baixa.', type: 'Estabilidade' },
+      { name: 'Levantamento Terra (Deadlift)', description: 'Força máxima da cadeia posterior integrada.', type: 'Força' },
+      { name: 'Prancha Super-Homem', description: 'Ativação postural para saúde da coluna.', type: 'Estabilidade' }
     ],
-    prevention: 'Fortalecer sem sobrecarregar com excesso de carga sem técnica adequada. Evita lombalgia.',
-    stretches: 'Postura da criança (yoga) trazendo o quadril nos calcanhares.',
+    prevention: 'Evitar cargas exageradas sem a curvatura fisiológica preservada. Fortalecer o abdômen simultaneamente.',
+    stretches: 'Postura da Criança (trazer o quadril em direção aos calcanhares no solo).',
     injuryRisk: 'Alto',
     color: '#ec4899' // pink
   },
   {
     id: 'gluteos',
-    name: 'Glúteos (Máximo, Médio e Mínimo)',
-    latinName: 'Gluteus Maximus, Medius & Minimus',
+    name: 'Glúteos (Máximo, Médio & Mínimo)',
+    latinName: 'Gluteus Maximus & Medius',
     category: 'inferiores',
     side: 'posterior',
-    footballFunction: 'O gerador de potência primário do atleta: aceleração do sprint, salto vertical e desaceleração.',
-    description: 'O maior e mais potente grupo muscular do corpo humano, essencial na dinâmica esportiva.',
+    footballFunction: 'Principal gerador de potência esportiva: aceleração do sprint, salto vertical, frenagem e estabilidade do joelho.',
+    description: 'O maior e mais potente grupo muscular do corpo humano, essencial para atletas de alto rendimento.',
     exercises: [
-      { name: 'Elevação Pélvica (Hip Thrust)', description: 'O melhor exercício para pico de potência dos glúteos.', type: 'Explosão' },
-      { name: 'Agachamento Profundo', description: 'Trabalho de força máxima na cadeia inferior.', type: 'Força' },
-      { name: 'Abdução de Quadril com Elástico', description: 'Ativa glúteo médio para estabilizar o joelho no chute.', type: 'Estabilidade' }
+      { name: 'Elevação Pélvica (Hip Thrust)', description: 'Exercício número 1 para pico de potência de glúteo em velocidade.', type: 'Explosão' },
+      { name: 'Agachamento Profundo', description: 'Força máxima e amplitude de quadril.', type: 'Força' },
+      { name: 'Abdução de Quadril com Elástico', description: 'Ativa o Glúteo Médio, prevenindo o valgo dinâmico no joelho.', type: 'Estabilidade' }
     ],
-    prevention: 'Evitar "amnésia glútea" (falta de ativação) para prevenir sobrecarga na lombar e posteriores.',
-    stretches: 'Alongamento do piriforme cruzando a perna sobre o joelho oposto.',
+    prevention: 'Ativação prévia ao treino (evitar amnésia glútea) previne lesões no LCA e sobrecarga na lombar.',
+    stretches: 'Cruzar a perna sobre o joelho oposto e puxar a coxa em direção ao peito.',
     injuryRisk: 'Médio',
     color: '#f43f5e' // rose
   },
   {
     id: 'quadriceps',
-    name: 'Quadríceps',
-    latinName: 'Quadriceps Femoris (Rectus Femoris, Vastus)',
+    name: 'Quadríceps Femoris',
+    latinName: 'Quadriceps Femoris',
     category: 'inferiores',
     side: 'anterior',
-    footballFunction: 'Força bruta de chute, extensão explosiva do joelho, freadas bruscas e mudanças de direção.',
-    description: 'Grupo de quatro músculos na frente da coxa: Reto Femoral, Vasto Lateral, Medial e Intermédio.',
+    footballFunction: 'Potência de chute de grande distância, extensão do joelho, frenagem abrupta e desacelerações.',
+    description: 'Formado por quatro cabeças: Reto Femoral, Vasto Lateral, Vasto Medial e Vasto Intermédio.',
     exercises: [
-      { name: 'Agachamento Livre com Barra', description: 'Rei dos exercícios de perna para atletas.', type: 'Força' },
-      { name: 'Leg Press 45°', description: 'Carga pesada segura para volume muscular.', type: 'Hipertrofia' },
-      { name: 'Cadeira Extensora', description: 'Isolamento da extensão de joelho e vasto medial.', type: 'Hipertrofia' },
-      { name: 'Passada / Afundo Dinâmico', description: 'Força unilateral e transferência para corrida.', type: 'Explosão' }
+      { name: 'Agachamento Livre com Barra', description: 'O clássico para força funcional de pernas.', type: 'Força' },
+      { name: 'Leg Press 45°', description: 'Carga pesada controlada para ganho de massa.', type: 'Hipertrofia' },
+      { name: 'Passada Dinâmica (Lunge)', description: 'Desenvolve estabilidade unilateral e força de corrida.', type: 'Explosão' },
+      { name: 'Cadeira Extensora', description: 'Isolamento da extensão de joelho e vasto medial.', type: 'Hipertrofia' }
     ],
-    prevention: 'Manter equilíbrio de força com os isquiotibiais (razão I/Q ideal > 60%) para proteger o LCA.',
-    stretches: 'Puxada do calcanhar em direção ao glúteo em pé.',
+    prevention: 'Manter a razão de força proporcional com os isquiotibiais (razão I/Q) para evitar rupturas do LCA.',
+    stretches: 'Puxada do calcanhar em direção ao glúteo em pé, mantendo a postura ereta.',
     injuryRisk: 'Alto',
-    color: '#e11d48' // rose dark
+    color: '#e11d48' // red dark
   },
   {
     id: 'isquiotibiais',
     name: 'Posteriores de Coxa (Isquiotibiais)',
-    latinName: 'Biceps Femoris, Semitendinosus & Semimembranosus',
+    latinName: 'Biceps Femoris & Semitendinosus',
     category: 'inferiores',
     side: 'posterior',
-    footballFunction: 'Frenagem no sprint máximo, flexão do joelho e proteção direta do Ligamento Cruzado Anterior (LCA).',
-    description: 'Músculos da parte de trás da coxa. É a musculatura com maior índice de lesões no futebol.',
+    footballFunction: 'Frenagem no sprint em velocidade máxima, flexão de joelho e proteção do Ligamento Cruzado Anterior (LCA).',
+    description: 'Grupo posterior da coxa. É o MÚSCULO COM MAIOR ÍNDICE DE ESTIRAMENTOS NO FUTEBOL PROFISSIONAL.',
     exercises: [
-      { name: 'Exercício Nórdico (Nordic Hamstring)', description: 'Insuperável na prevenção de estiramentos excêntricos no futebol!', type: 'Explosão' },
-      { name: 'Mesa Flexora / Cadeira Flexora', description: 'Isolamento da flexão de joelhos.', type: 'Hipertrofia' },
-      { name: 'RDL / Stiff Unilateral', description: 'Força na extensão de quadril com foco posterior.', type: 'Força' }
+      { name: 'Exercício Nórdico (Nordic Hamstring)', description: 'INVOLUNTÁRIO NO FUTEBOL! O melhor preventivo de lesão excêntrica.', type: 'Explosão' },
+      { name: 'Mesa Flexora / Cadeira Flexora', description: 'Isolamento para força e volume muscular.', type: 'Hipertrofia' },
+      { name: 'Stiff Unilateral (RDL)', description: 'Força em cadeia posterior com extensão de quadril.', type: 'Força' }
     ],
-    prevention: 'Treino excêntrico semanal obrigatório no futebol! Previne os estiramentos na velocidade máxima.',
-    stretches: 'Elevação da perna estendida ou inclinação à frente tocando as pontas dos pés.',
+    prevention: 'Inclusão semanal obrigatória de treino excêntrico (Nórdico) reduz em até 70% as lesões musculares!',
+    stretches: 'Elevação da perna estendida ou inclinação à frente em direção aos pés com joelhos estendidos.',
     injuryRisk: 'Crítico no Futebol',
     color: '#dc2626' // red high
   },
   {
     id: 'adutores',
     name: 'Adutores do Quadril',
-    latinName: 'Adductor Longus, Magnus, Brevis & Gracilis',
+    latinName: 'Adductor Longus & Magnus',
     category: 'inferiores',
     side: 'anterior',
-    footballFunction: 'Passe de chapa, chute colocado, controle de bola interno e estabilidade do quadril nas divididas.',
-    description: 'Músculos situados na parte interna da coxa.',
+    footballFunction: 'Passe de chapa, chute colocado, mudança rápida de direção e controle de bola interno.',
+    description: 'Localizados na face interna da coxa, estabilizam o quadril e a sínfise púbica.',
     exercises: [
-      { name: 'Prancha de Copenhagen', description: 'O melhor exercício do mundo para prevenir pubalgia no futebol!', type: 'Estabilidade' },
-      { name: 'Agachamento Sumô', description: 'Ativação de adutores sob carga.', type: 'Força' },
-      { name: 'Adução na Polia / Cadeira Adutora', description: 'Fortalecimento focado da parte interna.', type: 'Hipertrofia' }
+      { name: 'Prancha de Copenhagen', description: 'O EXERCÍCIO OURO para prevenir pubalgia e dor inguinofemoral no futebol.', type: 'Estabilidade' },
+      { name: 'Agachamento Sumô', description: 'Fortalecimento sob carga na posição aberta.', type: 'Força' },
+      { name: 'Cadeira Adutora', description: 'Isolamento muscular dos adutores.', type: 'Hipertrofia' }
     ],
-    prevention: 'Prancha de Copenhagen 2x por semana evita pubalgia e inflamações no sínfise púbica.',
-    stretches: 'Abertura borboleta sentado ou afundo lateral com perna estendida.',
+    prevention: 'Prancha de Copenhagen realizada 2 vezes por semana elimina o risco clássico de pubalgia no futebol.',
+    stretches: 'Posição da borboleta sentado ou afundo lateral estendido.',
     injuryRisk: 'Crítico no Futebol',
     color: '#fbbf24' // amber
   },
   {
     id: 'panturrilhas',
     name: 'Panturrilhas & Tíbia',
-    latinName: 'Gastrocnemius, Soleus & Tibialis Anterior',
+    latinName: 'Gastrocnemius, Soleus & Tibialis',
     category: 'inferiores',
     side: 'ambos',
-    footballFunction: 'Propulsão final no salto e na corrida, reação rápida no drible e absorção do pisar no gramado.',
-    description: 'Formada pelo Gastrocnêmio (duas cabeças) e Sóleo na parte posterior, e Tibial na anterior.',
+    footballFunction: 'Propulsão do salto, reação rápida no drible, amortecimento de piso e prevenção de canelite.',
+    description: 'Compreende os Gastrocnêmios (cabeça medial/lateral), o Sóleo profundo e o Tibial Anterior.',
     exercises: [
-      { name: 'Elevação de Calcanhar em Pé', description: 'Trabalho de Gastrocnêmio com joelhos estendidos.', type: 'Força' },
-      { name: 'Elevação de Calcanhar Sentado', description: 'Foco no músculo Sóleo profundos.', type: 'Hipertrofia' },
-      { name: 'Caminhada de Calcanhar (Tibial)', description: 'Fortalece tibial anterior para prevenir canelite.', type: 'Estabilidade' }
+      { name: 'Elevação de Calcanhares em Pé', description: 'Trabalho de potência do gastrocnêmio com joelho estendido.', type: 'Força' },
+      { name: 'Elevação de Calcanhares Sentado', description: 'Atinge diretamente o músculo sóleo.', type: 'Hipertrofia' },
+      { name: 'Caminhada de Calcanhar', description: 'Fortalecimento do tibial anterior para prevenir canelite.', type: 'Estabilidade' }
     ],
-    prevention: 'Evitar sobrecarga contínua sem hidratação e magnésio para evitar cãibras e tendinite de Aquiles.',
-    stretches: 'Inclinação na parede com o calcanhar traseiro colado no chão.',
+    prevention: 'Manter flexibilidade do tendão de Aquiles e boa hidratação/eletrólitos para evitar cãibras.',
+    stretches: 'Pressionar as mãos na parede e empurrar o calcanhar traseiro contra o solo.',
     injuryRisk: 'Alto',
     color: '#f59e0b' // amber dark
   }
@@ -307,10 +304,10 @@ export default function MuscleGroup3D() {
   const [hoveredMuscle, setHoveredMuscle] = useState<MuscleGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'todos' | 'superiores' | 'tronco' | 'inferiores'>('todos');
-  const [renderMode, setRenderMode] = useState<'anatomic' | 'xray' | 'regional'>('anatomic');
+  const [activeTab, setActiveTab] = useState<'anatomico' | '3d'>('anatomico');
+  const [activeSide, setActiveSide] = useState<'anterior' | 'posterior'>('anterior');
   const [autoRotate, setAutoRotate] = useState(false);
-  const [activeSideView, setActiveSideView] = useState<'anterior' | 'posterior' | 'reset'>('anterior');
-  
+
   // Three.js internal references
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -333,22 +330,22 @@ export default function MuscleGroup3D() {
     });
   }, [selectedCategory, searchQuery]);
 
-  // Setup Three.js Scene
+  // Setup Three.js Scene for 3D View Mode
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (activeTab !== '3d' || !mountRef.current) return;
 
     const width = mountRef.current.clientWidth;
     const height = mountRef.current.clientHeight;
 
     // 1. Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050505);
-    scene.fog = new THREE.FogExp2(0x050505, 0.035);
+    scene.background = new THREE.Color(0x0a0a0c);
+    scene.fog = new THREE.FogExp2(0x0a0a0c, 0.04);
     sceneRef.current = scene;
 
     // 2. Camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 1.2, 5.5);
+    camera.position.set(0, 1.2, 5.2);
     cameraRef.current = camera;
 
     // 3. Renderer
@@ -358,7 +355,7 @@ export default function MuscleGroup3D() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.25;
 
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -369,98 +366,69 @@ export default function MuscleGroup3D() {
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0.9, 0);
     controls.minDistance = 2.0;
-    controls.maxDistance = 10.0;
-    controls.maxPolarAngle = Math.PI / 2 + 0.1; // Don't go way below ground
+    controls.maxDistance = 8.0;
+    controls.maxPolarAngle = Math.PI / 2 + 0.1;
     controlsRef.current = controls;
 
-    // 5. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    // 5. Lighting (Studio Lighting for Athletes)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xfffaed, 2.5);
-    mainLight.position.set(3, 5, 4);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1024;
-    mainLight.shadow.mapSize.height = 1024;
-    scene.add(mainLight);
+    const keyLight = new THREE.DirectionalLight(0xfffaed, 2.8);
+    keyLight.position.set(3, 5, 4);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    scene.add(keyLight);
 
-    const backLight = new THREE.DirectionalLight(0x38bdf8, 2.0); // cyan rim
-    backLight.position.set(-3, 4, -4);
-    scene.add(backLight);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2); // Cyan rim light for muscular contours
+    rimLight.position.set(-3, 4, -4);
+    scene.add(rimLight);
 
-    const fillLight = new THREE.DirectionalLight(0xf59e0b, 1.2); // warm gold fill
-    fillLight.position.set(0, -2, 3);
-    scene.add(fillLight);
+    const warmFill = new THREE.DirectionalLight(0xf59e0b, 1.2); // Warm gold fill
+    warmFill.position.set(0, -2, 3);
+    scene.add(warmFill);
 
     // Grid Floor
-    const gridHelper = new THREE.GridHelper(12, 24, 0xfbbf24, 0x27272a);
-    gridHelper.position.y = -1.2;
+    const gridHelper = new THREE.GridHelper(10, 20, 0xfbbf24, 0x27272a);
+    gridHelper.position.y = -1.1;
     scene.add(gridHelper);
 
-    // Podium Base
-    const podiumGeo = new THREE.CylinderGeometry(1.6, 1.8, 0.2, 32);
+    // Studio Base Podium
+    const podiumGeo = new THREE.CylinderGeometry(1.5, 1.7, 0.18, 32);
     const podiumMat = new THREE.MeshStandardMaterial({ 
       color: 0x18181b, 
-      roughness: 0.4, 
+      roughness: 0.3, 
       metalness: 0.8 
     });
     const podium = new THREE.Mesh(podiumGeo, podiumMat);
-    podium.position.y = -1.1;
+    podium.position.y = -1.02;
     podium.receiveShadow = true;
     scene.add(podium);
 
-    // 6. Build 3D Mannequin with Anatomical Muscle Groups
-    const mannequinGroup = new THREE.Group();
-    mannequinGroup.name = "human_mannequin";
-    scene.add(mannequinGroup);
+    // 6. Build High-Quality Anatomical Athletic Body
+    const bodyGroup = new THREE.Group();
+    bodyGroup.name = "athletic_body";
+    scene.add(bodyGroup);
 
     const meshesMap: { [key: string]: THREE.Mesh[] } = {};
 
-    // Helper material generator
-    const getMuscleMaterial = (muscleId: string) => {
-      const muscle = MUSCLE_GROUPS.find(m => m.id === muscleId);
-      const isSelected = selectedMuscle?.id === muscleId;
+    const createMuscleMaterial = (id: string) => {
+      const muscle = MUSCLE_GROUPS.find(m => m.id === id);
+      const isSelected = selectedMuscle?.id === id;
       const baseHex = muscle ? parseInt(muscle.color.replace('#', '0x')) : 0xdc2626;
 
-      if (renderMode === 'xray') {
-        return new THREE.MeshStandardMaterial({
-          color: isSelected ? 0xfbbf24 : baseHex,
-          wireframe: false,
-          transparent: true,
-          opacity: isSelected ? 0.95 : 0.65,
-          emissive: isSelected ? 0xfbbf24 : baseHex,
-          emissiveIntensity: isSelected ? 0.8 : 0.2,
-          roughness: 0.2,
-          metalness: 0.5
-        });
-      }
-
-      if (renderMode === 'regional') {
-        let catColor = 0x3b82f6; // superiores
-        if (muscle?.category === 'tronco') catColor = 0xf59e0b;
-        if (muscle?.category === 'inferiores') catColor = 0x10b981;
-
-        return new THREE.MeshStandardMaterial({
-          color: isSelected ? 0xffffff : catColor,
-          roughness: 0.3,
-          metalness: 0.2,
-          emissive: isSelected ? 0xfbbf24 : 0x000000,
-          emissiveIntensity: isSelected ? 0.6 : 0
-        });
-      }
-
-      // Default Anatomic
       return new THREE.MeshStandardMaterial({
         color: isSelected ? 0xfbbf24 : baseHex,
-        roughness: 0.4,
-        metalness: 0.1,
-        emissive: isSelected ? 0xf59e0b : 0x330000,
-        emissiveIntensity: isSelected ? 0.6 : 0.1
+        roughness: 0.35,
+        metalness: 0.15,
+        emissive: isSelected ? 0xf59e0b : 0x220000,
+        emissiveIntensity: isSelected ? 0.7 : 0.1
       });
     };
 
     const addMuscleMesh = (id: string, geometry: THREE.BufferGeometry, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
-      const mat = getMuscleMaterial(id);
+      const mat = createMuscleMaterial(id);
       const mesh = new THREE.Mesh(geometry, mat);
       mesh.position.set(...pos);
       mesh.rotation.set(...rot);
@@ -469,131 +437,130 @@ export default function MuscleGroup3D() {
       mesh.receiveShadow = true;
       mesh.userData = { muscleId: id };
 
-      mannequinGroup.add(mesh);
+      bodyGroup.add(mesh);
 
       if (!meshesMap[id]) meshesMap[id] = [];
       meshesMap[id].push(mesh);
     };
 
-    // --- SKELETON / NEUTRAL CORE BODY STRUCTURE (Gray translucent background) ---
+    // --- SKELETON / JOINTS BASE (Dark translucent metallic bone structure) ---
     const boneMat = new THREE.MeshStandardMaterial({ 
-      color: 0x3f3f46, 
-      roughness: 0.8, 
-      metalness: 0.2,
+      color: 0x27272a, 
+      roughness: 0.7, 
+      metalness: 0.4,
       transparent: true,
-      opacity: 0.4
+      opacity: 0.5
     });
 
     // Head
-    const headGeo = new THREE.SphereGeometry(0.24, 24, 24);
-    const headMesh = new THREE.Mesh(headGeo, boneMat);
-    headMesh.position.set(0, 2.05, 0);
-    headMesh.scale.set(1, 1.25, 1);
-    mannequinGroup.add(headMesh);
+    const headGeo = new THREE.SphereGeometry(0.23, 24, 24);
+    headGeo.scale(1, 1.22, 1);
+    const head = new THREE.Mesh(headGeo, boneMat);
+    head.position.set(0, 2.05, 0);
+    bodyGroup.add(head);
 
-    // Spine / Torso core
-    const spineGeo = new THREE.CylinderGeometry(0.08, 0.12, 1.1, 16);
-    const spineMesh = new THREE.Mesh(spineGeo, boneMat);
-    spineMesh.position.set(0, 1.2, -0.05);
-    mannequinGroup.add(spineMesh);
+    // Neck base
+    const neckBaseGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.2, 16);
+    const neckBase = new THREE.Mesh(neckBaseGeo, boneMat);
+    neckBase.position.set(0, 1.8, 0);
+    bodyGroup.add(neckBase);
 
-    // Pelvis bone
-    const pelvisGeo = new THREE.ConeGeometry(0.3, 0.25, 16);
-    const pelvisMesh = new THREE.Mesh(pelvisGeo, boneMat);
-    pelvisMesh.position.set(0, 0.55, 0);
-    pelvisMesh.rotation.x = Math.PI;
-    mannequinGroup.add(pelvisMesh);
+    // Spine
+    const spineGeo = new THREE.CylinderGeometry(0.07, 0.1, 1.1, 16);
+    const spine = new THREE.Mesh(spineGeo, boneMat);
+    spine.position.set(0, 1.2, -0.04);
+    bodyGroup.add(spine);
 
+    // Pelvis
+    const pelvisGeo = new THREE.ConeGeometry(0.28, 0.22, 16);
+    const pelvis = new THREE.Mesh(pelvisGeo, boneMat);
+    pelvis.position.set(0, 0.55, 0);
+    pelvis.rotation.x = Math.PI;
+    bodyGroup.add(pelvis);
 
     // --- ANATOMICAL MUSCLE GROUPS BUILD ---
 
-    // 1. Pescoço / Cervical
-    const neckGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.22, 16);
-    addMuscleMesh('trapezio', neckGeo, [0, 1.78, 0]);
+    // 1. Trapézio & Pescoço
+    const trapGeo = new THREE.ConeGeometry(0.36, 0.42, 4);
+    addMuscleMesh('trapezio', trapGeo, [0, 1.64, -0.06], [0, 0, 0], [1.1, 1, 0.6]);
 
-    // 2. Trapézio (Costas Superior)
-    const trapGeo = new THREE.ConeGeometry(0.38, 0.45, 4);
-    addMuscleMesh('trapezio', trapGeo, [0, 1.62, -0.08], [0, 0, 0], [1.1, 1, 0.6]);
-
-    // 3. Deltoides (Ombros)
+    // 2. Deltoides (Ombros)
     const deltGeo = new THREE.SphereGeometry(0.16, 16, 16);
-    deltGeo.scale(1, 1.2, 0.9);
-    addMuscleMesh('deltoides', deltGeo, [0.42, 1.56, 0], [0, 0, -0.2]);
-    addMuscleMesh('deltoides', deltGeo, [-0.42, 1.56, 0], [0, 0, 0.2]);
+    deltGeo.scale(1, 1.25, 0.95);
+    addMuscleMesh('deltoides', deltGeo, [0.42, 1.58, 0], [0, 0, -0.22]);
+    addMuscleMesh('deltoides', deltGeo, [-0.42, 1.58, 0], [0, 0, 0.22]);
 
-    // 4. Peitoral Maior
+    // 3. Peitoral Maior (Pectorals)
     const chestGeo = new THREE.BoxGeometry(0.26, 0.26, 0.12);
-    chestGeo.scale(1, 0.8, 1);
-    addMuscleMesh('peitoral', chestGeo, [0.14, 1.46, 0.12], [0, 0.1, -0.05]);
-    addMuscleMesh('peitoral', chestGeo, [-0.14, 1.46, 0.12], [0, -0.1, 0.05]);
+    addMuscleMesh('peitoral', chestGeo, [0.14, 1.48, 0.12], [0, 0.12, -0.05]);
+    addMuscleMesh('peitoral', chestGeo, [-0.14, 1.48, 0.12], [0, -0.12, 0.05]);
 
-    // 5. Dorsal (Latíssimo do Dorso)
-    const latGeo = new THREE.BoxGeometry(0.24, 0.42, 0.14);
+    // 4. Dorsal / Costas (Latissimus)
+    const latGeo = new THREE.BoxGeometry(0.24, 0.44, 0.14);
     addMuscleMesh('dorsal', latGeo, [0.24, 1.34, -0.1], [0, -0.2, -0.1]);
     addMuscleMesh('dorsal', latGeo, [-0.24, 1.34, -0.1], [0, 0.2, 0.1]);
 
-    // 6. Abdômen (Reto Abdominal)
-    const absGeo = new THREE.BoxGeometry(0.24, 0.38, 0.1);
-    addMuscleMesh('abdomen', absGeo, [0, 1.15, 0.12]);
+    // 5. Abdômen (6-Pack)
+    const absGeo = new THREE.BoxGeometry(0.22, 0.38, 0.09);
+    addMuscleMesh('abdomen', absGeo, [0, 1.16, 0.12]);
 
-    // Oblíquo Lateral
-    const obliGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.36, 16);
-    addMuscleMesh('abdomen', obliGeo, [0.22, 1.15, 0.05], [0, 0, -0.15]);
-    addMuscleMesh('abdomen', obliGeo, [-0.22, 1.15, 0.05], [0, 0, 0.15]);
+    // Oblíquos
+    const obliGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.36, 16);
+    addMuscleMesh('abdomen', obliGeo, [0.22, 1.16, 0.05], [0, 0, -0.15]);
+    addMuscleMesh('abdomen', obliGeo, [-0.22, 1.16, 0.05], [0, 0, 0.15]);
 
-    // 7. Lombar
-    const lombGeo = new THREE.BoxGeometry(0.22, 0.3, 0.12);
+    // 6. Lombar
+    const lombGeo = new THREE.BoxGeometry(0.22, 0.28, 0.12);
     addMuscleMesh('lombar', lombGeo, [0, 0.92, -0.1]);
 
-    // 8. Bíceps Braquial
-    const bicepsGeo = new THREE.CapsuleGeometry(0.08, 0.22, 8, 16);
-    addMuscleMesh('biceps', bicepsGeo, [0.46, 1.28, 0.05], [0, 0, -0.1]);
-    addMuscleMesh('biceps', bicepsGeo, [-0.46, 1.28, 0.05], [0, 0, 0.1]);
+    // 7. Bíceps Braquial
+    const bicepsGeo = new THREE.CapsuleGeometry(0.08, 0.24, 8, 16);
+    addMuscleMesh('biceps', bicepsGeo, [0.46, 1.3, 0.04], [0, 0, -0.1]);
+    addMuscleMesh('biceps', bicepsGeo, [-0.46, 1.3, 0.04], [0, 0, 0.1]);
 
-    // 9. Tríceps Braquial
-    const tricepsGeo = new THREE.CapsuleGeometry(0.08, 0.24, 8, 16);
-    addMuscleMesh('triceps', tricepsGeo, [0.46, 1.28, -0.06], [0, 0, -0.1]);
-    addMuscleMesh('triceps', tricepsGeo, [-0.46, 1.28, -0.06], [0, 0, 0.1]);
+    // 8. Tríceps Braquial
+    const tricepsGeo = new THREE.CapsuleGeometry(0.08, 0.25, 8, 16);
+    addMuscleMesh('triceps', tricepsGeo, [0.46, 1.3, -0.06], [0, 0, -0.1]);
+    addMuscleMesh('triceps', tricepsGeo, [-0.46, 1.3, -0.06], [0, 0, 0.1]);
 
-    // 10. Antebraços
+    // 9. Antebraços
     const forearmGeo = new THREE.CylinderGeometry(0.08, 0.05, 0.38, 16);
-    addMuscleMesh('antebravos', forearmGeo, [0.52, 0.92, 0], [0, 0, -0.12]);
-    addMuscleMesh('antebravos', forearmGeo, [-0.52, 0.92, 0], [0, 0, 0.12]);
+    addMuscleMesh('antebravos', forearmGeo, [0.52, 0.94, 0], [0, 0, -0.12]);
+    addMuscleMesh('antebravos', forearmGeo, [-0.52, 0.94, 0], [0, 0, 0.12]);
 
-    // 11. Glúteos
+    // 10. Glúteos
     const gluteGeo = new THREE.SphereGeometry(0.22, 16, 16);
-    gluteGeo.scale(1, 0.9, 1.1);
+    gluteGeo.scale(1, 0.92, 1.1);
     addMuscleMesh('gluteos', gluteGeo, [0.16, 0.52, -0.14]);
     addMuscleMesh('gluteos', gluteGeo, [-0.16, 0.52, -0.14]);
 
-    // 12. Adutores (Parte Interna da Coxa)
-    const adducGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.45, 16);
+    // 11. Adutores
+    const adducGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.44, 16);
     addMuscleMesh('adutores', adducGeo, [0.08, 0.22, 0.02], [0, 0, -0.06]);
     addMuscleMesh('adutores', adducGeo, [-0.08, 0.22, 0.02], [0, 0, 0.06]);
 
-    // 13. Quadríceps (Coxa Anterior)
-    const quadGeo = new THREE.CapsuleGeometry(0.13, 0.42, 8, 16);
+    // 12. Quadríceps
+    const quadGeo = new THREE.CapsuleGeometry(0.13, 0.44, 8, 16);
     addMuscleMesh('quadriceps', quadGeo, [0.22, 0.2, 0.08], [0.1, 0, -0.08]);
     addMuscleMesh('quadriceps', quadGeo, [-0.22, 0.2, 0.08], [0.1, 0, 0.08]);
 
-    // 14. Isquiotibiais / Posteriores de Coxa
-    const hamstGeo = new THREE.CapsuleGeometry(0.12, 0.42, 8, 16);
+    // 13. Isquiotibiais / Posteriores de Coxa
+    const hamstGeo = new THREE.CapsuleGeometry(0.12, 0.44, 8, 16);
     addMuscleMesh('isquiotibiais', hamstGeo, [0.22, 0.2, -0.08], [-0.1, 0, -0.08]);
     addMuscleMesh('isquiotibiais', hamstGeo, [-0.22, 0.2, -0.08], [-0.1, 0, 0.08]);
 
-    // 15. Panturrilhas (Gastrocnêmio)
+    // 14. Panturrilhas (Gastrocnêmio + Tibial)
     const calfGeo = new THREE.CapsuleGeometry(0.09, 0.32, 8, 16);
     addMuscleMesh('panturrilhas', calfGeo, [0.2, -0.38, -0.06], [0, 0, -0.04]);
     addMuscleMesh('panturrilhas', calfGeo, [-0.2, -0.38, -0.06], [0, 0, 0.04]);
 
-    // Tibial Anterior
     const tibGeo = new THREE.CylinderGeometry(0.06, 0.04, 0.34, 16);
     addMuscleMesh('panturrilhas', tibGeo, [0.2, -0.38, 0.06], [0, 0, -0.04]);
     addMuscleMesh('panturrilhas', tibGeo, [-0.2, -0.38, 0.06], [0, 0, 0.04]);
 
     muscleMeshesRef.current = meshesMap;
 
-    // 7. Raycasting for Interaction
+    // Raycasting for 3D clicks
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -603,7 +570,7 @@ export default function MuscleGroup3D() {
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(mannequinGroup.children, true);
+      const intersects = raycaster.intersectObjects(bodyGroup.children, true);
 
       if (intersects.length > 0) {
         const hit = intersects.find(i => i.object.userData && i.object.userData.muscleId);
@@ -627,7 +594,7 @@ export default function MuscleGroup3D() {
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(mannequinGroup.children, true);
+      const intersects = raycaster.intersectObjects(bodyGroup.children, true);
 
       if (intersects.length > 0) {
         const hit = intersects.find(i => i.object.userData && i.object.userData.muscleId);
@@ -646,14 +613,14 @@ export default function MuscleGroup3D() {
     domElement.addEventListener('mousemove', handlePointerMove);
     domElement.addEventListener('click', handlePointerClick);
 
-    // 8. Animation Loop
+    // Animation Loop
     const animate = () => {
       animationFrameIdRef.current = requestAnimationFrame(animate);
 
       if (controlsRef.current) {
         controlsRef.current.update();
         if (autoRotate) {
-          mannequinGroup.rotation.y += 0.008;
+          bodyGroup.rotation.y += 0.008;
         }
       }
 
@@ -662,7 +629,6 @@ export default function MuscleGroup3D() {
 
     animate();
 
-    // 9. Resize Listener
     const handleResize = () => {
       if (!mountRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = mountRef.current.clientWidth;
@@ -687,14 +653,13 @@ export default function MuscleGroup3D() {
         rendererRef.current.domElement.remove();
       }
 
-      // Dispose geometries & materials
       scene.clear();
     };
-  }, [renderMode, autoRotate]);
+  }, [activeTab, autoRotate]);
 
-  // Update Materials when selectedMuscle changes
+  // Update Materials when selectedMuscle changes in 3D
   useEffect(() => {
-    if (!muscleMeshesRef.current) return;
+    if (activeTab !== '3d' || !muscleMeshesRef.current) return;
 
     Object.keys(muscleMeshesRef.current).forEach(muscleId => {
       const meshes = muscleMeshesRef.current[muscleId];
@@ -708,12 +673,12 @@ export default function MuscleGroup3D() {
         if (!mat) return;
 
         if (isSelected) {
-          mat.color.setHex(0xfbbf24); // Amber gold
+          mat.color.setHex(0xfbbf24);
           mat.emissive.setHex(0xf59e0b);
           mat.emissiveIntensity = 0.8;
           mesh.scale.set(1.08, 1.08, 1.08);
         } else if (isHovered) {
-          mat.color.setHex(0x38bdf8); // Sky blue glow on hover
+          mat.color.setHex(0x38bdf8);
           mat.emissive.setHex(0x0284c7);
           mat.emissiveIntensity = 0.6;
           mesh.scale.set(1.04, 1.04, 1.04);
@@ -725,73 +690,64 @@ export default function MuscleGroup3D() {
         }
       });
     });
-  }, [selectedMuscle, hoveredMuscle]);
+  }, [selectedMuscle, hoveredMuscle, activeTab]);
 
-  // View Preset Animations
-  const setCameraPreset = (view: 'anterior' | 'posterior' | 'superiores' | 'core' | 'inferiores' | 'reset') => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    setActiveSideView(view === 'anterior' || view === 'posterior' ? view : 'reset');
-
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-
-    switch (view) {
-      case 'anterior':
-        camera.position.set(0, 1.1, 5.2);
-        controls.target.set(0, 0.9, 0);
-        break;
-      case 'posterior':
-        camera.position.set(0, 1.1, -5.2);
-        controls.target.set(0, 0.9, 0);
-        break;
-      case 'superiores':
-        camera.position.set(0, 1.6, 2.8);
-        controls.target.set(0, 1.5, 0);
-        break;
-      case 'core':
-        camera.position.set(0, 1.15, 2.5);
-        controls.target.set(0, 1.1, 0);
-        break;
-      case 'inferiores':
-        camera.position.set(0, 0.1, 3.2);
-        controls.target.set(0, 0.1, 0);
-        break;
-      case 'reset':
-      default:
-        camera.position.set(0, 1.2, 5.5);
-        controls.target.set(0, 0.9, 0);
-        break;
-    }
-  };
-
-  const handlePrintSpecSheet = () => {
+  const handlePrint = () => {
     window.print();
   };
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="relative bg-gradient-to-r from-zinc-950 via-zinc-900 to-amber-950/30 border border-theme-primary/20 p-6 md:p-8 rounded-3xl shadow-2xl overflow-hidden">
+      {/* Top Header Banner */}
+      <div className="relative bg-gradient-to-r from-zinc-950 via-zinc-900 to-amber-950/40 border border-theme-primary/30 p-6 md:p-8 rounded-3xl shadow-2xl overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-theme-primary/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-        
+
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-theme-primary/10 border border-theme-primary/30 rounded-xl text-theme-primary font-black text-xs uppercase tracking-widest">
               <Zap size={14} className="animate-pulse" />
-              <span>Anatomia & Fisiologia 3D • Piruá EC</span>
+              <span>Anatomia Médica & Biomecânica Esportiva</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight uppercase">
-              Grupos Musculares <span className="text-theme-primary">Interativos 3D</span>
+              Grupo Muscular <span className="text-theme-primary">Interativo</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
-              Explore o modelo anatômico tridimensional do atleta. Clique em qualquer grupo muscular para analisar a sua função biomecânica no futebol, exercícios recomendados e métodos de prevenção de lesões.
+              Explore o modelo anatômico detalhado do futebolista. Selecione qualquer grupo muscular para analisar a função no campo, prevenções de lesões críticas (como isquiotibiais e adutores) e exercícios de alto rendimento.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 no-print">
+            {/* View Switcher: Vector Anatomical Map vs 3D Studio */}
+            <div className="bg-black/80 backdrop-blur-md p-1.5 rounded-2xl border border-zinc-800 flex items-center gap-1 shadow-lg">
+              <button
+                onClick={() => setActiveTab('anatomico')}
+                className={cn(
+                  "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                  activeTab === 'anatomico' 
+                    ? "bg-theme-primary text-black shadow-md scale-105" 
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
+                <HeartPulse size={16} />
+                <span>Mapa Anatômico HD</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('3d')}
+                className={cn(
+                  "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                  activeTab === '3d' 
+                    ? "bg-theme-primary text-black shadow-md scale-105" 
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
+                <Activity size={16} />
+                <span>Visão 3D 360°</span>
+              </button>
+            </div>
+
             <button
-              onClick={handlePrintSpecSheet}
-              className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-md no-print"
+              onClick={handlePrint}
+              className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-md"
             >
               <Printer size={16} className="text-theme-primary" />
               <span>Imprimir Ficha</span>
@@ -800,162 +756,419 @@ export default function MuscleGroup3D() {
         </div>
       </div>
 
-      {/* Main Grid: 3D Canvas + Side Details Panel */}
+      {/* Main Grid: Interactive Body View + Specification Sheet */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Column: 3D Viewer & Controls (7 Cols on desktop) */}
+        {/* Left Column: Body Map / 3D Viewer (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative bg-black border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl group min-h-[520px] md:min-h-[620px] flex flex-col">
-            
-            {/* Top Toolbar overlay over 3D canvas */}
-            <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto no-print">
+          
+          {/* Anatomical HD Vector Map View */}
+          {activeTab === 'anatomico' ? (
+            <div className="bg-black border border-zinc-800 rounded-3xl p-6 shadow-2xl relative space-y-4">
               
-              {/* Category / Filter Pills */}
-              <div className="flex items-center gap-1.5 bg-black/80 backdrop-blur-md p-1.5 rounded-2xl border border-zinc-800 shadow-xl">
-                {(['todos', 'superiores', 'tronco', 'inferiores'] as const).map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                      selectedCategory === cat 
-                        ? "bg-theme-primary text-black shadow-md" 
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-                    )}
-                  >
-                    {cat === 'todos' ? 'Todos' : cat}
-                  </button>
-                ))}
-              </div>
+              {/* Controls bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-zinc-850">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-zinc-400 uppercase tracking-wider">Visão do Atleta:</span>
+                  <div className="bg-zinc-900 p-1 rounded-xl border border-zinc-800 flex items-center gap-1">
+                    <button
+                      onClick={() => setActiveSide('anterior')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer",
+                        activeSide === 'anterior' ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      Anterior (Frente)
+                    </button>
+                    <button
+                      onClick={() => setActiveSide('posterior')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer",
+                        activeSide === 'posterior' ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      Posterior (Costas)
+                    </button>
+                  </div>
+                </div>
 
-              {/* Render Style Mode */}
-              <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md p-1.5 rounded-2xl border border-zinc-800 shadow-xl">
-                <button
-                  onClick={() => setRenderMode('anatomic')}
-                  title="Anatômico Natural"
-                  className={cn(
-                    "px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
-                    renderMode === 'anatomic' ? "bg-red-500 text-white" : "text-zinc-400 hover:text-white"
-                  )}
-                >
-                  <HeartPulse size={12} />
-                  <span className="hidden sm:inline">Anatômico</span>
-                </button>
-                <button
-                  onClick={() => setRenderMode('xray')}
-                  title="Modo Raio-X / Cyber"
-                  className={cn(
-                    "px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
-                    renderMode === 'xray' ? "bg-amber-500 text-black font-black" : "text-zinc-400 hover:text-white"
-                  )}
-                >
-                  <Zap size={12} />
-                  <span className="hidden sm:inline">Cyber</span>
-                </button>
-                <button
-                  onClick={() => setRenderMode('regional')}
-                  title="Didático por Região"
-                  className={cn(
-                    "px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
-                    renderMode === 'regional' ? "bg-blue-500 text-white" : "text-zinc-400 hover:text-white"
-                  )}
-                >
-                  <Layers size={12} />
-                  <span className="hidden sm:inline">Regiões</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Hover Tooltip Overlay */}
-            {hoveredMuscle && (
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-4 py-2 bg-black/90 backdrop-blur-md border border-theme-primary/50 text-white font-black text-xs uppercase rounded-2xl shadow-2xl flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full animate-ping" style={{ backgroundColor: hoveredMuscle.color }} />
-                  <span>{hoveredMuscle.name} ({hoveredMuscle.latinName})</span>
+                <div className="flex items-center gap-1.5">
+                  {(['todos', 'superiores', 'tronco', 'inferiores'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                        selectedCategory === cat ? "bg-zinc-800 text-theme-primary border border-theme-primary/40" : "text-zinc-500 hover:text-zinc-300"
+                      )}
+                    >
+                      {cat}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* 3D Canvas Mount */}
-            <div ref={mountRef} className="w-full flex-1 min-h-[460px] md:min-h-[560px] cursor-grab active:cursor-grabbing" />
+              {/* Interactive Vector Muscle Silhouette */}
+              <div className="relative min-h-[500px] md:min-h-[580px] flex items-center justify-center bg-gradient-to-b from-zinc-950/60 to-black rounded-2xl p-4 overflow-hidden border border-zinc-900">
+                <div className="absolute inset-0 bg-[radial-gradient(#18181b_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
 
-            {/* Bottom Controls Bar */}
-            <div className="p-4 bg-zinc-950/90 border-t border-zinc-800/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-10 no-print">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mr-1">Visões:</span>
-                <button
-                  onClick={() => setCameraPreset('anterior')}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all cursor-pointer",
-                    activeSideView === 'anterior' 
-                      ? "bg-theme-primary/20 border-theme-primary text-theme-primary" 
-                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                {/* SVG Muscle Diagram */}
+                <svg viewBox="0 0 400 700" className="w-full max-w-sm h-auto drop-shadow-2xl z-10">
+                  <defs>
+                    <linearGradient id="muscleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ef4444" />
+                      <stop offset="100%" stopColor="#991b1b" />
+                    </linearGradient>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="6" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+
+                  {/* Body Outline Base */}
+                  <path 
+                    d="M 200,45 C 220,45 230,65 230,85 C 230,105 220,115 200,115 C 180,115 170,105 170,85 C 170,65 180,45 200,45 Z" 
+                    fill="#18181b" stroke="#27272a" strokeWidth="2"
+                  />
+
+                  {/* ANTERIOR VIEW (Front) */}
+                  {activeSide === 'anterior' && (
+                    <g className="transition-all duration-300">
+                      {/* Pescoço / Trapézio Anterior */}
+                      <path
+                        d="M 180,115 L 220,115 L 240,135 L 160,135 Z"
+                        fill={selectedMuscle?.id === 'trapezio' ? '#a855f7' : '#27272a'}
+                        stroke="#3f3f46" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'trapezio')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'trapezio')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Deltoides Anteriores */}
+                      <path
+                        d="M 155,138 C 140,145 130,170 135,190 C 145,185 155,160 162,145 Z"
+                        fill={selectedMuscle?.id === 'deltoides' ? '#f97316' : '#dc2626'}
+                        stroke="#f97316" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 245,138 C 260,145 270,170 265,190 C 255,185 245,160 238,145 Z"
+                        fill={selectedMuscle?.id === 'deltoides' ? '#f97316' : '#dc2626'}
+                        stroke="#f97316" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Peitoral Maior */}
+                      <path
+                        d="M 165,142 L 235,142 C 235,180 205,190 200,190 C 195,190 165,180 165,142 Z"
+                        fill={selectedMuscle?.id === 'peitoral' ? '#ef4444' : '#b91c1c'}
+                        stroke="#ef4444" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'peitoral')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'peitoral')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Bíceps Braquial */}
+                      <path
+                        d="M 132,192 C 125,205 128,235 138,245 C 145,235 145,205 138,192 Z"
+                        fill={selectedMuscle?.id === 'biceps' ? '#eab308' : '#ca8a04'}
+                        stroke="#eab308" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'biceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'biceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 268,192 C 275,205 272,235 262,245 C 255,235 255,205 262,192 Z"
+                        fill={selectedMuscle?.id === 'biceps' ? '#eab308' : '#ca8a04'}
+                        stroke="#eab308" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'biceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'biceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Antebraços */}
+                      <path
+                        d="M 136,250 C 128,270 122,305 130,320 C 138,310 142,275 142,250 Z"
+                        fill={selectedMuscle?.id === 'antebravos' ? '#06b6d4' : '#0891b2'}
+                        stroke="#06b6d4" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'antebravos')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'antebravos')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 264,250 C 272,270 278,305 270,320 C 262,310 258,275 258,250 Z"
+                        fill={selectedMuscle?.id === 'antebravos' ? '#06b6d4' : '#0891b2'}
+                        stroke="#06b6d4" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'antebravos')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'antebravos')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Abdômen & Core */}
+                      <path
+                        d="M 175,195 L 225,195 L 220,290 L 180,290 Z"
+                        fill={selectedMuscle?.id === 'abdomen' ? '#10b981' : '#047857'}
+                        stroke="#10b981" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'abdomen')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'abdomen')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Adutores do Quadril (Parte Interna da Coxa) */}
+                      <path
+                        d="M 188,315 C 195,315 198,380 195,420 L 182,420 C 180,380 182,315 188,315 Z"
+                        fill={selectedMuscle?.id === 'adutores' ? '#fbbf24' : '#d97706'}
+                        stroke="#fbbf24" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'adutores')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'adutores')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 212,315 C 205,315 202,380 205,420 L 218,420 C 220,380 218,315 212,315 Z"
+                        fill={selectedMuscle?.id === 'adutores' ? '#fbbf24' : '#d97706'}
+                        stroke="#fbbf24" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'adutores')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'adutores')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Quadríceps (Coxa Frontal) */}
+                      <path
+                        d="M 152,310 C 170,305 180,315 180,430 C 160,430 145,390 152,310 Z"
+                        fill={selectedMuscle?.id === 'quadriceps' ? '#e11d48' : '#9f1239'}
+                        stroke="#e11d48" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'quadriceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'quadriceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 248,310 C 230,305 220,315 220,430 C 240,430 255,390 248,310 Z"
+                        fill={selectedMuscle?.id === 'quadriceps' ? '#e11d48' : '#9f1239'}
+                        stroke="#e11d48" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'quadriceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'quadriceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Panturrilhas & Tibial (Anterior) */}
+                      <path
+                        d="M 150,450 C 165,450 170,520 162,560 C 148,550 142,500 150,450 Z"
+                        fill={selectedMuscle?.id === 'panturrilhas' ? '#f59e0b' : '#b45309'}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 250,450 C 235,450 230,520 238,560 C 252,550 258,500 250,450 Z"
+                        fill={selectedMuscle?.id === 'panturrilhas' ? '#f59e0b' : '#b45309'}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                    </g>
                   )}
-                >
-                  Frente
-                </button>
-                <button
-                  onClick={() => setCameraPreset('posterior')}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all cursor-pointer",
-                    activeSideView === 'posterior' 
-                      ? "bg-theme-primary/20 border-theme-primary text-theme-primary" 
-                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+
+                  {/* POSTERIOR VIEW (Back) */}
+                  {activeSide === 'posterior' && (
+                    <g className="transition-all duration-300">
+                      {/* Trapézio Posterior */}
+                      <path
+                        d="M 200,115 L 245,140 L 200,185 L 155,140 Z"
+                        fill={selectedMuscle?.id === 'trapezio' ? '#a855f7' : '#6b21a8'}
+                        stroke="#a855f7" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'trapezio')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'trapezio')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Deltoides Posteriores */}
+                      <path
+                        d="M 152,142 C 135,148 128,172 135,190 C 145,182 154,165 158,148 Z"
+                        fill={selectedMuscle?.id === 'deltoides' ? '#f97316' : '#c2410c'}
+                        stroke="#f97316" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 248,142 C 265,148 272,172 265,190 C 255,182 246,165 242,148 Z"
+                        fill={selectedMuscle?.id === 'deltoides' ? '#f97316' : '#c2410c'}
+                        stroke="#f97316" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'deltoides')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Dorsal (Latíssimo) */}
+                      <path
+                        d="M 160,188 L 240,188 L 225,260 L 175,260 Z"
+                        fill={selectedMuscle?.id === 'dorsal' ? '#8b5cf6' : '#5b21b6'}
+                        stroke="#8b5cf6" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'dorsal')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'dorsal')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Tríceps Posterior */}
+                      <path
+                        d="M 132,192 C 122,208 125,238 135,248 C 142,238 142,208 138,192 Z"
+                        fill={selectedMuscle?.id === 'triceps' ? '#3b82f6' : '#1d4ed8'}
+                        stroke="#3b82f6" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'triceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'triceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 268,192 C 278,208 275,238 265,248 C 258,238 258,208 262,192 Z"
+                        fill={selectedMuscle?.id === 'triceps' ? '#3b82f6' : '#1d4ed8'}
+                        stroke="#3b82f6" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'triceps')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'triceps')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Lombar */}
+                      <path
+                        d="M 175,262 L 225,262 L 220,300 L 180,300 Z"
+                        fill={selectedMuscle?.id === 'lombar' ? '#ec4899' : '#be185d'}
+                        stroke="#ec4899" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'lombar')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'lombar')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Glúteos */}
+                      <path
+                        d="M 152,302 C 175,295 198,310 198,360 C 160,370 145,340 152,302 Z"
+                        fill={selectedMuscle?.id === 'gluteos' ? '#f43f5e' : '#be123c'}
+                        stroke="#f43f5e" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'gluteos')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'gluteos')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 248,302 C 225,295 202,310 202,360 C 240,370 255,340 248,302 Z"
+                        fill={selectedMuscle?.id === 'gluteos' ? '#f43f5e' : '#be123c'}
+                        stroke="#f43f5e" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'gluteos')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'gluteos')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Isquiotibiais / Posteriores de Coxa */}
+                      <path
+                        d="M 155,365 C 178,365 185,400 182,440 L 158,440 C 150,400 148,370 155,365 Z"
+                        fill={selectedMuscle?.id === 'isquiotibiais' ? '#dc2626' : '#7f1d1d'}
+                        stroke="#dc2626" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'isquiotibiais')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'isquiotibiais')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 245,365 C 222,365 215,400 218,440 L 242,440 C 250,400 252,370 245,365 Z"
+                        fill={selectedMuscle?.id === 'isquiotibiais' ? '#dc2626' : '#7f1d1d'}
+                        stroke="#dc2626" strokeWidth="2"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'isquiotibiais')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'isquiotibiais')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+
+                      {/* Panturrilhas (Gastrocnêmio Posterior) */}
+                      <path
+                        d="M 152,455 C 172,455 174,510 162,560 C 148,550 142,490 152,455 Z"
+                        fill={selectedMuscle?.id === 'panturrilhas' ? '#f59e0b' : '#b45309'}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                      <path
+                        d="M 248,455 C 228,455 226,510 238,560 C 252,550 258,490 248,455 Z"
+                        fill={selectedMuscle?.id === 'panturrilhas' ? '#f59e0b' : '#b45309'}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        className="cursor-pointer hover:opacity-80 transition-all"
+                        onClick={() => setSelectedMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseEnter={() => setHoveredMuscle(MUSCLE_GROUPS.find(m => m.id === 'panturrilhas')!)}
+                        onMouseLeave={() => setHoveredMuscle(null)}
+                      />
+                    </g>
                   )}
-                >
-                  Costas
-                </button>
-                <button
-                  onClick={() => setCameraPreset('superiores')}
-                  className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase cursor-pointer"
-                >
-                  Braços
-                </button>
-                <button
-                  onClick={() => setCameraPreset('core')}
-                  className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase cursor-pointer"
-                >
-                  Tronco
-                </button>
-                <button
-                  onClick={() => setCameraPreset('inferiores')}
-                  className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase cursor-pointer"
-                >
-                  Pernas
-                </button>
+                </svg>
+
+                {/* Floating Hover Card Indicator */}
+                {hoveredMuscle && (
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2 bg-black/90 backdrop-blur-md border border-theme-primary/60 text-white font-black text-xs uppercase rounded-2xl shadow-2xl flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full animate-ping" style={{ backgroundColor: hoveredMuscle.color }} />
+                      <span>{hoveredMuscle.name}</span>
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
+          ) : (
+            /* 3D Interactive View Mode */
+            <div className="relative bg-black border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl group min-h-[500px] md:min-h-[580px] flex flex-col">
+              <div ref={mountRef} className="w-full flex-1 min-h-[460px] md:min-h-[520px] cursor-grab active:cursor-grabbing" />
 
-              <div className="flex items-center gap-2">
+              <div className="p-4 bg-zinc-950/90 border-t border-zinc-800 backdrop-blur-md flex items-center justify-between gap-3">
                 <button
                   onClick={() => setAutoRotate(!autoRotate)}
                   className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all flex items-center gap-1.5 cursor-pointer",
+                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase border transition-all flex items-center gap-2 cursor-pointer",
                     autoRotate 
                       ? "bg-green-500/20 border-green-500 text-green-400 animate-pulse" 
                       : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
                   )}
                 >
-                  <RotateCcw size={12} />
-                  <span>{autoRotate ? 'Giro 360° On' : 'Girar 360°'}</span>
+                  <RotateCcw size={14} />
+                  <span>{autoRotate ? 'Giro 360° Ativo' : 'Girar 360°'}</span>
                 </button>
 
-                <button
-                  onClick={() => setCameraPreset('reset')}
-                  title="Resetar Posição da Câmera"
-                  className="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl cursor-pointer"
-                >
-                  <Maximize2 size={14} />
-                </button>
+                <span className="text-[10px] text-zinc-500 font-black uppercase">Clique e arraste para rotacionar em 3D</span>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Quick Muscle Selector List */}
+          {/* Quick Filter Pill List */}
           <div className="bg-black border border-zinc-800 p-4 rounded-3xl space-y-3 no-print">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Search size={16} className="text-theme-primary" />
-                <span className="text-xs font-black text-white uppercase tracking-wider">Buscar Músculo</span>
+                <span className="text-xs font-black text-white uppercase tracking-wider">Mapeamento Muscular</span>
               </div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase">{filteredMuscles.length} grupos mapeados</span>
             </div>
@@ -963,7 +1176,7 @@ export default function MuscleGroup3D() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Ex: Quadríceps, Isquiotibiais, Chute, Peitoral..."
+                placeholder="Buscar por grupo muscular, exercício ou função no futebol..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-theme-primary transition-all"
@@ -986,8 +1199,8 @@ export default function MuscleGroup3D() {
                     key={m.id}
                     onClick={() => {
                       setSelectedMuscle(m);
-                      if (m.side === 'posterior') setCameraPreset('posterior');
-                      if (m.side === 'anterior') setCameraPreset('anterior');
+                      if (m.side === 'posterior') setActiveSide('posterior');
+                      if (m.side === 'anterior') setActiveSide('anterior');
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border",
@@ -996,7 +1209,7 @@ export default function MuscleGroup3D() {
                         : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
                     )}
                   >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
                     <span>{m.name}</span>
                   </button>
                 );
@@ -1005,13 +1218,13 @@ export default function MuscleGroup3D() {
           </div>
         </div>
 
-        {/* Right Column: Detailed Muscle Specification Sheet (5 Cols on desktop) */}
+        {/* Right Column: Specification Sheet (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
           {selectedMuscle ? (
             <div className="bg-black border border-theme-primary/30 p-6 md:p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               
-              {/* Muscle Title Header */}
-              <div className="space-y-3 pb-6 border-b border-zinc-800">
+              {/* Header */}
+              <div className="space-y-3 pb-6 border-b border-zinc-850">
                 <div className="flex items-center justify-between gap-3">
                   <span className="px-3 py-1 bg-theme-primary/10 border border-theme-primary/30 text-theme-primary font-black text-[10px] uppercase rounded-xl tracking-wider">
                     {selectedMuscle.category.toUpperCase()} • {selectedMuscle.side.toUpperCase()}
@@ -1033,7 +1246,7 @@ export default function MuscleGroup3D() {
                     {selectedMuscle.name}
                   </h2>
                   <p className="text-xs text-zinc-400 font-mono italic mt-0.5">
-                    {selectedMuscle.latinName}
+                    Nome Científico: {selectedMuscle.latinName}
                   </p>
                 </div>
 
@@ -1046,32 +1259,36 @@ export default function MuscleGroup3D() {
               <div className="bg-gradient-to-br from-zinc-950 to-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-2">
                 <div className="flex items-center gap-2 text-theme-primary font-black text-xs uppercase tracking-wider">
                   <Activity size={16} />
-                  <span>Função Biomecânica no Futebol</span>
+                  <span>Função no Futebol</span>
                 </div>
                 <p className="text-sm text-zinc-200 leading-relaxed font-medium">
                   {selectedMuscle.footballFunction}
                 </p>
               </div>
 
-              {/* Top Exercises for Athletes */}
+              {/* Top Exercises */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-white font-black text-xs uppercase tracking-wider">
-                    <Dumbbell size={16} className="text-amber-400" />
-                    <span>Exercícios Recomendados (Piruá EC)</span>
+                    <Dumbbell size={16} className="text-theme-primary" />
+                    <span>Exercícios Recomendados para Atletas</span>
                   </div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase">{selectedMuscle.exercises.length} protocolos</span>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {selectedMuscle.exercises.map((ex, idx) => (
-                    <div key={idx} className="bg-zinc-900/90 border border-zinc-850 hover:border-zinc-700 p-3.5 rounded-2xl transition-all space-y-1">
+                    <div key={idx} className="bg-zinc-900/80 border border-zinc-800/80 p-3.5 rounded-2xl space-y-1 hover:border-theme-primary/40 transition-colors">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-white text-xs">{ex.name}</span>
-                        <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase rounded-lg">
+                        <span className="font-bold text-xs text-white flex items-center gap-2">
+                          <CheckCircle2 size={14} className="text-theme-primary" />
+                          {ex.name}
+                        </span>
+                        <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase rounded-md">
                           {ex.type}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-400 leading-normal">
+                      <p className="text-xs text-zinc-400 pl-5 leading-relaxed">
                         {ex.description}
                       </p>
                     </div>
@@ -1079,43 +1296,36 @@ export default function MuscleGroup3D() {
                 </div>
               </div>
 
-              {/* Injury Prevention & Stretches */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="bg-red-950/20 border border-red-500/20 p-4 rounded-2xl space-y-2">
-                  <div className="flex items-center gap-1.5 text-red-400 font-black text-xs uppercase tracking-wider">
-                    <ShieldAlert size={14} />
-                    <span>Prevenção de Lesões</span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    {selectedMuscle.prevention}
-                  </p>
+              {/* Injury Prevention Protocol */}
+              <div className="bg-red-500/5 border border-red-500/20 p-5 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 text-red-400 font-black text-xs uppercase tracking-wider">
+                  <ShieldAlert size={16} />
+                  <span>Prevenção de Lesão & Cuidados</span>
                 </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  {selectedMuscle.prevention}
+                </p>
+              </div>
 
-                <div className="bg-emerald-950/20 border border-emerald-500/20 p-4 rounded-2xl space-y-2">
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-black text-xs uppercase tracking-wider">
-                    <Sparkles size={14} />
-                    <span>Alongamento & MFX</span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    {selectedMuscle.stretches}
-                  </p>
+              {/* Stretches & Recovery */}
+              <div className="bg-emerald-500/5 border border-emerald-500/20 p-5 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-black text-xs uppercase tracking-wider">
+                  <Flame size={16} />
+                  <span>Alongamento & Recuperação</span>
                 </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  {selectedMuscle.stretches}
+                </p>
               </div>
 
             </div>
           ) : (
-            <div className="bg-black border border-zinc-800 p-12 rounded-3xl text-center space-y-4">
-              <Info size={40} className="text-zinc-600 mx-auto" />
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold text-white uppercase">Selecione um Músculo</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                  Clique diretamente no modelo 3D ao lado ou selecione um grupo muscular na lista abaixo para visualizar a ficha biomecânica completa.
-                </p>
-              </div>
+            <div className="bg-black border border-zinc-800 p-8 rounded-3xl text-center space-y-3">
+              <Target size={32} className="mx-auto text-zinc-600" />
+              <p className="text-xs text-zinc-400 font-bold uppercase">Selecione um grupo muscular no mapa para ver a ficha completa</p>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
