@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -114,8 +114,16 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   const [athletes, setAthletes] = useState<Athlete[]>(athletesProp || []);
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
+  const [displayMode, setDisplayMode] = useState<'cards' | 'table'>(() => {
+    const saved = localStorage.getItem('attendance_display_mode');
+    return (saved === 'cards' || saved === 'table') ? saved : 'cards';
+  });
   const [filterSub, setFilterSub] = useState(filterCategory);
   const [filterModality, setFilterModality] = useState<string>('Todos');
+  const [filterGender, setFilterGender] = useState<string>('Todos');
+  const [filterBirthYear, setFilterBirthYear] = useState<string>('Todos');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'category' | 'created_new'>('name_asc');
+  const [previewAthletePhoto, setPreviewAthletePhoto] = useState<Athlete | null>(null);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -1054,6 +1062,44 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     return null;
   };
 
+  const getBirthYear = (birthDate?: string): string => {
+    if (!birthDate) return '';
+    const trimmed = birthDate.trim();
+    if (trimmed.includes('-')) {
+      const year = trimmed.split('-')[0];
+      if (year.length === 4 && !isNaN(Number(year))) return year;
+    }
+    if (trimmed.includes('/')) {
+      const parts = trimmed.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (lastPart.length === 4 && !isNaN(Number(lastPart))) return lastPart;
+      const firstPart = parts[0];
+      if (firstPart.length === 4 && !isNaN(Number(firstPart))) return firstPart;
+    }
+    try {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) return d.getFullYear().toString();
+    } catch (_) {}
+    return '';
+  };
+
+  const uniqueModalities = Array.from(
+    new Set(
+      athletes
+        .map(a => a.modality)
+        .filter(Boolean)
+        .flatMap(m => m!.split(',').map(s => s.trim()))
+    )
+  ).sort();
+
+  const uniqueBirthYears = Array.from(
+    new Set(
+      athletes
+        .map(a => getBirthYear(a.birth_date))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
   const activeAthletes = athletes.filter(a => {
     if (showOnlyActive && (a.status !== 'Ativo' || a.confirmation === 'Pendente')) return false;
 
@@ -1064,6 +1110,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
     return true;
   });
+
   const athletesMatchingFilters = activeAthletes
     .filter(a => {
       const isSearching = search.trim().length > 0;
@@ -1071,9 +1118,11 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
       const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase());
       const matchesModality = isSearching || filterModality === 'Todos' || athleteMods.includes(filterModality.toLowerCase());
+      const matchesGender = isSearching || filterGender === 'Todos' || a.gender === filterGender;
+      const matchesBirthYear = isSearching || filterBirthYear === 'Todos' || getBirthYear(a.birth_date) === filterBirthYear;
       const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
                           (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
-                          a.doc.includes(search);
+                          (a.doc && a.doc.includes(search));
       
       // Filter by selected training category if not "geral" and not explicit trainingId prop
       // Relax this if we are searching for someone specific
@@ -1093,7 +1142,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         }
       }
 
-      return matchesSub && matchesModality && matchesSearch;
+      return matchesSub && matchesModality && matchesGender && matchesBirthYear && matchesSearch;
     });
 
   const filteredAthletes = athletesMatchingFilters
@@ -1110,7 +1159,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
       return true;
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
+      if (sortBy === 'category') return getSubCategory(a.birth_date).localeCompare(getSubCategory(b.birth_date));
+      if (sortBy === 'created_new') {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -1336,7 +1395,41 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Display Mode Toggler (Galeria de Fotos vs Tabela) */}
+          <div className="flex bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => {
+                setDisplayMode('cards');
+                localStorage.setItem('attendance_display_mode', 'cards');
+              }}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer",
+                displayMode === 'cards' ? "bg-theme-primary text-black shadow-md" : "text-zinc-500 hover:text-white"
+              )}
+              title="Modo Galeria com Fotos em Destaque"
+            >
+              <LayoutGrid size={16} />
+              <span className="hidden sm:inline">Galeria</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDisplayMode('table');
+                localStorage.setItem('attendance_display_mode', 'table');
+              }}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer",
+                displayMode === 'table' ? "bg-theme-primary text-black shadow-md" : "text-zinc-500 hover:text-white"
+              )}
+              title="Modo Tabela de Lista"
+            >
+              <List size={16} />
+              <span className="hidden sm:inline">Tabela</span>
+            </button>
+          </div>
+
           <button 
             onClick={toggleScanning}
             disabled={isLocked}
@@ -1639,94 +1732,142 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="relative md:col-span-2 lg:col-span-1 border-2 border-theme-primary/30 rounded-xl overflow-hidden">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+      {/* Attendance Status Tabs */}
+      <div className="flex bg-black p-1 rounded-2xl border border-zinc-800 shadow-lg">
+        <button 
+          onClick={() => setTabFilter('all')}
+          className={cn(
+            "flex-1 px-3 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer",
+            tabFilter === 'all' ? "bg-theme-primary text-black shadow-md" : "text-zinc-500 hover:text-white"
+          )}
+        >
+          Todos ({stats.total})
+        </button>
+        <button 
+          onClick={() => setTabFilter('present')}
+          className={cn(
+            "flex-1 px-3 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer",
+            tabFilter === 'present' ? "bg-green-500 text-black shadow-md" : "text-zinc-500 hover:text-white"
+          )}
+        >
+          <CheckCircle2 size={16} />
+          <span>Presentes ({stats.present})</span>
+        </button>
+        <button 
+          onClick={() => setTabFilter('absent')}
+          className={cn(
+            "flex-1 px-3 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer",
+            tabFilter === 'absent' ? "bg-red-500 text-white shadow-md animate-pulse" : "border border-red-500/20 text-red-400 hover:text-red-300"
+          )}
+        >
+          <XCircle size={16} />
+          <span>FALTAS / AUSENTES ({stats.absent})</span>
+        </button>
+        <button 
+          onClick={() => setTabFilter('observation')}
+          className={cn(
+            "flex-1 px-3 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer",
+            tabFilter === 'observation' ? "bg-amber-500 text-black shadow-md" : "text-zinc-500 hover:text-white"
+          )}
+        >
+          <span>Pendente/Obs ({stats.notMarked})</span>
+        </button>
+      </div>
+
+      {/* Filter Toolbar Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+        <div className="relative sm:col-span-2">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
             type="text" 
-            placeholder="Digite o nome do atleta para buscar..." 
-            className="w-full pl-10 pr-4 py-3 bg-black text-white focus:outline-none placeholder:text-zinc-600"
+            placeholder="Buscar por nome, apelido ou documento..." 
+            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs font-medium placeholder:text-zinc-600"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        
-        <div className="flex bg-black p-1 rounded-xl border border-zinc-800 lg:col-span-2 h-[50px]">
-          <button 
-            onClick={() => setTabFilter('all')}
-            className={cn(
-              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-              tabFilter === 'all' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
-            )}
-          >
-            Todos ({stats.total})
-          </button>
-          <button 
-            onClick={() => setTabFilter('present')}
-            className={cn(
-              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-              tabFilter === 'present' ? "bg-green-500 text-white" : "text-zinc-500 hover:text-white"
-            )}
-          >
-            Presentes ({stats.present})
-          </button>
-          <button 
-            onClick={() => setTabFilter('absent')}
-            className={cn(
-              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-              tabFilter === 'absent' ? "bg-red-500 text-white animate-pulse" : "border border-red-500/10 text-red-500 hover:text-red-400"
-            )}
-          >
-            🚫 FALTAS / AUSENTES ({stats.absent})
-          </button>
-          <button 
-            onClick={() => setTabFilter('observation')}
-            className={cn(
-              "flex-1 px-2 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-              tabFilter === 'observation' ? "bg-amber-500 text-white" : "text-zinc-500 hover:text-white"
-            )}
-          >
-            Observação ({stats.notMarked})
-          </button>
-        </div>
 
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none cursor-pointer"
+            className="w-full pl-9 pr-3 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none appearance-none cursor-pointer text-xs font-bold uppercase"
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
-            <option value="Todos">Categorias</option>
+            <option value="Todos">Todas as Categorias</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
           <select 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-xl text-white focus:outline-none appearance-none cursor-pointer"
+            className="w-full pl-9 pr-3 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none appearance-none cursor-pointer text-xs font-bold uppercase"
             value={filterModality}
             onChange={(e) => setFilterModality(e.target.value)}
           >
-            <option value="Todos">Modalidades</option>
-            {["Futebol", "Futsal", "Vôlei", "Basquete", "Futebol de Areia", "Outros"].map(m => (
+            <option value="Todos">Todas as Modalidades</option>
+            {uniqueModalities.map(m => (
               <option key={m} value={m}>{m}</option>
             ))}
           </select>
         </div>
 
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+          <select 
+            className="w-full pl-9 pr-3 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none appearance-none cursor-pointer text-xs font-bold uppercase"
+            value={filterGender}
+            onChange={(e) => setFilterGender(e.target.value)}
+          >
+            <option value="Todos">Todos os Gêneros</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+          </select>
+        </div>
+
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+          <select 
+            className="w-full pl-9 pr-3 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none appearance-none cursor-pointer text-xs font-bold uppercase"
+            value={filterBirthYear}
+            onChange={(e) => setFilterBirthYear(e.target.value)}
+          >
+            <option value="Todos">Todos os Anos</option>
+            {uniqueBirthYears.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+          <select 
+            className="w-full pl-9 pr-3 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none appearance-none cursor-pointer text-xs font-bold uppercase"
+            value={sortBy}
+            onChange={(e: any) => setSortBy(e.target.value)}
+          >
+            <option value="name_asc">Nome (A-Z)</option>
+            <option value="name_desc">Nome (Z-A)</option>
+            <option value="category">Por Categoria</option>
+            <option value="created_new">Mais Recentes</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-zinc-400 px-1 pt-1">
+        <span>Exibindo <strong className="text-white font-bold">{filteredAthletes.length}</strong> de <strong className="text-white font-bold">{activeAthletes.length}</strong> atletas</span>
         <button
           type="button"
           onClick={() => setShowOnlyActive(!showOnlyActive)}
           className={cn(
-            "w-full py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all flex items-center justify-center gap-2 h-[50px] cursor-pointer",
+            "px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1.5",
             showOnlyActive 
-              ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700" 
+              ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white" 
               : "bg-theme-primary/10 border-theme-primary text-theme-primary hover:bg-theme-primary/20"
           )}
         >
-          {showOnlyActive ? "Apenas Ativos" : "Todos os Atletas"}
+          {showOnlyActive ? "✓ Apenas Ativos" : "Todos os Atletas"}
         </button>
       </div>
 
@@ -2175,311 +2316,524 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       )}
 
       <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          {(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-black/50 border-b border-zinc-800">
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta Sumido</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria / Sub</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Última Presença</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Tempo de Ausência</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ações de Resgate Social</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {loadingLongTerm ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-zinc-550 font-bold uppercase text-[10px] tracking-widest">
-                      <span className="inline-block animate-spin mr-2">⏳</span> Buscando histórico de presenças do Piruá...
-                    </td>
-                  </tr>
-                ) : longTermAbsents.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-16 text-center text-zinc-500 font-bold uppercase text-[10px] tracking-wider">
-                      🎉 Muito bem! Nenhum atleta sumido há mais de 15 dias encontrado! Retenção impecável no Piruá!
-                    </td>
-                  </tr>
-                ) : (
-                  longTermAbsents.map(({ athlete, daysAbsent, lastPresentDate }) => (
-                    <tr key={athlete.id} className="hover:bg-amber-500/5 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 shrink-0">
-                            {athlete.photo && athlete.photo.trim() !== "" ? (
-                              <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <User size={16} />
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-bold text-white block text-sm leading-tight">
-                              {athlete.name}
-                              {athlete.nickname && <span className="ml-1 text-zinc-500 font-normal text-xs">({athlete.nickname})</span>}
-                            </span>
-                            <span className="text-[9.5px] font-black text-theme-primary uppercase">{athlete.guardian_name || 'Sem Responsável Cadastrado'}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs text-zinc-400 font-medium">{getSubCategory(athlete.birth_date)}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-xs font-black text-zinc-300 font-mono">
-                          {lastPresentDate ? new Date(lastPresentDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Nunca Registrou Presença'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-xl text-red-400 font-black text-xs font-mono">
-                          ⚠️ {daysAbsent} dias sumidos
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
-                              title={`WhatsApp para Responsável (${athlete.guardian_name})`}
-                              className="px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
-                            >
-                              <MessageSquare size={12} />
-                              <span>Responsáveis</span>
-                            </button>
-                          ) : (
-                            <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Pais</span>
-                          )}
-                          
-                          {athlete.contact && athlete.contact.trim() !== '' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
-                              title="WhatsApp direto para o Aluno"
-                              className="px-3 py-2 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
-                            >
-                              <Smartphone size={12} />
-                              <span>Aluno</span>
-                            </button>
-                          ) : (
-                            <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Aluno</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-black/50 border-b border-zinc-800">
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tele-Alerta</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {filteredAthletes.map((athlete) => {
-                  const records = attendance[athlete.id] || [];
-                  const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
-                  
-                  const generalAtt = records.find(r => !r.training_id && !r.event_id);
-                  const specificAtt = records.find(r => 
-                    (activeTrainingId && r.training_id === activeTrainingId) ||
-                    (eventId && r.event_id === eventId)
-                  );
+        {displayMode === 'cards' && !(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
+          /* Galeria Mode Cards Grid */
+          <div className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {filteredAthletes.map((athlete) => {
+                const records = attendance[athlete.id] || [];
+                const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                
+                const generalAtt = records.find(r => !r.training_id && !r.event_id);
+                const specificAtt = records.find(r => 
+                  (activeTrainingId && r.training_id === activeTrainingId) ||
+                  (eventId && r.event_id === eventId)
+                );
 
-                  const att = getResolvedAttendance(records);
-                  const isSyncedFromGeneral = !!(att && !specificAtt && att.id === generalAtt?.id && att.status === 'Presente');
-                  
-                  const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
-                  const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
+                const att = getResolvedAttendance(records);
+                const isSyncedFromGeneral = !!(att && !specificAtt && att.id === generalAtt?.id && att.status === 'Presente');
+                const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
+                const category = getSubCategory(athlete.birth_date);
+                const locked = isAthleteLocked(athlete);
 
-                  return (
-                    <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                              {athlete.photo && athlete.photo.trim() !== "" ? (
-                                <img src={athlete.photo} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <User size={16} />
-                              )}
-                            </div>
-                            <span className="font-medium text-white">
-                              {athlete.name}
-                              {athlete.nickname && (
-                                <span className="ml-1 text-zinc-500 text-xs font-normal">
-                                  ({athlete.nickname})
-                                </span>
-                              )}
+                return (
+                  <div 
+                    key={athlete.id} 
+                    className={cn(
+                      "bg-zinc-950 border rounded-2xl overflow-hidden shadow-xl transition-all duration-300 flex flex-col justify-between group hover:border-theme-primary/50",
+                      att?.status === 'Presente' ? "border-green-500/40 bg-gradient-to-b from-green-950/20 to-zinc-950" : 
+                      att?.status === 'Faltou' ? "border-red-500/40 bg-gradient-to-b from-red-950/20 to-zinc-950" : 
+                      "border-zinc-800/80"
+                    )}
+                  >
+                    <div>
+                      {/* Photo Header */}
+                      <div className="relative aspect-4/3 bg-zinc-900 border-b border-zinc-800/80 overflow-hidden group/photo">
+                        {athlete.photo && athlete.photo.trim() !== '' ? (
+                          <img 
+                            src={athlete.photo} 
+                            alt={athlete.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-105 cursor-pointer"
+                            referrerPolicy="no-referrer"
+                            onClick={() => setPreviewAthletePhoto(athlete)}
+                          />
+                        ) : (
+                          <div 
+                            className="w-full h-full flex flex-col items-center justify-center text-zinc-600 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 cursor-pointer"
+                            onClick={() => setPreviewAthletePhoto(athlete)}
+                          >
+                            <User size={52} className="stroke-[1.2]" />
+                            <span className="text-[10px] text-zinc-600 uppercase font-black tracking-wider mt-1">Sem Foto</span>
+                          </div>
+                        )}
+
+                        {/* Top Left Category Badge */}
+                        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                          <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md text-white font-black text-[10px] uppercase rounded-xl border border-zinc-700/80 shadow-md">
+                            {category}
+                          </span>
+                          {athlete.modality && (
+                            <span className="px-2 py-0.5 bg-theme-primary/90 text-black font-black text-[9px] uppercase rounded-lg shadow-sm">
+                              {athlete.modality.split(',')[0]}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Top Right Jersey Number */}
+                        {athlete.jersey_number && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <span className="w-8 h-8 flex items-center justify-center bg-theme-primary text-black font-black text-sm rounded-full shadow-lg border border-black/30">
+                              #{athlete.jersey_number}
                             </span>
                           </div>
-                          
-                          {(selectedTrainingId === 'geral' && !trainingId) && (
-                            <div className="flex items-center gap-1">
-                              {otherTrainingRecords.length > 0 && (
-                                <div className="flex -space-x-1">
-                                  {otherTrainingRecords.map((r, i) => (
-                                    <div 
-                                      key={i} 
-                                      className="w-4 h-4 rounded-full bg-theme-primary/20 border border-theme-primary/40 flex items-center justify-center"
-                                      title={`Presente no treino: ${availableTrainings.find(t => t.id === r.training_id)?.category || 'Treino'}`}
-                                    >
-                                      <Trophy size={8} className="text-theme-primary" />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
-                          {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
-                            <div key={i} className="flex items-center gap-1 opacity-60">
-                              <FileText size={8} className="text-theme-primary" />
-                              <span className="text-[8px] text-zinc-500 italic max-w-[120px] truncate" title={s.notes}>{s.notes}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          {att ? (
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
-                              <div className={cn(
-                                "flex items-center gap-1.5 border px-3 py-1.5 rounded-xl",
-                                att.status === 'Presente' ? "bg-theme-primary/10 border-theme-primary/20 text-theme-primary" : "bg-red-500/10 border-red-500/20 text-red-500"
-                              )}>
-                                <Clock size={12} />
-                                <span className="text-xs font-black">
-                                  {att.arrival_time || '--:--'}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center opacity-30">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
-                              <span className="text-xs font-black text-zinc-700">--:--</span>
-                            </div>
-                          )}
-                          {getAthleteSchedules(athlete) && (
-                            <div className="flex flex-col gap-0.5 mt-2">
-                              <span className="text-[8px] text-zinc-650 font-black uppercase tracking-tighter">Horário Previsto</span>
-                              {getAthleteSchedules(athlete)?.map((s, i) => (
-                                <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
-                                  {s.start_time}-{s.end_time}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
-                            disabled={isAthleteLocked(athlete)}
-                            className={cn(
-                              "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-                              (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
-                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            <CheckCircle2 size={18} />
-                            <span className="text-[10px] uppercase font-black">
-                              {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                        )}
+
+                        {/* Expand Button */}
+                        <button
+                          type="button"
+                          onClick={() => setPreviewAthletePhoto(athlete)}
+                          className="absolute bottom-2 right-2 p-1.5 bg-black/70 hover:bg-black text-white rounded-xl backdrop-blur-md opacity-0 group-hover/photo:opacity-100 transition-opacity cursor-pointer"
+                          title="Expandir Foto"
+                        >
+                          <Maximize2 size={14} />
+                        </button>
+
+                        {/* Bottom Left Status Badge */}
+                        {att && (
+                          <div className="absolute bottom-2 left-2 z-10">
+                            <span className={cn(
+                              "px-2.5 py-1 rounded-xl font-black text-[10px] uppercase tracking-wider shadow-md flex items-center gap-1 backdrop-blur-md",
+                              att.status === 'Presente' ? "bg-green-500 text-black" : "bg-red-500 text-white"
+                            )}>
+                              {att.status === 'Presente' ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                              <span>{att.status === 'Presente' ? (att.arrival_time || 'Presente') : 'Faltou'}</span>
                             </span>
-                          </button>
-                          <button 
-                            onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
-                            disabled={isAthleteLocked(athlete)}
-                            className={cn(
-                              "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-                              att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
-                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            <XCircle size={18} />
-                            <span className="text-[10px] uppercase font-black">Faltou</span>
-                          </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Athlete Info */}
+                      <div className="p-3.5 space-y-1.5">
+                        <div>
+                          <h3 className="font-bold text-white text-sm line-clamp-1 group-hover:text-theme-primary transition-colors">
+                            {athlete.name}
+                          </h3>
+                          {athlete.nickname && (
+                            <p className="text-[11px] text-zinc-400 font-medium">
+                              "{athlete.nickname}"
+                            </p>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {att?.status === 'Faltou' && (
+
+                        {athlete.guardian_name && (
+                          <div className="text-[10px] text-zinc-400 font-medium flex items-center gap-1 truncate">
+                            <span className="text-zinc-500 font-bold">Resp:</span>
+                            <span className="text-zinc-300 truncate">{athlete.guardian_name}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Controls */}
+                    <div className="p-3 bg-zinc-900/60 border-t border-zinc-850 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
+                          disabled={locked}
+                          className={cn(
+                            "py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                            att?.status === 'Presente' ? "bg-green-500 text-black shadow-md shadow-green-500/20" : "bg-zinc-800 text-zinc-400 hover:bg-green-500/20 hover:text-green-400",
+                            locked && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <CheckCircle2 size={14} />
+                          <span>{att?.status === 'Presente' ? 'Presente' : 'Presença'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
+                          disabled={locked}
+                          className={cn(
+                            "py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                            att?.status === 'Faltou' ? "bg-red-500 text-white shadow-md shadow-red-500/20" : "bg-zinc-800 text-zinc-400 hover:bg-red-500/20 hover:text-red-400",
+                            locked && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <XCircle size={14} />
+                          <span>{att?.status === 'Faltou' ? 'Faltou' : 'Falta'}</span>
+                        </button>
+                      </div>
+
+                      {att?.status === 'Faltou' && (
+                        <div className="space-y-1.5 pt-1">
                           <input 
                             type="text" 
-                            disabled={isAthleteLocked(athlete)}
+                            disabled={locked}
                             placeholder="Justificar falta..."
                             className={cn(
-                              "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                              isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                              "w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-theme-primary placeholder:text-zinc-600",
+                              locked && "opacity-50 cursor-not-allowed"
                             )}
                             value={att.justification || ''}
                             onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
                           />
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {att?.status === 'Faltou' && (
-                          <div className="flex items-center gap-1.5 justify-start text-left">
+
+                          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                             {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
                               <button
                                 type="button"
                                 onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
-                                title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
                                 className={cn(
-                                  "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
-                                  att?.parent_notified
-                                    ? "bg-green-500 text-black border border-green-500 hover:opacity-95"
-                                    : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
+                                  "py-1.5 px-2 rounded-lg text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 cursor-pointer",
+                                  att?.parent_notified ? "bg-green-500 text-black" : "bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20"
                                 )}
                               >
-                                {att?.parent_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <MessageSquare size={12} />}
-                                <span>Responsáveis{att?.parent_notified ? ' ✓' : ''}</span>
+                                <MessageSquare size={10} />
+                                <span>Pais{att?.parent_notified ? ' ✓' : ''}</span>
                               </button>
                             ) : (
-                              <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
+                              <span className="text-[8px] text-zinc-600 text-center uppercase font-bold py-1">Sem Tel. Pais</span>
+                            )}
+
+                            {athlete.contact && athlete.contact.trim() !== '' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                                className={cn(
+                                  "py-1.5 px-2 rounded-lg text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 cursor-pointer",
+                                  att?.athlete_notified ? "bg-theme-primary text-black" : "bg-theme-primary/10 text-theme-primary border border-theme-primary/20 hover:bg-theme-primary/20"
+                                )}
+                              >
+                                <Smartphone size={10} />
+                                <span>Aluno{att?.athlete_notified ? ' ✓' : ''}</span>
+                              </button>
+                            ) : (
+                              <span className="text-[8px] text-zinc-600 text-center uppercase font-bold py-1">Sem Tel. Aluno</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Table View */
+          <div className="overflow-x-auto">
+            {(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/50 border-b border-zinc-800">
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta Sumido</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria / Sub</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Última Presença</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Tempo de Ausência</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ações de Resgate Social</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {loadingLongTerm ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-zinc-550 font-bold uppercase text-[10px] tracking-widest">
+                        <span className="inline-block animate-spin mr-2">⏳</span> Buscando histórico de presenças do Piruá...
+                      </td>
+                    </tr>
+                  ) : longTermAbsents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center text-zinc-500 font-bold uppercase text-[10px] tracking-wider">
+                        🎉 Muito bem! Nenhum atleta sumido há mais de 15 dias encontrado! Retenção impecável no Piruá!
+                      </td>
+                    </tr>
+                  ) : (
+                    longTermAbsents.map(({ athlete, daysAbsent, lastPresentDate }) => (
+                      <tr key={athlete.id} className="hover:bg-amber-500/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 shrink-0 cursor-pointer overflow-hidden border border-zinc-700"
+                              onClick={() => setPreviewAthletePhoto(athlete)}
+                            >
+                              {athlete.photo && athlete.photo.trim() !== "" ? (
+                                <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <User size={20} />
+                              )}
+                            </div>
+                            <div>
+                              <span className="font-bold text-white block text-sm leading-tight">
+                                {athlete.name}
+                                {athlete.nickname && <span className="ml-1 text-zinc-500 font-normal text-xs">({athlete.nickname})</span>}
+                              </span>
+                              <span className="text-[9.5px] font-black text-theme-primary uppercase">{athlete.guardian_name || 'Sem Responsável Cadastrado'}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs text-zinc-400 font-medium">{getSubCategory(athlete.birth_date)}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="text-xs font-black text-zinc-300 font-mono">
+                            {lastPresentDate ? new Date(lastPresentDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Nunca Registrou Presença'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-xl text-red-400 font-black text-xs font-mono">
+                            ⚠️ {daysAbsent} dias sumidos
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                                title={`WhatsApp para Responsável (${athlete.guardian_name})`}
+                                className="px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
+                              >
+                                <MessageSquare size={12} />
+                                <span>Responsáveis</span>
+                              </button>
+                            ) : (
+                              <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Pais</span>
                             )}
                             
                             {athlete.contact && athlete.contact.trim() !== '' ? (
                               <button
                                 type="button"
                                 onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
-                                title="Notificar Atleta diretamente via WhatsApp"
-                                className={cn(
-                                  "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
-                                  att?.athlete_notified
-                                    ? "bg-theme-primary text-black border border-theme-primary hover:opacity-95"
-                                    : "bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20"
-                                )}
+                                title="WhatsApp direto para o Aluno"
+                                className="px-3 py-2 bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer"
                               >
-                                {att?.athlete_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <Smartphone size={12} />}
-                                <span>Aluno{att?.athlete_notified ? ' ✓' : ''}</span>
+                                <Smartphone size={12} />
+                                <span>Aluno</span>
                               </button>
                             ) : (
-                              <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
+                              <span className="text-[8px] text-zinc-650 uppercase font-black italic">Sem Tel. Aluno</span>
                             )}
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/50 border-b border-zinc-800">
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">Horário</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Presença</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Justificativa</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tele-Alerta</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {filteredAthletes.map((athlete) => {
+                    const records = attendance[athlete.id] || [];
+                    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+                    
+                    const generalAtt = records.find(r => !r.training_id && !r.event_id);
+                    const specificAtt = records.find(r => 
+                      (activeTrainingId && r.training_id === activeTrainingId) ||
+                      (eventId && r.event_id === eventId)
+                    );
+
+                    const att = getResolvedAttendance(records);
+                    const isSyncedFromGeneral = !!(att && !specificAtt && att.id === generalAtt?.id && att.status === 'Presente');
+                    
+                    const isPresentInAnyTraining = records.some(r => r.training_id && r.status === 'Presente');
+                    const otherTrainingRecords = records.filter(r => r.training_id && r.training_id !== activeTrainingId);
+
+                    return (
+                      <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500 cursor-pointer overflow-hidden border border-zinc-700"
+                                onClick={() => setPreviewAthletePhoto(athlete)}
+                              >
+                                {athlete.photo && athlete.photo.trim() !== "" ? (
+                                  <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <User size={18} />
+                                )}
+                              </div>
+                              <span className="font-medium text-white">
+                                {athlete.name}
+                                {athlete.nickname && (
+                                  <span className="ml-1 text-zinc-500 text-xs font-normal">
+                                    ({athlete.nickname})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            
+                            {(selectedTrainingId === 'geral' && !trainingId) && (
+                              <div className="flex items-center gap-1">
+                                {otherTrainingRecords.length > 0 && (
+                                  <div className="flex -space-x-1">
+                                    {otherTrainingRecords.map((r, i) => (
+                                      <div 
+                                        key={i} 
+                                        className="w-4 h-4 rounded-full bg-theme-primary/20 border border-theme-primary/40 flex items-center justify-center"
+                                        title={`Presente no treino: ${availableTrainings.find(t => t.id === r.training_id)?.category || 'Treino'}`}
+                                      >
+                                        <Trophy size={8} className="text-theme-primary" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs text-zinc-500">{getSubCategory(athlete.birth_date)}</span>
+                            {getAthleteSchedules(athlete)?.map((s, i) => s.notes && (
+                              <div key={i} className="flex items-center gap-1 opacity-60">
+                                <FileText size={8} className="text-theme-primary" />
+                                <span className="text-[8px] text-zinc-500 italic max-w-[120px] truncate" title={s.notes}>{s.notes}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            {att ? (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                                <div className={cn(
+                                  "flex items-center gap-1.5 border px-3 py-1.5 rounded-xl",
+                                  att.status === 'Presente' ? "bg-theme-primary/10 border-theme-primary/20 text-theme-primary" : "bg-red-500/10 border-red-500/20 text-red-500"
+                                )}>
+                                  <Clock size={12} />
+                                  <span className="text-xs font-black">
+                                    {att.arrival_time || '--:--'}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center opacity-30">
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Registro</span>
+                                <span className="text-xs font-black text-zinc-700">--:--</span>
+                              </div>
+                            )}
+                            {getAthleteSchedules(athlete) && (
+                              <div className="flex flex-col gap-0.5 mt-2">
+                                <span className="text-[8px] text-zinc-650 font-black uppercase tracking-tighter">Horário Previsto</span>
+                                {getAthleteSchedules(athlete)?.map((s, i) => (
+                                  <span key={i} className="text-[8px] text-zinc-500 font-bold uppercase leading-none bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                                    {s.start_time}-{s.end_time}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
+                              disabled={isAthleteLocked(athlete)}
+                              className={cn(
+                                "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all cursor-pointer",
+                                (att?.status === 'Presente' || isSyncedFromGeneral || (selectedTrainingId === 'geral' && isPresentInAnyTraining)) ? "bg-green-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                                isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <CheckCircle2 size={18} />
+                              <span className="text-[10px] uppercase font-black">
+                                {isSyncedFromGeneral ? 'Presença Geral' : att?.status === 'Presente' ? 'Presente' : (selectedTrainingId === 'geral' && isPresentInAnyTraining) ? 'Pres. Treino' : 'Presente'}
+                              </span>
+                            </button>
+                            <button 
+                              onClick={() => att?.status === 'Faltou' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Faltou')}
+                              disabled={isAthleteLocked(athlete)}
+                              className={cn(
+                                "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all cursor-pointer",
+                                att?.status === 'Faltou' ? "bg-red-500 text-black font-black" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700",
+                                isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <XCircle size={18} />
+                              <span className="text-[10px] uppercase font-black">Faltou</span>
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {att?.status === 'Faltou' && (
+                            <input 
+                              type="text" 
+                              disabled={isAthleteLocked(athlete)}
+                              placeholder="Justificar falta..."
+                              className={cn(
+                                "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
+                                isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                              )}
+                              value={att.justification || ''}
+                              onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
+                            />
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {att?.status === 'Faltou' && (
+                            <div className="flex items-center gap-1.5 justify-start text-left">
+                              {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendIndividualAbsenceAlert(athlete, 'parent')}
+                                  title={`Notificar Responsável (${athlete.guardian_name}) via WhatsApp`}
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
+                                    att?.parent_notified
+                                      ? "bg-green-500 text-black border border-green-500 hover:opacity-95"
+                                      : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
+                                  )}
+                                >
+                                  {att?.parent_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <MessageSquare size={12} />}
+                                  <span>Responsáveis{att?.parent_notified ? ' ✓' : ''}</span>
+                                </button>
+                              ) : (
+                                <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Pais</span>
+                              )}
+                              
+                              {athlete.contact && athlete.contact.trim() !== '' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendIndividualAbsenceAlert(athlete, 'athlete')}
+                                  title="Notificar Atleta diretamente via WhatsApp"
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 uppercase font-black text-[9px] tracking-tight shrink-0 cursor-pointer animate-fade-in",
+                                    att?.athlete_notified
+                                      ? "bg-theme-primary text-black border border-theme-primary hover:opacity-95"
+                                      : "bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20"
+                                  )}
+                                >
+                                  {att?.athlete_notified ? <CheckCircle2 size={12} className="stroke-[3.5]" /> : <Smartphone size={12} />}
+                                  <span>Aluno{att?.athlete_notified ? ' ✓' : ''}</span>
+                                </button>
+                              ) : (
+                                <span className="text-[8px] text-zinc-650 uppercase font-bold italic">Sem Tel. Aluno</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
 
         <div className="md:hidden divide-y divide-zinc-800">
           {(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
@@ -3150,6 +3504,72 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </div>
         </div>
       )}
+
+      {/* Photo Lightbox Modal */}
+      <AnimatePresence>
+        {previewAthletePhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 no-print"
+            onClick={() => setPreviewAthletePhoto(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-lg w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-6 overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewAthletePhoto(null)}
+                className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black text-white rounded-full z-10 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="aspect-square bg-zinc-900 rounded-2xl overflow-hidden mb-4 border border-zinc-800 flex items-center justify-center">
+                {previewAthletePhoto.photo && previewAthletePhoto.photo.trim() !== '' ? (
+                  <img
+                    src={previewAthletePhoto.photo}
+                    alt={previewAthletePhoto.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-zinc-600">
+                    <User size={80} className="stroke-[1]" />
+                    <span className="text-xs font-bold uppercase mt-2">Sem foto de perfil</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 text-center">
+                <h3 className="text-xl font-bold text-white">{previewAthletePhoto.name}</h3>
+                {previewAthletePhoto.nickname && (
+                  <p className="text-sm text-theme-primary font-medium">"{previewAthletePhoto.nickname}"</p>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  <span className="px-3 py-1 bg-zinc-800 text-zinc-300 font-bold text-xs uppercase rounded-xl">
+                    Cat: {getSubCategory(previewAthletePhoto.birth_date)}
+                  </span>
+                  {previewAthletePhoto.jersey_number && (
+                    <span className="px-3 py-1 bg-theme-primary text-black font-black text-xs uppercase rounded-xl">
+                      Camisa #{previewAthletePhoto.jersey_number}
+                    </span>
+                  )}
+                  {previewAthletePhoto.position && (
+                    <span className="px-3 py-1 bg-zinc-800 text-zinc-300 font-bold text-xs uppercase rounded-xl">
+                      {previewAthletePhoto.position}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

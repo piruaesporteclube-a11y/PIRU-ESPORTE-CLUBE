@@ -173,7 +173,7 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                   required
                   placeholder="EX: MARIA APARECIDA DA SILVA"
                   className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 uppercase font-medium"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
@@ -185,7 +185,7 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                   required
                   placeholder="DIGITE APENAS NÚMEROS"
                   className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium"
-                  value={formData.doc}
+                  value={formData.doc || ''}
                   onChange={e => setFormData({...formData, doc: e.target.value})}
                 />
               </div>
@@ -197,7 +197,7 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                   required
                   placeholder="(00) 00000-0000"
                   className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium"
-                  value={formData.whatsapp}
+                  value={formData.whatsapp || ''}
                   onChange={e => setFormData({...formData, whatsapp: e.target.value})}
                 />
               </div>
@@ -206,7 +206,7 @@ export default function CompanionRegistration({ eventId: propEventId }: Companio
                 <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-1">Vínculo com o Atleta / Função (Opcional)</label>
                 <select 
                   className="w-full px-5 py-4 bg-black border border-zinc-800 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-medium cursor-pointer"
-                  value={formData.role}
+                  value={formData.role || ''}
                   onChange={e => setFormData({...formData, role: e.target.value})}
                 >
                   <option value="">Deixar em branco</option>

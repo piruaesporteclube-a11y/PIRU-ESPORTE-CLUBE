@@ -146,7 +146,7 @@ export default function PublicProfessorRegistration() {
                 <select 
                   required
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold appearance-none"
-                  value={formData.modality}
+                  value={formData.modality || 'Comissão Técnica'}
                   onChange={e => setFormData({...formData, modality: e.target.value})}
                 >
                   <option value="Comissão Técnica">Comissão Técnica</option>
@@ -177,7 +177,7 @@ export default function PublicProfessorRegistration() {
                   type="text"
                   placeholder="EX: JOÃO DA SILVA"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={e => setFormData({...formData, name: e.target.value.toUpperCase()})}
                 />
               </div>
@@ -190,7 +190,7 @@ export default function PublicProfessorRegistration() {
                   maxLength={11}
                   placeholder="00000000000"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
-                  value={formData.doc}
+                  value={formData.doc || ''}
                   onChange={e => setFormData({...formData, doc: e.target.value.replace(/\D/g, '')})}
                 />
               </div>
@@ -201,7 +201,7 @@ export default function PublicProfessorRegistration() {
                   required
                   type="date"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
-                  value={formData.birth_date}
+                  value={formData.birth_date || ''}
                   onChange={e => setFormData({...formData, birth_date: e.target.value})}
                 />
               </div>
@@ -216,7 +216,7 @@ export default function PublicProfessorRegistration() {
                   type="email"
                   placeholder="exemplo@email.com"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
-                  value={formData.email}
+                  value={formData.email || ''}
                   onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})}
                 />
               </div>
@@ -231,7 +231,7 @@ export default function PublicProfessorRegistration() {
                   type="tel"
                   placeholder="(00) 00000-0000"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold"
-                  value={formData.phone}
+                  value={formData.phone || ''}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
                 />
               </div>
@@ -339,7 +339,7 @@ export default function PublicProfessorRegistration() {
                   type="text"
                   placeholder="EX: RUA DAS FLORES"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase"
-                  value={formData.street}
+                  value={formData.street || ''}
                   onChange={e => setFormData({...formData, street: e.target.value.toUpperCase()})}
                 />
               </div>
@@ -349,7 +349,7 @@ export default function PublicProfessorRegistration() {
                   type="text"
                   placeholder="123"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase"
-                  value={formData.number}
+                  value={formData.number || ''}
                   onChange={e => setFormData({...formData, number: e.target.value})}
                 />
               </div>
@@ -359,7 +359,7 @@ export default function PublicProfessorRegistration() {
                   type="text"
                   placeholder="CENTRO"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase"
-                  value={formData.neighborhood}
+                  value={formData.neighborhood || ''}
                   onChange={e => setFormData({...formData, neighborhood: e.target.value.toUpperCase()})}
                 />
               </div>
@@ -369,7 +369,7 @@ export default function PublicProfessorRegistration() {
                   type="text"
                   placeholder="CIDADE"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase"
-                  value={formData.city}
+                  value={formData.city || ''}
                   onChange={e => setFormData({...formData, city: e.target.value.toUpperCase()})}
                 />
               </div>
@@ -380,7 +380,7 @@ export default function PublicProfessorRegistration() {
                   maxLength={2}
                   placeholder="PE"
                   className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 rounded-xl px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-theme-primary focus:ring-4 focus:ring-theme-primary/10 transition-all font-bold uppercase text-center"
-                  value={formData.uf}
+                  value={formData.uf || ''}
                   onChange={e => setFormData({...formData, uf: e.target.value.toUpperCase()})}
                 />
               </div>

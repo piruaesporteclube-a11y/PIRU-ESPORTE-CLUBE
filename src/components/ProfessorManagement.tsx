@@ -450,7 +450,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   type="url" 
                   placeholder="https://exemplo.com/foto.jpg"
                   className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                  value={formData.photo}
+                  value={formData.photo || ''}
                   onChange={e => setFormData({...formData, photo: e.target.value})}
                 />
               </div>
@@ -461,7 +461,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   <select 
                     required
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 appearance-none"
-                    value={formData.modality}
+                    value={formData.modality || ''}
                     onChange={e => setFormData({...formData, modality: e.target.value})}
                   >
                     <option value="Comissão Técnica">Comissão Técnica</option>
@@ -583,7 +583,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.name}
+                    value={formData.name || ''}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
@@ -593,7 +593,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     required
                     type="email" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={e => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
@@ -603,7 +603,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     required
                     type="date" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.birth_date}
+                    value={formData.birth_date || ''}
                     onChange={e => setFormData({...formData, birth_date: e.target.value})}
                   />
                 </div>
@@ -613,7 +613,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     required
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.doc}
+                    value={formData.doc || ''}
                     onChange={e => setFormData({...formData, doc: e.target.value})}
                   />
                 </div>
@@ -625,7 +625,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                       placeholder="(37) 99999-9999"
-                      value={formData.phone}
+                      value={formData.phone || ''}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
                       onBlur={e => setFormData({...formData, phone: formatPhone(e.target.value)})}
                     />
@@ -648,7 +648,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     <input 
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                      value={formData.street}
+                      value={formData.street || ''}
                       onChange={e => setFormData({...formData, street: e.target.value})}
                     />
                   </div>
@@ -657,7 +657,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     <input 
                       type="text" 
                       className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                      value={formData.number}
+                      value={formData.number || ''}
                       onChange={e => setFormData({...formData, number: e.target.value})}
                     />
                   </div>
@@ -667,7 +667,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   <input 
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.neighborhood}
+                    value={formData.neighborhood || ''}
                     onChange={e => setFormData({...formData, neighborhood: e.target.value})}
                   />
                 </div>
@@ -676,7 +676,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                   <input 
                     type="text" 
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
-                    value={formData.city}
+                    value={formData.city || ''}
                     onChange={e => setFormData({...formData, city: e.target.value})}
                   />
                 </div>
@@ -686,7 +686,7 @@ export default function ProfessorManagement({ professors: professorsProp }: Prof
                     type="text" 
                     maxLength={2}
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-center uppercase"
-                    value={formData.uf}
+                    value={formData.uf || ''}
                     onChange={e => setFormData({...formData, uf: e.target.value.toUpperCase()})}
                   />
                 </div>

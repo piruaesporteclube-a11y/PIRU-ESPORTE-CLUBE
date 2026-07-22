@@ -136,7 +136,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="Ex: Piruá Esporte Clube"
-                value={settings.schoolName}
+                value={settings.schoolName || ''}
                 onChange={e => setSettings({...settings, schoolName: e.target.value})}
               />
               <p className="text-[10px] text-zinc-500 italic">Este nome aparecerá nos documentos e encartes gerados pelo sistema.</p>
@@ -176,13 +176,13 @@ export default function SettingsComponent() {
                     <input 
                       type="color" 
                       className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
-                      value={settings.primaryColor}
+                      value={settings.primaryColor || '#EAB308'}
                       onChange={e => setSettings({...settings, primaryColor: e.target.value})}
                     />
                     <input 
                       type="text" 
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
-                      value={settings.primaryColor}
+                      value={settings.primaryColor || '#EAB308'}
                       onChange={e => setSettings({...settings, primaryColor: e.target.value})}
                     />
                   </div>
@@ -193,13 +193,13 @@ export default function SettingsComponent() {
                     <input 
                       type="color" 
                       className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer shrink-0"
-                      value={settings.secondaryColor}
+                      value={settings.secondaryColor || '#000000'}
                       onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
                     />
                     <input 
                       type="text" 
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-white font-mono uppercase text-xs"
-                      value={settings.secondaryColor}
+                      value={settings.secondaryColor || '#000000'}
                       onChange={e => setSettings({...settings, secondaryColor: e.target.value})}
                     />
                   </div>
@@ -366,7 +366,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="@piruaec"
-                value={settings.instagram}
+                value={settings.instagram || ''}
                 onChange={e => setSettings({...settings, instagram: e.target.value})}
               />
             </div>
@@ -379,7 +379,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="facebook.com/seuperfil"
-                value={settings.facebook}
+                value={settings.facebook || ''}
                 onChange={e => setSettings({...settings, facebook: e.target.value})}
               />
             </div>
@@ -392,7 +392,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="Canal do YouTube"
-                value={settings.youtube}
+                value={settings.youtube || ''}
                 onChange={e => setSettings({...settings, youtube: e.target.value})}
               />
             </div>
@@ -405,7 +405,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="@perfil"
-                value={settings.tiktok}
+                value={settings.tiktok || ''}
                 onChange={e => setSettings({...settings, tiktok: e.target.value})}
               />
             </div>
@@ -418,7 +418,7 @@ export default function SettingsComponent() {
                 type="text" 
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
                 placeholder="(37) 99999-9999"
-                value={settings.whatsapp}
+                value={settings.whatsapp || ''}
                 onChange={e => setSettings({...settings, whatsapp: e.target.value})}
               />
             </div>

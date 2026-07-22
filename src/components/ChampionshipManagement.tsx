@@ -1056,13 +1056,13 @@ function MatchForm({ championship, teams, match, onClose, onSave }: { championsh
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Categoria</label>
-              <select className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+              <select className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})}>
                 {championship.categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Status</label>
-              <select className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+              <select className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.status || 'Agendado'} onChange={e => setFormData({...formData, status: e.target.value as any})}>
                 <option value="Agendado">Agendado</option>
                 <option value="Em Andamento">Em Andamento</option>
                 <option value="Finalizado">Finalizado</option>
@@ -1074,28 +1074,28 @@ function MatchForm({ championship, teams, match, onClose, onSave }: { championsh
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Time A</label>
-                <select required className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.team_a_id} onChange={e => setFormData({...formData, team_a_id: e.target.value})}>
+                <select required className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.team_a_id || ''} onChange={e => setFormData({...formData, team_a_id: e.target.value})}>
                   <option value="">Selecione...</option>
                   {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Gols Time A</label>
-                <input type="number" min="0" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.score_a} onChange={e => setFormData({...formData, score_a: parseInt(e.target.value) || 0})} />
+                <input type="number" min="0" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.score_a ?? 0} onChange={e => setFormData({...formData, score_a: parseInt(e.target.value) || 0})} />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Time B</label>
-                <select required className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.team_b_id} onChange={e => setFormData({...formData, team_b_id: e.target.value})}>
+                <select required className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.team_b_id || ''} onChange={e => setFormData({...formData, team_b_id: e.target.value})}>
                   <option value="">Selecione...</option>
                   {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Gols Time B</label>
-                <input type="number" min="0" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.score_b} onChange={e => setFormData({...formData, score_b: parseInt(e.target.value) || 0})} />
+                <input type="number" min="0" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.score_b ?? 0} onChange={e => setFormData({...formData, score_b: parseInt(e.target.value) || 0})} />
               </div>
             </div>
           </div>
@@ -1103,11 +1103,11 @@ function MatchForm({ championship, teams, match, onClose, onSave }: { championsh
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Data</label>
-              <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
             <div>
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-1">Horário</label>
-              <input required type="time" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+              <input required type="time" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none" value={formData.time || ''} onChange={e => setFormData({...formData, time: e.target.value})} />
             </div>
           </div>
 

@@ -43,7 +43,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     guardian_doc: '',
     guardian_phone: '',
     school: '',
-    school_shift: undefined,
+    school_shift: '' as any,
     status: 'Inativo',
     modality: '',
     gender: 'Masculino'
@@ -413,26 +413,26 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome Completo</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.name} onChange={e => setAthleteData({...athleteData, name: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.name || ''} onChange={e => setAthleteData({...athleteData, name: e.target.value.toUpperCase()})} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Apelido</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.nickname} onChange={e => setAthleteData({...athleteData, nickname: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.nickname || ''} onChange={e => setAthleteData({...athleteData, nickname: e.target.value.toUpperCase()})} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nascimento</label>
-                        <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.birth_date} onChange={e => setAthleteData({...athleteData, birth_date: e.target.value})} />
+                        <input required type="date" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.birth_date || ''} onChange={e => setAthleteData({...athleteData, birth_date: e.target.value})} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">NUMERO DO UNIFORME</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.jersey_number} onChange={e => setAthleteData({...athleteData, jersey_number: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.jersey_number || ''} onChange={e => setAthleteData({...athleteData, jersey_number: e.target.value.toUpperCase()})} />
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF/RG</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.doc} onChange={e => setAthleteData({...athleteData, doc: e.target.value.toUpperCase()})} />
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.doc || ''} onChange={e => setAthleteData({...athleteData, doc: e.target.value.toUpperCase()})} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Aluno</label>
@@ -441,19 +441,19 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                         type="text" 
                         placeholder="(00) 00000-0000" 
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
-                        value={athleteData.contact} 
+                        value={athleteData.contact || ''} 
                         onChange={e => setAthleteData({...athleteData, contact: e.target.value.toUpperCase()})}
                         onBlur={e => setAthleteData({...athleteData, contact: formatPhone(e.target.value)})}
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">E-mail (Login/Notificações)</label>
-                      <input required type="email" placeholder="atleta@email.com" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.email} onChange={e => setAthleteData({...athleteData, email: e.target.value.toLowerCase()})} />
+                      <input required type="email" placeholder="atleta@email.com" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none" value={athleteData.email || ''} onChange={e => setAthleteData({...athleteData, email: e.target.value.toLowerCase()})} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Escola onde Estuda</label>
-                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.school} onChange={e => setAthleteData({...athleteData, school: e.target.value.toUpperCase()})} placeholder="NOME DA ESCOLA" />
+                        <input type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.school || ''} onChange={e => setAthleteData({...athleteData, school: e.target.value.toUpperCase()})} placeholder="NOME DA ESCOLA" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Turno Escolar</label>
@@ -557,25 +557,25 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     <div className="grid grid-cols-3 gap-4">
                       <div className="col-span-2">
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Rua</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.street} onChange={e => setAthleteData({...athleteData, street: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.street || ''} onChange={e => setAthleteData({...athleteData, street: e.target.value.toUpperCase()})} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nº</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.number} onChange={e => setAthleteData({...athleteData, number: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.number || ''} onChange={e => setAthleteData({...athleteData, number: e.target.value.toUpperCase()})} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Bairro</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.neighborhood} onChange={e => setAthleteData({...athleteData, neighborhood: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.neighborhood || ''} onChange={e => setAthleteData({...athleteData, neighborhood: e.target.value.toUpperCase()})} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Cidade</label>
-                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.city} onChange={e => setAthleteData({...athleteData, city: e.target.value.toUpperCase()})} />
+                        <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.city || ''} onChange={e => setAthleteData({...athleteData, city: e.target.value.toUpperCase()})} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">UF</label>
-                        <input required type="text" maxLength={2} className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.uf} onChange={e => setAthleteData({...athleteData, uf: e.target.value.toUpperCase()})} />
+                        <input required type="text" maxLength={2} className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.uf || ''} onChange={e => setAthleteData({...athleteData, uf: e.target.value.toUpperCase()})} />
                       </div>
                     </div>
                   </div>
@@ -586,11 +586,11 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Nome do Responsável</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.guardian_name} onChange={e => setAthleteData({...athleteData, guardian_name: e.target.value.toUpperCase()})} />
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.guardian_name || ''} onChange={e => setAthleteData({...athleteData, guardian_name: e.target.value.toUpperCase()})} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">CPF Responsável</label>
-                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.guardian_doc} onChange={e => setAthleteData({...athleteData, guardian_doc: e.target.value.toUpperCase()})} />
+                      <input required type="text" className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" value={athleteData.guardian_doc || ''} onChange={e => setAthleteData({...athleteData, guardian_doc: e.target.value.toUpperCase()})} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">WhatsApp Responsável</label>
@@ -599,7 +599,7 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                         type="text" 
                         placeholder="(00) 00000-0000" 
                         className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-theme-primary/50 outline-none uppercase" 
-                        value={athleteData.guardian_phone} 
+                        value={athleteData.guardian_phone || ''} 
                         onChange={e => setAthleteData({...athleteData, guardian_phone: e.target.value.toUpperCase()})}
                         onBlur={e => setAthleteData({...athleteData, guardian_phone: formatPhone(e.target.value)})}
                       />

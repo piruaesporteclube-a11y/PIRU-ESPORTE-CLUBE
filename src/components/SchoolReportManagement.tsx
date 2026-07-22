@@ -330,8 +330,8 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                       required
                       type="number"
                       className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-3 text-white focus:border-theme-primary outline-none transition-all font-bold"
-                      value={editingReport?.year}
-                      onChange={e => setEditingReport({ ...editingReport, year: parseInt(e.target.value) })}
+                      value={editingReport?.year ?? ''}
+                      onChange={e => setEditingReport({ ...editingReport, year: parseInt(e.target.value) || new Date().getFullYear() })}
                     />
                   </div>
                   <div>
@@ -339,7 +339,7 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                     <select 
                       required
                       className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-3 text-white focus:border-theme-primary outline-none transition-all font-bold"
-                      value={editingReport?.period}
+                      value={editingReport?.period || ''}
                       onChange={e => setEditingReport({ ...editingReport, period: e.target.value })}
                     >
                       <option value="">Selecione...</option>
@@ -393,7 +393,7 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                   <textarea 
                     className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-3 text-white focus:border-theme-primary outline-none transition-all resize-none h-24 text-sm font-medium"
                     placeholder="Algum comentário para a secretaria?"
-                    value={editingReport?.observations}
+                    value={editingReport?.observations || ''}
                     onChange={e => setEditingReport({ ...editingReport, observations: e.target.value })}
                   />
                 </div>
@@ -453,7 +453,7 @@ export default function SchoolReportManagement({ user, athletes }: SchoolReportM
                   <textarea 
                     className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-3 text-white focus:border-theme-primary outline-none transition-all resize-none h-32 text-sm font-medium"
                     placeholder="Adicione um comentário ou motivo de recusa..."
-                    value={selectedReport.observations}
+                    value={selectedReport.observations || ''}
                     onChange={e => setSelectedReport({ ...selectedReport, observations: e.target.value })}
                   />
                 </div>
