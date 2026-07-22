@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, isQuotaExceeded } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle, LayoutGrid, List, Maximize2, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -79,6 +79,11 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'active' | 'pending' | 'recent'>('active');
+  const [displayMode, setDisplayMode] = useState<'cards' | 'table'>(() => {
+    const saved = localStorage.getItem('athlete_display_mode');
+    return (saved === 'table' || saved === 'cards') ? saved : 'cards';
+  });
+  const [previewAthletePhoto, setPreviewAthletePhoto] = useState<Athlete | null>(null);
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -273,13 +278,13 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
           <h2 className="text-2xl font-bold text-white">Gestão de Alunos</h2>
           <p className="text-zinc-400 text-sm">Gerencie todos os atletas da escolinha</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* View Toggler */}
-          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mr-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Toggler (Ativos, Últimos 5, Pendentes) */}
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800">
             <button
               onClick={() => setViewMode('active')}
               className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all",
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all",
                 viewMode === 'active' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
               )}
             >
@@ -288,7 +293,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             <button
               onClick={() => setViewMode('recent')}
               className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5",
                 viewMode === 'recent' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-white"
               )}
             >
@@ -298,7 +303,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
             <button
               onClick={() => setViewMode('pending')}
               className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5",
                 viewMode === 'pending' ? "bg-amber-500 text-black border-amber-500" : "text-zinc-500 hover:text-white"
               )}
             >
@@ -311,6 +316,38 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   {pendingAthletes.length}
                 </span>
               )}
+            </button>
+          </div>
+
+          {/* Display Mode Toggler (Galeria de Fotos vs Tabela) */}
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+            <button
+              onClick={() => {
+                setDisplayMode('cards');
+                localStorage.setItem('athlete_display_mode', 'cards');
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5",
+                displayMode === 'cards' ? "bg-theme-primary text-black shadow-md" : "text-zinc-500 hover:text-white"
+              )}
+              title="Modo Galeria com Fotos em Destaque"
+            >
+              <LayoutGrid size={14} />
+              <span className="hidden sm:inline">Galeria</span>
+            </button>
+            <button
+              onClick={() => {
+                setDisplayMode('table');
+                localStorage.setItem('athlete_display_mode', 'table');
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5",
+                displayMode === 'table' ? "bg-theme-primary text-black shadow-md" : "text-zinc-500 hover:text-white"
+              )}
+              title="Modo Tabela de Lista"
+            >
+              <List size={14} />
+              <span className="hidden sm:inline">Tabela</span>
             </button>
           </div>
           <button 
@@ -462,197 +499,318 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
       </div>
 
       <div className="bg-black border border-theme-primary/20 rounded-2xl overflow-hidden shadow-xl">
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-black/50 border-b border-zinc-800">
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Sexo</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cadastro</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right no-print">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {filteredAthletes.map((athlete) => (
-                <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {athlete.photo ? (
-                        <img src={athlete.photo} className="w-10 h-10 rounded-full object-cover border border-zinc-700" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                          <UserCircle size={24} />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium text-white flex items-center gap-2">
-                          {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
-                          {athlete.confirmation === 'Pendente' && athlete.created_at && (
-                            (() => {
-                              const date = new Date(getTimestamp(athlete.created_at));
-                              const days = differenceInDays(new Date(), date);
-                              if (days >= 10) {
-                                return (
-                                  <span className="flex items-center gap-1 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded animate-pulse" title="Cadastro pendente há mais de 10 dias!">
-                                    <AlertTriangle size={10} />
-                                    {days} DIAS
-                                  </span>
-                                );
-                              }
-                              return null;
-                            })()
-                          )}
-                          {athlete.contact && athlete.contact.replace(/\D/g, '') && (
-                            <a 
-                              href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-500 hover:text-green-400 transition-colors"
-                              title="Conversar com Aluno"
-                            >
-                              <MessageCircle size={14} />
-                            </a>
-                          )}
-                        </div>
-                        <div className="text-xs text-zinc-500 flex items-center gap-2">
-                          {athlete.doc}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-zinc-300 text-xs font-bold uppercase">
-                      {athlete.gender || '--'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-bold rounded-md">
+        {displayMode === 'cards' ? (
+          /* Galeria / Modo Cards com Foto em Destaque */
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {filteredAthletes.map((athlete) => (
+              <div key={athlete.id} className="bg-zinc-950 border border-zinc-800/80 hover:border-theme-primary/50 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 flex flex-col justify-between group">
+                {/* Top Banner & Photo Frame */}
+                <div className="relative bg-zinc-900/60 p-3 flex flex-col items-center">
+                  {/* Top Badges */}
+                  <div className="w-full flex items-center justify-between mb-2">
+                    <span className="px-2 py-0.5 bg-theme-primary/10 border border-theme-primary/30 text-theme-primary text-[10px] font-black uppercase rounded-md">
                       {getSubCategory(athlete.birth_date)}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
+                    {athlete.jersey_number ? (
+                      <span className="px-2 py-0.5 bg-zinc-800 text-zinc-300 font-mono text-[10px] font-bold rounded-md">
+                        #{athlete.jersey_number}
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+
+                  {/* Big Visible Photo */}
+                  <div 
+                    onClick={() => setPreviewAthletePhoto(athlete)}
+                    className="relative cursor-pointer group/photo w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-zinc-700 hover:border-theme-primary transition-all shadow-lg my-1 bg-zinc-800 flex items-center justify-center"
+                    title="Clique para ampliar foto"
+                  >
+                    {athlete.photo ? (
+                      <img 
+                        src={athlete.photo} 
+                        alt={athlete.name} 
+                        className="w-full h-full object-cover group-hover/photo:scale-110 transition-transform duration-300" 
+                        referrerPolicy="no-referrer" 
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-zinc-600">
+                        <UserCircle size={44} />
+                        <span className="text-[10px] text-zinc-500 font-bold mt-1">Sem Foto</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 font-bold text-xs backdrop-blur-[2px]">
+                      <Maximize2 size={16} />
+                      <span>Ampliar</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Body */}
+                <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="font-bold text-white text-sm leading-tight group-hover:text-theme-primary transition-colors line-clamp-2">
+                      {athlete.name}
+                    </h3>
+                    {athlete.nickname && (
+                      <p className="text-[11px] text-zinc-400 font-medium truncate">({athlete.nickname})</p>
+                    )}
+                    <div className="mt-2 space-y-0.5 text-[11px] text-zinc-400">
+                      <p className="truncate">
+                        <span className="text-zinc-500 font-semibold uppercase text-[9px] mr-1">Doc:</span>
+                        <span className="text-zinc-300 font-mono">{athlete.doc || '--'}</span>
+                      </p>
+                      <p className="truncate">
+                        <span className="text-zinc-500 font-semibold uppercase text-[9px] mr-1">Mod:</span>
+                        <span className="text-zinc-300 uppercase font-bold text-[10px]">{athlete.modality || '--'}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-1">
                     <button 
                       onClick={() => handleStatusToggle(athlete)}
                       className={cn(
-                        "px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:ring-2 hover:ring-theme-primary/30",
+                        "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-all",
                         athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
                       )}
-                      title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
                     >
                       {athlete.status}
                     </button>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-center">
-                      <span className="text-zinc-300 text-[10px] font-bold">
-                        {formatCreatedAt(athlete.created_at)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right no-print">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        {viewMode === 'pending' ? (
-                          <>
-                            <button 
-                              onClick={() => handleApprove(athlete.id)}
-                              className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
-                              title="Aprovar Cadastro"
-                            >
-                              <Check size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleReject(athlete.id)}
-                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                              title="Recusar"
-                            >
-                              <XCircle size={18} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button 
-                              onClick={() => onEdit(athlete)}
-                              className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
-                              title="Editar"
-                            >
-                              <Edit2 size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(athlete.id)}
-                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                              title="Excluir"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-zinc-800">
-          {filteredAthletes.map((athlete) => (
-            <div key={athlete.id} className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {athlete.photo ? (
-                    <img src={athlete.photo} className="w-12 h-12 rounded-full object-cover border border-zinc-700" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-500">
-                      <UserCircle size={28} />
-                    </div>
-                  )}
-                  <div>
-                    <div className="font-bold text-white flex items-center gap-2">
-                      {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
+                    <div className="flex items-center gap-1">
                       {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-green-500"
-                        >
-                          <MessageCircle size={16} />
-                        </a>
-                      )}
-                    </div>
-                    <div className="text-xs text-zinc-500 flex items-center gap-2">
-                      {athlete.doc}
-                      {athlete.guardian_phone && athlete.guardian_phone.replace(/\D/g, '') && (
-                        <a 
-                          href={`https://wa.me/55${athlete.guardian_phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-zinc-400"
+                          className="p-1.5 hover:bg-green-500/20 text-green-500 rounded-lg transition-colors"
+                          title="WhatsApp Aluno"
                         >
                           <MessageCircle size={14} />
                         </a>
                       )}
+                      <button 
+                        onClick={() => onEdit(athlete)}
+                        className="p-1.5 hover:bg-theme-primary/20 text-theme-primary rounded-lg transition-colors"
+                        title="Editar Atleta"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(athlete.id)}
+                        className="p-1.5 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => handleStatusToggle(athlete)}
-                  className={cn(
-                    "px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-transparent hover:border-theme-primary/30",
-                    athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                  )}
-                  title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
-                >
-                  {athlete.status}
-                </button>
               </div>
-              
+            ))}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-black/50 border-b border-zinc-800">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Atleta</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Sexo</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cadastro</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right no-print">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {filteredAthletes.map((athlete) => (
+                  <tr key={athlete.id} className="hover:bg-zinc-800/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {/* Enlarged Photo Container */}
+                        <div 
+                          onClick={() => setPreviewAthletePhoto(athlete)}
+                          className="relative cursor-pointer group/photo w-14 h-14 rounded-xl overflow-hidden border-2 border-zinc-700 hover:border-theme-primary transition-all shadow-md bg-zinc-800 flex-shrink-0 flex items-center justify-center"
+                          title="Clique para ampliar foto"
+                        >
+                          {athlete.photo ? (
+                            <img 
+                              src={athlete.photo} 
+                              className="w-full h-full object-cover group-hover/photo:scale-110 transition-transform duration-200" 
+                              referrerPolicy="no-referrer" 
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-zinc-800 flex flex-col items-center justify-center text-zinc-500">
+                              <UserCircle size={28} />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                            <Maximize2 size={14} />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-white flex items-center gap-2">
+                            {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
+                            {athlete.confirmation === 'Pendente' && athlete.created_at && (
+                              (() => {
+                                const date = new Date(getTimestamp(athlete.created_at));
+                                const days = differenceInDays(new Date(), date);
+                                if (days >= 10) {
+                                  return (
+                                    <span className="flex items-center gap-1 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded animate-pulse" title="Cadastro pendente há mais de 10 dias!">
+                                      <AlertTriangle size={10} />
+                                      {days} DIAS
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()
+                            )}
+                            {athlete.contact && athlete.contact.replace(/\D/g, '') && (
+                              <a 
+                                href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-500 hover:text-green-400 transition-colors"
+                                title="Conversar com Aluno"
+                              >
+                                <MessageCircle size={14} />
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-xs text-zinc-500 flex items-center gap-2">
+                            {athlete.doc}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-zinc-300 text-xs font-bold uppercase">
+                        {athlete.gender || '--'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-bold rounded-md">
+                        {getSubCategory(athlete.birth_date)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button 
+                        onClick={() => handleStatusToggle(athlete)}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:ring-2 hover:ring-theme-primary/30",
+                          athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                        )}
+                        title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
+                      >
+                        {athlete.status}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-center">
+                        <span className="text-zinc-300 text-[10px] font-bold">
+                          {formatCreatedAt(athlete.created_at)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right no-print">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                          {viewMode === 'pending' ? (
+                            <>
+                              <button 
+                                onClick={() => handleApprove(athlete.id)}
+                                className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
+                                title="Aprovar Cadastro"
+                              >
+                                <Check size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleReject(athlete.id)}
+                                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                                title="Recusar"
+                              >
+                                <XCircle size={18} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => onEdit(athlete)}
+                                className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(athlete.id)}
+                                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Mobile Card View (shown when displayMode is table) */}
+        {displayMode === 'table' && (
+          <div className="md:hidden divide-y divide-zinc-800">
+            {filteredAthletes.map((athlete) => (
+              <div key={athlete.id} className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      onClick={() => setPreviewAthletePhoto(athlete)}
+                      className="relative cursor-pointer w-14 h-14 rounded-2xl overflow-hidden border-2 border-zinc-700 bg-zinc-800 flex-shrink-0 flex items-center justify-center"
+                    >
+                      {athlete.photo ? (
+                        <img src={athlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <UserCircle size={28} className="text-zinc-500" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-2">
+                        {athlete.name}{athlete.nickname ? ` (${athlete.nickname})` : ''}
+                        {athlete.contact && athlete.contact.replace(/\D/g, '') && (
+                          <a 
+                            href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-500"
+                          >
+                            <MessageCircle size={16} />
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-xs text-zinc-500 flex items-center gap-2">
+                        {athlete.doc}
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleStatusToggle(athlete)}
+                    className={cn(
+                      "px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-transparent hover:border-theme-primary/30",
+                      athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                    )}
+                  >
+                    {athlete.status}
+                  </button>
+                </div>
+                
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-zinc-500 uppercase text-[10px] font-black tracking-wider">Categoria:</span>
@@ -668,46 +826,47 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </div>
                 </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                {viewMode === 'pending' ? (
-                  <>
-                    <button 
-                      onClick={() => handleApprove(athlete.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors text-xs font-bold"
-                    >
-                      <Check size={14} />
-                      Aprovar
-                    </button>
-                    <button 
-                      onClick={() => handleReject(athlete.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
-                    >
-                      <XCircle size={14} />
-                      Recusar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => onEdit(athlete)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"
-                    >
-                      <Edit2 size={14} />
-                      Editar
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(athlete.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
-                    >
-                      <Trash2 size={14} />
-                      Excluir
-                    </button>
-                  </>
-                )}
+                <div className="flex items-center gap-2 pt-2">
+                  {viewMode === 'pending' ? (
+                    <>
+                      <button 
+                        onClick={() => handleApprove(athlete.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors text-xs font-bold"
+                      >
+                        <Check size={14} />
+                        Aprovar
+                      </button>
+                      <button 
+                        onClick={() => handleReject(athlete.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
+                      >
+                        <XCircle size={14} />
+                        Recusar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => onEdit(athlete)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors text-xs font-bold"
+                      >
+                        <Edit2 size={14} />
+                        Editar
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(athlete.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors text-xs font-bold"
+                      >
+                        <Trash2 size={14} />
+                        Excluir
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {filteredAthletes.length === 0 && (
           <div className="px-6 py-12 text-center text-zinc-500 space-y-4">
@@ -793,6 +952,108 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                 className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors uppercase text-xs tracking-widest"
               >
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Athlete Photo Lightbox Modal */}
+      {previewAthletePhoto && (
+        <div 
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[120] flex items-center justify-center p-4 no-print animate-in fade-in duration-200"
+          onClick={() => setPreviewAthletePhoto(null)}
+        >
+          <div 
+            className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden max-w-md w-full shadow-2xl p-6 flex flex-col items-center relative space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => setPreviewAthletePhoto(null)}
+              className="absolute top-4 right-4 p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-colors border border-zinc-800"
+              title="Fechar"
+            >
+              <XCircle size={20} />
+            </button>
+
+            {/* Photo Container */}
+            <div className="w-56 h-56 sm:w-64 sm:h-64 rounded-2xl overflow-hidden border-2 border-theme-primary shadow-2xl bg-zinc-900 flex items-center justify-center mt-2">
+              {previewAthletePhoto.photo ? (
+                <img 
+                  src={previewAthletePhoto.photo} 
+                  alt={previewAthletePhoto.name} 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer" 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
+                  <UserCircle size={64} />
+                  <span className="text-xs font-bold text-zinc-500">Sem foto cadastrada</span>
+                </div>
+              )}
+            </div>
+
+            {/* Athlete Details */}
+            <div className="text-center space-y-1 w-full pt-2">
+              <h3 className="text-xl font-black text-white">
+                {previewAthletePhoto.name}
+              </h3>
+              {previewAthletePhoto.nickname && (
+                <p className="text-sm font-bold text-theme-primary">
+                  "{previewAthletePhoto.nickname}"
+                </p>
+              )}
+
+              <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+                <span className="px-3 py-1 bg-theme-primary/10 border border-theme-primary/30 text-theme-primary text-xs font-bold rounded-lg">
+                  Categoria: {getSubCategory(previewAthletePhoto.birth_date)}
+                </span>
+                {previewAthletePhoto.jersey_number && (
+                  <span className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold rounded-lg">
+                    Camisa #{previewAthletePhoto.jersey_number}
+                  </span>
+                )}
+                <span className={cn(
+                  "px-3 py-1 text-xs font-bold rounded-lg uppercase",
+                  previewAthletePhoto.status === 'Ativo' ? "bg-green-500/10 text-green-500 border border-green-500/30" : "bg-red-500/10 text-red-500 border border-red-500/30"
+                )}>
+                  {previewAthletePhoto.status}
+                </span>
+              </div>
+
+              <div className="text-xs text-zinc-400 pt-3 border-t border-zinc-900 grid grid-cols-2 gap-2 text-left">
+                <div>
+                  <span className="text-zinc-500 block text-[10px] font-bold uppercase">Documento</span>
+                  <span className="text-zinc-200 font-mono">{previewAthletePhoto.doc || '--'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[10px] font-bold uppercase">Nascimento</span>
+                  <span className="text-zinc-200">{previewAthletePhoto.birth_date || '--'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[10px] font-bold uppercase">Modalidade</span>
+                  <span className="text-zinc-200 uppercase">{previewAthletePhoto.modality || '--'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[10px] font-bold uppercase">Contato</span>
+                  <span className="text-zinc-200">{previewAthletePhoto.contact || '--'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Edit button */}
+            <div className="w-full flex gap-2 pt-2">
+              <button 
+                onClick={() => {
+                  const athleteToEdit = previewAthletePhoto;
+                  setPreviewAthletePhoto(null);
+                  onEdit(athleteToEdit);
+                }}
+                className="w-full py-2.5 bg-theme-primary hover:bg-theme-primary/90 text-black font-black uppercase tracking-wider text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Edit2 size={16} />
+                Editar Dados do Atleta
               </button>
             </div>
           </div>
