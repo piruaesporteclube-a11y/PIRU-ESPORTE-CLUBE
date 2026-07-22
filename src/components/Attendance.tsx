@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import AttendanceHistory from './AttendanceHistory';
+import FacialRecognitionScanner from './FacialRecognitionScanner';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -127,6 +128,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [isFacialScanning, setIsFacialScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -1424,6 +1426,25 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </div>
 
           <button 
+            onClick={() => {
+              setIsFacialScanning(!isFacialScanning);
+              if (isScanning) setIsScanning(false);
+            }}
+            disabled={isLocked}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg cursor-pointer",
+              isLocked 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : (isFacialScanning 
+                    ? "bg-rose-500 text-white shadow-rose-500/20" 
+                    : "bg-emerald-500 text-black hover:bg-emerald-400 hover:scale-105 active:scale-95 shadow-emerald-500/20")
+            )}
+          >
+            {isFacialScanning ? <X size={20} /> : <ScanFace size={20} />}
+            {isFacialScanning ? 'Fechar Câmera IA' : 'Reconhecimento Facial'}
+          </button>
+
+          <button 
             onClick={toggleScanning}
             disabled={isLocked}
             className={cn(
@@ -1619,6 +1640,28 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             Reativar Bloqueio
           </button>
         </div>
+      )}
+
+      {isFacialScanning && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="mb-6"
+        >
+          <FacialRecognitionScanner
+            athletes={athletes}
+            attendanceRecords={attendance}
+            activeTrainingId={selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId}
+            eventId={eventId}
+            date={date}
+            isLocked={isLocked}
+            onClose={() => setIsFacialScanning(false)}
+            onAthleteRecognized={async (athlete) => {
+              await markAttendance(athlete.id, 'Presente');
+            }}
+          />
+        </motion.div>
       )}
 
       {isScanning && (

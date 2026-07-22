@@ -3597,4 +3597,26 @@ export const api = {
       console.warn("Failed to run data migration:", e);
     }
   },
+
+  recognizeFace: async (cameraFrame: string, candidates: Array<{ id: string; name: string; photo: string }>) => {
+    try {
+      const response = await fetch("/api/recognize-face", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cameraFrame, candidates })
+      });
+      if (!response.ok) {
+        throw new Error(`Erro na chamada da API: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (err: any) {
+      console.error("Error recognizing face:", err);
+      return {
+        success: false,
+        error: err.message,
+        match: { matchedAthleteId: null, confidence: 0, reasoning: "Erro de conexão com o servidor de IA." }
+      };
+    }
+  },
 };
