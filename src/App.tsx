@@ -39,6 +39,7 @@ import AnnouncementFlyer from './components/AnnouncementFlyer';
 import SchoolReportManagement from './components/SchoolReportManagement';
 import { AccessAudit } from './components/AccessAudit';
 import TopScorers from './components/TopScorers';
+import MuscleGroup3D from './components/MuscleGroup3D';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
@@ -1889,6 +1890,8 @@ export default function App() {
           return <WhatsAppIntegration athletes={athletes} />;
         case 'activities':
           return <ActivityManagement role={user?.role} />;
+        case 'muscle-groups':
+          return <MuscleGroup3D />;
         case 'trainings':
           return <TrainingManagement athletes={athletes} role={user?.role} />;
         case 'official-letters':
