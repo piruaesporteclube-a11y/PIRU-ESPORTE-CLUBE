@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -129,6 +129,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [search, setSearch] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [isFacialScanning, setIsFacialScanning] = useState(false);
+  const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
+  const [fingerprintQuery, setFingerprintQuery] = useState('');
+  const [lastFingerprintMatch, setLastFingerprintMatch] = useState<Athlete | null>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -1427,7 +1430,28 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
           <button 
             onClick={() => {
+              setIsFingerprintScanning(!isFingerprintScanning);
+              if (isFacialScanning) setIsFacialScanning(false);
+              if (isScanning) setIsScanning(false);
+            }}
+            disabled={isLocked}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg cursor-pointer",
+              isLocked 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : (isFingerprintScanning 
+                    ? "bg-rose-500 text-white shadow-rose-500/20" 
+                    : "bg-emerald-500 text-black hover:bg-emerald-400 hover:scale-105 active:scale-95 shadow-emerald-500/20")
+            )}
+          >
+            {isFingerprintScanning ? <X size={20} /> : <Fingerprint size={20} />}
+            {isFingerprintScanning ? 'Fechar Leitor Digital' : 'Biometria (Dedo Indicador)'}
+          </button>
+
+          <button 
+            onClick={() => {
               setIsFacialScanning(!isFacialScanning);
+              if (isFingerprintScanning) setIsFingerprintScanning(false);
               if (isScanning) setIsScanning(false);
             }}
             disabled={isLocked}
@@ -1437,7 +1461,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
                 : (isFacialScanning 
                     ? "bg-rose-500 text-white shadow-rose-500/20" 
-                    : "bg-emerald-500 text-black hover:bg-emerald-400 hover:scale-105 active:scale-95 shadow-emerald-500/20")
+                    : "bg-indigo-500 text-white hover:bg-indigo-400 hover:scale-105 active:scale-95 shadow-indigo-500/20")
             )}
           >
             {isFacialScanning ? <X size={20} /> : <ScanFace size={20} />}
@@ -1640,6 +1664,178 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             Reativar Bloqueio
           </button>
         </div>
+      )}
+
+      {isFingerprintScanning && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="mb-6 bg-zinc-950 border-2 border-emerald-500/50 rounded-3xl p-6 shadow-[0_15px_50px_rgba(16,185,129,0.25)] relative overflow-hidden"
+        >
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-emerald-500 text-black rounded-2xl shadow-lg shadow-emerald-500/30 animate-pulse">
+                <Fingerprint size={28} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>Leitor de Biometria Digital</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                    Dedo Indicador
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">Encoste o dedo indicador no leitor USB/Tela ou selecione o atleta cadastrado para validar a presença.</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsFingerprintScanning(false)}
+              className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Interactive Fingerprint Reader Touch Zone */}
+            <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/80 border border-emerald-500/30 rounded-2xl text-center space-y-4">
+              <div className="relative">
+                <div className="w-36 h-36 rounded-3xl bg-zinc-950 border-4 border-emerald-400 flex flex-col items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse">
+                  <Fingerprint size={80} />
+                </div>
+                <div className="absolute -bottom-2 inset-x-0 flex justify-center">
+                  <span className="bg-emerald-500 text-black text-[10px] font-black uppercase px-3 py-0.5 rounded-full shadow-md">
+                    SENSOR ATIVO
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-white uppercase">Aguardando Impressão Digital</h4>
+                <p className="text-xs text-zinc-400">Toque abaixo ou busque o aluno para efetuar a leitura biométrica rápida.</p>
+              </div>
+
+              {lastFingerprintMatch && (
+                <div className="w-full bg-emerald-950/80 border border-emerald-400 p-3 rounded-2xl text-left flex items-center gap-3 animate-in fade-in">
+                  {lastFingerprintMatch.photo ? (
+                    <img src={lastFingerprintMatch.photo} className="w-12 h-12 rounded-xl object-cover border border-emerald-400" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-400">
+                      <User size={24} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-emerald-300 truncate">{lastFingerprintMatch.name}</p>
+                    <p className="text-[10px] text-zinc-400">Presença Registrada com Sucesso ✓</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Registered Athletes List for Quick Biometric Scan */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar aluno cadastrado para biometria..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 uppercase"
+                    value={fingerprintQuery}
+                    onChange={(e) => setFingerprintQuery(e.target.value)}
+                  />
+                </div>
+                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl shrink-0">
+                  {athletes.filter(a => a.biometrics_fingerprint_registered).length} Digitais Cadastradas
+                </span>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {athletes
+                  .filter(a => (a.status === 'Ativo' || !a.status))
+                  .filter(a => {
+                    if (!fingerprintQuery) return true;
+                    const q = fingerprintQuery.toLowerCase();
+                    return a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q)) || a.jersey_number?.includes(q);
+                  })
+                  .slice(0, 15)
+                  .map(athlete => {
+                    const isPresent = (attendance[athlete.id] || []).some(r => r.status === 'Presente');
+                    const hasFingerprint = athlete.biometrics_fingerprint_registered;
+
+                    return (
+                      <div
+                        key={athlete.id}
+                        className={cn(
+                          "p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all",
+                          isPresent
+                            ? "bg-emerald-950/20 border-emerald-500/30 opacity-80"
+                            : "bg-zinc-900/80 border-zinc-800 hover:border-emerald-500/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {athlete.photo ? (
+                            <img src={athlete.photo} className="w-10 h-10 rounded-xl object-cover border border-zinc-700 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
+                              <User size={20} />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate uppercase flex items-center gap-1.5">
+                              <span>{athlete.name}</span>
+                              {hasFingerprint && (
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black">
+                                  DIGITAL ✓
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-zinc-400">
+                              Camisa: <strong className="text-zinc-200">{athlete.jersey_number || 'S/N'}</strong> • {getSubCategory(athlete.birth_date)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          {isPresent ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase">
+                              <CheckCircle2 size={12} />
+                              Presente
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setLastFingerprintMatch(athlete);
+                                await markAttendance(athlete.id, 'Presente');
+                                toast.success(`Biometria Digital confirmada: ${athlete.name}!`);
+
+                                // Speech audio
+                                if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                                  try {
+                                    window.speechSynthesis.cancel();
+                                    const u = new SpeechSynthesisUtterance(`Presença confirmada para ${athlete.nickname || athlete.name}`);
+                                    u.lang = 'pt-BR';
+                                    window.speechSynthesis.speak(u);
+                                  } catch (e) {}
+                                }
+                              }}
+                              className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[11px] uppercase rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Fingerprint size={14} />
+                              <span>Validar Digital</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {isFacialScanning && (

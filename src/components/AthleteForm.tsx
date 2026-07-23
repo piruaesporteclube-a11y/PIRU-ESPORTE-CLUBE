@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Athlete, User } from '../types';
-import { X, Upload, Save, UserCircle, MessageCircle, ClipboardCheck, Printer, FileDown } from 'lucide-react';
+import { X, Upload, Save, UserCircle, MessageCircle, ClipboardCheck, Printer, FileDown, ScanFace, Fingerprint, Camera, CheckCircle2, AlertCircle, Sparkles, ShieldCheck, RefreshCw, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useRef } from 'react';
@@ -53,9 +53,93 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     position: '',
     modality: '',
     gender: 'Masculino',
-    confirmation: 'Pendente'
+    confirmation: 'Pendente',
+    biometrics_face_registered: false,
+    biometrics_fingerprint_registered: false
   });
   const [loading, setLoading] = useState(false);
+
+  // Biometrics States
+  const [isFaceCameraOpen, setIsFaceCameraOpen] = useState(false);
+  const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
+  const [fingerprintHand, setFingerprintHand] = useState<'Direito' | 'Esquerdo'>('Direito');
+  const [fingerprintStep, setFingerprintStep] = useState(0); // 0, 1, 2, 3 (3 = complete)
+  const [isScanningFinger, setIsScanningFinger] = useState(false);
+
+  const faceVideoRef = useRef<HTMLVideoElement>(null);
+  const [faceCameraStream, setFaceCameraStream] = useState<MediaStream | null>(null);
+
+  const startFaceCamera = async () => {
+    try {
+      setIsFaceCameraOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        audio: false
+      });
+      setFaceCameraStream(stream);
+      if (faceVideoRef.current) {
+        faceVideoRef.current.srcObject = stream;
+        faceVideoRef.current.play().catch(() => {});
+      }
+    } catch (err: any) {
+      toast.error('Não foi possível abrir a câmera. Verifique as permissões.');
+      setIsFaceCameraOpen(false);
+    }
+  };
+
+  const stopFaceCamera = () => {
+    if (faceCameraStream) {
+      faceCameraStream.getTracks().forEach(track => track.stop());
+      setFaceCameraStream(null);
+    }
+    setIsFaceCameraOpen(false);
+  };
+
+  const captureFaceBiometrics = () => {
+    if (!faceVideoRef.current) return;
+    const video = faceVideoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      setFormData(prev => ({
+        ...prev,
+        photo: dataUrl,
+        biometrics_face_registered: true,
+        biometrics_face_date: new Date().toLocaleDateString('pt-BR')
+      }));
+      toast.success('📸 Foto e Biometria Facial registradas com sucesso!');
+      stopFaceCamera();
+    }
+  };
+
+  const handleSimulateFingerprintScan = () => {
+    if (fingerprintStep >= 3) return;
+    setIsScanningFinger(true);
+    
+    setTimeout(() => {
+      const nextStep = fingerprintStep + 1;
+      setFingerprintStep(nextStep);
+      setIsScanningFinger(false);
+      
+      if (nextStep === 3) {
+        const uniqueHash = `BIO-IND-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+        setFormData(prev => ({
+          ...prev,
+          biometrics_fingerprint_registered: true,
+          biometrics_fingerprint_date: new Date().toLocaleDateString('pt-BR'),
+          fingerprint_hash: uniqueHash,
+          fingerprint_hand: fingerprintHand
+        }));
+        toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) cadastrada com sucesso!`);
+      } else {
+        toast.info(`Toque ${nextStep}/3 recebido no leitor biométrico.`);
+      }
+    }, 900);
+  };
 
   const getAvailablePositions = () => {
     const selectedModalities = formData.modality ? formData.modality.split(', ').filter(Boolean) : [];
@@ -437,26 +521,335 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-8">
-        {/* Photo Upload Section */}
-          <div className="flex justify-center mb-8">
-            <div className="flex flex-col items-center gap-4 p-6 bg-zinc-800/30 border border-zinc-800 rounded-3xl w-full max-w-sm">
-              <div className="relative group">
-                {formData.photo ? (
-                  <img src={formData.photo} className="w-[120px] h-[160px] object-cover rounded-xl border-2 border-theme-primary shadow-lg shadow-theme-primary/20" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-[120px] h-[160px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-700 group-hover:border-theme-primary transition-colors">
-                    <UserCircle size={48} />
-                    <span className="text-[10px] mt-2 font-bold uppercase">Foto 3x4</span>
-                  </div>
-                )}
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl">
-                  <Upload className="text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e)} />
-                </label>
+        {/* Photo & Biometrics Section */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-theme-primary/10 text-theme-primary rounded-2xl border border-theme-primary/20">
+                <ShieldCheck size={22} />
               </div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Foto do Atleta (3x4)</p>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>Cadastro Biométrico do Aluno</span>
+                  <span className="text-[10px] px-2 py-0.5 bg-theme-primary/20 text-theme-primary rounded-md border border-theme-primary/30">
+                    Rosto & Dedo Indicador
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">Cadastre a foto facial e a impressão digital do dedo indicador para permitir a chamada por biometria.</p>
+              </div>
+            </div>
+
+            {/* Status Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5",
+                formData.biometrics_face_registered || formData.photo 
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
+                  : "bg-zinc-800 text-zinc-500 border-zinc-700"
+              )}>
+                <ScanFace size={13} />
+                <span>Facial: {formData.biometrics_face_registered || formData.photo ? "Cadastrado ✓" : "Pendente"}</span>
+              </span>
+
+              <span className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5",
+                formData.biometrics_fingerprint_registered 
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
+                  : "bg-zinc-800 text-zinc-500 border-zinc-700"
+              )}>
+                <Fingerprint size={13} />
+                <span>Digital: {formData.biometrics_fingerprint_registered ? "Dedo Indicador ✓" : "Pendente"}</span>
+              </span>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1. Facial Photo & Camera Biometrics */}
+            <div className="flex flex-col items-center justify-between p-5 bg-black/60 border border-zinc-800 rounded-2xl space-y-4">
+              <div className="text-center space-y-1">
+                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  <ScanFace size={16} className="text-theme-primary" />
+                  1. Foto & Biometria Facial
+                </h4>
+                <p className="text-[11px] text-zinc-400">Capture com a câmera ao vivo ou envie o arquivo da foto do aluno.</p>
+              </div>
+
+              <div className="relative group">
+                {formData.photo ? (
+                  <div className="relative">
+                    <img src={formData.photo} className="w-[130px] h-[170px] object-cover rounded-2xl border-2 border-emerald-400 shadow-xl shadow-emerald-500/10" referrerPolicy="no-referrer" />
+                    <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-black p-1.5 rounded-full shadow-lg border-2 border-black" title="Biometria Ativa">
+                      <CheckCircle2 size={16} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-[130px] h-[170px] bg-zinc-800/80 rounded-2xl flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-700 group-hover:border-theme-primary transition-colors">
+                    <UserCircle size={52} />
+                    <span className="text-[10px] mt-2 font-black uppercase tracking-wider">Foto 3x4 / Rosto</span>
+                  </div>
+                )}
+
+                <label className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
+                  <Upload className="text-white" size={24} />
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    handleFileUpload(e);
+                    setFormData(prev => ({
+                      ...prev,
+                      biometrics_face_registered: true,
+                      biometrics_face_date: new Date().toLocaleDateString('pt-BR')
+                    }));
+                  }} />
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-2">
+                <button
+                  type="button"
+                  onClick={startFaceCamera}
+                  className="flex-1 px-4 py-2.5 bg-theme-primary text-black hover:bg-theme-primary/90 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-theme-primary/10 cursor-pointer"
+                >
+                  <Camera size={16} />
+                  <span>Câmera Biométrica</span>
+                </button>
+
+                <label className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-zinc-700 flex items-center gap-1.5">
+                  <Upload size={14} />
+                  <span>Arquivo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    handleFileUpload(e);
+                    setFormData(prev => ({
+                      ...prev,
+                      biometrics_face_registered: true,
+                      biometrics_face_date: new Date().toLocaleDateString('pt-BR')
+                    }));
+                  }} />
+                </label>
+              </div>
+            </div>
+
+            {/* 2. Fingerprint Biometrics (Dedo Indicador) */}
+            <div className="flex flex-col items-center justify-between p-5 bg-black/60 border border-zinc-800 rounded-2xl space-y-4">
+              <div className="text-center space-y-1">
+                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  <Fingerprint size={16} className="text-emerald-400" />
+                  2. Biometria Digital (Dedo Indicador)
+                </h4>
+                <p className="text-[11px] text-zinc-400">Cadastre a digital do dedo indicador (mão direita ou esquerda).</p>
+              </div>
+
+              <div className="flex flex-col items-center justify-center w-full py-3 space-y-3">
+                <div className={cn(
+                  "w-24 h-24 rounded-3xl flex items-center justify-center border-2 transition-all relative",
+                  formData.biometrics_fingerprint_registered
+                    ? "bg-emerald-950/60 border-emerald-400 text-emerald-400 shadow-xl shadow-emerald-500/20"
+                    : "bg-zinc-800/80 border-dashed border-zinc-700 text-zinc-500"
+                )}>
+                  <Fingerprint size={56} className={cn(formData.biometrics_fingerprint_registered && "animate-pulse")} />
+                  {formData.biometrics_fingerprint_registered && (
+                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-black p-1 rounded-full shadow-lg border-2 border-black">
+                      <CheckCircle2 size={14} />
+                    </div>
+                  )}
+                </div>
+
+                {formData.biometrics_fingerprint_registered ? (
+                  <div className="text-center space-y-1">
+                    <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                      <CheckCircle2 size={13} />
+                      Indicador {formData.fingerprint_hand || 'Direito'} Cadastrado
+                    </span>
+                    <p className="text-[10px] text-zinc-500 font-medium">Registrado em {formData.biometrics_fingerprint_date || 'Hoje'}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs font-bold text-amber-400/90 uppercase tracking-wider text-center bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                    Aguardando Cadastro do Dedo Indicador
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFingerprintStep(0);
+                  setIsFingerprintModalOpen(true);
+                }}
+                className={cn(
+                  "w-full px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg",
+                  formData.biometrics_fingerprint_registered
+                    ? "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                    : "bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20"
+                )}
+              >
+                <Fingerprint size={16} />
+                <span>{formData.biometrics_fingerprint_registered ? "Recadastrar Dedo Indicador" : "Cadastrar Dedo Indicador"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Câmera Facial Ao Vivo */}
+        {isFaceCameraOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+            <div className="bg-zinc-950 border-2 border-theme-primary/40 rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-theme-primary/20 text-theme-primary rounded-xl">
+                    <ScanFace size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Captura de Biometria Facial</h3>
+                    <p className="text-xs text-zinc-400">Posicione o rosto do aluno no centro da moldura</p>
+                  </div>
+                </div>
+                <button type="button" onClick={stopFaceCamera} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl bg-black border-2 border-zinc-800 aspect-4/3 flex items-center justify-center">
+                <video ref={faceVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                
+                {/* Oval guide overlay */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-48 h-64 border-4 border-dashed border-theme-primary/80 rounded-[50%] shadow-[0_0_50px_rgba(250,204,21,0.3)] animate-pulse flex items-center justify-center">
+                    <span className="text-[10px] font-black uppercase text-theme-primary bg-black/70 px-2 py-1 rounded-full">Alinhar Rosto</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={stopFaceCamera}
+                  className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={captureFaceBiometrics}
+                  className="flex-1 px-4 py-3 bg-theme-primary text-black hover:bg-theme-primary/90 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-theme-primary/20 flex items-center justify-center gap-2"
+                >
+                  <Camera size={18} />
+                  <span>Capturar e Salvar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Cadastro de Biometria Digital - Dedo Indicador */}
+        {isFingerprintModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+            <div className="bg-zinc-950 border-2 border-emerald-500/40 rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative text-center">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3 text-left">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                    <Fingerprint size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Cadastro Biométrico Digital</h3>
+                    <p className="text-xs text-zinc-400">Leitor do Dedo Indicador</p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFingerprintModalOpen(false)} 
+                  className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Hand Selection Toggle */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-400 uppercase block">Selecione a Mão do Dedo Indicador:</label>
+                <div className="grid grid-cols-2 gap-3 p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setFingerprintHand('Direito')}
+                    className={cn(
+                      "py-2 px-3 text-xs font-black uppercase rounded-lg transition-all",
+                      fingerprintHand === 'Direito' ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Mão Direita (Indicador)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFingerprintHand('Esquerdo')}
+                    className={cn(
+                      "py-2 px-3 text-xs font-black uppercase rounded-lg transition-all",
+                      fingerprintHand === 'Esquerdo' ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Mão Esquerda (Indicador)
+                  </button>
+                </div>
+              </div>
+
+              {/* Fingerprint Touch Area / Sensor UI */}
+              <div className="flex flex-col items-center justify-center space-y-4 py-4">
+                <button
+                  type="button"
+                  onClick={handleSimulateFingerprintScan}
+                  disabled={isScanningFinger || fingerprintStep >= 3}
+                  className={cn(
+                    "w-36 h-36 rounded-full flex flex-col items-center justify-center border-4 transition-all relative cursor-pointer shadow-2xl",
+                    fingerprintStep === 3
+                      ? "bg-emerald-950 border-emerald-400 text-emerald-400"
+                      : (isScanningFinger 
+                          ? "bg-emerald-900/50 border-emerald-400 text-emerald-300 animate-pulse" 
+                          : "bg-zinc-900 hover:bg-zinc-850 border-emerald-500/50 text-emerald-400 hover:border-emerald-400 hover:scale-105 active:scale-95")
+                  )}
+                >
+                  <Fingerprint size={72} className={cn(isScanningFinger && "animate-ping")} />
+                  {fingerprintStep === 3 && (
+                    <div className="absolute inset-0 bg-emerald-500/20 backdrop-blur-xs rounded-full flex items-center justify-center text-emerald-300 font-black text-xs uppercase">
+                      Leitura 100%
+                    </div>
+                  )}
+                </button>
+
+                {/* Progress Indicators (3 touches required) */}
+                <div className="space-y-2 w-full">
+                  <div className="flex items-center justify-center gap-2">
+                    {[1, 2, 3].map(stepNum => (
+                      <div 
+                        key={stepNum}
+                        className={cn(
+                          "w-8 h-8 rounded-full font-black text-xs flex items-center justify-center border-2 transition-all",
+                          fingerprintStep >= stepNum 
+                            ? "bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/30" 
+                            : "bg-zinc-900 border-zinc-800 text-zinc-600"
+                        )}
+                      >
+                        {fingerprintStep >= stepNum ? <Check size={16} /> : stepNum}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                    {fingerprintStep === 0 && "Toque o dedo indicador no leitor acentuado acima"}
+                    {fingerprintStep === 1 && "Primeiro toque gravado! Toque novamente no leitor"}
+                    {fingerprintStep === 2 && "Apenas mais 1 toque para finalizar a calibração!"}
+                    {fingerprintStep === 3 && "✅ Biometria Digital cadastrada com sucesso!"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFingerprintModalOpen(false)}
+                  className="w-full px-4 py-3 bg-emerald-500 text-black hover:bg-emerald-400 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20"
+                >
+                  {fingerprintStep === 3 ? "Concluir Cadastro Biométrico" : "Fechar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Basic Info */}

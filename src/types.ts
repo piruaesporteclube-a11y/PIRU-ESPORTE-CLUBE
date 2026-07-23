@@ -27,6 +27,12 @@ export type Athlete = {
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field
+  biometrics_face_registered?: boolean;
+  biometrics_face_date?: string;
+  biometrics_fingerprint_registered?: boolean;
+  biometrics_fingerprint_date?: string;
+  fingerprint_hash?: string;
+  fingerprint_hand?: "Direito" | "Esquerdo";
   created_at?: any;
   updated_at?: any;
 };

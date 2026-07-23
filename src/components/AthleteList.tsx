@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, isQuotaExceeded } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle, LayoutGrid, List, Maximize2, Camera } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle, LayoutGrid, List, Maximize2, Camera, ScanFace, Fingerprint, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -564,6 +564,20 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                         <span className="text-zinc-500 font-semibold uppercase text-[9px] mr-1">Mod:</span>
                         <span className="text-zinc-300 uppercase font-bold text-[10px]">{athlete.modality || '--'}</span>
                       </p>
+                      
+                      {/* Biometrics Status */}
+                      <div className="flex flex-wrap items-center gap-1 pt-1">
+                        {(athlete.biometrics_face_registered || athlete.photo) && (
+                          <span className="text-[9px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded-md font-bold uppercase flex items-center gap-0.5" title="Biometria Facial Cadastrada">
+                            <ScanFace size={10} /> Face
+                          </span>
+                        )}
+                        {athlete.biometrics_fingerprint_registered && (
+                          <span className="text-[9px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-md font-bold uppercase flex items-center gap-0.5" title="Biometria Digital Cadastrada">
+                            <Fingerprint size={10} /> Digital
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
