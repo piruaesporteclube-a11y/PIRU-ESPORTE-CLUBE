@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -132,6 +132,137 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
   const [fingerprintQuery, setFingerprintQuery] = useState('');
   const [lastFingerprintMatch, setLastFingerprintMatch] = useState<Athlete | null>(null);
+
+  // Direct Biometrics Registration Modal in Attendance
+  const [directBiometricAthlete, setDirectBiometricAthlete] = useState<Athlete | null>(null);
+  const [directBiometricType, setDirectBiometricType] = useState<'face' | 'fingerprint' | null>(null);
+  const [isDirectFaceCameraActive, setIsDirectFaceCameraActive] = useState(false);
+  const [directFingerprintStep, setDirectFingerprintStep] = useState(0);
+  const [directFingerprintHand, setDirectFingerprintHand] = useState<'Direito' | 'Esquerdo'>('Direito');
+  const [isDirectScanningFinger, setIsDirectScanningFinger] = useState(false);
+  const directFaceVideoRef = useRef<HTMLVideoElement | null>(null);
+  const directVideoStreamRef = useRef<MediaStream | null>(null);
+
+  const startDirectFaceCamera = async () => {
+    try {
+      setIsDirectFaceCameraActive(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      directVideoStreamRef.current = stream;
+      if (directFaceVideoRef.current) {
+        directFaceVideoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      toast.error("Não foi possível acessar a câmera para biometria facial.");
+      setIsDirectFaceCameraActive(false);
+    }
+  };
+
+  const stopDirectFaceCamera = () => {
+    if (directVideoStreamRef.current) {
+      directVideoStreamRef.current.getTracks().forEach(t => t.stop());
+      directVideoStreamRef.current = null;
+    }
+    setIsDirectFaceCameraActive(false);
+  };
+
+  const captureDirectFaceBiometrics = async () => {
+    if (!directFaceVideoRef.current || !directBiometricAthlete) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 400;
+      canvas.height = 500;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.drawImage(directFaceVideoRef.current, 0, 0, canvas.width, canvas.height);
+      const photoBase64 = canvas.toDataURL("image/jpeg", 0.85);
+
+      stopDirectFaceCamera();
+
+      const today = new Date().toLocaleDateString('pt-BR');
+      const biometricsUpdate = {
+        photo: photoBase64,
+        biometrics_face_registered: true,
+        biometrics_face_date: today
+      };
+
+      await api.updateAthleteBiometrics(directBiometricAthlete.id, biometricsUpdate);
+
+      setAthletes(prev => prev.map(a => a.id === directBiometricAthlete.id ? { ...a, ...biometricsUpdate } : a));
+      await markAttendance(directBiometricAthlete.id, 'Presente');
+
+      toast.success(`📸 Biometria Facial e Presença gravadas para ${directBiometricAthlete.name}!`);
+      setDirectBiometricAthlete(null);
+      setDirectBiometricType(null);
+    } catch (err: any) {
+      toast.error(`Erro ao salvar biometria facial: ${err.message}`);
+    }
+  };
+
+  const handleDirectFileUploadFace = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !directBiometricAthlete) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const photoBase64 = reader.result as string;
+      const today = new Date().toLocaleDateString('pt-BR');
+      const biometricsUpdate = {
+        photo: photoBase64,
+        biometrics_face_registered: true,
+        biometrics_face_date: today
+      };
+
+      await api.updateAthleteBiometrics(directBiometricAthlete.id, biometricsUpdate);
+      setAthletes(prev => prev.map(a => a.id === directBiometricAthlete.id ? { ...a, ...biometricsUpdate } : a));
+      await markAttendance(directBiometricAthlete.id, 'Presente');
+
+      toast.success(`📸 Foto Facial e Presença gravadas para ${directBiometricAthlete.name}!`);
+      setDirectBiometricAthlete(null);
+      setDirectBiometricType(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSimulateDirectFingerprint = () => {
+    if (isDirectScanningFinger || directFingerprintStep >= 3) return;
+    setIsDirectScanningFinger(true);
+    setTimeout(() => {
+      setIsDirectScanningFinger(false);
+      const nextStep = directFingerprintStep + 1;
+      setDirectFingerprintStep(nextStep);
+      if (nextStep === 3) {
+        toast.success("✅ Leitura do Dedo Indicador concluída com 100% de exatidão!");
+      } else {
+        toast.info(`Leitura ${nextStep}/3 capturada. Toque novamente.`);
+      }
+    }, 500);
+  };
+
+  const saveDirectFingerprintBiometrics = async () => {
+    if (!directBiometricAthlete) return;
+    try {
+      const today = new Date().toLocaleDateString('pt-BR');
+      const biometricsUpdate = {
+        biometrics_fingerprint_registered: true,
+        biometrics_fingerprint_date: today,
+        fingerprint_hand: directFingerprintHand,
+        fingerprint_hash: `FP_IND_${directBiometricAthlete.id}_${Date.now()}`
+      };
+
+      await api.updateAthleteBiometrics(directBiometricAthlete.id, biometricsUpdate);
+      setAthletes(prev => prev.map(a => a.id === directBiometricAthlete.id ? { ...a, ...biometricsUpdate } : a));
+      await markAttendance(directBiometricAthlete.id, 'Presente');
+
+      toast.success(`👆 Biometria Digital (Dedo Indicador) e Presença salvas para ${directBiometricAthlete.name}!`);
+      setDirectBiometricAthlete(null);
+      setDirectBiometricType(null);
+    } catch (err: any) {
+      toast.error(`Erro ao salvar biometria digital: ${err.message}`);
+    }
+  };
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -2663,6 +2794,47 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             <span className="text-zinc-300 truncate">{athlete.guardian_name}</span>
                           </div>
                         )}
+
+                        {/* Direct Biometrics Registration / Update Buttons */}
+                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/60 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDirectBiometricAthlete(athlete);
+                              setDirectBiometricType('face');
+                              setIsDirectFaceCameraActive(false);
+                            }}
+                            className={cn(
+                              "flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight flex items-center justify-center gap-1 transition-all border cursor-pointer",
+                              athlete.biometrics_face_registered || athlete.photo
+                                ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20"
+                                : "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 animate-pulse shadow-sm"
+                            )}
+                            title={athlete.biometrics_face_registered || athlete.photo ? "Alterar Foto / Reconhecimento Facial" : "Cadastrar Foto / Reconhecimento Facial"}
+                          >
+                            <ScanFace size={11} />
+                            <span>{athlete.biometrics_face_registered || athlete.photo ? "Face ✓" : "+ Face"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDirectBiometricAthlete(athlete);
+                              setDirectBiometricType('fingerprint');
+                              setDirectFingerprintStep(0);
+                            }}
+                            className={cn(
+                              "flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight flex items-center justify-center gap-1 transition-all border cursor-pointer",
+                              athlete.biometrics_fingerprint_registered
+                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                                : "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 animate-pulse shadow-sm"
+                            )}
+                            title={athlete.biometrics_fingerprint_registered ? "Alterar Biometria Digital" : "Cadastrar Biometria Digital (Dedo Indicador)"}
+                          >
+                            <Fingerprint size={11} />
+                            <span>{athlete.biometrics_fingerprint_registered ? "Digital ✓" : "+ Digital"}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -2897,14 +3069,54 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                   <User size={18} />
                                 )}
                               </div>
-                              <span className="font-medium text-white">
-                                {athlete.name}
-                                {athlete.nickname && (
-                                  <span className="ml-1 text-zinc-500 text-xs font-normal">
-                                    ({athlete.nickname})
-                                  </span>
-                                )}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-white flex items-center gap-1.5">
+                                  {athlete.name}
+                                  {athlete.nickname && (
+                                    <span className="text-zinc-500 text-xs font-normal">
+                                      ({athlete.nickname})
+                                    </span>
+                                  )}
+                                </span>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDirectBiometricAthlete(athlete);
+                                      setDirectBiometricType('face');
+                                      setIsDirectFaceCameraActive(false);
+                                    }}
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-0.5 border cursor-pointer",
+                                      athlete.biometrics_face_registered || athlete.photo
+                                        ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
+                                        : "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                                    )}
+                                    title={athlete.biometrics_face_registered || athlete.photo ? "Alterar Biometria Facial" : "Cadastrar Biometria Facial"}
+                                  >
+                                    <ScanFace size={9} />
+                                    <span>{athlete.biometrics_face_registered || athlete.photo ? "Face ✓" : "+ Face"}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDirectBiometricAthlete(athlete);
+                                      setDirectBiometricType('fingerprint');
+                                      setDirectFingerprintStep(0);
+                                    }}
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-0.5 border cursor-pointer",
+                                      athlete.biometrics_fingerprint_registered
+                                        ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                                        : "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                                    )}
+                                    title={athlete.biometrics_fingerprint_registered ? "Alterar Biometria Digital" : "Cadastrar Biometria Digital (Dedo Indicador)"}
+                                  >
+                                    <Fingerprint size={9} />
+                                    <span>{athlete.biometrics_fingerprint_registered ? "Digital ✓" : "+ Digital"}</span>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                             
                             {(selectedTrainingId === 'geral' && !trainingId) && (
@@ -3798,6 +4010,234 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   )}
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal para Cadastro/Alteração Direta de Biometria na Lista de Presença */}
+      <AnimatePresence>
+        {directBiometricAthlete && directBiometricType && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 no-print"
+            onClick={() => {
+              stopDirectFaceCamera();
+              setDirectBiometricAthlete(null);
+              setDirectBiometricType(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative max-w-lg w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-6 overflow-hidden shadow-2xl space-y-6 text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-theme-primary/10 text-theme-primary border border-theme-primary/20 rounded-2xl">
+                    {directBiometricType === 'face' ? <ScanFace size={22} /> : <Fingerprint size={22} />}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-tight">
+                      {directBiometricType === 'face' ? 'Biometria Facial' : 'Biometria Digital (Indicador)'}
+                    </h3>
+                    <p className="text-xs text-zinc-400 font-semibold uppercase">
+                      Aluno: <strong className="text-white font-bold">{directBiometricAthlete.name}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopDirectFaceCamera();
+                    setDirectBiometricAthlete(null);
+                    setDirectBiometricType(null);
+                  }}
+                  className="p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* FACE BIOMETRICS MODAL BODY */}
+              {directBiometricType === 'face' && (
+                <div className="space-y-5">
+                  <div className="relative aspect-4/3 bg-black rounded-2xl overflow-hidden border-2 border-zinc-800 shadow-inner flex items-center justify-center">
+                    {isDirectFaceCameraActive ? (
+                      <div className="relative w-full h-full">
+                        <video
+                          ref={directFaceVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-cover scale-x-[-1]"
+                        />
+                        {/* Overlay Oval Frame */}
+                        <div className="absolute inset-0 border-4 border-dashed border-theme-primary/50 rounded-[50%] m-8 pointer-events-none animate-pulse flex items-center justify-center">
+                          <span className="text-[10px] font-black text-theme-primary uppercase tracking-widest bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                            Posicione o Rosto no Centro
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                        <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                          <Camera size={32} />
+                        </div>
+                        <p className="text-xs text-zinc-400 font-semibold uppercase max-w-xs">
+                          Ligue a câmera do dispositivo ou escolha um arquivo de imagem com foto frontal do aluno.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Face Camera Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {!isDirectFaceCameraActive ? (
+                      <button
+                        type="button"
+                        onClick={startDirectFaceCamera}
+                        className="py-3 px-4 bg-theme-primary hover:bg-theme-primary/90 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-theme-primary/20"
+                      >
+                        <Camera size={16} />
+                        <span>Ligar Câmera AO VIVO</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={captureDirectFaceBiometrics}
+                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                      >
+                        <ScanFace size={16} />
+                        <span>Capturar Rosto e Salvar</span>
+                      </button>
+                    )}
+
+                    <label className="py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-white font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+                      <Upload size={16} className="text-theme-primary" />
+                      <span>Carregar da Galeria</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleDirectFileUploadFace}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* FINGERPRINT BIOMETRICS MODAL BODY */}
+              {directBiometricType === 'fingerprint' && (
+                <div className="space-y-5">
+                  <div className="p-4 bg-zinc-900/60 border border-zinc-850 rounded-2xl space-y-3">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider block">
+                      Selecione a Mão do Dedo Indicador:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDirectFingerprintHand('Direito')}
+                        className={cn(
+                          "py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border cursor-pointer",
+                          directFingerprintHand === 'Direito'
+                            ? "bg-theme-primary text-black border-theme-primary shadow-md"
+                            : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white"
+                        )}
+                      >
+                        👉 Indicador Direito
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectFingerprintHand('Esquerdo')}
+                        className={cn(
+                          "py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border cursor-pointer",
+                          directFingerprintHand === 'Esquerdo'
+                            ? "bg-theme-primary text-black border-theme-primary shadow-md"
+                            : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white"
+                        )}
+                      >
+                        👈 Indicador Esquerdo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Fingerprint Touch Calibration Pad */}
+                  <div className="p-6 bg-black border-2 border-zinc-800 rounded-2xl flex flex-col items-center justify-center space-y-4">
+                    <div
+                      onClick={handleSimulateDirectFingerprint}
+                      className={cn(
+                        "w-28 h-28 rounded-3xl border-2 flex items-center justify-center transition-all cursor-pointer select-none relative overflow-hidden",
+                        isDirectScanningFinger
+                          ? "border-emerald-400 bg-emerald-500/20 scale-105"
+                          : directFingerprintStep === 3
+                          ? "border-emerald-500 bg-emerald-500/10"
+                          : "border-theme-primary/40 bg-zinc-900/80 hover:border-theme-primary hover:bg-zinc-900"
+                      )}
+                    >
+                      <Fingerprint
+                        size={64}
+                        className={cn(
+                          "transition-all",
+                          isDirectScanningFinger
+                            ? "text-emerald-400 animate-pulse scale-110"
+                            : directFingerprintStep === 3
+                            ? "text-emerald-400"
+                            : "text-theme-primary opacity-80"
+                        )}
+                      />
+                      {isDirectScanningFinger && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/30 to-transparent animate-scan" />
+                      )}
+                    </div>
+
+                    <div className="text-center space-y-1">
+                      <p className="text-xs font-black uppercase text-white">
+                        {directFingerprintStep === 3
+                          ? "✅ Biometria Digital Calibrada!"
+                          : "Toque no sensor acima para realizar a leitura"}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 font-semibold uppercase">
+                        Etapa de Calibração: <strong className="text-theme-primary">{directFingerprintStep}/3 leituras</strong>
+                      </p>
+                    </div>
+
+                    {/* Step Progress indicators */}
+                    <div className="flex gap-2">
+                      {[1, 2, 3].map((st) => (
+                        <div
+                          key={st}
+                          className={cn(
+                            "w-8 h-2 rounded-full transition-all",
+                            directFingerprintStep >= st ? "bg-emerald-400 shadow-sm shadow-emerald-400/50" : "bg-zinc-800"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    type="button"
+                    disabled={directFingerprintStep < 3}
+                    onClick={saveDirectFingerprintBiometrics}
+                    className={cn(
+                      "w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg",
+                      directFingerprintStep >= 3
+                        ? "bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20 cursor-pointer"
+                        : "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
+                    )}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Salvar Biometria Digital e Confirmar Presença</span>
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

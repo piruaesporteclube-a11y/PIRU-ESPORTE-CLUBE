@@ -1521,6 +1521,19 @@ export const api = {
       handleFirestoreError(error, OperationType.WRITE, `athletes/${athlete.id}`);
     }
   },
+  updateAthleteBiometrics: async (id: string, biometricsData: Partial<Athlete>) => {
+    try {
+      const docRef = doc(db, "athletes", id);
+      await setDoc(docRef, sanitizeData({
+        ...biometricsData,
+        updated_at: serverTimestamp()
+      }), { merge: true });
+      invalidateCache("athletes");
+      invalidateCache(`athlete_${id}`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}/biometrics`);
+    }
+  },
   approveAthlete: async (id: string) => {
     try {
       await updateDoc(doc(db, "athletes", id), {

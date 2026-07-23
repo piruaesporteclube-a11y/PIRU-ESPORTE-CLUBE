@@ -260,16 +260,13 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
       return;
     }
 
-    if (formData.photo && !formData.photo.startsWith('data:')) {
-      toast.error("A foto ainda está sendo processada. Por favor, aguarde um momento.");
-      return;
-    }
-
     setLoading(true);
     try {
-      // Normalize phone numbers before saving
+      // Normalize phone numbers and ensure biometrics flags before saving
       const dataToSave = {
         ...formData,
+        biometrics_face_registered: Boolean(formData.photo || formData.biometrics_face_registered),
+        biometrics_face_date: formData.biometrics_face_date || (formData.photo ? new Date().toLocaleDateString('pt-BR') : undefined),
         contact: normalizePhone(formData.contact || ''),
         guardian_phone: normalizePhone(formData.guardian_phone || '')
       };
