@@ -71,7 +71,13 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   };
 
   useEffect(() => {
-    if (athlete) setFormData(prev => ({ ...prev, ...athlete }));
+    if (athlete) {
+      setFormData(prev => ({
+        ...prev,
+        ...athlete,
+        confirmation: athlete.confirmation || (athlete.status === 'Ativo' ? 'Confirmado' : 'Pendente')
+      }));
+    }
   }, [athlete]);
 
   // Enforce Inativo status if confirmation is Pendente or Recusado

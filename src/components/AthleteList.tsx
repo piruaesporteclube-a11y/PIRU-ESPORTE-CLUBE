@@ -134,7 +134,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     try {
       await api.approveAthlete(id);
       toast.success("Atleta aprovado com sucesso!", { id: toastId });
-      if (onRefresh) onRefresh();
+      if (onRefresh) await onRefresh();
     } catch (err: any) {
       toast.error(`Erro ao aprovar: ${err.message}`, { id: toastId });
     }
@@ -145,7 +145,7 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     try {
       await api.rejectAthlete(id);
       toast.success("Solicitação recusada.", { id: toastId });
-      if (onRefresh) onRefresh();
+      if (onRefresh) await onRefresh();
     } catch (err: any) {
       toast.error(`Erro ao recusar: ${err.message}`, { id: toastId });
     }
@@ -155,11 +155,11 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     const newStatus = athlete.status === 'Ativo' ? 'Inativo' : 'Ativo';
     const toastId = toast.loading(`${newStatus === 'Ativo' ? 'Ativando' : 'Desativando'} atleta...`);
     try {
-      // If we are activating a rejected athlete, we also update confirmation to 'Confirmado'
-      const newConfirmation = (newStatus === 'Ativo' && athlete.confirmation === 'Recusado') ? 'Confirmado' : undefined;
+      // If we are activating a pending or rejected athlete, update confirmation to 'Confirmado'
+      const newConfirmation = (newStatus === 'Ativo' && (athlete.confirmation === 'Recusado' || athlete.confirmation === 'Pendente')) ? 'Confirmado' : undefined;
       await api.updateAthleteStatus(athlete.id, newStatus, newConfirmation);
       toast.success(`Atleta ${newStatus === 'Ativo' ? 'ativado' : 'desativado'} com sucesso!`, { id: toastId });
-      if (onRefresh) onRefresh();
+      if (onRefresh) await onRefresh();
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`, { id: toastId });
     }
@@ -580,6 +580,24 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     </button>
 
                     <div className="flex items-center gap-1">
+                      {athlete.confirmation === 'Pendente' && (
+                        <>
+                          <button 
+                            onClick={() => handleApprove(athlete.id)}
+                            className="p-1.5 hover:bg-green-500/20 text-green-500 bg-green-500/10 rounded-lg transition-colors"
+                            title="Aprovar Cadastro"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleReject(athlete.id)}
+                            className="p-1.5 hover:bg-red-500/20 text-red-500 bg-red-500/10 rounded-lg transition-colors"
+                            title="Recusar Cadastro"
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </>
+                      )}
                       {athlete.contact && athlete.contact.replace(/\D/g, '') && (
                         <a 
                           href={`https://wa.me/55${athlete.contact.replace(/\D/g, '')}`}
@@ -719,41 +737,38 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                     <td className="px-6 py-4 text-right no-print">
                       <div className="flex items-center justify-end gap-2">
                         <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                          {viewMode === 'pending' ? (
+                          {athlete.confirmation === 'Pendente' && (
                             <>
                               <button 
                                 onClick={() => handleApprove(athlete.id)}
-                                className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors"
+                                className="p-2 hover:bg-green-500/20 text-green-500 bg-green-500/10 rounded-lg transition-colors"
                                 title="Aprovar Cadastro"
                               >
                                 <Check size={18} />
                               </button>
                               <button 
                                 onClick={() => handleReject(athlete.id)}
-                                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                                className="p-2 hover:bg-red-500/20 text-red-500 bg-red-500/10 rounded-lg transition-colors"
                                 title="Recusar"
                               >
                                 <XCircle size={18} />
                               </button>
                             </>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => onEdit(athlete)}
-                                className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
-                                title="Editar"
-                              >
-                                <Edit2 size={18} />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(athlete.id)}
-                                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                                title="Excluir"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </>
                           )}
+                          <button 
+                            onClick={() => onEdit(athlete)}
+                            className="p-2 hover:bg-theme-primary/10 text-theme-primary rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(athlete.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </div>
                     </td>

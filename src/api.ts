@@ -545,9 +545,13 @@ const isQuotaError = (error: any): boolean => {
   );
 };
 
-const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
+const getDocsWithCacheFallback = async (q: any, customCacheKey?: string, forceRefresh = false) => {
   const key = customCacheKey ? `docs_${customCacheKey}` : `docs_${getCacheKey(q)}`;
   
+  if (forceRefresh) {
+    invalidateCache(key);
+  }
+
   // 1. If we already know the quota is exceeded today, instantly serve the stale cache if available
   if (quotaExceededToday) {
     const staleCached = getCachedData(key, true);
@@ -557,13 +561,15 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
     }
   }
 
-  // 2. Check standard fresh cache (15 min TTL)
-  const cached = getCachedData(key);
-  if (cached) {
-    return cached;
+  // 2. Check standard fresh cache (15 min TTL) unless forceRefresh is requested
+  if (!forceRefresh) {
+    const cached = getCachedData(key);
+    if (cached) {
+      return cached;
+    }
+    
+    if (pendingRequests[key]) return pendingRequests[key];
   }
-  
-  if (pendingRequests[key]) return pendingRequests[key];
 
   const promise = (async () => {
     try {
@@ -610,7 +616,9 @@ const getDocsWithCacheFallback = async (q: any, customCacheKey?: string) => {
     }
   })();
 
-  pendingRequests[key] = promise;
+  if (!forceRefresh) {
+    pendingRequests[key] = promise;
+  }
   return promise;
 };
 
@@ -1429,14 +1437,17 @@ export const api = {
     }
   },
 
-  getAthletes: async (): Promise<Athlete[]> => {
+  getAthletes: async (forceRefresh = false): Promise<Athlete[]> => {
     const cacheKey = "athletes";
-    const cached = getCachedData(cacheKey);
-    const staleCached = cached || getCachedData(cacheKey, true);
+    if (forceRefresh) {
+      invalidateCache(cacheKey);
+    }
+    const cached = forceRefresh ? null : getCachedData(cacheKey);
+    const staleCached = forceRefresh ? null : (cached || getCachedData(cacheKey, true));
     
     const backgroundFetch = async () => {
       try {
-        const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"));
+        const querySnapshot = await getDocsWithCacheFallback(collection(db, "athletes"), "athletes", forceRefresh);
         const data = querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as Athlete))
           .sort((a, b) => a.name.localeCompare(b.name));
         
@@ -1518,6 +1529,7 @@ export const api = {
         updated_at: serverTimestamp()
       });
       invalidateCache("athletes");
+      invalidateCache(`athlete_${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
@@ -1530,6 +1542,7 @@ export const api = {
         updated_at: serverTimestamp()
       });
       invalidateCache("athletes");
+      invalidateCache(`athlete_${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }
@@ -1542,6 +1555,7 @@ export const api = {
         updated_at: serverTimestamp()
       });
       invalidateCache("athletes");
+      invalidateCache(`athlete_${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `athletes/${id}`);
     }

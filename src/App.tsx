@@ -1629,7 +1629,7 @@ export default function App() {
                 onAdd={() => setIsAthleteFormOpen(true)} 
                 onEdit={(a) => { setEditingAthlete(a); setIsAthleteFormOpen(true); }} 
                 onRefresh={async () => {
-                  const data = await api.getAthletes();
+                  const data = await api.getAthletes(true);
                   setAthletes(data);
                   setStats(prev => ({
                     ...prev,
@@ -2151,15 +2151,15 @@ export default function App() {
         {isAthleteFormOpen && (
           <AthleteForm 
             athlete={editingAthlete} 
+            userRole={user?.role}
             onClose={() => { setIsAthleteFormOpen(false); setEditingAthlete(null); }} 
-            onSave={(updatedAthlete) => { 
+            onSave={async (updatedAthlete) => { 
               setIsAthleteFormOpen(false); 
               setEditingAthlete(null); 
-              if (updatedAthlete) {
-                setAthletes(prev => prev.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
-                if (user?.role === 'student' && user.athlete_id === updatedAthlete.id) {
-                  setMyAthleteData(updatedAthlete);
-                }
+              const freshAthletes = await api.getAthletes(true);
+              setAthletes(freshAthletes);
+              if (updatedAthlete && user?.role === 'student' && user.athlete_id === updatedAthlete.id) {
+                setMyAthleteData(updatedAthlete);
               }
             }} 
           />
