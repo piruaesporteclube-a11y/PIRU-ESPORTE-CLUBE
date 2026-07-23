@@ -575,8 +575,8 @@ export async function createExpressApp() {
         });
       }
 
-      // Filter candidates with valid photos
-      const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 15);
+      // Filter candidates with valid photos (up to 35 candidates per request)
+      const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 35);
 
       if (validCandidates.length === 0) {
         return res.json({
@@ -640,19 +640,19 @@ export async function createExpressApp() {
         }
       }
 
-      const promptText = `Você é um sistema especialista em RECONHECIMENTO FACIAL para chamada de escolinha de futebol.
+      const promptText = `Você é um sistema especialista em RECONHECIMENTO FACIAL para chamada de escolinha de esportes.
 Sua função é comparar a imagem da CÂMERA (Primeira Imagem) com as fotos de cadastro dos atletas fornecidas a seguir.
 
 Lista de Atletas Cadastrados:
 ${candidateInfoList.join('\n')}
 
-INSTRUÇÕES:
-1. Analise o rosto presente na foto da CÂMERA (Imagem 1).
-2. Compare a estrutura facial com as fotos dos atletas cadastrados.
-3. Se a pessoa na câmera corresponder a um dos atletas com alta certeza, informe o ID dele ("matchedAthleteId") e confidence >= 0.65.
-4. Se o rosto não corresponder a nenhum dos atletas ou não houver rosto visível, retorne "matchedAthleteId": null e "confidence": 0.0.
+INSTRUÇÕES DE RECONHECIMENTO:
+1. Analise atentamente o rosto presente na foto da CÂMERA (Imagem 1).
+2. Compare a fisionomia (olhos, sobrancelhas, nariz, boca, linhas do rosto, tom de pele e corte de cabelo) com cada foto de cadastro fornecida.
+3. Se o rosto na câmera for da mesma pessoa de algum cadastro (mesmo com pequenas diferenças de iluminação, ângulo, sorriso ou expressão), identifique esse atleta, retorne o "matchedAthleteId" correspondente e atribua um nível de confiança realista de 0.40 a 1.0 (ex: 0.85).
+4. Se o rosto não for de nenhum dos atletas listados ou não houver rosto visível na câmera, retorne "matchedAthleteId": null e "confidence": 0.0.
 
-Responda em formato JSON.`;
+Responda exclusivamente em formato JSON.`;
 
       contentsParts.push({ text: promptText });
 
@@ -670,10 +670,10 @@ Responda em formato JSON.`;
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              matchedAthleteId: { type: Type.STRING, description: "ID do atleta correspondente se houver match com confiança > 0.65, senão null" },
+              matchedAthleteId: { type: Type.STRING, description: "ID do atleta correspondente se houver match com confiança >= 0.40, senão null" },
               confidence: { type: Type.NUMBER, description: "Pontuação de confiança entre 0.0 e 1.0" },
               athleteName: { type: Type.STRING, description: "Nome do atleta reconhecido" },
-              reasoning: { type: Type.STRING, description: "Justificativa curta das semelhanças faciais observadas" }
+              reasoning: { type: Type.STRING, description: "Justificativa das semelhanças faciais observadas" }
             },
             required: ['matchedAthleteId', 'confidence', 'athleteName', 'reasoning']
           } as any

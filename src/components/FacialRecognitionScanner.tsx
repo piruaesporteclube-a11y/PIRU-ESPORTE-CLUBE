@@ -89,27 +89,41 @@ export default function FacialRecognitionScanner({
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(1046.50, now);
-      gain1.gain.setValueAtTime(0.15, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      gain1.gain.setValueAtTime(0.25, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
       osc1.start(now);
-      osc1.stop(now + 0.2);
+      osc1.stop(now + 0.25);
 
       // Second higher note (G6)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'sine';
       osc2.frequency.setValueAtTime(1567.98, now + 0.1);
-      gain2.gain.setValueAtTime(0.2, now + 0.1);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      gain2.gain.setValueAtTime(0.3, now + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
       osc2.start(now + 0.1);
-      osc2.stop(now + 0.35);
+      osc2.stop(now + 0.4);
 
     } catch (e) {
       console.warn("Audio playback not allowed without user interaction", e);
+    }
+  };
+
+  // Speak student name upon successful recognition
+  const speakName = (name: string) => {
+    if (!soundEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(`Presença registrada para ${name}`);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 1.05;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Speech synthesis error", e);
     }
   };
 
@@ -184,17 +198,33 @@ export default function FacialRecognitionScanner({
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const frameDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-      // Filter candidates with photos (limit to active athletes)
-      const eligibleAthletes = athletes.filter(a => a.status === 'Ativo' && a.photo && a.photo.length > 10);
+      // Filter candidates with photos (active athletes or all enrolled)
+      let eligibleAthletes = athletes.filter(a => (a.status === 'Ativo' || !a.status) && a.photo && a.photo.length > 10);
+      if (eligibleAthletes.length === 0) {
+        eligibleAthletes = athletes.filter(a => a.photo && a.photo.length > 10);
+      }
 
       if (eligibleAthletes.length === 0) {
-        setAnalysisStatus('Atenção: Nenhum atleta ativo com foto cadastrada.');
+        setAnalysisStatus('Atenção: Nenhum atleta com foto cadastrada no sistema.');
         setIsAnalyzing(false);
         return;
       }
 
+      // Prioritize athletes who do NOT have presence marked for today yet
+      const unverifiedAthletes = eligibleAthletes.filter(a => {
+        const records = attendanceRecords[a.id] || [];
+        return !records.some(r => r.status === 'Presente');
+      });
+      const verifiedAthletes = eligibleAthletes.filter(a => {
+        const records = attendanceRecords[a.id] || [];
+        return records.some(r => r.status === 'Presente');
+      });
+
+      // Combine unverified first, then verified, sending up to 35 candidates
+      const sortedCandidates = [...unverifiedAthletes, ...verifiedAthletes].slice(0, 35);
+
       // Prepare list of candidates for API
-      const candidatesPayload = eligibleAthletes.map(a => ({
+      const candidatesPayload = sortedCandidates.map(a => ({
         id: a.id,
         name: a.name,
         photo: a.photo
@@ -206,17 +236,18 @@ export default function FacialRecognitionScanner({
       if (res && res.success && res.match && res.match.matchedAthleteId) {
         const matchedId = res.match.matchedAthleteId;
         const confidence = res.match.confidence || 0.85;
-        const reasoning = res.match.reasoning || 'Reconhecimento facial confirmado por IA.';
+        const reasoning = res.match.reasoning || 'Reconhecimento facial verificado com sucesso por IA.';
 
         // Ensure student exists in local list
         const foundAthlete = athletes.find(a => a.id === matchedId);
 
-        if (foundAthlete && confidence >= 0.60) {
+        if (foundAthlete && confidence >= 0.40) {
           // Trigger successful recognition
           cooldownRef.current = true;
           lastRecognizedIdRef.current = foundAthlete.id;
           
           playSuccessChime();
+          speakName(foundAthlete.nickname || foundAthlete.name);
           
           const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
           
@@ -227,22 +258,23 @@ export default function FacialRecognitionScanner({
             scanTime: nowStr
           });
 
-          // Register presence in database & local state
+          // Register presence automatically in database & local state
           await onAthleteRecognized(foundAthlete);
+          toast.success(`Presença confirmada: ${foundAthlete.name}!`);
 
           setRecentScans(prev => [
             { athlete: foundAthlete, time: nowStr },
             ...prev.filter(item => item.athlete.id !== foundAthlete.id)
           ].slice(0, 5));
 
-          setAnalysisStatus(`✅ Presença de ${foundAthlete.name} REGISTRADA!`);
+          setAnalysisStatus(`✅ PRESENÇA REGISTRADA: ${foundAthlete.name}`);
           
-          // Pause scan for 3.5 seconds to avoid repeated triggers
+          // Pause scan for 4.5 seconds to show student details clearly
           setTimeout(() => {
             setMatchedAthlete(null);
             cooldownRef.current = false;
             setAnalysisStatus('Pronto para o próximo aluno!');
-          }, 3500);
+          }, 4500);
 
           setIsAnalyzing(false);
           return;
@@ -421,52 +453,96 @@ export default function FacialRecognitionScanner({
               <AnimatePresence>
                 {matchedAthlete && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                    className="absolute inset-x-4 bottom-4 bg-gradient-to-r from-emerald-950/95 via-black/95 to-zinc-950/95 border-2 border-emerald-500 rounded-3xl p-4 shadow-[0_10px_40px_rgba(16,185,129,0.5)] backdrop-blur-xl flex items-center justify-between gap-4 pointer-events-auto z-20"
+                    exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                    className="absolute inset-x-3 bottom-3 bg-gradient-to-br from-emerald-950/95 via-zinc-950/98 to-black/95 border-2 border-emerald-400 rounded-3xl p-4 md:p-5 shadow-[0_15px_50px_rgba(16,185,129,0.6)] backdrop-blur-2xl pointer-events-auto z-30 space-y-3"
                   >
-                    <div className="flex items-center gap-4">
-                      {/* Student Photo */}
-                      <div className="relative shrink-0">
-                        {matchedAthlete.athlete.photo ? (
-                          <img
-                            src={matchedAthlete.athlete.photo}
-                            alt={matchedAthlete.athlete.name}
-                            className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-400 shadow-md"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-2xl bg-zinc-800 border-2 border-emerald-400 flex items-center justify-center text-zinc-400">
-                            <User size={32} />
-                          </div>
-                        )}
-                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-black rounded-full p-1 shadow-md">
-                          <CheckCircle2 size={16} />
-                        </div>
+                    {/* Header Row: Status badge & Close button */}
+                    <div className="flex items-center justify-between border-b border-emerald-500/30 pb-2.5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500 text-black rounded-full font-black text-[11px] uppercase tracking-wider shadow-lg">
+                        <CheckCircle2 size={15} />
+                        <span>Presença Registrada Automática</span>
                       </div>
-
-                      <div className="space-y-1">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-black text-[10px] uppercase tracking-wider border border-emerald-500/30">
-                          <Sparkles size={12} />
-                          <span>Presença Confirmada • {matchedAthlete.scanTime}</span>
-                        </div>
-                        <h3 className="text-lg font-black text-white leading-tight">
-                          {matchedAthlete.athlete.name}
-                        </h3>
-                        <p className="text-xs text-zinc-300 font-medium flex items-center gap-2">
-                          <span>Categoria: <strong className="text-emerald-400 uppercase">{getSubCategory(matchedAthlete.athlete.birth_date)}</strong></span>
-                          <span>•</span>
-                          <span>Nº <strong className="text-emerald-400">{matchedAthlete.athlete.jersey_number || 'S/N'}</strong></span>
-                        </p>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/40">
+                          {matchedAthlete.scanTime}
+                        </span>
+                        <button
+                          onClick={() => setMatchedAthlete(null)}
+                          className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title="Fechar Ficha"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="text-2xl font-black text-emerald-400">
-                        {matchedAthlete.confidence}%
+                    {/* Main Content Grid */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        {/* Student Photo */}
+                        <div className="relative shrink-0">
+                          {matchedAthlete.athlete.photo ? (
+                            <img
+                              src={matchedAthlete.athlete.photo}
+                              alt={matchedAthlete.athlete.name}
+                              className="w-20 h-20 rounded-2xl object-cover border-2 border-emerald-400 shadow-xl"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-2xl bg-zinc-800 border-2 border-emerald-400 flex items-center justify-center text-zinc-400">
+                              <User size={38} />
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-black rounded-full p-1.5 shadow-lg border-2 border-black">
+                            <Sparkles size={16} />
+                          </div>
+                        </div>
+
+                        {/* Student Details */}
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-black text-white leading-tight flex items-center gap-2">
+                            {matchedAthlete.athlete.name}
+                            {matchedAthlete.athlete.nickname && (
+                              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                "{matchedAthlete.athlete.nickname}"
+                              </span>
+                            )}
+                          </h3>
+
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-300 font-medium">
+                            <span className="bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg text-emerald-400 font-bold uppercase">
+                              {getSubCategory(matchedAthlete.athlete.birth_date)}
+                            </span>
+                            {matchedAthlete.athlete.modality && (
+                              <span className="bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg text-zinc-300 font-semibold">
+                                {matchedAthlete.athlete.modality}
+                              </span>
+                            )}
+                            <span className="bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg text-zinc-300 font-semibold">
+                              Camisa Nº <strong className="text-white">{matchedAthlete.athlete.jersey_number || 'S/N'}</strong>
+                            </span>
+                          </div>
+
+                          {(matchedAthlete.athlete.guardian_name || matchedAthlete.athlete.contact) && (
+                            <p className="text-[11px] text-zinc-400 pt-0.5">
+                              Resp: <strong className="text-zinc-200">{matchedAthlete.athlete.guardian_name || 'Cadastrado'}</strong>
+                              {matchedAthlete.athlete.contact && ` • ${matchedAthlete.athlete.contact}`}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">
-                        Precisão IA
+
+                      {/* Accuracy & Reasoning */}
+                      <div className="sm:text-right shrink-0 bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-2xl w-full sm:w-auto">
+                        <div className="flex items-center sm:justify-end gap-1.5 text-emerald-400 font-black text-xl">
+                          <span>{matchedAthlete.confidence}%</span>
+                          <span className="text-[10px] text-emerald-300 uppercase tracking-wider font-bold">Match IA</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 max-w-xs truncate font-medium">
+                          {matchedAthlete.reasoning}
+                        </p>
                       </div>
                     </div>
                   </motion.div>
