@@ -69,6 +69,13 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
   const faceVideoRef = useRef<HTMLVideoElement>(null);
   const [faceCameraStream, setFaceCameraStream] = useState<MediaStream | null>(null);
 
+  useEffect(() => {
+    if (isFaceCameraOpen && faceCameraStream && faceVideoRef.current) {
+      faceVideoRef.current.srcObject = faceCameraStream;
+      faceVideoRef.current.play().catch(() => {});
+    }
+  }, [isFaceCameraOpen, faceCameraStream]);
+
   const startFaceCamera = async () => {
     try {
       setIsFaceCameraOpen(true);
@@ -77,12 +84,8 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
         audio: false
       });
       setFaceCameraStream(stream);
-      if (faceVideoRef.current) {
-        faceVideoRef.current.srcObject = stream;
-        faceVideoRef.current.play().catch(() => {});
-      }
     } catch (err: any) {
-      toast.error('Não foi possível abrir a câmera. Verifique as permissões.');
+      toast.error('Não foi possível abrir a câmera. Verifique as permissões do navegador.');
       setIsFaceCameraOpen(false);
     }
   };
@@ -95,7 +98,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     setIsFaceCameraOpen(false);
   };
 
-  const captureFaceBiometrics = () => {
+  const captureFaceBiometrics = async () => {
     if (!faceVideoRef.current) return;
     const video = faceVideoRef.current;
     const canvas = document.createElement('canvas');
@@ -105,13 +108,30 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      const today = new Date().toLocaleDateString('pt-BR');
+
       setFormData(prev => ({
         ...prev,
         photo: dataUrl,
         biometrics_face_registered: true,
-        biometrics_face_date: new Date().toLocaleDateString('pt-BR')
+        biometrics_face_date: today
       }));
-      toast.success('📸 Foto e Biometria Facial registradas com sucesso!');
+
+      if (athlete?.id) {
+        try {
+          await api.updateAthleteBiometrics(athlete.id, {
+            photo: dataUrl,
+            biometrics_face_registered: true,
+            biometrics_face_date: today
+          });
+          toast.success('📸 Biometria Facial atualizada e salva no banco de dados!');
+        } catch (e: any) {
+          console.error("Erro ao auto-salvar biometria facial:", e);
+        }
+      } else {
+        toast.success('📸 Foto e Biometria Facial registradas com sucesso!');
+      }
+
       stopFaceCamera();
     }
   };
@@ -120,25 +140,42 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     if (fingerprintStep >= 3) return;
     setIsScanningFinger(true);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       const nextStep = fingerprintStep + 1;
       setFingerprintStep(nextStep);
       setIsScanningFinger(false);
       
       if (nextStep === 3) {
         const uniqueHash = `BIO-IND-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+        const today = new Date().toLocaleDateString('pt-BR');
+
         setFormData(prev => ({
           ...prev,
           biometrics_fingerprint_registered: true,
-          biometrics_fingerprint_date: new Date().toLocaleDateString('pt-BR'),
+          biometrics_fingerprint_date: today,
           fingerprint_hash: uniqueHash,
           fingerprint_hand: fingerprintHand
         }));
-        toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) cadastrada com sucesso!`);
+
+        if (athlete?.id) {
+          try {
+            await api.updateAthleteBiometrics(athlete.id, {
+              biometrics_fingerprint_registered: true,
+              biometrics_fingerprint_date: today,
+              fingerprint_hash: uniqueHash,
+              fingerprint_hand: fingerprintHand
+            });
+            toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) salva diretamente no banco de dados!`);
+          } catch (e: any) {
+            console.error("Erro ao auto-salvar biometria digital:", e);
+          }
+        } else {
+          toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) cadastrada com sucesso!`);
+        }
       } else {
         toast.info(`Toque ${nextStep}/3 recebido no leitor biométrico.`);
       }
-    }, 900);
+    }, 700);
   };
 
   const getAvailablePositions = () => {
