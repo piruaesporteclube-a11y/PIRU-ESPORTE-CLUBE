@@ -90,7 +90,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 bg-black p-4 sm:p-8 lg:p-12 overflow-x-hidden">
+      <main className="flex-1 bg-black p-4 sm:p-8 lg:p-12 overflow-x-clip">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
