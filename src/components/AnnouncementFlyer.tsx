@@ -336,13 +336,13 @@ export default function AnnouncementFlyer() {
 
   return (
     <div className="relative space-y-6">
-      {/* Mobile Sticky Top Live Preview Bar */}
+      {/* Mobile Sticky Top Live Preview Bar (Fixed at top while scrolling options below) */}
       <div className="lg:hidden sticky top-20 z-40 bg-zinc-950/95 border border-zinc-800/80 backdrop-blur-xl p-3.5 rounded-2xl shadow-2xl transition-all">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
             <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
-              <span>Prévia do Recado</span>
+              <span>Recado Fixo</span>
               <span className="text-[9px] text-zinc-400 font-bold bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">Ao Vivo</span>
             </span>
           </div>
@@ -351,7 +351,7 @@ export default function AnnouncementFlyer() {
             <button
               type="button"
               onClick={() => setIsMobilePreviewExpanded(!isMobilePreviewExpanded)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-zinc-700/60"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-zinc-700/60"
             >
               {isMobilePreviewExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
               <span>{isMobilePreviewExpanded ? "Minimizar" : "Ver Recado"}</span>
@@ -360,35 +360,59 @@ export default function AnnouncementFlyer() {
               type="button"
               onClick={handleDownload}
               disabled={isGenerating}
-              className="p-1.5 bg-theme-primary text-black font-bold rounded-xl transition-all hover:scale-105 cursor-pointer"
+              className="p-2 bg-theme-primary text-black font-bold rounded-xl transition-all hover:scale-105 cursor-pointer shadow-md shadow-theme-primary/20"
               title="Baixar Recado"
             >
-              <Download size={14} />
+              <Download size={15} />
             </button>
           </div>
         </div>
 
         {isMobilePreviewExpanded && (
-          <div className="mt-3 pt-3 border-t border-zinc-800/80 flex flex-col items-center justify-center overflow-hidden">
-            <div className="scale-[0.52] sm:scale-[0.62] origin-top -mb-[265px] sm:-mb-[210px]">
+          <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-center overflow-hidden h-[340px] sm:h-[390px] bg-black/80 rounded-2xl border border-zinc-800/60 relative">
+            <div className="scale-[0.50] sm:scale-[0.58] origin-center shrink-0">
               {renderFlyerCard()}
             </div>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Editor Controls Column */}
-        <div className="space-y-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-12 h-12 bg-theme-primary/10 rounded-2xl flex items-center justify-center text-theme-primary">
-                <Megaphone size={24} />
+      {/* Main Grid: Options on Left (Scrolls), Fixed Recado Preview on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Editor Controls Column (Scrollable options) */}
+        <div className="lg:col-span-7 xl:col-span-7 space-y-6">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-theme-primary/10 rounded-2xl flex items-center justify-center text-theme-primary border border-theme-primary/20">
+                  <Megaphone size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white uppercase tracking-tighter">Gerador de Recados</h2>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Edite as opções abaixo</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tighter">Gerador de Recados</h2>
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Story / WhatsApp</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setHeaderConfig({ y: 0, scale: 1 });
+                  setTitleConfig({ y: 0, scale: 1 });
+                  setSubjectConfig({ y: 0, scale: 1 });
+                  setMessageBoxConfig({ y: 0, scale: 1 });
+                  setFooterConfig({ y: 0, scale: 1 });
+                  setSubjectY(0);
+                  setBorderWidth(2);
+                  setPhotoScale(1);
+                  setPhotoYOffset(0);
+                  setPhotoXOffset(0);
+                  toast.success("Ajustes restaurados para o padrão!");
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-zinc-700/50"
+                title="Restaurar posições originais"
+              >
+                <RefreshCw size={12} />
+                <span>Reset Posições</span>
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -459,7 +483,7 @@ export default function AnnouncementFlyer() {
               <div className="pt-4 border-t border-zinc-800/50 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-[10px] font-black text-zinc-450 uppercase tracking-widest block font-sans">Estilo de Fundo do Encarte</label>
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block font-sans">Estilo de Fundo do Encarte</label>
                     <p className="text-[9px] text-zinc-500 uppercase font-bold">Escolha um modelo temático ou faça upload</p>
                   </div>
                   <button 
@@ -692,34 +716,39 @@ export default function AnnouncementFlyer() {
           </div>
         </div>
 
-        {/* Desktop Sticky Live Preview Column */}
-        <div className="hidden lg:flex flex-col items-center lg:sticky lg:top-24 lg:self-start space-y-4 z-30 py-1">
-          {/* Preview Control Header */}
-          <div className="w-full max-w-[360px] bg-zinc-900/90 border border-zinc-800 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center justify-between shadow-xl">
+        {/* Desktop Sticky Fixed Preview Column */}
+        <div className="hidden lg:flex flex-col items-center lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24 lg:self-start space-y-4 z-30">
+          {/* Fixed Preview Control Toolbar */}
+          <div className="w-full max-w-[360px] bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md px-4 py-3 rounded-2xl flex items-center justify-between shadow-xl">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
               <span className="text-[10px] font-black uppercase text-white tracking-widest">
-                Prévia ao Vivo
+                Recado Fixo
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setPreviewZoom(prev => Math.max(0.6, parseFloat((prev - 0.05).toFixed(2))))}
+                onClick={() => setPreviewZoom(prev => Math.max(0.55, parseFloat((prev - 0.05).toFixed(2))))}
                 className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs transition-colors cursor-pointer"
                 title="Reduzir Zoom da Prévia"
               >
                 <ZoomOut size={13} />
               </button>
 
-              <span className="text-[10px] font-mono text-theme-primary font-black w-10 text-center">
+              <button
+                type="button"
+                onClick={() => setPreviewZoom(0.82)}
+                className="text-[10px] font-mono text-theme-primary font-black px-1 text-center hover:underline cursor-pointer"
+                title="Reset Zoom"
+              >
                 {Math.round(previewZoom * 100)}%
-              </span>
+              </button>
 
               <button
                 type="button"
-                onClick={() => setPreviewZoom(prev => Math.min(1.2, parseFloat((prev + 0.05).toFixed(2))))}
+                onClick={() => setPreviewZoom(prev => Math.min(1.1, parseFloat((prev + 0.05).toFixed(2))))}
                 className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs transition-colors cursor-pointer"
                 title="Aumentar Zoom da Prévia"
               >
@@ -728,15 +757,17 @@ export default function AnnouncementFlyer() {
             </div>
           </div>
 
-          {/* Scaled Preview Wrapper */}
-          <div 
-            className="transition-transform duration-200 origin-top flex justify-center"
-            style={{ transform: `scale(${previewZoom})` }}
-          >
-            {renderFlyerCard()}
+          {/* Scaled Live Preview Card */}
+          <div className="w-full flex justify-center py-1">
+            <div 
+              className="transition-transform duration-200 origin-top flex justify-center shadow-2xl"
+              style={{ transform: `scale(${previewZoom})` }}
+            >
+              {renderFlyerCard()}
+            </div>
           </div>
 
-          {/* Download Button inside Sticky Sidebar */}
+          {/* Download Button right below fixed preview */}
           <button 
             onClick={handleDownload}
             disabled={isGenerating}
