@@ -81,7 +81,7 @@ export default function AnnouncementFlyer() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Zoom & Sticky Viewport Controls
-  const [previewZoom, setPreviewZoom] = useState<number>(0.85);
+  const [previewZoom, setPreviewZoom] = useState<number>(0.60);
   const [isMobilePreviewExpanded, setIsMobilePreviewExpanded] = useState<boolean>(true);
 
   useEffect(() => {
@@ -717,20 +717,20 @@ export default function AnnouncementFlyer() {
         </div>
 
         {/* Desktop Sticky Fixed Preview Column */}
-        <div className="hidden lg:flex flex-col items-center lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24 lg:self-start space-y-4 z-30">
+        <div className="hidden lg:flex flex-col items-center lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24 lg:self-start space-y-3 z-30">
           {/* Fixed Preview Control Toolbar */}
-          <div className="w-full max-w-[360px] bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md px-4 py-3 rounded-2xl flex items-center justify-between shadow-xl">
+          <div className="w-full max-w-[360px] bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center justify-between shadow-xl">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
               <span className="text-[10px] font-black uppercase text-white tracking-widest">
-                Recado Fixo
+                Recado Fixo (Ao Vivo)
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setPreviewZoom(prev => Math.max(0.55, parseFloat((prev - 0.05).toFixed(2))))}
+                onClick={() => setPreviewZoom(prev => Math.max(0.45, parseFloat((prev - 0.05).toFixed(2))))}
                 className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs transition-colors cursor-pointer"
                 title="Reduzir Zoom da Prévia"
               >
@@ -739,16 +739,16 @@ export default function AnnouncementFlyer() {
 
               <button
                 type="button"
-                onClick={() => setPreviewZoom(0.82)}
-                className="text-[10px] font-mono text-theme-primary font-black px-1 text-center hover:underline cursor-pointer"
-                title="Reset Zoom"
+                onClick={() => setPreviewZoom(0.60)}
+                className="text-[10px] font-mono text-theme-primary font-black px-1.5 text-center hover:underline cursor-pointer"
+                title="Restaurar Tamanho Padrão"
               >
                 {Math.round(previewZoom * 100)}%
               </button>
 
               <button
                 type="button"
-                onClick={() => setPreviewZoom(prev => Math.min(1.1, parseFloat((prev + 0.05).toFixed(2))))}
+                onClick={() => setPreviewZoom(prev => Math.min(0.90, parseFloat((prev + 0.05).toFixed(2))))}
                 className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs transition-colors cursor-pointer"
                 title="Aumentar Zoom da Prévia"
               >
@@ -757,10 +757,16 @@ export default function AnnouncementFlyer() {
             </div>
           </div>
 
-          {/* Scaled Live Preview Card */}
-          <div className="w-full flex justify-center py-1">
+          {/* Scaled Live Preview Card Container with Constrained Height */}
+          <div 
+            className="w-full flex items-center justify-center overflow-hidden transition-all duration-200"
+            style={{ 
+              height: `${Math.round(640 * previewZoom)}px`,
+              maxHeight: 'calc(100vh - 200px)'
+            }}
+          >
             <div 
-              className="transition-transform duration-200 origin-top flex justify-center shadow-2xl"
+              className="transition-transform duration-200 origin-top flex justify-center shadow-2xl rounded-3xl"
               style={{ transform: `scale(${previewZoom})` }}
             >
               {renderFlyerCard()}
