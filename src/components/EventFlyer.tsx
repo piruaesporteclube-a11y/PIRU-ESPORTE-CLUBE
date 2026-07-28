@@ -6,35 +6,39 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, Activity, Clock, Calendar, FileText, Instagram } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import { cn, fixHtml2CanvasColors, prepareElementForExport } from '../utils';
+import { cn, fixHtml2CanvasColors, prepareElementForExport, toBase64 } from '../utils';
 
 const SPORT_BACKGROUNDS = [
   // FUTEBOL DE CAMPO
-  { id: 'stadium_night', name: 'Estádio Iluminado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'soccer_field_day', name: 'Gramado Verde Dia', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'field_detail', name: 'Detalhe de Gramado', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'soccer_stadium_sunset', name: 'Estádio Sunset', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'stadium_night', name: 'Estádio Iluminado HD', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_stadium_lights', name: 'Refletores de Estádio', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_field_day', name: 'Gramado Verde Premier', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_stadium_sunset', name: 'Estádio Sunset Pôr do Sol', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_goal_net', name: 'Rede de Gol Iluminada', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_ball_grass', name: 'Bola no Gramado com Holofote', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'soccer_pitch_fog', name: 'Campo sob Névoa Noturna', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'arena_crowd', name: 'Arquibancada & Arena Lotada', category: 'FUTEBOL DE CAMPO', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=1200' },
 
   // FUTSAL
-  { id: 'futsal_court_wood', name: 'Quadra de Futsal', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'futsal_court_blue', name: 'Quadra de Vinílico', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'indoor_court_gym', name: 'Ginásio Coberto', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1628891890467-b79f2c8ba9ed?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'futsal_court_wood', name: 'Quadra Futsal Taco Madeira', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'futsal_court_blue', name: 'Quadra Vinílico Azul HD', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'indoor_court_gym', name: 'Ginásio Poliesportivo', category: 'FUTSAL', url: 'https://images.unsplash.com/photo-1628891890467-b79f2c8ba9ed?auto=format&fit=crop&q=80&w=1200' },
 
   // VOLÊI
-  { id: 'volleyball_court', name: 'Quadra de Vôlei', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1592656094267-764a450201c5?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'beach_volley', name: 'Vôlei de Praia', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'volley_net_sunset', name: 'Rede Sunset', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'volleyball_court', name: 'Quadra de Vôlei Oficial', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1592656094267-764a450201c5?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'beach_volley', name: 'Vôlei de Praia Arena', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'volley_net_sunset', name: 'Rede Vôlei Pôr do Sol', category: 'VOLÊI', url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1200' },
 
   // CORRIDA DE RUA
-  { id: 'running_track', name: 'Pista de Atletismo', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'street_marathon', name: 'Asfalto / Cidade', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1502224562085-639556652f33?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'running_trail', name: 'Trilha Natural', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'running_track', name: 'Pista de Atletismo Vermelha', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'street_marathon', name: 'Asfalto / Maratona Urbana', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1502224562085-639556652f33?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'running_trail', name: 'Trilha Natural / Trail Run', category: 'CORRIDA DE RUA', url: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&q=80&w=1200' },
 
   // GERAL / OUTROS
-  { id: 'carbon_fibre', name: 'Fibra de Carbono', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'gym_training', name: 'Centro de Treinamento', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'arena_neon', name: 'Arena Neon', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=1200' },
-  { id: 'dark_gradient', name: 'Preto Abstrato', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200' }
+  { id: 'carbon_fibre', name: 'Fibra de Carbono Premium', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'gym_training', name: 'Centro de Treinamento CT', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'arena_neon', name: 'Arena Neon Esportiva', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=1200' },
+  { id: 'dark_gradient', name: 'Preto Abstrato Esportivo', category: 'OUTROS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200' }
 ];
 
 interface EventFlyerProps {
@@ -73,8 +77,28 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [customLocationLine1, setCustomLocationLine1] = useState(`${event.street || ''}${event.number ? ', ' + event.number : ''}`);
   const [customLocationLine2, setCustomLocationLine2] = useState(`${event.neighborhood || ''}${event.neighborhood && (event.city || event.uf) ? ' • ' : ''}${event.city || ''}${event.city && event.uf ? '/' : ''}${event.uf || ''}`);
   const [showVS, setShowVS] = useState(true);
+  const [showCategoryBadges, setShowCategoryBadges] = useState(true);
+  const [customCategoryText, setCustomCategoryText] = useState('');
   const [categoryType, setCategoryType] = useState<'Adulto' | 'Categoria de Base' | 'Ambos' | ''>('');
-  const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
+  
+  // Auto-detect SUBs from event category or event name
+  const detectInitialSubs = (): string[] => {
+    const combinedText = `${(event as any).category || ''} ${event.name || ''}`;
+    const found: string[] = [];
+    const matches = combinedText.match(/\b(?:SUB|sub|Sub)\s*[-_]?\s*(\d{1,2})\b/g);
+    if (matches) {
+      matches.forEach(m => {
+        const num = m.replace(/\D/g, '');
+        if (num) {
+          const formatted = `SUB ${num}`;
+          if (!found.includes(formatted)) found.push(formatted);
+        }
+      });
+    }
+    return found;
+  };
+
+  const [selectedSubs, setSelectedSubs] = useState<string[]>(detectInitialSubs());
   const [customSub, setCustomSub] = useState('');
 
   // Auto-detecção de confronto versus para separar o título em 3 blocos (cima, vs, baixo)
@@ -173,6 +197,32 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
     
     try {
       const element = flyerRef.current;
+
+      // Pre-convert active background images to Base64 to prevent CORS issues on export
+      if (selectedBackgrounds.includes('stadium')) {
+        const bgUrl = customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200";
+        if (bgUrl && !bgUrl.startsWith('data:')) {
+          try {
+            const b64 = await toBase64(bgUrl);
+            setCustomBackgrounds(prev => ({ ...prev, stadium: b64 }));
+          } catch (err) {
+            console.warn('Bg base64 conversion failed:', err);
+          }
+        }
+      }
+
+      if (selectedBackgrounds.includes('grass')) {
+        const bgUrl = customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200";
+        if (bgUrl && !bgUrl.startsWith('data:')) {
+          try {
+            const b64 = await toBase64(bgUrl);
+            setCustomBackgrounds(prev => ({ ...prev, grass: b64 }));
+          } catch (err) {
+            console.warn('Grass bg base64 conversion failed:', err);
+          }
+        }
+      }
+
       const exportClone = await prepareElementForExport(element, 360, 640);
 
       try {
@@ -406,93 +456,134 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
 
               {/* Categoria do Evento & SUBs Section */}
               <div className="space-y-4 pt-3 border-t border-zinc-900">
-                <div>
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider block mb-1.5">Faixa Etária / Tipo de Categoria</label>
-                  <div className="grid grid-cols-4 gap-1 bg-black p-1 rounded-xl border border-zinc-850">
-                    {([
-                      { id: '', label: 'Nenhum' },
-                      { id: 'Adulto', label: 'Adulto' },
-                      { id: 'Categoria de Base', label: 'Base' },
-                      { id: 'Ambos', label: 'Ambos' }
-                    ] as const).map(opt => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setCategoryType(opt.id)}
-                        className={cn(
-                          "py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider text-center cursor-pointer",
-                          categoryType === opt.id ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-zinc-300 uppercase tracking-wider block">
+                    Categorias & SUBs no Encarte
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryBadges(!showCategoryBadges)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer border",
+                      showCategoryBadges
+                        ? "bg-theme-primary/20 text-theme-primary border-theme-primary/40"
+                        : "bg-black text-zinc-500 border-zinc-800 hover:text-zinc-300"
+                    )}
+                  >
+                    {showCategoryBadges ? 'Exibir no Encarte (Sim)' : 'Ocultar no Encarte (Não)'}
+                  </button>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Categorias SUB (Selecione ou adicione)</label>
-                  <div className="flex flex-wrap gap-1 bg-black/40 p-2 rounded-xl border border-zinc-850">
-                    {['SUB 7', 'SUB 9', 'SUB 11', 'SUB 13', 'SUB 15', 'SUB 17', 'SUB 20'].map(sub => {
-                      const isSelected = selectedSubs.includes(sub);
-                      return (
-                        <button
-                          key={sub}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedSubs(selectedSubs.filter(s => s !== sub));
-                            } else {
-                              setSelectedSubs([...selectedSubs, sub]);
+                {showCategoryBadges && (
+                  <div className="space-y-3 bg-black/40 p-3 rounded-2xl border border-zinc-850">
+                    {/* Texto Livre Personalizado */}
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Texto Personalizado para Categoria / SUB
+                      </label>
+                      <input
+                        type="text"
+                        value={customCategoryText}
+                        onChange={e => setCustomCategoryText(e.target.value)}
+                        className="w-full bg-black border border-zinc-750 p-2 rounded-xl text-white text-xs focus:ring-1 focus:ring-theme-primary/50 outline-none"
+                        placeholder="Ex: SUB 15 & SUB 17, CATEGORIA LIVRE, AMADOR..."
+                      />
+                      <p className="text-[8px] text-zinc-500 mt-1">
+                        Se preenchido, este texto livre será exibido no encarte.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider block mb-1.5">Faixa Etária / Tipo de Categoria</label>
+                      <div className="grid grid-cols-4 gap-1 bg-black p-1 rounded-xl border border-zinc-850">
+                        {([
+                          { id: '', label: 'Nenhum' },
+                          { id: 'Adulto', label: 'Adulto' },
+                          { id: 'Categoria de Base', label: 'Base' },
+                          { id: 'Ambos', label: 'Ambos' }
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setCategoryType(opt.id)}
+                            className={cn(
+                              "py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider text-center cursor-pointer",
+                              categoryType === opt.id ? "bg-theme-primary text-black font-extrabold" : "text-zinc-400 hover:text-white"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">
+                        Categorias SUB (Exibidas LADO A LADO)
+                      </label>
+                      <div className="flex flex-wrap gap-1 bg-black/40 p-2 rounded-xl border border-zinc-850">
+                        {['SUB 7', 'SUB 9', 'SUB 11', 'SUB 13', 'SUB 15', 'SUB 17', 'SUB 20'].map(sub => {
+                          const isSelected = selectedSubs.includes(sub);
+                          return (
+                            <button
+                              key={sub}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedSubs(selectedSubs.filter(s => s !== sub));
+                                } else {
+                                  setSelectedSubs([...selectedSubs, sub]);
+                                }
+                              }}
+                              className={cn(
+                                "px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer",
+                                isSelected 
+                                  ? "bg-theme-primary border-theme-primary text-black font-extrabold" 
+                                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                              )}
+                            >
+                              {sub}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Custom Sub Input */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Outro SUB (ex: SUB 14, SUB 16)..."
+                          value={customSub}
+                          onChange={e => setCustomSub(e.target.value)}
+                          className="flex-1 bg-black border border-zinc-750 px-2.5 py-1.5 rounded-xl text-white text-[10px] uppercase outline-none focus:ring-1 focus:ring-theme-primary/50"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const val = customSub.trim().toUpperCase();
+                              if (val && !selectedSubs.includes(val)) {
+                                setSelectedSubs([...selectedSubs, val]);
+                                setCustomSub('');
+                              }
                             }
                           }}
-                          className={cn(
-                            "px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer",
-                            isSelected 
-                              ? "bg-theme-primary border-theme-primary text-black" 
-                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                          )}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = customSub.trim().toUpperCase();
+                            if (val && !selectedSubs.includes(val)) {
+                              setSelectedSubs([...selectedSubs, val]);
+                              setCustomSub('');
+                            }
+                          }}
+                          className="px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
                         >
-                          {sub}
+                          Adicionar
                         </button>
-                      );
-                    })}
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Custom Sub Input */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Outro SUB (ex: SUB 14, SUB 16)..."
-                      value={customSub}
-                      onChange={e => setCustomSub(e.target.value)}
-                      className="flex-1 bg-black border border-zinc-750 px-2.5 py-1.5 rounded-xl text-white text-[10px] uppercase outline-none focus:ring-1 focus:ring-theme-primary/50"
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const val = customSub.trim().toUpperCase();
-                          if (val && !selectedSubs.includes(val)) {
-                            setSelectedSubs([...selectedSubs, val]);
-                            setCustomSub('');
-                          }
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const val = customSub.trim().toUpperCase();
-                        if (val && !selectedSubs.includes(val)) {
-                          setSelectedSubs([...selectedSubs, val]);
-                          setCustomSub('');
-                        }
-                      }}
-                      className="px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Seletor de Formato do Nome */}
@@ -837,23 +928,31 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
             </div>
             {/* Background Layers */}
             <div className="absolute inset-0">
+              {/* Permanent Stadium Radial Dark Glow Base Layer */}
+              <div 
+                className="absolute inset-0 z-0 pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle at 50% 30%, #1e293b 0%, #0a0e17 60%, #000000 100%)'
+                }}
+              />
+
               {selectedBackgrounds.includes('stadium') && (
-                <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 z-[1]">
                   <img src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover" crossOrigin="anonymous" />
                   <div className="absolute inset-0 bg-black/40" />
                 </div>
               )}
               {selectedBackgrounds.includes('grass') && (
-                <div className={cn("absolute inset-0 z-[1]", selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100")}>
+                <div className={cn("absolute inset-0 z-[2]", selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100")}>
                   <img src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover" crossOrigin="anonymous" />
                 </div>
               )}
               {selectedBackgrounds.includes('carbon') && (
-                <div className={cn("absolute inset-0 z-[2]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
+                <div className={cn("absolute inset-0 z-[3]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
                   <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
                 </div>
               )}
-              <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/30 to-black/70" />
+              <div className="absolute inset-0 z-[4] bg-gradient-to-t from-black via-black/30 to-black/70" />
               
               {/* Photo Layer - Positionable */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
@@ -974,33 +1073,36 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
               </div>
 
               {/* Category & SUBs Badges */}
-              {(categoryType || selectedSubs.length > 0) && (
-                <div className="flex flex-wrap items-center justify-center gap-1.5 mb-4 max-w-full px-2">
-                  {categoryType === 'Adulto' && (
-                    <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
-                      Adulto
+              {showCategoryBadges && (customCategoryText.trim() || categoryType || selectedSubs.length > 0) && (
+                <div className="flex flex-row items-center justify-center flex-wrap gap-1.5 mb-3.5 max-w-full px-2">
+                  {customCategoryText.trim() ? (
+                    <span className="bg-black/90 text-theme-primary text-[9px] font-black px-3 py-1 rounded-md border border-theme-primary/50 uppercase tracking-widest shadow-lg whitespace-nowrap">
+                      {customCategoryText.trim()}
                     </span>
-                  )}
-                  {categoryType === 'Categoria de Base' && (
-                    <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
-                      Base
-                    </span>
-                  )}
-                  {categoryType === 'Ambos' && (
+                  ) : (
                     <>
-                      <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
-                        Adulto
-                      </span>
-                      <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
-                        Base
-                      </span>
+                      {categoryType === 'Adulto' && (
+                        <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-0.5 rounded border border-theme-primary/30 uppercase tracking-wider whitespace-nowrap">
+                          Adulto
+                        </span>
+                      )}
+                      {categoryType === 'Categoria de Base' && (
+                        <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-0.5 rounded border border-theme-primary/30 uppercase tracking-wider whitespace-nowrap">
+                          Base
+                        </span>
+                      )}
+                      {categoryType === 'Ambos' && (
+                        <span className="bg-black/80 text-theme-primary text-[8px] font-black px-2 py-0.5 rounded border border-theme-primary/30 uppercase tracking-wider whitespace-nowrap">
+                          Adulto & Base
+                        </span>
+                      )}
+                      {selectedSubs.map(sub => (
+                        <span key={sub} className="bg-theme-primary/20 text-theme-primary text-[8px] font-black px-2 py-0.5 rounded border border-theme-primary/40 uppercase tracking-wider whitespace-nowrap shadow-sm">
+                          {sub}
+                        </span>
+                      ))}
                     </>
                   )}
-                  {selectedSubs.map(sub => (
-                    <span key={sub} className="bg-theme-primary/20 text-theme-primary text-[8px] font-black px-2 py-1 rounded border border-theme-primary/30 uppercase tracking-wider">
-                      {sub}
-                    </span>
-                  ))}
                 </div>
               )}
 

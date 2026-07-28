@@ -253,16 +253,33 @@ export async function toBase64(url: string): Promise<string> {
   // Determine if URL is external to the app
   const isExternal = cleanUrl.startsWith('http') && !cleanUrl.includes(window.location.host);
 
-  // Client-side fetch URL (with cache-buster to bypass browser CORS cache)
-  let clientFetchUrl = cleanUrl;
+  // 1. Try server proxy FIRST for external URLs (most reliable in sandboxed iframe environment)
   if (isExternal) {
-    clientFetchUrl = cleanUrl.includes('?') ? `${cleanUrl}&cb=${Date.now()}` : `${cleanUrl}?cb=${Date.now()}`;
+    const proxyUrl = `${window.location.origin}/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const response = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(url);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      console.warn('Proxy fetch failed, trying direct client fetch...', e);
+    }
   }
 
-  // 1. Try direct client-side fetch first (supports CORS natively for domains like Unsplash)
+  // 2. Direct client-side fetch fallback
   try {
+    const clientFetchUrl = isExternal ? (cleanUrl.includes('?') ? `${cleanUrl}&cb=${Date.now()}` : `${cleanUrl}?cb=${Date.now()}`) : cleanUrl;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
     const response = await fetch(clientFetchUrl, { 
       mode: 'cors', 
       signal: controller.signal,
@@ -279,32 +296,7 @@ export async function toBase64(url: string): Promise<string> {
       });
     }
   } catch (e) {
-    console.warn('Direct fetch failed or was blocked by CORS, trying proxy...', e);
-  }
-
-  // 2. Fallback to same-origin Server Proxy (for external URLs)
-  if (isExternal) {
-    // Send cleanUrl WITHOUT cache buster so that server-side Node can download it cleanly from the CDN without being rejected
-    const proxyUrl = `${window.location.origin}/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const response = await fetch(proxyUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => resolve(url);
-          reader.readAsDataURL(blob);
-        });
-      } else {
-        console.warn('Proxy fetch failed with status:', response.status);
-      }
-    } catch (e) {
-      console.warn('Proxy fetch failed too', e);
-    }
+    console.warn('Direct fetch failed or was blocked by CORS', e);
   }
 
   // 3. Last resort fallback: standard crossOrigin Canvas conversion
@@ -319,14 +311,14 @@ export async function toBase64(url: string): Promise<string> {
         const ctx = canvas.getContext('2d');
         if (!ctx) { resolve(url); return; }
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png', 1.0));
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
       } catch (err) { 
         resolve(url); 
       }
     };
     img.onerror = () => resolve(url);
-    img.src = clientFetchUrl;
-    setTimeout(() => resolve(url), 1500);
+    img.src = cleanUrl;
+    setTimeout(() => resolve(url), 2000);
   });
 }
 
