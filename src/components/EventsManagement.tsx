@@ -1044,168 +1044,219 @@ Muito obrigado!
       return;
     }
 
-    const loadingToast = toast.loading('Gerando imagem da lista...');
+    const loadingToast = toast.loading('Gerando Story (1080x1920) com convocados...');
 
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Não foi possível obter o contexto 2D do canvas');
 
+      // Fixed Instagram / WhatsApp Story resolution (9:16 ratio)
       const width = 1080;
-      const isTwoColumns = currentAthletes.length > 18;
-      const rows = isTwoColumns ? Math.ceil(currentAthletes.length / 2) : currentAthletes.length;
-      
-      const crestYOffset = crestDataUrl ? 65 : 0;
-      const headerHeight = 220 + crestYOffset;
-      const itemHeight = 44;
-      const footerHeight = 70;
-      const height = Math.max(700, headerHeight + (rows * itemHeight) + footerHeight);
+      const height = 1920;
 
       canvas.width = width;
       canvas.height = height;
 
       // Safe roundRect helper
-      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number, fill = true, stroke = false) => {
+        ctx.beginPath();
         if (ctx.roundRect) {
-          ctx.beginPath();
           ctx.roundRect(x, y, w, h, r);
-          ctx.fill();
         } else {
-          ctx.beginPath();
           ctx.rect(x, y, w, h);
-          ctx.fill();
         }
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
       };
 
-      // 1. Background Fill
-      ctx.fillStyle = '#09090b'; // dark zinc background
+      // Helper to format athlete name (1st and 2nd name only)
+      const formatFirstSecondName = (fullName: string) => {
+        if (!fullName) return '';
+        const parts = fullName.trim().split(/\s+/);
+        if (parts.length <= 2) return fullName.trim().toUpperCase();
+        return `${parts[0]} ${parts[1]}`.toUpperCase();
+      };
+
+      // 1. Dark Premium Background
+      ctx.fillStyle = '#09090b'; // zinc-950 base
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle background pattern / top bar accent
-      ctx.fillStyle = '#18181b';
-      ctx.fillRect(0, 0, width, 180 + crestYOffset);
+      // Subtle top/bottom radial gradient / lighting effect
+      const topGradient = ctx.createLinearGradient(0, 0, 0, 450);
+      topGradient.addColorStop(0, '#18181b');
+      topGradient.addColorStop(1, '#09090b');
+      ctx.fillStyle = topGradient;
+      ctx.fillRect(0, 0, width, 450);
 
-      // Primary accent line top
+      // Accent border at the top and bottom of Story safe zone
       ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, 0, width, 6);
+      ctx.fillRect(0, 0, width, 8); // top neon bar
 
-      // 2. Club Header
+      // 2. Club Header & Crest
       const schoolName = (settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase();
-      
-      // Draw Crest Image if loaded
+      let headerTextY = 160;
+
       if (crestDataUrl) {
         try {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           await new Promise((resolve) => {
             img.onload = () => {
-              ctx.drawImage(img, (width / 2) - 35, 18, 70, 70);
+              // Draw crest in a subtle glowing circular frame
+              const crestSize = 100;
+              const crestX = (width / 2) - (crestSize / 2);
+              const crestY = 110;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(width / 2, crestY + (crestSize / 2), (crestSize / 2) + 4, 0, Math.PI * 2);
+              ctx.fillStyle = '#18181b';
+              ctx.shadowColor = '#22c55e';
+              ctx.shadowBlur = 20;
+              ctx.fill();
+              ctx.restore();
+
+              ctx.drawImage(img, crestX, crestY, crestSize, crestSize);
               resolve(true);
             };
             img.onerror = () => resolve(false);
             img.src = crestDataUrl;
           });
+          headerTextY = 245;
         } catch (e) {}
       }
 
+      // School / Club Title
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 32px sans-serif';
+      ctx.font = '900 34px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(schoolName, width / 2, 45 + crestYOffset);
+      ctx.fillText(schoolName, width / 2, headerTextY);
 
+      // Subtitle
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = '700 18px sans-serif';
-      ctx.fillText('LISTA DE ATLETAS ESCALADOS', width / 2, 75 + crestYOffset);
+      ctx.font = '800 18px sans-serif';
+      ctx.fillText('CONVOCAÇÃO OFICIAL DA EQUIPE', width / 2, headerTextY + 30);
 
-      // Event Title Box
-      const bannerY = 95 + crestYOffset;
-      ctx.fillStyle = '#27272a';
-      drawRoundRect(60, bannerY, width - 120, 48, 14);
+      // Event Banner Box
+      const bannerY = headerTextY + 50;
+      const bannerW = width - 120;
+      const bannerH = 54;
+      const bannerX = 60;
 
+      ctx.fillStyle = '#18181b';
+      ctx.strokeStyle = '#27272a';
+      ctx.lineWidth = 2;
+      drawRoundRect(bannerX, bannerY, bannerW, bannerH, 16, true, true);
+
+      // Neon accent left line inside banner
       ctx.fillStyle = '#22c55e';
+      drawRoundRect(bannerX + 4, bannerY + 6, 6, bannerH - 12, 3, true, false);
+
+      ctx.fillStyle = '#ffffff';
       ctx.font = '900 22px sans-serif';
-      ctx.fillText(`EVENTO: ${selectedEvent.name.toUpperCase()}`, width / 2, bannerY + 31);
+      ctx.textAlign = 'center';
+      ctx.fillText(`EVENTO: ${selectedEvent.name.toUpperCase()}`, width / 2 + 3, bannerY + 34);
 
       // Total Count Badge
-      const badgeY = bannerY + 62;
+      const badgeY = bannerY + 68;
+      const badgeW = 480;
+      const badgeH = 44;
+      const badgeX = (width / 2) - (badgeW / 2);
+
       ctx.fillStyle = '#22c55e';
-      drawRoundRect((width / 2) - 240, badgeY, 480, 42, 21);
+      drawRoundRect(badgeX, badgeY, badgeW, badgeH, 22, true, false);
 
-      ctx.fillStyle = '#000000';
-      ctx.font = '900 18px sans-serif';
-      ctx.fillText(`TOTAL: ${currentAthletes.length} ATLETAS ESCALADOS`, width / 2, badgeY + 27);
+      ctx.fillStyle = '#09090b';
+      ctx.font = '900 19px sans-serif';
+      ctx.fillText(`TOTAL: ${currentAthletes.length} ATLETAS ESCALADOS`, width / 2, badgeY + 28);
 
-      // 3. Athletes List
-      const listStartY = badgeY + 65;
-      ctx.textAlign = 'left';
+      // 3. Dynamic Athletes Grid Area (Story vertical layout)
+      const listTopY = badgeY + 68;
+      const listBottomY = 1780; // Safe area above story bottom
+      const availableHeight = listBottomY - listTopY;
 
-      if (isTwoColumns) {
-        const colWidth = (width - 140) / 2;
-        currentAthletes.forEach((athlete, idx) => {
-          const isCol2 = idx >= rows;
-          const rowIdx = isCol2 ? idx - rows : idx;
-          const x = isCol2 ? (width / 2) + 20 : 70;
-          const y = listStartY + (rowIdx * itemHeight);
+      const totalAthletes = currentAthletes.length;
+      let numCols = 1;
+      if (totalAthletes > 15 && totalAthletes <= 32) numCols = 2;
+      else if (totalAthletes > 32) numCols = 3;
 
-          // Row background strip
-          if (rowIdx % 2 === 0) {
-            ctx.fillStyle = '#141417';
-            ctx.fillRect(x - 10, y - 28, colWidth, itemHeight - 4);
+      const numRows = Math.ceil(totalAthletes / numCols);
+      const rowGap = 8;
+      const colGap = 20;
+
+      const calculatedItemHeight = Math.floor((availableHeight - ((numRows - 1) * rowGap)) / numRows);
+      const itemHeight = Math.min(54, Math.max(34, calculatedItemHeight));
+
+      const fontSize = Math.max(14, Math.min(20, Math.floor(itemHeight * 0.44)));
+      const colWidth = (width - 120 - ((numCols - 1) * colGap)) / numCols;
+
+      currentAthletes.forEach((athlete, idx) => {
+        const colIdx = idx % numCols;
+        const rowIdx = Math.floor(idx / numCols);
+
+        const x = 60 + colIdx * (colWidth + colGap);
+        const y = listTopY + rowIdx * (itemHeight + rowGap);
+
+        // Row Card background strip
+        ctx.fillStyle = rowIdx % 2 === 0 ? '#141417' : '#1c1c21';
+        ctx.strokeStyle = '#27272a';
+        ctx.lineWidth = 1;
+        drawRoundRect(x, y, colWidth, itemHeight, 10, true, true);
+
+        // Green number box indicator
+        const numW = Math.max(36, fontSize + 14);
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+        drawRoundRect(x + 4, y + 4, numW, itemHeight - 8, 7, true, false);
+
+        // Number text
+        ctx.fillStyle = '#22c55e';
+        ctx.font = `900 ${fontSize}px monospace`;
+        ctx.textAlign = 'center';
+        const numStr = (idx + 1).toString().padStart(2, '0');
+        ctx.fillText(numStr, x + 4 + (numW / 2), y + (itemHeight / 2) + (fontSize / 3));
+
+        // Athlete Name (1st + 2nd name)
+        const displayName = formatFirstSecondName(athlete.name);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `800 ${fontSize}px sans-serif`;
+        ctx.textAlign = 'left';
+
+        // Truncate if too long for item width
+        const nameX = x + numW + 14;
+        const maxTextWidth = colWidth - numW - 20;
+
+        let renderName = displayName;
+        if (ctx.measureText(renderName).width > maxTextWidth) {
+          while (renderName.length > 3 && ctx.measureText(renderName + '...').width > maxTextWidth) {
+            renderName = renderName.slice(0, -1);
           }
+          renderName += '...';
+        }
 
-          // Number
-          ctx.fillStyle = '#22c55e';
-          ctx.font = '900 20px monospace';
-          const numStr = (idx + 1).toString().padStart(2, '0');
-          ctx.fillText(`${numStr}.`, x, y);
+        ctx.fillText(renderName, nameX, y + (itemHeight / 2) + (fontSize / 3));
+      });
 
-          // Name
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 19px sans-serif';
-          const nameStr = (athlete.name || '').toUpperCase();
-          ctx.fillText(nameStr, x + 48, y);
-        });
-      } else {
-        currentAthletes.forEach((athlete, idx) => {
-          const y = listStartY + (idx * itemHeight);
-
-          // Row background strip
-          if (idx % 2 === 0) {
-            ctx.fillStyle = '#141417';
-            ctx.fillRect(60, y - 28, width - 120, itemHeight - 4);
-          }
-
-          // Number badge
-          ctx.fillStyle = '#22c55e';
-          ctx.font = '900 21px monospace';
-          const numStr = (idx + 1).toString().padStart(2, '0');
-          ctx.fillText(`${numStr}.`, 85, y);
-
-          // Name
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 20px sans-serif';
-          const nameStr = (athlete.name || '').toUpperCase();
-          ctx.fillText(nameStr, 145, y);
-        });
-      }
-
-      // 4. Footer
+      // 4. Story Footer Branding (Safe Area)
       ctx.textAlign = 'center';
       ctx.fillStyle = '#71717a';
-      ctx.font = '600 14px sans-serif';
-      ctx.fillText(`${schoolName} • Documento de Convocação Eletrônica`, width / 2, height - 25);
+      ctx.font = '700 15px sans-serif';
+      ctx.fillText(`${schoolName} • LISTA PARA STORY DE REDES SOCIAIS`, width / 2, 1845);
+
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect((width / 2) - 60, 1865, 120, 4); // bottom accent pill bar
 
       // Download PNG
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `lista-convocados-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.download = `story-convocados-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
       link.href = dataUrl;
       link.click();
 
-      toast.success('Imagem da lista gerada com sucesso!', { id: loadingToast });
+      toast.success('Imagem Story (1080x1920) gerada com sucesso!', { id: loadingToast });
     } catch (error: any) {
-      console.error('Error generating lineup list image:', error);
-      toast.error('Erro ao gerar imagem da lista.', { id: loadingToast });
+      console.error('Error generating Story image:', error);
+      toast.error('Erro ao gerar imagem para Story.', { id: loadingToast });
     }
   };
 
