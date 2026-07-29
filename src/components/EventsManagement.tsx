@@ -933,6 +933,282 @@ Muito obrigado!
     }
   };
 
+  const getActiveAthletesList = () => {
+    if (lineupAthletes && lineupAthletes.length > 0) {
+      return [...lineupAthletes].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+    if (selectedAthletes && selectedAthletes.length > 0) {
+      const list = athletes.filter(a => selectedAthletes.includes(a.id));
+      return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+    return [];
+  };
+
+  const handleDownloadSimplePDF = async () => {
+    if (!selectedEvent) return;
+    
+    const currentAthletes = getActiveAthletesList();
+    if (currentAthletes.length === 0) {
+      toast.error('Nenhum atleta selecionado para gerar a lista.');
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    const loadingToast = toast.loading('Gerando PDF simplificado (Quant. + Nomes)...');
+
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      let offsetY = 0;
+      if (crestDataUrl) {
+        try {
+          doc.addImage(crestDataUrl, 'PNG', pageWidth / 2 - 10, 8, 20, 20);
+          offsetY = 18;
+        } catch (e) {
+          console.warn("Could not add crest to PDF:", e);
+        }
+      }
+
+      // Header
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15 + offsetY, { align: 'center' });
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('LISTA DE ATLETAS ESCALADOS (NOME COMPLETO)', pageWidth / 2, 21 + offsetY, { align: 'center' });
+      
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(15, 24 + offsetY, pageWidth - 15, 24 + offsetY);
+
+      // Event Info Banner
+      doc.setFillColor(20, 20, 20);
+      doc.rect(15, 27 + offsetY, pageWidth - 30, 9, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, pageWidth / 2, 33 + offsetY, { align: 'center' });
+
+      // Total Count Highlight Box
+      doc.setFillColor(240, 240, 240);
+      doc.rect(15, 39 + offsetY, pageWidth - 30, 10, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(15, 39 + offsetY, pageWidth - 30, 10, 'S');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`QUANTIDADE TOTAL DE ATLETAS: ${currentAthletes.length}`, pageWidth / 2, 45.5 + offsetY, { align: 'center' });
+
+      // Simple Table with only Number (#) and Full Name (NOME COMPLETO)
+      autoTable(doc, {
+        startY: 53 + offsetY,
+        head: [['#', 'NOME COMPLETO DO ATLETA']],
+        body: currentAthletes.map((a, idx) => [
+          (idx + 1).toString().padStart(2, '0'),
+          (a.name || '').toUpperCase()
+        ]),
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10, minCellHeight: 6 },
+        styles: { fontSize: 9.5, cellPadding: 2.5, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 18, halign: 'center' },
+          1: { cellWidth: 'auto' }
+        },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        margin: { left: 15, right: 15 }
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY + 12;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} | Total: ${currentAthletes.length} atletas`, pageWidth / 2, finalY, { align: 'center' });
+
+      doc.save(`lista-simplificada-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      toast.success('PDF Simplificado gerado com sucesso!', { id: loadingToast });
+    } catch (error) {
+      console.error('Simple PDF Generation Error:', error);
+      toast.error('Erro ao gerar PDF simplificado', { id: loadingToast });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleDownloadSimpleImage = async () => {
+    if (!selectedEvent) return;
+
+    const currentAthletes = getActiveAthletesList();
+    if (currentAthletes.length === 0) {
+      toast.error('Nenhum atleta selecionado para gerar a imagem.');
+      return;
+    }
+
+    const loadingToast = toast.loading('Gerando imagem da lista...');
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Não foi possível obter o contexto 2D do canvas');
+
+      const width = 1080;
+      const isTwoColumns = currentAthletes.length > 18;
+      const rows = isTwoColumns ? Math.ceil(currentAthletes.length / 2) : currentAthletes.length;
+      
+      const crestYOffset = crestDataUrl ? 65 : 0;
+      const headerHeight = 220 + crestYOffset;
+      const itemHeight = 44;
+      const footerHeight = 70;
+      const height = Math.max(700, headerHeight + (rows * itemHeight) + footerHeight);
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Safe roundRect helper
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, w, h, r);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.rect(x, y, w, h);
+          ctx.fill();
+        }
+      };
+
+      // 1. Background Fill
+      ctx.fillStyle = '#09090b'; // dark zinc background
+      ctx.fillRect(0, 0, width, height);
+
+      // Subtle background pattern / top bar accent
+      ctx.fillStyle = '#18181b';
+      ctx.fillRect(0, 0, width, 180 + crestYOffset);
+
+      // Primary accent line top
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, 0, width, 6);
+
+      // 2. Club Header
+      const schoolName = (settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase();
+      
+      // Draw Crest Image if loaded
+      if (crestDataUrl) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve) => {
+            img.onload = () => {
+              ctx.drawImage(img, (width / 2) - 35, 18, 70, 70);
+              resolve(true);
+            };
+            img.onerror = () => resolve(false);
+            img.src = crestDataUrl;
+          });
+        } catch (e) {}
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(schoolName, width / 2, 45 + crestYOffset);
+
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = '700 18px sans-serif';
+      ctx.fillText('LISTA DE ATLETAS ESCALADOS', width / 2, 75 + crestYOffset);
+
+      // Event Title Box
+      const bannerY = 95 + crestYOffset;
+      ctx.fillStyle = '#27272a';
+      drawRoundRect(60, bannerY, width - 120, 48, 14);
+
+      ctx.fillStyle = '#22c55e';
+      ctx.font = '900 22px sans-serif';
+      ctx.fillText(`EVENTO: ${selectedEvent.name.toUpperCase()}`, width / 2, bannerY + 31);
+
+      // Total Count Badge
+      const badgeY = bannerY + 62;
+      ctx.fillStyle = '#22c55e';
+      drawRoundRect((width / 2) - 240, badgeY, 480, 42, 21);
+
+      ctx.fillStyle = '#000000';
+      ctx.font = '900 18px sans-serif';
+      ctx.fillText(`TOTAL: ${currentAthletes.length} ATLETAS ESCALADOS`, width / 2, badgeY + 27);
+
+      // 3. Athletes List
+      const listStartY = badgeY + 65;
+      ctx.textAlign = 'left';
+
+      if (isTwoColumns) {
+        const colWidth = (width - 140) / 2;
+        currentAthletes.forEach((athlete, idx) => {
+          const isCol2 = idx >= rows;
+          const rowIdx = isCol2 ? idx - rows : idx;
+          const x = isCol2 ? (width / 2) + 20 : 70;
+          const y = listStartY + (rowIdx * itemHeight);
+
+          // Row background strip
+          if (rowIdx % 2 === 0) {
+            ctx.fillStyle = '#141417';
+            ctx.fillRect(x - 10, y - 28, colWidth, itemHeight - 4);
+          }
+
+          // Number
+          ctx.fillStyle = '#22c55e';
+          ctx.font = '900 20px monospace';
+          const numStr = (idx + 1).toString().padStart(2, '0');
+          ctx.fillText(`${numStr}.`, x, y);
+
+          // Name
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 19px sans-serif';
+          const nameStr = (athlete.name || '').toUpperCase();
+          ctx.fillText(nameStr, x + 48, y);
+        });
+      } else {
+        currentAthletes.forEach((athlete, idx) => {
+          const y = listStartY + (idx * itemHeight);
+
+          // Row background strip
+          if (idx % 2 === 0) {
+            ctx.fillStyle = '#141417';
+            ctx.fillRect(60, y - 28, width - 120, itemHeight - 4);
+          }
+
+          // Number badge
+          ctx.fillStyle = '#22c55e';
+          ctx.font = '900 21px monospace';
+          const numStr = (idx + 1).toString().padStart(2, '0');
+          ctx.fillText(`${numStr}.`, 85, y);
+
+          // Name
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 20px sans-serif';
+          const nameStr = (athlete.name || '').toUpperCase();
+          ctx.fillText(nameStr, 145, y);
+        });
+      }
+
+      // 4. Footer
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#71717a';
+      ctx.font = '600 14px sans-serif';
+      ctx.fillText(`${schoolName} • Documento de Convocação Eletrônica`, width / 2, height - 25);
+
+      // Download PNG
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `lista-convocados-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      toast.success('Imagem da lista gerada com sucesso!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('Error generating lineup list image:', error);
+      toast.error('Erro ao gerar imagem da lista.', { id: loadingToast });
+    }
+  };
+
   const handleEditEvent = (event: Event) => {
     const now = new Date();
     const [year, month, day] = event.end_date.split('-').map(Number);
@@ -3048,6 +3324,23 @@ Muito obrigado!
                                 </button>
                               )}
                               <button 
+                                onClick={handleDownloadSimplePDF}
+                                disabled={isGeneratingPDF}
+                                className="p-1 px-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all disabled:opacity-50"
+                                title="Gerar PDF simplificado com apenas quantidade e nomes dos atletas"
+                              >
+                                <FileText size={10} />
+                                PDF Simplificado
+                              </button>
+                              <button 
+                                onClick={handleDownloadSimpleImage}
+                                className="p-1 px-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
+                                title="Gerar imagem PNG simples enumerada com a quantidade e lista de atletas"
+                              >
+                                <Instagram size={10} />
+                                Imagem Lista
+                              </button>
+                              <button 
                                 onClick={() => {
                                   setManualReceiptData({ 
                                     name: '', 
@@ -3507,23 +3800,41 @@ Muito obrigado!
 
             <div className="p-6 border-t border-zinc-800 flex justify-between items-center no-print">
               {isAdmin && <p className="text-xs text-zinc-500 italic">Dica: Salve a escalação antes de gerenciar as confirmações.</p>}
-              <div className="flex gap-3 ml-auto">
+              <div className="flex flex-wrap gap-2.5 ml-auto items-center">
                 <button
                   onClick={handleDownloadPDF}
                   disabled={isGeneratingPDF}
-                  className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all font-bold disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-theme-primary text-black rounded-xl hover:opacity-90 transition-all font-bold text-xs disabled:opacity-50"
+                  title="Gerar PDF Completo (com todos os dados e documentos)"
                 >
-                  <FileDown size={18} />
-                  {isGeneratingPDF ? 'Gerando...' : 'Gerar PDF'}
+                  <FileDown size={16} />
+                  {isGeneratingPDF ? 'Gerando...' : 'PDF Completo'}
+                </button>
+                <button
+                  onClick={handleDownloadSimplePDF}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-black rounded-xl transition-all font-bold text-xs disabled:opacity-50 cursor-pointer"
+                  title="Gerar PDF Simplificado (Apenas Quantidade de Atletas e Nome Completo)"
+                >
+                  <FileText size={16} />
+                  PDF Simplificado
+                </button>
+                <button
+                  onClick={handleDownloadSimpleImage}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600 hover:text-white rounded-xl transition-all font-bold text-xs cursor-pointer"
+                  title="Gerar Imagem Simples Enumerada (PNG para compartilhar)"
+                >
+                  <Instagram size={16} />
+                  Imagem Lista
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl hover:bg-zinc-100 transition-all font-bold"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white text-black rounded-xl hover:bg-zinc-100 transition-all font-bold text-xs"
                 >
-                  <Printer size={18} />
+                  <Printer size={16} />
                   Imprimir
                 </button>
-                <button onClick={handleCloseLineup} className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">Fechar</button>
+                <button onClick={handleCloseLineup} className="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold text-xs transition-colors">Fechar</button>
                 {isAdmin && !isEventFinished && (
                   <div className="flex gap-2">
                     <button 
