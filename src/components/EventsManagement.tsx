@@ -1044,7 +1044,7 @@ Muito obrigado!
       return;
     }
 
-    const loadingToast = toast.loading('Gerando Story (1080x1920) com convocados...');
+    const loadingToast = toast.loading('Gerando Story (1080x1920) caprichado...');
 
     try {
       const canvas = document.createElement('canvas');
@@ -1074,28 +1074,50 @@ Muito obrigado!
       const formatFirstSecondName = (fullName: string) => {
         if (!fullName) return '';
         const parts = fullName.trim().split(/\s+/);
-        if (parts.length <= 2) return fullName.trim().toUpperCase();
+        if (parts.length <= 1) return fullName.trim().toUpperCase();
         return `${parts[0]} ${parts[1]}`.toUpperCase();
+      };
+
+      // Helper to wrap text into lines for canvas
+      const wrapTextLines = (text: string, maxWidth: number, fontSpec: string) => {
+        ctx.font = fontSpec;
+        const words = text.split(/\s+/);
+        const lines: string[] = [];
+        let currentLine = '';
+
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i];
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
       };
 
       // 1. Dark Premium Background
       ctx.fillStyle = '#09090b'; // zinc-950 base
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle top/bottom radial gradient / lighting effect
-      const topGradient = ctx.createLinearGradient(0, 0, 0, 450);
-      topGradient.addColorStop(0, '#18181b');
+      // Subtle top radial lighting effect
+      const topGradient = ctx.createLinearGradient(0, 0, 0, 500);
+      topGradient.addColorStop(0, '#1c1c22');
+      topGradient.addColorStop(0.6, '#0f0f12');
       topGradient.addColorStop(1, '#09090b');
       ctx.fillStyle = topGradient;
-      ctx.fillRect(0, 0, width, 450);
+      ctx.fillRect(0, 0, width, 500);
 
-      // Accent border at the top and bottom of Story safe zone
+      // Neon green top border line
       ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, 0, width, 8); // top neon bar
+      ctx.fillRect(0, 0, width, 8);
 
-      // 2. Club Header & Crest
+      // 2. Crest (Escudo Fiel) & Header
       const schoolName = (settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase();
-      let headerTextY = 160;
+      let currentCursorY = 65;
 
       if (crestDataUrl) {
         try {
@@ -1103,77 +1125,110 @@ Muito obrigado!
           img.crossOrigin = 'anonymous';
           await new Promise((resolve) => {
             img.onload = () => {
-              // Draw crest in a subtle glowing circular frame
-              const crestSize = 100;
-              const crestX = (width / 2) - (crestSize / 2);
-              const crestY = 110;
+              // Preserve EXACT aspect ratio of the uploaded crest
+              const maxCrestW = 160;
+              const maxCrestH = 120;
+              let drawW = img.naturalWidth || maxCrestW;
+              let drawH = img.naturalHeight || maxCrestH;
 
-              ctx.save();
-              ctx.beginPath();
-              ctx.arc(width / 2, crestY + (crestSize / 2), (crestSize / 2) + 4, 0, Math.PI * 2);
-              ctx.fillStyle = '#18181b';
-              ctx.shadowColor = '#22c55e';
-              ctx.shadowBlur = 20;
-              ctx.fill();
-              ctx.restore();
+              const scale = Math.min(maxCrestW / drawW, maxCrestH / drawH);
+              drawW = drawW * scale;
+              drawH = drawH * scale;
 
-              ctx.drawImage(img, crestX, crestY, crestSize, crestSize);
+              const crestX = (width / 2) - (drawW / 2);
+              const crestY = currentCursorY;
+
+              // Draw crest cleanly without distorting or artificial clipping
+              ctx.drawImage(img, crestX, crestY, drawW, drawH);
+              currentCursorY += drawH + 20;
               resolve(true);
             };
-            img.onerror = () => resolve(false);
+            img.onerror = () => {
+              currentCursorY += 20;
+              resolve(false);
+            };
             img.src = crestDataUrl;
           });
-          headerTextY = 245;
-        } catch (e) {}
+        } catch (e) {
+          currentCursorY += 20;
+        }
+      } else {
+        currentCursorY += 25;
       }
 
       // School / Club Title
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 34px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(schoolName, width / 2, headerTextY);
+      ctx.fillText(schoolName, width / 2, currentCursorY);
+      currentCursorY += 28;
 
       // Subtitle
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = '800 18px sans-serif';
-      ctx.fillText('CONVOCAÇÃO OFICIAL DA EQUIPE', width / 2, headerTextY + 30);
+      ctx.font = '800 17px sans-serif';
+      ctx.fillText('CONVOCAÇÃO OFICIAL DA EQUIPE', width / 2, currentCursorY);
+      currentCursorY += 35;
 
-      // Event Banner Box
-      const bannerY = headerTextY + 50;
-      const bannerW = width - 120;
-      const bannerH = 54;
+      // 3. Event Banner Box (Caprichado & Multi-line Support)
       const bannerX = 60;
+      const bannerW = width - 120;
+      const eventRawName = (selectedEvent.name || '').toUpperCase();
 
-      ctx.fillStyle = '#18181b';
+      // Wrap event name into 1, 2, or 3 lines cleanly
+      const eventTitleFont = '900 24px sans-serif';
+      const maxTextW = bannerW - 60; // leave padding for borders and left accent line
+      const eventLines = wrapTextLines(eventRawName, maxTextW, eventTitleFont);
+
+      const eventLineHeight = 30;
+      const bannerPaddingV = 18;
+      const bannerH = (eventLines.length * eventLineHeight) + (bannerPaddingV * 2) + 20; // extra space for event label
+
+      ctx.fillStyle = '#141417';
       ctx.strokeStyle = '#27272a';
       ctx.lineWidth = 2;
-      drawRoundRect(bannerX, bannerY, bannerW, bannerH, 16, true, true);
+      drawRoundRect(bannerX, currentCursorY, bannerW, bannerH, 18, true, true);
 
-      // Neon accent left line inside banner
+      // Neon accent bar on left of banner
       ctx.fillStyle = '#22c55e';
-      drawRoundRect(bannerX + 4, bannerY + 6, 6, bannerH - 12, 3, true, false);
+      drawRoundRect(bannerX + 6, currentCursorY + 8, 6, bannerH - 16, 3, true, false);
 
+      // Event Label Badge inside banner
+      ctx.fillStyle = '#22c55e';
+      ctx.font = '900 14px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('🏆 EVENTO', bannerX + 26, currentCursorY + bannerPaddingV + 10);
+
+      // Render Event Name Lines
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`EVENTO: ${selectedEvent.name.toUpperCase()}`, width / 2 + 3, bannerY + 34);
+      ctx.font = eventTitleFont;
+      ctx.textAlign = 'left';
+      
+      let textStartY = currentCursorY + bannerPaddingV + 38;
+      eventLines.forEach((line) => {
+        ctx.fillText(line, bannerX + 26, textStartY);
+        textStartY += eventLineHeight;
+      });
+
+      currentCursorY += bannerH + 20;
 
       // Total Count Badge
-      const badgeY = bannerY + 68;
       const badgeW = 480;
-      const badgeH = 44;
+      const badgeH = 46;
       const badgeX = (width / 2) - (badgeW / 2);
 
       ctx.fillStyle = '#22c55e';
-      drawRoundRect(badgeX, badgeY, badgeW, badgeH, 22, true, false);
+      drawRoundRect(badgeX, currentCursorY, badgeW, badgeH, 23, true, false);
 
       ctx.fillStyle = '#09090b';
       ctx.font = '900 19px sans-serif';
-      ctx.fillText(`TOTAL: ${currentAthletes.length} ATLETAS ESCALADOS`, width / 2, badgeY + 28);
+      ctx.textAlign = 'center';
+      ctx.fillText(`TOTAL: ${currentAthletes.length} ATLETAS ESCALADOS`, width / 2, currentCursorY + 29);
 
-      // 3. Dynamic Athletes Grid Area (Story vertical layout)
-      const listTopY = badgeY + 68;
-      const listBottomY = 1780; // Safe area above story bottom
+      currentCursorY += badgeH + 25;
+
+      // 4. Dynamic Athletes Grid Area (Story vertical layout)
+      const listTopY = currentCursorY;
+      const listBottomY = 1800; // Safe area above story bottom
       const availableHeight = listBottomY - listTopY;
 
       const totalAthletes = currentAthletes.length;
@@ -1237,14 +1292,14 @@ Muito obrigado!
         ctx.fillText(renderName, nameX, y + (itemHeight / 2) + (fontSize / 3));
       });
 
-      // 4. Story Footer Branding (Safe Area)
+      // 5. Story Footer Branding (Safe Area)
       ctx.textAlign = 'center';
       ctx.fillStyle = '#71717a';
       ctx.font = '700 15px sans-serif';
-      ctx.fillText(`${schoolName} • LISTA PARA STORY DE REDES SOCIAIS`, width / 2, 1845);
+      ctx.fillText(`${schoolName} • LISTA PARA STORY DE REDES SOCIAIS`, width / 2, 1855);
 
       ctx.fillStyle = '#22c55e';
-      ctx.fillRect((width / 2) - 60, 1865, 120, 4); // bottom accent pill bar
+      ctx.fillRect((width / 2) - 60, 1875, 120, 4); // bottom accent pill bar
 
       // Download PNG
       const dataUrl = canvas.toDataURL('image/png');
