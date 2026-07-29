@@ -704,31 +704,66 @@ Responda exclusivamente em formato JSON.`;
       return res.status(400).json({ error: "Parâmetro URL é obrigatório." });
     }
 
+    const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+      <defs>
+        <radialGradient id="bgGlow" cx="50%" cy="35%" r="75%">
+          <stop offset="0%" stop-color="#1e3a8a"/>
+          <stop offset="55%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#020617"/>
+        </radialGradient>
+        <linearGradient id="grassGlow" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="#15803d"/>
+          <stop offset="100%" stop-color="#166534" stop-opacity="0.2"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="1600" fill="url(#bgGlow)"/>
+      <rect y="800" width="1200" height="800" fill="url(#grassGlow)"/>
+      <circle cx="600" cy="400" r="350" fill="#38bdf8" opacity="0.12"/>
+    </svg>`;
+
     try {
-      const response = await fetch(targetUrl, {
+      let response = await fetch(targetUrl, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
           "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
+          "Referer": "https://unsplash.com/",
+          "Cache-Control": "no-cache"
         }
       });
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `Falha ao carregar a imagem remota: ${response.statusText}` });
+
+      if (!response.ok && targetUrl.includes('?')) {
+        const cleanUrl = targetUrl.split('?')[0];
+        response = await fetch(cleanUrl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/*",
+            "Referer": "https://unsplash.com/"
+          }
+        });
       }
 
-      const contentType = response.headers.get("content-type") || "image/jpeg";
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cache-Control", "public, max-age=31536000");
+      if (response.ok) {
+        const contentType = response.headers.get("content-type") || "image/jpeg";
+        if (contentType.startsWith('image/')) {
+          res.setHeader("Content-Type", contentType);
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Cache-Control", "public, max-age=31536000");
 
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      res.send(buffer);
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          return res.send(buffer);
+        }
+      }
+
+      // Return fallback SVG image if remote fetch non-OK or non-image
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.send(fallbackSvg);
     } catch (error: any) {
       console.error("[Image Proxy Error]", error);
-      res.status(500).json({ error: "Erro ao obter imagem pelo proxy." });
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.send(fallbackSvg);
     }
   });
 

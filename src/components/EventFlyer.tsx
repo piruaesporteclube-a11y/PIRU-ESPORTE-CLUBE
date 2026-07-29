@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Event, Athlete } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
@@ -101,6 +101,19 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [selectedSubs, setSelectedSubs] = useState<string[]>(detectInitialSubs());
   const [customSub, setCustomSub] = useState('');
 
+  // Pre-convert default stadium background image on mount
+  useEffect(() => {
+    const defaultStadiumUrl = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200";
+    toBase64(defaultStadiumUrl).then(b64 => {
+      if (b64 && b64.startsWith('data:')) {
+        setCustomBackgrounds(prev => ({
+          ...prev,
+          stadium: prev['stadium'] || b64
+        }));
+      }
+    }).catch(() => {});
+  }, []);
+
   // Auto-detecção de confronto versus para separar o título em 3 blocos (cima, vs, baixo)
   const getInitialVersusSplit = () => {
     const match = event.name.match(/\s+(vs|VS|Vs|vS|x|X|versus|Versus)\s+/);
@@ -198,30 +211,22 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
     try {
       const element = flyerRef.current;
 
-      // Pre-convert active background images to Base64 to prevent CORS issues on export
-      if (selectedBackgrounds.includes('stadium')) {
-        const bgUrl = customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200";
-        if (bgUrl && !bgUrl.startsWith('data:')) {
+      // Pre-convert active image elements to Base64 directly on the DOM element before cloning
+      const imgs = Array.from(element.querySelectorAll('img'));
+      await Promise.all(imgs.map(async (img) => {
+        const src = img.getAttribute('src');
+        if (src && !src.startsWith('data:')) {
           try {
-            const b64 = await toBase64(bgUrl);
-            setCustomBackgrounds(prev => ({ ...prev, stadium: b64 }));
+            const b64 = await toBase64(src);
+            if (b64 && b64.startsWith('data:image/')) {
+              img.setAttribute('src', b64);
+              img.src = b64;
+            }
           } catch (err) {
-            console.warn('Bg base64 conversion failed:', err);
+            console.warn('Image base64 pre-conversion failed:', err);
           }
         }
-      }
-
-      if (selectedBackgrounds.includes('grass')) {
-        const bgUrl = customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200";
-        if (bgUrl && !bgUrl.startsWith('data:')) {
-          try {
-            const b64 = await toBase64(bgUrl);
-            setCustomBackgrounds(prev => ({ ...prev, grass: b64 }));
-          } catch (err) {
-            console.warn('Grass bg base64 conversion failed:', err);
-          }
-        }
-      }
+      }));
 
       const exportClone = await prepareElementForExport(element, 360, 640);
 
@@ -327,6 +332,11 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                       if (!selectedBackgrounds.includes('stadium')) {
                         setSelectedBackgrounds(prev => [...prev, 'stadium']);
                       }
+                      toBase64(bg.url).then(b64 => {
+                        if (b64) {
+                          setCustomBackgrounds(prev => ({ ...prev, stadium: b64 }));
+                        }
+                      }).catch(() => {});
                     }}
                     className={cn(
                       "group relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all text-left bg-zinc-950",
@@ -928,18 +938,24 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
             </div>
             {/* Background Layers */}
             <div className="absolute inset-0">
-              {/* Permanent Stadium Radial Dark Glow Base Layer */}
+              {/* Permanent Stadium Radial Glow Base Layer */}
               <div 
                 className="absolute inset-0 z-0 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(circle at 50% 30%, #1e293b 0%, #0a0e17 60%, #000000 100%)'
+                  background: 'radial-gradient(circle at 50% 30%, #1e3a8a 0%, #0d1527 60%, #020617 100%)'
+                }}
+              />
+              <div 
+                className="absolute inset-x-0 bottom-0 h-1/2 z-0 pointer-events-none opacity-40"
+                style={{
+                  background: 'radial-gradient(ellipse at 50% 100%, #15803d 0%, transparent 70%)'
                 }}
               />
 
               {selectedBackgrounds.includes('stadium') && (
                 <div className="absolute inset-0 z-[1]">
                   <img src={customBackgrounds['stadium'] || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="absolute inset-0 bg-black/25" />
                 </div>
               )}
               {selectedBackgrounds.includes('grass') && (
@@ -952,7 +968,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
                 </div>
               )}
-              <div className="absolute inset-0 z-[4] bg-gradient-to-t from-black via-black/30 to-black/70" />
+              <div className="absolute inset-0 z-[4] bg-gradient-to-t from-black via-black/20 to-black/50 pointer-events-none" />
               
               {/* Photo Layer - Positionable */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (

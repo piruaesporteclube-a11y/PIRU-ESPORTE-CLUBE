@@ -250,6 +250,8 @@ export async function toBase64(url: string): Promise<string> {
     cleanUrl = `${window.location.origin}${url}`;
   }
 
+  const fallbackDataUri = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600"><defs><radialGradient id="bg" cx="50%" cy="35%" r="75%"><stop offset="0%" stop-color="%231e3a8a"/><stop offset="55%" stop-color="%230f172a"/><stop offset="100%" stop-color="%23020617"/></radialGradient></defs><rect width="1200" height="1600" fill="url(%23bg)"/></svg>`;
+
   // Determine if URL is external to the app
   const isExternal = cleanUrl.startsWith('http') && !cleanUrl.includes(window.location.host);
 
@@ -258,17 +260,26 @@ export async function toBase64(url: string): Promise<string> {
     const proxyUrl = `${window.location.origin}/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       const response = await fetch(proxyUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (response.ok) {
         const blob = await response.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => resolve(url);
-          reader.readAsDataURL(blob);
-        });
+        if (blob.type && blob.type.startsWith('image/')) {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const res = reader.result as string;
+              if (res && res.startsWith('data:image/')) {
+                resolve(res);
+              } else {
+                resolve(fallbackDataUri);
+              }
+            };
+            reader.onerror = () => resolve(fallbackDataUri);
+            reader.readAsDataURL(blob);
+          });
+        }
       }
     } catch (e) {
       console.warn('Proxy fetch failed, trying direct client fetch...', e);
@@ -279,7 +290,7 @@ export async function toBase64(url: string): Promise<string> {
   try {
     const clientFetchUrl = isExternal ? (cleanUrl.includes('?') ? `${cleanUrl}&cb=${Date.now()}` : `${cleanUrl}?cb=${Date.now()}`) : cleanUrl;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const response = await fetch(clientFetchUrl, { 
       mode: 'cors', 
       signal: controller.signal,
@@ -288,12 +299,21 @@ export async function toBase64(url: string): Promise<string> {
     clearTimeout(timeoutId);
     if (response.ok) {
       const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(url);
-        reader.readAsDataURL(blob);
-      });
+      if (blob.type && blob.type.startsWith('image/')) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            if (res && res.startsWith('data:image/')) {
+              resolve(res);
+            } else {
+              resolve(fallbackDataUri);
+            }
+          };
+          reader.onerror = () => resolve(fallbackDataUri);
+          reader.readAsDataURL(blob);
+        });
+      }
     }
   } catch (e) {
     console.warn('Direct fetch failed or was blocked by CORS', e);
@@ -306,19 +326,19 @@ export async function toBase64(url: string): Promise<string> {
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.width || 800;
+        canvas.height = img.height || 600;
         const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve(url); return; }
+        if (!ctx) { resolve(fallbackDataUri); return; }
         ctx.drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/jpeg', 0.9));
       } catch (err) { 
-        resolve(url); 
+        resolve(fallbackDataUri); 
       }
     };
-    img.onerror = () => resolve(url);
+    img.onerror = () => resolve(fallbackDataUri);
     img.src = cleanUrl;
-    setTimeout(() => resolve(url), 2000);
+    setTimeout(() => resolve(fallbackDataUri), 2500);
   });
 }
 

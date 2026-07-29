@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport } from '../utils';
+import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport, toBase64 } from '../utils';
 
 const SPORT_BACKGROUNDS = [
   // FUTEBOL DE CAMPO
@@ -108,6 +108,24 @@ export default function AnnouncementFlyer() {
       await new Promise(resolve => setTimeout(resolve, 800));
 
       const element = flyerRef.current;
+
+      // Pre-convert image elements to Base64 directly on the DOM element before cloning
+      const imgs = Array.from(element.querySelectorAll('img'));
+      await Promise.all(imgs.map(async (img) => {
+        const src = img.getAttribute('src');
+        if (src && !src.startsWith('data:')) {
+          try {
+            const b64 = await toBase64(src);
+            if (b64 && b64.startsWith('data:image/')) {
+              img.setAttribute('src', b64);
+              img.src = b64;
+            }
+          } catch (err) {
+            console.warn('Image base64 pre-conversion failed:', err);
+          }
+        }
+      }));
+
       const exportClone = await prepareElementForExport(element, 360, 640);
 
       try {
