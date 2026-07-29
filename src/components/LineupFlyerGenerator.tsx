@@ -137,6 +137,53 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const [showNickname, setShowNickname] = useState<boolean>(true);
   const [sortAlphabetically, setSortAlphabetically] = useState<boolean>(true);
 
+  // --- Readability & Formatting Controls for Athlete Names ---
+  const [allowTextWrap, setAllowTextWrap] = useState<boolean>(true);
+  const [nameFormat, setNameFormat] = useState<'full' | 'first_last' | 'abbreviated' | 'first_only'>('first_last');
+  const [cardBgStyle, setCardBgStyle] = useState<'solid_dark' | 'dark' | 'glass' | 'accent' | 'light' | 'none'>('solid_dark');
+  const [headerTopOffset, setHeaderTopOffset] = useState<number>(170);
+  const [showNumbering, setShowNumbering] = useState<boolean>(true);
+
+  // Helper to format athlete names according to selected nameFormat
+  const formatAthleteName = (fullName: string) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 1) return fullName;
+    if (nameFormat === 'first_last') {
+      return `${parts[0]} ${parts[parts.length - 1]}`;
+    }
+    if (nameFormat === 'abbreviated') {
+      if (parts.length === 2) return fullName;
+      const first = parts[0];
+      const last = parts[parts.length - 1];
+      const middle = parts.slice(1, -1).map(p => `${p[0].toUpperCase()}.`).join(' ');
+      return `${first} ${middle} ${last}`;
+    }
+    if (nameFormat === 'first_only') {
+      return parts[0];
+    }
+    return fullName;
+  };
+
+  const getCardBgClasses = () => {
+    switch (cardBgStyle) {
+      case 'solid_dark':
+        return 'bg-zinc-950/95 border border-zinc-800/80 shadow-2xl';
+      case 'dark':
+        return 'bg-black/80 backdrop-blur-md border border-white/10 shadow-xl';
+      case 'glass':
+        return 'bg-black/50 backdrop-blur-md border border-white/15 shadow-lg';
+      case 'accent':
+        return 'bg-black/90 shadow-2xl';
+      case 'light':
+        return 'bg-white/95 text-zinc-950 border border-black/15 shadow-2xl';
+      case 'none':
+        return 'bg-transparent border-none';
+      default:
+        return 'bg-zinc-950/95 border border-zinc-800/80 shadow-2xl';
+    }
+  };
+
   // Sync selectedIndex when initialSelectedIndex changes
   useEffect(() => {
     if (initialSelectedIndex !== undefined) {
@@ -1052,7 +1099,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     </div>
                   </div>
 
-                  {/* Grid Layout controls */}
+                  {/* Grid Layout & Legibility controls */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-black/40 rounded-2xl border border-zinc-900">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-zinc-500 uppercase">Quantidade de Colunas</label>
@@ -1095,8 +1142,63 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     </div>
                   </div>
 
+                  {/* Readability & Name Formatting */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-black/40 rounded-2xl border border-zinc-900">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-theme-primary uppercase flex items-center gap-1">
+                        🎨 Fundo & Contraste dos Nomes
+                      </label>
+                      <select
+                        value={cardBgStyle}
+                        onChange={e => setCardBgStyle(e.target.value as any)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2 text-xs text-zinc-200 focus:border-theme-primary outline-none uppercase font-bold"
+                      >
+                        <option value="solid_dark">⬛ Fundo Escuro Sólido 95% (Máxima Leitura)</option>
+                        <option value="dark">🌑 Escuro Translúcido 80% (Padrão)</option>
+                        <option value="glass">🧊 Vidro Fosco (Efeito Transparente)</option>
+                        <option value="accent">⚡ Caixa com Borda Neon / Destaque</option>
+                        <option value="light">⬜ Caixa Branca + Texto Escuro (Contraste Alto)</option>
+                        <option value="none">🚫 Sem Fundo (Apenas Texto no Fundo do Encarte)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase">
+                        🔤 Formato de Exibição do Nome
+                      </label>
+                      <select
+                        value={nameFormat}
+                        onChange={e => setNameFormat(e.target.value as any)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2 text-xs text-zinc-200 focus:border-theme-primary outline-none uppercase font-bold"
+                      >
+                        <option value="first_last">1º Nome + Sobrenome (Ex: GABRIEL SILVA - Ideal)</option>
+                        <option value="full">Nome Completo (Ex: GABRIEL HENRIQUE RODRIGUES SILVA)</option>
+                        <option value="abbreviated">Nome + Iniciais (Ex: GABRIEL H. R. SILVA)</option>
+                        <option value="first_only">Apenas 1º Nome (Ex: GABRIEL)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Formatting Toggles */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-black/30 border border-zinc-900 rounded-xl">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-black/30 border border-zinc-900 rounded-xl">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowTextWrap}
+                        onChange={e => setAllowTextWrap(e.target.checked)}
+                        className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
+                      />
+                      Quebrar Linha (Não cortar)
+                    </label>
+                    <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showNumbering}
+                        onChange={e => setShowNumbering(e.target.checked)}
+                        className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
+                      />
+                      Ordem #01, #02...
+                    </label>
                     <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1104,7 +1206,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         onChange={e => setShowJersey(e.target.checked)}
                         className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
                       />
-                      Mostrar Número #
+                      Camisa #
                     </label>
                     <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -1113,7 +1215,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         onChange={e => setShowPosition(e.target.checked)}
                         className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
                       />
-                      Mostrar Posição
+                      Posição
                     </label>
                     <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -1122,7 +1224,7 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         onChange={e => setShowNickname(e.target.checked)}
                         className="rounded border-zinc-800 bg-zinc-900 text-theme-primary focus:ring-0 text-xs"
                       />
-                      Apelido "Aspas"
+                      Apelido
                     </label>
                     <label className="text-[10px] font-black text-zinc-450 uppercase flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -1135,21 +1237,39 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                     </label>
                   </div>
 
-                  {/* Items gap slider */}
-                  <div className="space-y-1 p-3 bg-black/30 border border-zinc-900 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase">Espaçamento Vertical entre nomes</label>
-                      <span className="text-[10px] font-mono font-black text-theme-primary">{itemsGap}x</span>
+                  {/* Positioning & Gap sliders */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-black/30 border border-zinc-900 rounded-xl">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase">Distância do Cabeçalho (Topo)</label>
+                        <span className="text-[10px] font-mono font-black text-theme-primary">{headerTopOffset}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="130"
+                        max="250"
+                        step="5"
+                        value={headerTopOffset}
+                        onChange={e => setHeaderTopOffset(Number(e.target.value))}
+                        className="w-full accent-theme-primary bg-zinc-900 h-1 rounded-xl cursor-pointer"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="3.0"
-                      step="0.25"
-                      value={itemsGap}
-                      onChange={e => setItemsGap(Number(e.target.value))}
-                      className="w-full accent-theme-primary bg-zinc-900 h-1 rounded-xl cursor-pointer"
-                    />
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase">Espaçamento entre Nomes</label>
+                        <span className="text-[10px] font-mono font-black text-theme-primary">{itemsGap}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3.0"
+                        step="0.25"
+                        value={itemsGap}
+                        onChange={e => setItemsGap(Number(e.target.value))}
+                        className="w-full accent-theme-primary bg-zinc-900 h-1 rounded-xl cursor-pointer"
+                      />
+                    </div>
                   </div>
 
                   {/* Filter individual athletes check lists */}
@@ -1560,56 +1680,77 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
 
               {/* --- MAIN ATHLETES GRID LIST --- */}
               <div 
-                className="absolute inset-x-6 top-36 flex flex-col justify-center z-10"
-                style={{ bottom: showFooter ? '104px' : '24px' }}
+                className="absolute inset-x-5 flex flex-col justify-center z-10 transition-all"
+                style={{ 
+                  top: `${headerTopOffset}px`,
+                  bottom: showFooter ? '104px' : '24px' 
+                }}
               >
                 
                 {filteredAthletesToRender.length === 0 ? (
-                  <div className="text-center py-10 bg-black/60 border border-white/5 p-4 rounded-2xl select-none">
-                    <p className="text-xs uppercase font-extrabold text-zinc-500">Sem convocados selecionados</p>
-                    <p className="text-[9px] uppercase tracking-wider text-zinc-650 mt-1">Habilite os atletas nos controles da esquerda.</p>
+                  <div className="text-center py-10 bg-black/70 border border-white/10 p-4 rounded-2xl select-none">
+                    <p className="text-xs uppercase font-extrabold text-zinc-400">Sem convocados selecionados</p>
+                    <p className="text-[9px] uppercase tracking-wider text-zinc-500 mt-1">Habilite os atletas nos controles da esquerda.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     
                     {/* Athlete Columns */}
                     <div 
-                      className={`grid ${columnsCount === 2 ? 'grid-cols-2 gap-x-6' : 'grid-cols-1'} bg-black/50 backdrop-blur-sm border border-white/5 p-4 rounded-3xl`}
-                      style={{ padding: '16px', gap: `${itemsGap * 4}px` }}
+                      className={`grid ${columnsCount === 2 ? 'grid-cols-2 gap-x-4' : 'grid-cols-1'} ${getCardBgClasses()} p-3 rounded-3xl`}
+                      style={{ 
+                        padding: '14px', 
+                        gap: `${itemsGap * 4}px`,
+                        ...(cardBgStyle === 'accent' ? { borderColor: customPrimaryColor } : {})
+                      }}
                     >
                       {filteredAthletesToRender.map((a, idx) => {
-                        const sub = getSubCategory(a.birth_date);
                         const num = (idx + 1).toString().padStart(2, '0');
+                        const isLightCard = cardBgStyle === 'light';
+                        const displayName = formatAthleteName(a.name);
                         return (
                           <div 
                             key={a.id} 
-                            className={`flex items-center justify-between border-b border-white/[0.08] pb-1.5 max-w-full overflow-hidden transition-all duration-300 hover:bg-white/[0.02] px-1 rounded-lg ${fontSizeClass}`}
+                            className={cn(
+                              "flex items-center justify-between border-b pb-1.5 max-w-full overflow-hidden transition-all duration-300 px-1 rounded-lg",
+                              isLightCard ? "border-black/10 hover:bg-black/5" : "border-white/[0.08] hover:bg-white/[0.03]",
+                              fontSizeClass
+                            )}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+                              {showNumbering && (
+                                <span 
+                                  className="font-mono font-black select-none mr-1 shrink-0"
+                                  style={{ 
+                                    fontSize: '0.85em',
+                                    color: isLightCard ? '#3f3f46' : customPrimaryColor,
+                                    opacity: isLightCard ? 0.9 : 0.6
+                                  }}
+                                >
+                                  {num}
+                                </span>
+                              )}
                               <span 
-                                className="font-mono font-black select-none mr-1 shrink-0"
-                                style={{ 
-                                  fontSize: '0.85em',
-                                  color: customPrimaryColor,
-                                  opacity: 0.4
-                                }}
-                              >
-                                {num}
-                              </span>
-                              <span 
-                                className="font-extrabold uppercase text-white truncate tracking-wide"
+                                className={cn(
+                                  "font-extrabold uppercase tracking-wide",
+                                  isLightCard ? "text-zinc-950" : "text-white",
+                                  allowTextWrap ? "whitespace-normal break-words leading-tight flex-1" : "truncate"
+                                )}
                                 style={{
-                                  textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.5)'
+                                  textShadow: isLightCard ? 'none' : '0 2px 4px rgba(0,0,0,1), 0 0 3px rgba(0,0,0,0.8)'
                                 }}
                               >
-                                {a.name}
+                                {displayName}
                                 {showNickname && a.nickname && (
                                   <span 
-                                    className="lowercase font-bold ml-1.5 opacity-90 px-1.5 py-0.5 rounded bg-black/30" 
+                                    className={cn(
+                                      "lowercase font-bold ml-1.5 inline-block opacity-90 px-1.5 py-0.5 rounded",
+                                      isLightCard ? "bg-zinc-200 text-zinc-900" : "bg-black/50"
+                                    )}
                                     style={{ 
-                                      color: customPrimaryColor,
+                                      color: isLightCard ? '#09090b' : customPrimaryColor,
                                       fontSize: '0.82em',
-                                      textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                                      textShadow: isLightCard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)'
                                     }}
                                   >
                                     "{a.nickname.toLowerCase()}"
@@ -1618,16 +1759,16 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0 pl-1.5">
+                            <div className="flex items-center gap-1.5 shrink-0 pl-1">
                               {showPosition && a.position && (
                                 <span 
                                   className="font-black uppercase px-1.5 py-0.5 rounded border tracking-wider shrink-0"
                                   style={{ 
                                     fontSize: '0.7em',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    borderColor: 'rgba(255, 255, 255, 0.12)',
-                                    color: '#e4e4e7', // text-zinc-200
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                                    backgroundColor: isLightCard ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+                                    borderColor: isLightCard ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.15)',
+                                    color: isLightCard ? '#18181b' : '#f4f4f5',
+                                    textShadow: isLightCard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)'
                                   }}
                                 >
                                   {a.position.trim().split(',')[0].slice(0, 3)}
@@ -1638,9 +1779,9 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                                 <span 
                                   className="font-mono font-black tracking-tighter shrink-0"
                                   style={{ 
-                                    color: customPrimaryColor, 
+                                    color: isLightCard ? '#09090b' : customPrimaryColor, 
                                     fontSize: '0.9em',
-                                    textShadow: '0 1.5px 3px rgba(0,0,0,0.9)'
+                                    textShadow: isLightCard ? 'none' : '0 1.5px 3px rgba(0,0,0,0.9)'
                                   }}
                                 >
                                   #{a.jersey_number || 'S/N'}
