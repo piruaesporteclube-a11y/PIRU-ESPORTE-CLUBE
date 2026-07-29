@@ -101,36 +101,32 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
       
       if (!value) return;
 
-      // FIRST: Unconditionally preserve custom black/dark backgrounds and yellow/amber text
+      // DO NOT touch gradients, background images, or radial/linear background styles
+      if (prop === 'background' || prop === 'backgroundImage') {
+        if (value.includes('gradient') || value.includes('url(') || (htmlEl.style.background && htmlEl.style.background.includes('gradient'))) {
+          return;
+        }
+      }
+
+      // FIRST: Unconditionally preserve custom black/dark backgrounds and yellow/amber text on explicit classes ONLY
       const hasBlackBgClass = htmlEl.classList.contains('bg-black') || 
                               htmlEl.classList.contains('bg-zinc-950') || 
-                              htmlEl.classList.contains('bg-zinc-900') ||
-                              htmlEl.closest('.bg-black') ||
-                              htmlEl.closest('.bg-zinc-950') ||
-                              htmlEl.closest('.bg-zinc-900') ||
-                              value === '#000000' ||
-                              value === 'rgb(0, 0, 0)';
+                              htmlEl.classList.contains('bg-zinc-900');
       
       const hasYellowTextClass = htmlEl.classList.contains('text-yellow-400') || 
                                  htmlEl.classList.contains('text-yellow-500') || 
                                  htmlEl.classList.contains('text-amber-400') || 
                                  htmlEl.classList.contains('text-amber-500') ||
-                                 htmlEl.closest('.text-yellow-400') ||
-                                 htmlEl.closest('.text-yellow-500') ||
-                                 htmlEl.closest('.text-amber-400') ||
-                                 htmlEl.closest('.text-amber-500') ||
+                                 htmlEl.classList.contains('text-theme-primary') ||
                                  value.includes('yellow') ||
                                  value.includes('amber') ||
                                  value.includes('#facc15') ||
                                  value.includes('#eab308');
 
       if (hasBlackBgClass && (prop === 'backgroundColor' || prop === 'background')) {
-        // Only set background on elements that are actually intended to have the background, not children inheriting color
-        if (htmlEl.classList.contains('bg-black') || htmlEl.classList.contains('bg-zinc-950') || htmlEl.classList.contains('bg-zinc-900')) {
-          htmlEl.style.backgroundColor = '#000000';
-          htmlEl.style.background = '#000000';
-          return;
-        }
+        htmlEl.style.backgroundColor = '#000000';
+        htmlEl.style.background = '#000000';
+        return;
       }
       if (hasYellowTextClass && prop === 'color') {
         htmlEl.style.color = '#facc15'; // Tailwind yellow-400
@@ -230,9 +226,7 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
             htmlEl.style.borderColor = isLightMode ? '#e5e7eb' : '#3f3f46';
           }
         } else if (prop === 'background') {
-          if (value.includes('gradient')) {
-            htmlEl.style.background = value.replace(/oklch\(.*?\)/g, isLightMode ? '#ffffff' : '#000000');
-          } else {
+          if (!value.includes('gradient') && !value.includes('url(')) {
             htmlEl.style.background = isLightMode ? '#ffffff' : '#000000';
           }
         }
@@ -250,7 +244,23 @@ export async function toBase64(url: string): Promise<string> {
     cleanUrl = `${window.location.origin}${url}`;
   }
 
-  const fallbackDataUri = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600"><defs><radialGradient id="bg" cx="50%" cy="35%" r="75%"><stop offset="0%" stop-color="%231e3a8a"/><stop offset="55%" stop-color="%230f172a"/><stop offset="100%" stop-color="%23020617"/></radialGradient></defs><rect width="1200" height="1600" fill="url(%23bg)"/></svg>`;
+  const fallbackSvgString = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+    <defs>
+      <radialGradient id="bgGlow" cx="50%" cy="35%" r="75%">
+        <stop offset="0%" stop-color="#1e3a8a"/>
+        <stop offset="55%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#020617"/>
+      </radialGradient>
+      <linearGradient id="grassGlow" x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop offset="0%" stop-color="#15803d"/>
+        <stop offset="100%" stop-color="#166534" stop-opacity="0.2"/>
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="1600" fill="url(#bgGlow)"/>
+    <rect y="800" width="1200" height="800" fill="url(#grassGlow)"/>
+    <circle cx="600" cy="400" r="350" fill="#38bdf8" opacity="0.12"/>
+  </svg>`;
+  const fallbackDataUri = `data:image/svg+xml;base64,${btoa(fallbackSvgString)}`;
 
   // Determine if URL is external to the app
   const isExternal = cleanUrl.startsWith('http') && !cleanUrl.includes(window.location.host);

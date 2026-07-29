@@ -101,15 +101,20 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const [selectedSubs, setSelectedSubs] = useState<string[]>(detectInitialSubs());
   const [customSub, setCustomSub] = useState('');
 
-  // Pre-convert default stadium background image on mount
+  // Pre-convert default stadium and grass background images on mount
   useEffect(() => {
     const defaultStadiumUrl = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200";
+    const defaultGrassUrl = "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200";
+    
     toBase64(defaultStadiumUrl).then(b64 => {
       if (b64 && b64.startsWith('data:')) {
-        setCustomBackgrounds(prev => ({
-          ...prev,
-          stadium: prev['stadium'] || b64
-        }));
+        setCustomBackgrounds(prev => ({ ...prev, stadium: prev['stadium'] || b64 }));
+      }
+    }).catch(() => {});
+
+    toBase64(defaultGrassUrl).then(b64 => {
+      if (b64 && b64.startsWith('data:')) {
+        setCustomBackgrounds(prev => ({ ...prev, grass: prev['grass'] || b64 }));
       }
     }).catch(() => {});
   }, []);
@@ -968,7 +973,7 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                   <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
                 </div>
               )}
-              <div className="absolute inset-0 z-[4] bg-gradient-to-t from-black via-black/20 to-black/50 pointer-events-none" />
+              <div className="absolute inset-0 z-[4] pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%)' }} />
               
               {/* Photo Layer - Positionable */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
