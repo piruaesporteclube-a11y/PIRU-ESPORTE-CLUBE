@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, Activity, Clock, Calendar, FileText, Instagram } from 'lucide-react';
+import { Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, Activity, Clock, Calendar, FileText, Instagram, ImageOff } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { cn, fixHtml2CanvasColors, prepareElementForExport, toBase64 } from '../utils';
 
@@ -143,7 +143,6 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
   const toggleBackground = (id: string) => {
     setSelectedBackgrounds(prev => {
       if (prev.includes(id)) {
-        if (prev.length === 1) return prev;
         return prev.filter(bg => bg !== id);
       }
       return [...prev, id];
@@ -321,6 +320,33 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
 
             {/* Preset Grid */}
             <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
+              {/* Option: Nenhum Fundo */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedBackgrounds([]);
+                }}
+                className={cn(
+                  "group relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all flex flex-col items-center justify-center p-2 text-center bg-zinc-950/90",
+                  selectedBackgrounds.length === 0 
+                    ? "border-theme-primary ring-2 ring-theme-primary/30 bg-theme-primary/10" 
+                    : "border-zinc-850 hover:border-zinc-700"
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center mb-1 transition-colors",
+                  selectedBackgrounds.length === 0 ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-400 group-hover:text-white"
+                )}>
+                  <ImageOff size={16} />
+                </div>
+                <span className={cn(
+                  "text-[8px] font-black uppercase tracking-tight leading-tight",
+                  selectedBackgrounds.length === 0 ? "text-theme-primary" : "text-zinc-400 group-hover:text-zinc-200"
+                )}>
+                  Nenhum Fundo
+                </span>
+              </button>
+
               {SPORT_BACKGROUNDS.filter(bg => bgCategory === 'TODOS' || bg.category === bgCategory).map(bg => {
                 const isActive = selectedBackgrounds.includes('stadium') && customBackgrounds['stadium'] === bg.url;
                 const isDefaultActive = !customBackgrounds['stadium'] && bg.id === 'stadium_night' && selectedBackgrounds.includes('stadium');
@@ -964,13 +990,13 @@ export default function EventFlyer({ event, athletes, onClose }: EventFlyerProps
                 </div>
               )}
               {selectedBackgrounds.includes('grass') && (
-                <div className={cn("absolute inset-0 z-[2]", selectedBackgrounds.includes('stadium') ? "mix-blend-overlay opacity-80" : "opacity-100")}>
+                <div className={cn("absolute inset-0 z-[2]", selectedBackgrounds.includes('stadium') ? "opacity-40" : "opacity-100")}>
                   <img src={customBackgrounds['grass'] || "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover" crossOrigin="anonymous" />
                 </div>
               )}
               {selectedBackgrounds.includes('carbon') && (
-                <div className={cn("absolute inset-0 z-[3]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "mix-blend-multiply opacity-80" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
-                  <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
+                <div className={cn("absolute inset-0 z-[3]", (selectedBackgrounds.includes('stadium') || selectedBackgrounds.includes('grass')) ? "opacity-40" : "opacity-100")} style={{ backgroundColor: carbonColor }}>
+                  <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 0h3v3H0zm3 3h3v3H3z' fill='%23000000' fill-opacity='0.6'/%3E%3C/svg%3E\")" }} />
                 </div>
               )}
               <div className="absolute inset-0 z-[4] pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%)' }} />

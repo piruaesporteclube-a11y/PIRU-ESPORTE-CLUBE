@@ -108,6 +108,16 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
         }
       }
 
+      // Check if computed background color is transparent or has 0 alpha
+      const isTransparentBg = 
+        value === 'transparent' || 
+        value === 'rgba(0, 0, 0, 0)' || 
+        value === 'rgba(255, 255, 255, 0)' || 
+        value.includes('/ 0)') || 
+        value.includes('0 / 0') ||
+        value.includes(', 0)') ||
+        value === 'none';
+
       // FIRST: Unconditionally preserve custom black/dark backgrounds and yellow/amber text on explicit classes ONLY
       const hasBlackBgClass = htmlEl.classList.contains('bg-black') || 
                               htmlEl.classList.contains('bg-zinc-950') || 
@@ -172,7 +182,7 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
         return;
       }
 
-      // SECOND: Handle oklch / oklab or general variables fallback
+      // THIRD: Handle oklch / oklab or general variables fallback
       if (value.includes('oklch') || value.includes('oklab') || value.includes('var(')) {
         if (prop === 'color') {
           if (htmlEl.classList.contains('text-zinc-500')) {
@@ -194,7 +204,9 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
             htmlEl.style.color = isLightMode ? '#000000' : '#ffffff';
           }
         } else if (prop === 'backgroundColor') {
-          if (htmlEl.classList.contains('bg-zinc-900')) {
+          if (isTransparentBg) {
+            htmlEl.style.backgroundColor = 'transparent';
+          } else if (htmlEl.classList.contains('bg-zinc-900')) {
             htmlEl.style.backgroundColor = isLightMode ? '#111827' : '#18181b';
           } else if (htmlEl.classList.contains('bg-zinc-950')) {
             htmlEl.style.backgroundColor = isLightMode ? '#030712' : '#09090b';
@@ -210,8 +222,6 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
             htmlEl.style.backgroundColor = '#e5e7eb';
           } else if (htmlEl.classList.contains('bg-white')) {
             htmlEl.style.backgroundColor = '#ffffff';
-          } else {
-            htmlEl.style.backgroundColor = isLightMode ? '#ffffff' : '#000000';
           }
         } else if (prop === 'borderColor') {
           if (htmlEl.classList.contains('border-zinc-200')) {
@@ -226,7 +236,7 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
             htmlEl.style.borderColor = isLightMode ? '#e5e7eb' : '#3f3f46';
           }
         } else if (prop === 'background') {
-          if (!value.includes('gradient') && !value.includes('url(')) {
+          if (!value.includes('gradient') && !value.includes('url(') && !isTransparentBg) {
             htmlEl.style.background = isLightMode ? '#ffffff' : '#000000';
           }
         }
@@ -377,13 +387,16 @@ export async function prepareElementForExport(element: HTMLElement, width = 360,
   // Apply color fixes for oklch / tailwind theme variables
   fixHtml2CanvasColors(clone);
 
-  // Clean styles (No animations, no transitions, no blurs)
+  // Clean styles (No animations, no transitions, no blurs, no mix-blend-mode conflicts)
   const allCloneElements = clone.querySelectorAll('*');
   allCloneElements.forEach((el: any) => {
     if (el.style) {
       el.style.animation = 'none';
       el.style.transition = 'none';
       el.style.backdropFilter = 'none';
+      if (el.style.mixBlendMode && el.style.mixBlendMode !== 'normal') {
+        el.style.mixBlendMode = 'normal';
+      }
       if (el.style.filter && el.style.filter.includes('blur')) {
         el.style.filter = 'none';
       }
