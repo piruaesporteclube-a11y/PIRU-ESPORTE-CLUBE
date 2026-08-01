@@ -1642,20 +1642,29 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
           {!isLocked && (
             <div className="flex flex-wrap items-center gap-3">
-              {(isAdmin || role === 'professor') && hasChanges && (
+              {(isAdmin || role === 'professor') && (
                 <button 
                   onClick={saveCurrentAttendance}
-                  className="flex items-center gap-2 px-6 py-3 bg-theme-primary text-black font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-theme-primary/40 animate-pulse border-2 border-black"
+                  className={cn(
+                    "flex items-center gap-2 px-6 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg border-2 border-black cursor-pointer hover:scale-103 active:scale-97",
+                    hasChanges 
+                      ? "bg-theme-primary text-black shadow-theme-primary/40 animate-pulse" 
+                      : "bg-theme-primary hover:bg-theme-primary/90 text-black shadow-theme-primary/20"
+                  )}
+                  title="Salvar Chamada"
                 >
                   <FileDown size={20} />
-                  Salvar Chamada
+                  <span>Salvar Chamada</span>
+                  {hasChanges && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-black animate-ping" />
+                  )}
                 </button>
               )}
               
               {(selectedTrainingId === 'geral' && !trainingId && !eventId) && (
                 <button 
                   onClick={markAllPresent}
-                  className="flex items-center gap-2 px-4 py-3 bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
+                  className="flex items-center gap-2 px-4 py-3 bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest cursor-pointer"
                 >
                   <CheckCircle2 size={16} />
                   Presença Rápida
@@ -4242,6 +4251,27 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Bottom Save Action for Attendance */}
+      {(isAdmin || role === 'professor') && !isLocked && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+          <button 
+            type="button"
+            onClick={saveCurrentAttendance}
+            className={cn(
+              "flex items-center gap-2.5 px-6 py-3.5 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-2xl border-2 border-black cursor-pointer hover:scale-105 active:scale-95",
+              hasChanges 
+                ? "bg-theme-primary text-black shadow-theme-primary/60 animate-bounce" 
+                : "bg-theme-primary text-black shadow-lg shadow-theme-primary/30"
+            )}
+            title="Salvar Chamada Manualmente"
+          >
+            <FileDown size={20} />
+            <span>Salvar Chamada</span>
+            {hasChanges && <span className="w-2.5 h-2.5 rounded-full bg-black animate-ping" />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
