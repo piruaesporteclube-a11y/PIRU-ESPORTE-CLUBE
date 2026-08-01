@@ -1348,10 +1348,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
               {/* Date Section - Centered */}
               <div className="relative z-30 mt-4 flex justify-center">
-                <div className="bg-black/30 backdrop-blur-md border border-white/5 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-xl">
-                  <Calendar size={10} className="text-theme-primary" />
+                <div className="bg-black/90 border border-zinc-800 rounded-xl px-3.5 py-1.5 flex items-center gap-2 shadow-2xl">
+                  <Calendar size={11} className="text-theme-primary" style={{ color: '#EAB308' }} />
                   <div className="flex flex-col leading-tight items-center">
-                    <span className="text-[6px] font-black text-theme-primary uppercase tracking-widest">{dayOfWeek}</span>
+                    <span className="text-[7px] font-black uppercase tracking-widest" style={{ color: '#EAB308' }}>{dayOfWeek}</span>
                     <span className="text-[11px] font-black text-white uppercase tracking-tight">{formattedDate}</span>
                   </div>
                 </div>
@@ -1372,22 +1372,22 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 {activeTrainings.map((t, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
                     <div className={cn(
-                      "bg-theme-primary/10 px-2 py-1 backdrop-blur-sm",
-                      infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right"
+                      "bg-black/95 px-2.5 py-1.5 border border-zinc-800 shadow-xl rounded-md",
+                      infoAlign === 'left' ? "border-l-4 border-l-theme-primary text-left" : "border-r-4 border-r-theme-primary text-right"
                     )}>
                       <h3 
-                        className="text-[10px] font-black text-theme-primary uppercase italic tracking-tighter truncate leading-none"
+                        className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
                         style={{ color: '#EAB308' }}
                       >
                         {t.modality}
                       </h3>
                       {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
                         <div className={cn(
-                          "flex items-center gap-0.5 mt-0.5",
+                          "flex items-center gap-0.5 mt-1",
                           infoAlign === 'left' ? "justify-start" : "justify-end"
                         )}>
-                          <MapPin size={7} className="text-white/60 shrink-0" />
-                          <span className="text-[7.5px] font-black text-white/80 uppercase tracking-tight truncate max-w-full">
+                          <MapPin size={8} className="text-amber-400 shrink-0" style={{ color: '#EAB308' }} />
+                          <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                             {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
                           </span>
                         </div>
@@ -1398,26 +1398,29 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       {!t.schedules || t.schedules.length === 0 ? (
                         <div className="relative group">
                           <div className={cn(
-                            "bg-black/60 backdrop-blur-md p-2 space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all",
-                            infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
+                            "bg-zinc-950/95 border border-zinc-800 p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
+                            infoAlign === 'left' ? "border-l-2 border-l-amber-500" : "border-r-2 border-r-amber-500"
                           )}>
                             {/* Time Slot */}
                             <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
-                              {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                              {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
                               <span 
-                                className="text-theme-primary font-mono font-black tracking-tighter text-center"
-                                style={{ fontSize: `${timeFontSize}px` }}
+                                className="font-mono font-black tracking-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
+                                style={{ fontSize: `${timeFontSize}px`, color: '#EAB308' }}
                               >
                                 {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time)}
                               </span>
-                              {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                              {infoAlign === 'right' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
                             </div>
                             
                             {/* Categories Stacks */}
-                            <div className="flex flex-col gap-0.5 mt-0.5">
+                            <div className="flex flex-col gap-1 mt-0.5">
                               {(customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category) && (
-                                <div className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
-                                  <span className="text-[7px] font-black uppercase italic leading-none text-center">
+                                <div 
+                                  className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
+                                  style={{ backgroundColor: '#EAB308' }}
+                                >
+                                  <span className="text-[7.5px] font-black uppercase italic leading-none text-center tracking-tight" style={{ color: '#000000' }}>
                                     {customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category}
                                   </span>
                                 </div>
@@ -1429,35 +1432,42 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         t.schedules.map((s, si) => (
                           <div key={si} className="relative group">
                             <div className={cn(
-                              "bg-black/60 backdrop-blur-md p-2 space-y-1.5 shadow-lg group-hover:bg-black/80 transition-all",
-                              infoAlign === 'left' ? "border-l border-white/10 rounded-r-lg" : "border-r border-white/10 rounded-l-lg"
+                              "bg-zinc-950/95 border border-zinc-800 p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
+                              infoAlign === 'left' ? "border-l-2 border-l-amber-500" : "border-r-2 border-r-amber-500"
                             )}>
                               {/* Time Slot */}
                               <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
-                                {infoAlign === 'left' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                                {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
                                 <span 
-                                  className="text-theme-primary font-mono font-black tracking-tighter text-center"
-                                  style={{ fontSize: `${timeFontSize}px` }}
+                                  className="font-mono font-black tracking-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
+                                  style={{ fontSize: `${timeFontSize}px`, color: '#EAB308' }}
                                 >
                                   {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)}
                                 </span>
-                                {infoAlign === 'right' && <Clock size={Math.max(6, Math.round(timeFontSize * 0.9))} className="text-theme-primary opacity-70" />}
+                                {infoAlign === 'right' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
                               </div>
 
                               {/* Categories Stacks */}
-                              <div className="flex flex-col gap-0.5 mt-0.5">
+                              <div className="flex flex-col gap-1 mt-0.5">
                                 {customCategories[`${t.id}-${si}-cat`] !== undefined ? (
                                   customCategories[`${t.id}-${si}-cat`] && (
-                                    <div className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
-                                      <span className="text-[7px] font-black uppercase italic leading-none text-center">
+                                    <div 
+                                      className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
+                                      style={{ backgroundColor: '#EAB308' }}
+                                    >
+                                      <span className="text-[7.5px] font-black uppercase italic leading-none text-center tracking-tight" style={{ color: '#000000' }}>
                                         {customCategories[`${t.id}-${si}-cat`]}
                                       </span>
                                     </div>
                                   )
                                 ) : (
                                   s.categories.map((c, ci) => (
-                                    <div key={ci} className="bg-theme-primary text-black px-1.5 py-0.5 rounded-sm flex items-center justify-center">
-                                      <span className="text-[7px] font-black uppercase italic leading-none whitespace-nowrap">
+                                    <div 
+                                      key={ci} 
+                                      className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
+                                      style={{ backgroundColor: '#EAB308' }}
+                                    >
+                                      <span className="text-[7.5px] font-black uppercase italic leading-none whitespace-nowrap tracking-tight" style={{ color: '#000000' }}>
                                         {c}
                                       </span>
                                     </div>
@@ -1547,11 +1557,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 }}
               >
                 <div className={cn(
-                  "bg-black/20 backdrop-blur-sm pl-3 py-2 italic",
-                  infoAlign === 'left' ? "border-l-2 border-theme-primary text-left" : "border-r-2 border-theme-primary text-right pr-3 pl-0"
+                  "bg-black/90 pl-3 py-2 italic border border-zinc-800/80 rounded-md shadow-xl",
+                  infoAlign === 'left' ? "border-l-4 border-l-theme-primary text-left" : "border-r-4 border-r-theme-primary text-right pr-3 pl-0"
                 )}>
                   <p 
-                    className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-md leading-tight"
+                    className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-tight"
                     style={{ color: '#EAB308' }}
                   >
                     FOCO DISCIPLINA E RAÇA!<br />
