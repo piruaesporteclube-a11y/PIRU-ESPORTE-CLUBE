@@ -679,6 +679,52 @@ const Dashboard = ({
                       );
                     }
 
+                    if (settings?.systemLayoutMode === 'cyber_neon') {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-4 sm:p-5 bg-slate-900/80 hover:bg-slate-800/90 border border-emerald-500/30 hover:border-emerald-400/80 rounded-2xl transition-all group text-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.25)] cursor-pointer relative",
+                            isSelected && "bg-slate-800 border-emerald-400 ring-2 ring-emerald-400/50 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                          )}
+                        >
+                          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-400 group-hover:text-black transition-all shrink-0">
+                            <item.icon size={22} />
+                          </div>
+                          <div className="min-w-0 w-full">
+                            <span className="text-xs sm:text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-emerald-300">
+                              {item.label}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    if (settings?.systemLayoutMode === 'royal_purple') {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-4 sm:p-5 bg-[#180b24] hover:bg-[#231035] border border-purple-800/60 hover:border-amber-400/80 rounded-2xl transition-all group text-center gap-3 shadow-xl cursor-pointer relative",
+                            isSelected && "bg-[#2a133f] border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(168,85,247,0.3)]"
+                          )}
+                        >
+                          <div className="p-3 bg-purple-950/80 border border-purple-700/60 rounded-xl text-purple-300 group-hover:text-amber-400 group-hover:scale-110 transition-all shrink-0">
+                            <item.icon size={22} />
+                          </div>
+                          <div className="min-w-0 w-full">
+                            <span className="text-xs sm:text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-purple-300">
+                              {item.label}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+
                     return (
                       <button
                         key={item.id}
@@ -1214,6 +1260,64 @@ const Dashboard = ({
                           </div>
                         </div>
                         <Flame size={16} className="text-red-500 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all shrink-0" />
+                      </button>
+                    );
+                  }
+
+                  if (settings?.systemLayoutMode === 'cyber_neon') {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 sm:p-5 bg-slate-900/80 hover:bg-slate-800/90 border border-emerald-500/30 hover:border-emerald-400/80 rounded-2xl transition-all group text-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.25)] cursor-pointer relative",
+                          isSelected && "bg-slate-800 border-emerald-400 ring-2 ring-emerald-400/50 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                        )}
+                      >
+                        {item.id === 'school-reports' && pendingReportsCount > 0 && (
+                          <div className="absolute top-2 left-2 bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping shrink-0" />
+                            <span>{pendingReportsCount}</span>
+                          </div>
+                        )}
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-400 group-hover:text-black transition-all shrink-0">
+                          <item.icon size={22} />
+                        </div>
+                        <div className="min-w-0 w-full">
+                          <span className="text-xs sm:text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-emerald-300">
+                            {item.label}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  }
+
+                  if (settings?.systemLayoutMode === 'royal_purple') {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 sm:p-5 bg-[#180b24] hover:bg-[#231035] border border-purple-800/60 hover:border-amber-400/80 rounded-2xl transition-all group text-center gap-3 shadow-xl cursor-pointer relative",
+                          isSelected && "bg-[#2a133f] border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(168,85,247,0.3)]"
+                        )}
+                      >
+                        {item.id === 'school-reports' && pendingReportsCount > 0 && (
+                          <div className="absolute top-2 left-2 bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping shrink-0" />
+                            <span>{pendingReportsCount}</span>
+                          </div>
+                        )}
+                        <div className="p-3 bg-purple-950/80 border border-purple-700/60 rounded-xl text-purple-300 group-hover:text-amber-400 group-hover:scale-110 transition-all shrink-0">
+                          <item.icon size={22} />
+                        </div>
+                        <div className="min-w-0 w-full">
+                          <span className="text-xs sm:text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-purple-300">
+                            {item.label}
+                          </span>
+                        </div>
                       </button>
                     );
                   }

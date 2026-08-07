@@ -5,6 +5,7 @@ import { Settings } from '../types';
 interface ThemeContextType {
   settings: Settings;
   refreshSettings: () => Promise<void>;
+  updateSettings: (newSettings: Settings) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -36,6 +37,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error loading settings:", error);
     }
+  };
+
+  const updateSettings = async (newSettings: Settings) => {
+    setSettings(newSettings);
+    await api.saveSettings(newSettings);
   };
 
   useEffect(() => {
@@ -170,7 +176,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [settings]);
 
   return (
-    <ThemeContext.Provider value={{ settings, refreshSettings: loadSettings }}>
+    <ThemeContext.Provider value={{ settings, refreshSettings: loadSettings, updateSettings }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -35,10 +35,20 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
   // Filter items accessible by current user role
   const accessibleNavItems = navItems.filter(item => user && item.roles.includes(user.role));
 
-  // Quick primary items for docks/sidebars
+  // Primary dock items
   const primaryDockItems = accessibleNavItems.filter(item => 
     ['dashboard', 'athletes', 'attendance', 'lineups', 'trainings', 'championships', 'system-layouts', 'settings'].includes(item.id)
   );
+
+  // Nav categories definition for grouped sidebar
+  const categoryGroups = [
+    { id: 'command', label: 'Painel de Comando', color: 'text-amber-400', badgeBg: 'bg-amber-400/20' },
+    { id: 'arena', label: 'Arena & Competição', color: 'text-emerald-400', badgeBg: 'bg-emerald-400/20' },
+    { id: 'training', label: 'Centro de Treinamento', color: 'text-sky-400', badgeBg: 'bg-sky-400/20' },
+    { id: 'office', label: 'Gabinete & Saúde', color: 'text-rose-400', badgeBg: 'bg-rose-400/20' },
+    { id: 'community', label: 'Social & Relacionamento', color: 'text-purple-400', badgeBg: 'bg-purple-400/20' },
+    { id: 'student', label: 'Área do Aluno', color: 'text-amber-400', badgeBg: 'bg-amber-400/20' },
+  ];
 
   return (
     <div className={cn(
@@ -74,31 +84,45 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                 </div>
               </div>
 
-              {/* Column Navigation Buttons */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-3 block mb-1">
-                  Módulos (Coluna Esquerda)
-                </span>
-                {accessibleNavItems.map(item => {
-                  const Icon = item.icon;
-                  const isSelected = activeTab === item.id;
+              {/* Column Navigation Buttons Grouped by Category */}
+              <div className="space-y-4">
+                {categoryGroups.map(cat => {
+                  const catItems = accessibleNavItems.filter(item => item.category === cat.id);
+                  if (catItems.length === 0) return null;
+
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer group",
-                        isSelected 
-                          ? "bg-sky-500 text-black shadow-lg shadow-sky-500/25 font-black" 
-                          : "text-zinc-400 hover:text-white hover:bg-zinc-900"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Icon size={18} className={cn("shrink-0", isSelected ? "text-black" : "text-sky-400")} />
-                        <span className="truncate">{item.label}</span>
+                    <div key={cat.id} className="space-y-1">
+                      <div className="flex items-center justify-between px-2.5 py-1 border-b border-zinc-900 mb-1">
+                        <span className={cn("text-[10px] font-black uppercase tracking-wider", cat.color)}>
+                          {cat.label}
+                        </span>
+                        <span className="text-[9px] font-black text-zinc-500 bg-zinc-900/90 px-1.5 py-0.5 rounded">
+                          {catItems.length}
+                        </span>
                       </div>
-                      {isSelected && <ChevronRight size={14} className="text-black shrink-0" />}
-                    </button>
+                      {catItems.map(item => {
+                        const Icon = item.icon;
+                        const isSelected = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer group text-left",
+                              isSelected 
+                                ? "bg-sky-500 text-black shadow-lg shadow-sky-500/25 font-black" 
+                                : "text-zinc-400 hover:text-white hover:bg-zinc-900/90"
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Icon size={16} className={cn("shrink-0", isSelected ? "text-black" : "text-sky-400")} />
+                              <span className="truncate">{item.label}</span>
+                            </div>
+                            {isSelected && <ChevronRight size={14} className="text-black shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
                 })}
               </div>
@@ -147,21 +171,42 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                       <span className="font-black uppercase text-sky-400 text-sm">Menu Tático</span>
                       <button onClick={() => setMobileMenuOpen(false)} className="text-zinc-400"><X size={20} /></button>
                     </div>
-                    <div className="space-y-1">
-                      {accessibleNavItems.map(item => {
-                        const Icon = item.icon;
-                        const isSelected = activeTab === item.id;
+                    <div className="space-y-4">
+                      {categoryGroups.map(cat => {
+                        const catItems = accessibleNavItems.filter(item => item.category === cat.id);
+                        if (catItems.length === 0) return null;
+
                         return (
-                          <button
-                            key={item.id}
-                            onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-black uppercase text-left transition-all",
-                              isSelected ? "bg-sky-500 text-black" : "text-zinc-300 hover:bg-zinc-900"
-                            )}
-                          >
-                            <Icon size={18} /> {item.label}
-                          </button>
+                          <div key={cat.id} className="space-y-1">
+                            <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-900 mb-1">
+                              <span className={cn("text-[10px] font-black uppercase tracking-wider", cat.color)}>
+                                {cat.label}
+                              </span>
+                              <span className="text-[9px] font-black text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded">
+                                {catItems.length}
+                              </span>
+                            </div>
+                            {catItems.map(item => {
+                              const Icon = item.icon;
+                              const isSelected = activeTab === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
+                                  className={cn(
+                                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black uppercase text-left transition-all",
+                                    isSelected ? "bg-sky-500 text-black" : "text-zinc-300 hover:bg-zinc-900"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <Icon size={16} className={isSelected ? "text-black" : "text-sky-400"} />
+                                    <span className="truncate">{item.label}</span>
+                                  </div>
+                                  {isSelected && <ChevronRight size={14} className="text-black shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
                         );
                       })}
                     </div>

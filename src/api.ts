@@ -2898,14 +2898,23 @@ export const api = {
   },
   saveSettings: async (settings: Partial<Settings>) => {
     try {
+      // 1. Immediately update LocalStorage and memory cache with merged settings
+      const localSaved = localStorage.getItem('pirua_settings_cache');
+      let existing: any = {};
+      if (localSaved) {
+        try { existing = JSON.parse(localSaved); } catch (e) {}
+      }
+      const merged = { ...existing, ...settings };
+      localStorage.setItem('pirua_settings_cache', JSON.stringify(merged));
+      setCachedData("global_settings", merged);
+
+      // 2. Save to Firestore
       const data = { ...settings, updated_at: serverTimestamp() };
       await setDoc(doc(db, "settings", "global_settings"), sanitizeData(data), { merge: true });
-      delete cache["global_settings"]; // Invalidate memory cache
-      // Update local storage cache
-      const current = await api.getSettings();
-      if (current) {
-        localStorage.setItem('pirua_settings_cache', JSON.stringify({ ...current, ...settings }));
-      }
+
+      // 3. Keep cache updated
+      setCachedData("global_settings", merged);
+      localStorage.setItem('pirua_settings_cache', JSON.stringify(merged));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "settings/global_settings");
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../api';
 import { Settings } from '../types';
@@ -137,7 +137,7 @@ export const SYSTEM_LAYOUT_PRESETS: SystemLayoutPreset[] = [
 ];
 
 export default function SystemLayouts() {
-  const { settings: globalSettings, refreshSettings } = useTheme();
+  const { settings: globalSettings, updateSettings, refreshSettings } = useTheme();
   const [activePresetId, setActivePresetId] = useState<string>(() => {
     if (globalSettings.systemLayoutMode) return globalSettings.systemLayoutMode;
     const found = SYSTEM_LAYOUT_PRESETS.find(p => 
@@ -146,6 +146,13 @@ export default function SystemLayouts() {
     );
     return found ? found.id : 'gold_classic';
   });
+
+  useEffect(() => {
+    if (globalSettings.systemLayoutMode) {
+      setActivePresetId(globalSettings.systemLayoutMode);
+      setPreviewSettings({ ...globalSettings });
+    }
+  }, [globalSettings.systemLayoutMode]);
 
   const [previewSettings, setPreviewSettings] = useState<Settings>({ ...globalSettings });
   const [isSaving, setIsSaving] = useState(false);
@@ -168,7 +175,7 @@ export default function SystemLayouts() {
     setPreviewSettings(updated);
     setIsSaving(true);
     try {
-      await api.saveSettings(updated);
+      await updateSettings(updated);
       await refreshSettings();
       toast.success(`Layout "${preset.name}" aplicado com sucesso em todo o sistema!`);
     } catch (error) {
