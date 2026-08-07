@@ -87,6 +87,15 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [fundo2Opacity, setFundo2Opacity] = useState<number>(0.5);
   const [fundoBlend, setFundoBlend] = useState<string>('overlay');
   const [bgSelectTarget, setBgSelectTarget] = useState<1 | 2>(1);
+
+  // Background Image Position & Scale Controls (Zoom e Recuo/Deslocamento)
+  const [fundo1Scale, setFundo1Scale] = useState<number>(1);
+  const [fundo1PosX, setFundo1PosX] = useState<number>(0);
+  const [fundo1PosY, setFundo1PosY] = useState<number>(0);
+
+  const [fundo2Scale, setFundo2Scale] = useState<number>(1);
+  const [fundo2PosX, setFundo2PosX] = useState<number>(0);
+  const [fundo2PosY, setFundo2PosY] = useState<number>(0);
   const [bgCategory, setBgCategory] = useState<string>('TODOS');
   const [carbonColor, setCarbonColor] = useState<string>('#1a1a1a');
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
@@ -518,58 +527,171 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               })}
             </div>
 
-            {/* Opacity and Blend Mode Controls */}
+            {/* Zoom, Recuo, Position & Opacity Controls for Background Image */}
             <div className="space-y-4 bg-zinc-950/60 p-4 rounded-2xl border border-zinc-850/80">
-              <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Ajuste de Opacidade & Mesclagem</div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-[9px] font-bold text-zinc-500 uppercase">Opacidade Fundo 1</label>
-                    <span className="text-[9px] text-theme-primary font-bold">{(fundo1Opacity * 100).toFixed(0)}%</span>
-                  </div>
-                  <input 
-                    type="range" min="0" max="1" step="0.05"
-                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                    value={fundo1Opacity}
-                    onChange={e => setFundo1Opacity(parseFloat(e.target.value))}
-                  />
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                <div className="text-[10px] font-black text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-theme-primary"></span>
+                  Ajustes do Fundo {bgSelectTarget} (Zoom, Recuo & Posição)
                 </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-[9px] font-bold text-zinc-500 uppercase">Opacidade Fundo 2</label>
-                    <span className="text-[9px] text-theme-primary font-bold">{(fundo2Opacity * 100).toFixed(0)}%</span>
-                  </div>
-                  <input 
-                    type="range" min="0" max="1" step="0.05"
-                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                    disabled={fundo2 === 'none'}
-                    value={fundo2Opacity}
-                    onChange={e => setFundo2Opacity(parseFloat(e.target.value))}
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (bgSelectTarget === 1) {
+                      setFundo1Scale(1);
+                      setFundo1PosX(0);
+                      setFundo1PosY(0);
+                      setFundo1Opacity(1);
+                    } else {
+                      setFundo2Scale(1);
+                      setFundo2PosX(0);
+                      setFundo2PosY(0);
+                      setFundo2Opacity(0.5);
+                    }
+                  }}
+                  className="text-[9px] font-black text-theme-primary uppercase hover:underline"
+                >
+                  Resetar Fundo {bgSelectTarget}
+                </button>
               </div>
 
-              {fundo2 !== 'none' && (
-                <div className="animate-in fade-in duration-300">
-                  <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1.5">Efeito de Mesclagem (Fundo 2 sobre Fundo 1)</label>
-                  <select
-                    value={fundoBlend}
-                    onChange={(e) => setFundoBlend(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 text-white rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-theme-primary text-[10px] font-bold uppercase cursor-pointer"
-                  >
-                    <option value="normal">Normal (Sem Mesclagem)</option>
-                    <option value="overlay">Sobreposição (Overlay)</option>
-                    <option value="multiply">Multiplicar (Multiply)</option>
-                    <option value="screen">Clarear (Screen)</option>
-                    <option value="soft-light">Luz Suave (Soft Light)</option>
-                    <option value="hard-light">Luz Intensa (Hard Light)</option>
-                    <option value="color-dodge">Esquivar Cor (Color Dodge)</option>
-                    <option value="color-burn">Super-exposição (Color Burn)</option>
-                    <option value="difference">Diferença (Difference)</option>
-                    <option value="luminosity">Luminosidade (Luminosity)</option>
-                  </select>
+              {bgSelectTarget === 1 ? (
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Zoom / Tamanho Fundo 1</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{(fundo1Scale * 100).toFixed(0)}% ({fundo1Scale.toFixed(2)}x)</span>
+                    </div>
+                    <input 
+                      type="range" min="0.5" max="3" step="0.05"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={fundo1Scale}
+                      onChange={e => setFundo1Scale(parseFloat(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-[9px] font-bold text-zinc-400 uppercase">Horizontal (Recuo X)</label>
+                        <span className="text-[9px] text-theme-primary font-bold">{fundo1PosX}px</span>
+                      </div>
+                      <input 
+                        type="range" min="-250" max="250" step="1"
+                        className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        value={fundo1PosX}
+                        onChange={e => setFundo1PosX(parseInt(e.target.value))}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-[9px] font-bold text-zinc-400 uppercase">Vertical (Recuo Y)</label>
+                        <span className="text-[9px] text-theme-primary font-bold">{fundo1PosY}px</span>
+                      </div>
+                      <input 
+                        type="range" min="-250" max="250" step="1"
+                        className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        value={fundo1PosY}
+                        onChange={e => setFundo1PosY(parseInt(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Opacidade Fundo 1</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{(fundo1Opacity * 100).toFixed(0)}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="1" step="0.05"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      value={fundo1Opacity}
+                      onChange={e => setFundo1Opacity(parseFloat(e.target.value))}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Zoom / Tamanho Fundo 2</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{(fundo2Scale * 100).toFixed(0)}% ({fundo2Scale.toFixed(2)}x)</span>
+                    </div>
+                    <input 
+                      type="range" min="0.5" max="3" step="0.05"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      disabled={fundo2 === 'none'}
+                      value={fundo2Scale}
+                      onChange={e => setFundo2Scale(parseFloat(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-[9px] font-bold text-zinc-400 uppercase">Horizontal (Recuo X)</label>
+                        <span className="text-[9px] text-theme-primary font-bold">{fundo2PosX}px</span>
+                      </div>
+                      <input 
+                        type="range" min="-250" max="250" step="1"
+                        className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        disabled={fundo2 === 'none'}
+                        value={fundo2PosX}
+                        onChange={e => setFundo2PosX(parseInt(e.target.value))}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-[9px] font-bold text-zinc-400 uppercase">Vertical (Recuo Y)</label>
+                        <span className="text-[9px] text-theme-primary font-bold">{fundo2PosY}px</span>
+                      </div>
+                      <input 
+                        type="range" min="-250" max="250" step="1"
+                        className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                        disabled={fundo2 === 'none'}
+                        value={fundo2PosY}
+                        onChange={e => setFundo2PosY(parseInt(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Opacidade Fundo 2</label>
+                      <span className="text-[9px] text-theme-primary font-bold">{(fundo2Opacity * 100).toFixed(0)}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="1" step="0.05"
+                      className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                      disabled={fundo2 === 'none'}
+                      value={fundo2Opacity}
+                      onChange={e => setFundo2Opacity(parseFloat(e.target.value))}
+                    />
+                  </div>
+
+                  {fundo2 !== 'none' && (
+                    <div className="animate-in fade-in duration-300">
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1.5">Efeito de Mesclagem (Fundo 2 sobre Fundo 1)</label>
+                      <select
+                        value={fundoBlend}
+                        onChange={(e) => setFundoBlend(e.target.value)}
+                        className="w-full bg-black border border-zinc-800 text-white rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-theme-primary text-[10px] font-bold uppercase cursor-pointer"
+                      >
+                        <option value="normal">Normal (Sem Mesclagem)</option>
+                        <option value="overlay">Sobreposição (Overlay)</option>
+                        <option value="multiply">Multiplicar (Multiply)</option>
+                        <option value="screen">Clarear (Screen)</option>
+                        <option value="soft-light">Luz Suave (Soft Light)</option>
+                        <option value="hard-light">Luz Intensa (Hard Light)</option>
+                        <option value="color-dodge">Esquivar Cor (Color Dodge)</option>
+                        <option value="color-burn">Super-exposição (Color Burn)</option>
+                        <option value="difference">Diferença (Difference)</option>
+                        <option value="luminosity">Luminosidade (Luminosity)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1197,11 +1319,15 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 <div className="absolute inset-0">
                   {/* Layer 1: Background 1 */}
                   {getFundo1Url() && (
-                    <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 z-0 overflow-hidden">
                       <img 
                         src={getFundo1Url() || ''} 
-                        className="w-full h-full object-cover" 
-                        style={{ opacity: fundo1Opacity }}
+                        className="w-full h-full object-cover transition-transform" 
+                        style={{ 
+                          opacity: fundo1Opacity,
+                          transform: `scale(${fundo1Scale}) translate(${fundo1PosX}px, ${fundo1PosY}px)`,
+                          transformOrigin: 'center center'
+                        }}
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />
@@ -1210,11 +1336,15 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
                   {/* Layer 2: Background 2 (Mesclagem) */}
                   {getFundo2Url() && (
-                    <div className="absolute inset-0 z-[1]" style={{ mixBlendMode: fundoBlend as any }}>
+                    <div className="absolute inset-0 z-[1] overflow-hidden" style={{ mixBlendMode: fundoBlend as any }}>
                       <img 
                         src={getFundo2Url() || ''} 
-                        className="w-full h-full object-cover" 
-                        style={{ opacity: fundo2Opacity }}
+                        className="w-full h-full object-cover transition-transform" 
+                        style={{ 
+                          opacity: fundo2Opacity,
+                          transform: `scale(${fundo2Scale}) translate(${fundo2PosX}px, ${fundo2PosY}px)`,
+                          transformOrigin: 'center center'
+                        }}
                         referrerPolicy="no-referrer" 
                         crossOrigin="anonymous"
                       />

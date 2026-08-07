@@ -118,23 +118,23 @@ const getIconBgClass = (colorClass: string | undefined, isSelected: boolean, cat
   const isPurple = c.includes('purple') || catId === 'community';
 
   if (isSelected) {
-    if (isRed) return 'bg-gradient-to-br from-rose-500 to-amber-300 text-black shadow-lg shadow-rose-500/30 font-black border border-rose-300';
-    if (isGreen) return 'bg-gradient-to-br from-emerald-500 to-yellow-300 text-black shadow-lg shadow-emerald-500/30 font-black border border-emerald-300';
-    if (isBlue) return 'bg-gradient-to-br from-sky-500 to-yellow-300 text-black shadow-lg shadow-sky-500/30 font-black border border-sky-300';
-    if (isPink) return 'bg-gradient-to-br from-pink-500 to-amber-300 text-black shadow-lg shadow-pink-500/30 font-black border border-pink-300';
-    if (isIndigo) return 'bg-gradient-to-br from-indigo-500 to-yellow-300 text-black shadow-lg shadow-indigo-500/30 font-black border border-indigo-300';
-    if (isPurple) return 'bg-gradient-to-br from-purple-500 to-pink-300 text-white shadow-lg shadow-purple-500/30 font-black border border-purple-300';
-    return 'bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-500 text-black shadow-lg shadow-amber-500/40 font-black border border-amber-200';
+    if (isRed) return 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black';
+    if (isGreen) return 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20 font-black';
+    if (isBlue) return 'bg-sky-500 text-black shadow-md shadow-sky-500/20 font-black';
+    if (isPink) return 'bg-pink-500 text-white shadow-md shadow-pink-500/20 font-black';
+    if (isIndigo) return 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 font-black';
+    if (isPurple) return 'bg-purple-500 text-white shadow-md shadow-purple-500/20 font-black';
+    return 'bg-amber-400 text-black shadow-md shadow-amber-400/20 font-black';
   }
 
-  if (isRed) return 'bg-rose-500/10 text-rose-400 border border-rose-500/30 group-hover:bg-rose-500 group-hover:text-black group-hover:border-rose-400 transition-all duration-300';
-  if (isGreen) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-400 transition-all duration-300';
-  if (isBlue) return 'bg-sky-500/10 text-sky-400 border border-sky-500/30 group-hover:bg-sky-500 group-hover:text-black group-hover:border-sky-400 transition-all duration-300';
-  if (isPink) return 'bg-pink-500/10 text-pink-400 border border-pink-500/30 group-hover:bg-pink-500 group-hover:text-black group-hover:border-pink-400 transition-all duration-300';
-  if (isIndigo) return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 group-hover:bg-indigo-500 group-hover:text-black group-hover:border-indigo-400 transition-all duration-300';
-  if (isPurple) return 'bg-purple-500/10 text-purple-400 border border-purple-500/30 group-hover:bg-purple-500 group-hover:text-white group-hover:border-purple-400 transition-all duration-300';
+  if (isRed) return 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300';
+  if (isGreen) return 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black transition-all duration-300';
+  if (isBlue) return 'bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-black transition-all duration-300';
+  if (isPink) return 'bg-pink-500/10 text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-all duration-300';
+  if (isIndigo) return 'bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300';
+  if (isPurple) return 'bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300';
 
-  return 'bg-amber-500/10 text-amber-400 border border-amber-500/40 group-hover:bg-amber-400 group-hover:text-black group-hover:border-amber-300 transition-all duration-300';
+  return 'bg-amber-500/10 text-amber-400 group-hover:bg-amber-400 group-hover:text-black transition-all duration-300';
 };
 
 const getStatConfig = (label: string, statsVal: number) => {
