@@ -116,26 +116,27 @@ const getIconBgClass = (colorClass: string | undefined, isSelected: boolean, cat
   const isPink = c.includes('pink') || catId === 'external';
   const isIndigo = c.includes('indigo');
   const isPurple = c.includes('purple') || catId === 'community';
-  const isAmber = c.includes('amber') || c.includes('yellow') || c.includes('primary') || catId === 'command' || catId === 'student';
+
+  const yellowBorderClass = 'border-2 border-amber-400/80 group-hover:border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.2)]';
 
   if (isSelected) {
-    if (isRed) return 'bg-gradient-to-br from-rose-500 to-amber-300 text-black shadow-md shadow-rose-500/30 font-black';
-    if (isGreen) return 'bg-gradient-to-br from-emerald-500 to-yellow-300 text-black shadow-md shadow-emerald-500/30 font-black';
-    if (isBlue) return 'bg-gradient-to-br from-sky-500 to-yellow-300 text-black shadow-md shadow-sky-500/30 font-black';
-    if (isPink) return 'bg-gradient-to-br from-pink-500 to-amber-300 text-black shadow-md shadow-pink-500/30 font-black';
-    if (isIndigo) return 'bg-gradient-to-br from-indigo-500 to-yellow-300 text-black shadow-md shadow-indigo-500/30 font-black';
-    if (isPurple) return 'bg-gradient-to-br from-purple-500 to-pink-300 text-white shadow-md shadow-purple-500/30 font-black';
-    return 'bg-gradient-to-br from-amber-500 to-yellow-300 text-black shadow-md shadow-theme-primary/35 font-black';
+    if (isRed) return `bg-gradient-to-br from-rose-500 to-amber-300 text-black shadow-md shadow-rose-500/30 font-black ${yellowBorderClass}`;
+    if (isGreen) return `bg-gradient-to-br from-emerald-500 to-yellow-300 text-black shadow-md shadow-emerald-500/30 font-black ${yellowBorderClass}`;
+    if (isBlue) return `bg-gradient-to-br from-sky-500 to-yellow-300 text-black shadow-md shadow-sky-500/30 font-black ${yellowBorderClass}`;
+    if (isPink) return `bg-gradient-to-br from-pink-500 to-amber-300 text-black shadow-md shadow-pink-500/30 font-black ${yellowBorderClass}`;
+    if (isIndigo) return `bg-gradient-to-br from-indigo-500 to-yellow-300 text-black shadow-md shadow-indigo-500/30 font-black ${yellowBorderClass}`;
+    if (isPurple) return `bg-gradient-to-br from-purple-500 to-pink-300 text-white shadow-md shadow-purple-500/30 font-black ${yellowBorderClass}`;
+    return `bg-gradient-to-br from-amber-500 to-yellow-300 text-black shadow-md shadow-theme-primary/35 font-black ${yellowBorderClass}`;
   }
 
-  if (isRed) return 'bg-rose-500/10 text-rose-450 group-hover:bg-gradient-to-br group-hover:from-rose-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300';
-  if (isGreen) return 'bg-emerald-500/10 text-emerald-400 group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
-  if (isBlue) return 'bg-sky-500/10 text-sky-400 group-hover:bg-gradient-to-br group-hover:from-sky-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
-  if (isPink) return 'bg-pink-500/10 text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300';
-  if (isIndigo) return 'bg-indigo-500/10 text-indigo-400 group-hover:bg-gradient-to-br group-hover:from-indigo-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
-  if (isPurple) return 'bg-purple-500/10 text-purple-400 group-hover:bg-gradient-to-br group-hover:from-purple-500 group-hover:to-pink-300 group-hover:text-white transition-all duration-300';
+  if (isRed) return `bg-rose-500/10 text-rose-450 group-hover:bg-gradient-to-br group-hover:from-rose-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
+  if (isGreen) return `bg-emerald-500/10 text-emerald-400 group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
+  if (isBlue) return `bg-sky-500/10 text-sky-400 group-hover:bg-gradient-to-br group-hover:from-sky-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
+  if (isPink) return `bg-pink-500/10 text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-500 group-hover:to-amber-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
+  if (isIndigo) return `bg-indigo-500/10 text-indigo-400 group-hover:bg-gradient-to-br group-hover:from-indigo-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
+  if (isPurple) return `bg-purple-500/10 text-purple-400 group-hover:bg-gradient-to-br group-hover:from-purple-500 group-hover:to-pink-300 group-hover:text-white transition-all duration-300 ${yellowBorderClass}`;
 
-  return 'bg-amber-500/10 text-amber-400 group-hover:bg-gradient-to-br group-hover:from-amber-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300';
+  return `bg-amber-500/10 text-amber-400 group-hover:bg-gradient-to-br group-hover:from-amber-500 group-hover:to-yellow-300 group-hover:text-black transition-all duration-300 ${yellowBorderClass}`;
 };
 
 const getStatConfig = (label: string, statsVal: number) => {
@@ -731,7 +732,10 @@ const Dashboard = ({
                         type="button"
                         onClick={() => setActiveTab(item.id)}
                         className={cn(
-                          "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                          "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl transition-all duration-300 group text-center gap-4 relative overflow-hidden",
+                          (settings?.systemLayoutMode === 'gold_classic' || !settings?.systemLayoutMode)
+                            ? "rounded-2xl border-2 border-amber-400 hover:border-yellow-300 shadow-[0_0_20px_rgba(251,191,36,0.25)] hover:shadow-[0_0_32px_rgba(251,191,36,0.45)]"
+                            : "rounded-3xl border",
                           getCardColorClasses(itemColor, isSelected, cat.id)
                         )}
                       >
@@ -749,7 +753,10 @@ const Dashboard = ({
                         )}
 
                         <div className={cn(
-                          "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                          "p-4 sm:p-5 transition-all duration-300 border-2 border-amber-400 group-hover:border-yellow-300 shadow-[0_0_12px_rgba(251,191,36,0.35)]",
+                          (settings?.systemLayoutMode === 'gold_classic' || !settings?.systemLayoutMode)
+                            ? "rounded-xl aspect-square flex items-center justify-center shrink-0"
+                            : "rounded-2xl",
                           getIconBgClass(itemColor, isSelected, cat.id)
                         )}>
                           <item.icon className={cn(
@@ -1328,7 +1335,10 @@ const Dashboard = ({
                       type="button"
                       onClick={() => setActiveTab(item.id)}
                       className={cn(
-                        "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl border transition-all duration-300 group text-center gap-4 relative overflow-hidden rounded-3xl",
+                        "flex flex-col items-center justify-center p-5 sm:p-6 shadow-2xl transition-all duration-300 group text-center gap-4 relative overflow-hidden",
+                        (settings?.systemLayoutMode === 'gold_classic' || !settings?.systemLayoutMode)
+                          ? "rounded-2xl border-2 border-amber-400 hover:border-yellow-300 shadow-[0_0_20px_rgba(251,191,36,0.25)] hover:shadow-[0_0_32px_rgba(251,191,36,0.45)]"
+                          : "rounded-3xl border",
                         getCardColorClasses(itemColor, isSelected, cat.id)
                       )}
                     >
@@ -1354,7 +1364,10 @@ const Dashboard = ({
                       )}
 
                       <div className={cn(
-                        "p-4 sm:p-5 rounded-2xl transition-all duration-300",
+                        "p-4 sm:p-5 transition-all duration-300 border-2 border-amber-400 group-hover:border-yellow-300 shadow-[0_0_12px_rgba(251,191,36,0.35)]",
+                        (settings?.systemLayoutMode === 'gold_classic' || !settings?.systemLayoutMode)
+                          ? "rounded-xl aspect-square flex items-center justify-center shrink-0"
+                          : "rounded-2xl",
                         getIconBgClass(itemColor, isSelected, cat.id)
                       )}>
                         <item.icon className={cn(

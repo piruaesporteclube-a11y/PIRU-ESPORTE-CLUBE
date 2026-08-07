@@ -46,21 +46,21 @@ export type SystemLayoutPreset = {
 export const SYSTEM_LAYOUT_PRESETS: SystemLayoutPreset[] = [
   {
     id: 'gold_classic',
-    name: '1. Ouro Clássico (Topo Tradicional)',
-    badge: '🏆 Header Superior Tradicional',
-    tagline: 'Topo Fixo + Grade de Cartões 3D',
-    description: 'Layout tradicional da Piruá E.C. Barra de navegação no topo, logo em destaque e botões organizados em grade de cartões dourados elevados.',
+    name: '1. Ouro Clássico (Dupla Borda Dourada & Ícones Retangulares)',
+    badge: '🏆 Dupla Borda Amarela Dourada',
+    tagline: 'Dupla Borda Dourada (Cartão + Ícone) + Ícones Retangulares',
+    description: 'Apresenta borda amarela ouro destacada em dose dupla: uma no cartão e outra no container retangular do ícone, ressaltando a identidade visual da Piruá E.C.',
     icon: Trophy,
     primaryColor: '#EAB308',
     secondaryColor: '#000000',
     layoutBgColor: '#000000',
     layoutCardColor: '#18181b',
-    layoutBorderColor: '#27272a',
-    layoutBorderRadius: '3xl',
-    layoutBorderWidth: '1px',
+    layoutBorderColor: '#facc15',
+    layoutBorderRadius: 'xl',
+    layoutBorderWidth: '2px',
     layoutShadow: 'xl',
     accentGradient: 'from-amber-500 via-yellow-400 to-amber-600',
-    borderPreview: 'border-amber-500/50'
+    borderPreview: 'border-amber-400'
   },
   {
     id: 'tactical_cyan',
