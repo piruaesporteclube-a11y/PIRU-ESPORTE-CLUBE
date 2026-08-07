@@ -163,6 +163,7 @@ export type Settings = {
   schoolCrest: string;
   themeColor?: string;
   // Custom design and layout settings
+  systemLayoutMode?: 'gold_classic' | 'tactical_cyan' | 'cyber_neon' | 'crimson_fire' | 'royal_purple';
   layoutBgColor?: string;
   layoutCardColor?: string;
   layoutBorderColor?: string;

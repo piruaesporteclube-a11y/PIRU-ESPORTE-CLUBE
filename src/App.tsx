@@ -39,11 +39,12 @@ import AnnouncementFlyer from './components/AnnouncementFlyer';
 import SchoolReportManagement from './components/SchoolReportManagement';
 import { AccessAudit } from './components/AccessAudit';
 import TopScorers from './components/TopScorers';
+import SystemLayouts from './components/SystemLayouts';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
 import { api, clearCache, getUsageStats } from './api';
-import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database, Search } from 'lucide-react';
+import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database, Search, ChevronRight, Flame } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -604,10 +605,80 @@ const Dashboard = ({
                     {items.length + (cat.id === 'student' ? additionalItems.length : 0)} {(items.length + (cat.id === 'student' ? additionalItems.length : 0)) === 1 ? 'item' : 'itens'}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className={cn(
+                  "grid gap-4",
+                  settings?.systemLayoutMode === 'tactical_cyan' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" :
+                  settings?.systemLayoutMode === 'crimson_fire' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" :
+                  settings?.systemLayoutMode === 'royal_purple' ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" :
+                  settings?.systemLayoutMode === 'cyber_neon' ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5" :
+                  "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
+                )}>
                   {items.map((item) => {
                     const isSelected = activeTab === item.id;
                     const itemColor = item.color || cat.cardColor;
+
+                    if (settings?.systemLayoutMode === 'tactical_cyan') {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className={cn(
+                            "flex items-center justify-between p-3.5 px-4 bg-zinc-900/90 hover:bg-zinc-800/90 border border-sky-900/40 hover:border-sky-400/80 rounded-xl transition-all group text-left gap-3 shadow-md cursor-pointer",
+                            isSelected && "bg-sky-950/90 border-sky-400 ring-1 ring-sky-400/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2.5 bg-sky-950/80 border border-sky-800/60 rounded-lg text-sky-400 group-hover:scale-105 transition-transform shrink-0">
+                              <item.icon size={20} />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-sky-300">
+                                {item.label}
+                              </span>
+                              {item.description && (
+                                <p className="text-[10px] font-bold uppercase text-zinc-400 truncate">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight size={16} className="text-sky-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                        </button>
+                      );
+                    }
+
+                    if (settings?.systemLayoutMode === 'crimson_fire') {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className={cn(
+                            "flex items-center justify-between p-4 bg-[#1e0a0a] hover:bg-[#2a0e0e] border-l-4 border-l-red-600 border-y border-r border-red-950 hover:border-r-red-600/50 rounded-r-2xl transition-all group text-left gap-3 shadow-lg cursor-pointer",
+                            isSelected && "border-r-red-500 bg-[#2f0f0f]"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-3 bg-red-950/80 border border-red-800/60 rounded-xl text-red-500 group-hover:scale-105 transition-transform shrink-0">
+                              <item.icon size={22} />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-red-400">
+                                {item.label}
+                              </span>
+                              {item.description && (
+                                <p className="text-[10px] font-bold uppercase text-zinc-400 truncate">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Flame size={16} className="text-red-500 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all shrink-0" />
+                        </button>
+                      );
+                    }
+
                     return (
                       <button
                         key={item.id}
@@ -1061,10 +1132,92 @@ const Dashboard = ({
                   {items.length + (cat.id === 'command' || cat.id === 'community' ? additionalItems.length : 0)} {(items.length + (cat.id === 'command' || cat.id === 'community' ? additionalItems.length : 0)) === 1 ? 'item' : 'itens'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              <div className={cn(
+                "grid gap-4",
+                settings?.systemLayoutMode === 'tactical_cyan' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" :
+                settings?.systemLayoutMode === 'crimson_fire' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" :
+                settings?.systemLayoutMode === 'royal_purple' ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" :
+                settings?.systemLayoutMode === 'cyber_neon' ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5" :
+                "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
+              )}>
                 {items.map((item) => {
                   const isSelected = activeTab === item.id;
                   const itemColor = item.color || cat.cardColor;
+
+                  if (settings?.systemLayoutMode === 'tactical_cyan') {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex items-center justify-between p-3.5 px-4 bg-zinc-900/90 hover:bg-zinc-800/90 border border-sky-900/40 hover:border-sky-400/80 rounded-xl transition-all group text-left gap-3 shadow-md cursor-pointer relative",
+                          isSelected && "bg-sky-950/90 border-sky-400 ring-1 ring-sky-400/50"
+                        )}
+                      >
+                        {item.id === 'school-reports' && pendingReportsCount > 0 && (
+                          <div className="absolute -top-1.5 -left-1.5 bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping shrink-0" />
+                            <span>{pendingReportsCount}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2.5 bg-sky-950/80 border border-sky-800/60 rounded-lg text-sky-400 group-hover:scale-105 transition-transform shrink-0">
+                            <item.icon size={20} />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-sky-300">
+                              {item.label}
+                            </span>
+                            {item.description && (
+                              <p className="text-[10px] font-bold uppercase text-zinc-400 truncate">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-sky-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                      </button>
+                    );
+                  }
+
+                  if (settings?.systemLayoutMode === 'crimson_fire') {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex items-center justify-between p-4 bg-[#1e0a0a] hover:bg-[#2a0e0e] border-l-4 border-l-red-600 border-y border-r border-red-950 hover:border-r-red-600/50 rounded-r-2xl transition-all group text-left gap-3 shadow-lg cursor-pointer relative",
+                          isSelected && "border-r-red-500 bg-[#2f0f0f]"
+                        )}
+                      >
+                        {item.id === 'school-reports' && pendingReportsCount > 0 && (
+                          <div className="absolute -top-1.5 -left-1.5 bg-red-500 text-white font-black text-[8px] px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping shrink-0" />
+                            <span>{pendingReportsCount}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-3 bg-red-950/80 border border-red-800/60 rounded-xl text-red-500 group-hover:scale-105 transition-transform shrink-0">
+                            <item.icon size={22} />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-sm font-black uppercase text-white tracking-tight block truncate group-hover:text-red-400">
+                              {item.label}
+                            </span>
+                            {item.description && (
+                              <p className="text-[10px] font-bold uppercase text-zinc-400 truncate">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Flame size={16} className="text-red-500 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all shrink-0" />
+                      </button>
+                    );
+                  }
+
                   return (
                     <button
                       key={item.id}
@@ -1904,6 +2057,8 @@ export default function App() {
           return <SchoolReportManagement user={user} athletes={athletes} />;
         case 'access-audit':
           return <AccessAudit />;
+        case 'system-layouts':
+          return <SystemLayouts />;
         case 'settings':
           return <SettingsComponent />;
         default:

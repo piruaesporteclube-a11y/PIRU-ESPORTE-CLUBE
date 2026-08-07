@@ -5,7 +5,7 @@ import {
   Trophy, Download, User, X, Camera, Search, UserCheck, MapPin, 
   Activity, Clock, Calendar, FileText, Instagram, Settings, LayoutGrid, 
   Type, Heart, Image as ImageIcon, Sparkles, Sliders, ChevronDown, Check,
-  UserPlus
+  UserPlus, Palette, Layout, Layers
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import html2canvas from 'html2canvas';
@@ -74,8 +74,9 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
   const crestInputRef = useRef<HTMLInputElement>(null);
 
   // --- Theme / Visual Presets ---
-  const [themePreset, setThemePreset] = useState<'slate' | 'sunset' | 'aurora' | 'neon' | 'monochrome'>('slate');
-  const [customPrimaryColor, setCustomPrimaryColor] = useState<string>(settings?.primaryColor || '#fbbf24');
+  const [themePreset, setThemePreset] = useState<'slate' | 'sunset' | 'aurora' | 'neon' | 'monochrome' | 'gold_champions' | 'cyber_blue' | 'crimson_fire' | 'royal_purple'>('gold_champions');
+  const [layoutPreset, setLayoutPreset] = useState<'classic' | 'tactical' | 'glass' | 'championship' | 'cyberpunk'>('tactical');
+  const [customPrimaryColor, setCustomPrimaryColor] = useState<string>(settings?.primaryColor || '#eab308');
   const [customBgGradientStart, setCustomBgGradientStart] = useState<string>('#09090b');
   const [customBgGradientEnd, setCustomBgGradientEnd] = useState<string>('#18181b');
   const [fontFamily, setFontFamily] = useState<'sans' | 'serif' | 'mono'>('sans');
@@ -243,21 +244,72 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
     category: ''
   };
 
-  // Preset Colors settings
+  // Preset Colors settings (9 Visual Themes)
   const colorPresets = {
-    slate: { start: '#09090b', end: '#18181b', primary: '#fbbf24' },
-    sunset: { start: '#451a03', end: '#1c1917', primary: '#fb923c' },
-    aurora: { start: '#022c22', end: '#09090b', primary: '#10b981' },
-    neon: { start: '#000000', end: '#0f172a', primary: '#ec4899' },
-    monochrome: { start: '#000000', end: '#111111', primary: '#ffffff' }
+    slate: { name: 'Slate Ouro', start: '#09090b', end: '#18181b', primary: '#fbbf24' },
+    sunset: { name: 'Sunset Amarelo', start: '#451a03', end: '#1c1917', primary: '#fb923c' },
+    aurora: { name: 'Aurora Esmeralda', start: '#022c22', end: '#09090b', primary: '#10b981' },
+    neon: { name: 'Néon Pink', start: '#000000', end: '#0f172a', primary: '#ec4899' },
+    monochrome: { name: 'Preto & Branco', start: '#000000', end: '#111111', primary: '#ffffff' },
+    // 4 Novos Temas de Cores:
+    gold_champions: { name: '🏆 Ouro Campeão', start: '#18181b', end: '#000000', primary: '#eab308' },
+    cyber_blue: { name: '⚡ Ciano Elétrico', start: '#030712', end: '#0f172a', primary: '#06b6d4' },
+    crimson_fire: { name: '🔥 Fogo Carmim', start: '#1a0505', end: '#09090b', primary: '#ef4444' },
+    royal_purple: { name: '👑 Roxo Imperial', start: '#1e072b', end: '#09090b', primary: '#a855f7' }
   };
 
-  const applyPreset = (preset: 'slate' | 'sunset' | 'aurora' | 'neon' | 'monochrome') => {
+  const applyPreset = (preset: keyof typeof colorPresets) => {
     setThemePreset(preset);
     const colors = colorPresets[preset];
     setCustomBgGradientStart(colors.start);
     setCustomBgGradientEnd(colors.end);
     setCustomPrimaryColor(colors.primary);
+  };
+
+  const applyLayoutPreset = (layout: 'classic' | 'tactical' | 'glass' | 'championship' | 'cyberpunk') => {
+    setLayoutPreset(layout);
+    switch (layout) {
+      case 'classic':
+        setCardBgStyle('solid_dark');
+        setColumnsCount(2);
+        setFontSizeClass('text-sm');
+        setFontFamily('sans');
+        setShowGridOverlay(true);
+        setItemsGap(1.5);
+        break;
+      case 'tactical':
+        setCardBgStyle('accent');
+        setColumnsCount(2);
+        setFontSizeClass('text-sm');
+        setFontFamily('sans');
+        setShowGridOverlay(true);
+        setItemsGap(1.25);
+        break;
+      case 'glass':
+        setCardBgStyle('glass');
+        setColumnsCount(2);
+        setFontSizeClass('text-sm');
+        setFontFamily('sans');
+        setShowGridOverlay(false);
+        setItemsGap(1.5);
+        break;
+      case 'championship':
+        setCardBgStyle('dark');
+        setColumnsCount(2);
+        setFontSizeClass('text-xs');
+        setFontFamily('serif');
+        setShowGridOverlay(false);
+        setItemsGap(1.0);
+        break;
+      case 'cyberpunk':
+        setCardBgStyle('accent');
+        setColumnsCount(2);
+        setFontSizeClass('text-sm');
+        setFontFamily('mono');
+        setShowGridOverlay(true);
+        setItemsGap(1.25);
+        break;
+    }
   };
 
   // Image Upload Handlers
@@ -446,31 +498,86 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                 className="w-full flex items-center justify-between p-4 text-left font-black text-xs text-white uppercase tracking-wider hover:bg-zinc-850 transition-colors"
               >
                 <span className="flex items-center gap-2">
-                  <PaletteIcon size={14} className="text-theme-primary" />
-                  1. Paleta de Cores e Estilo Visual
+                  <Palette size={14} className="text-theme-primary" />
+                  1. Opções de Layout e Estilo Visual (5 Modelos & 9 Temas)
                 </span>
                 <ChevronDown size={14} className={`transform transition-transform ${accordionOpen === 'theme' ? 'rotate-180' : ''}`} />
               </button>
 
               {accordionOpen === 'theme' && (
-                <div className="p-4 border-t border-zinc-800 space-y-4 bg-zinc-950/20">
-                  {/* Preset Themes */}
+                <div className="p-4 border-t border-zinc-800 space-y-5 bg-zinc-950/20">
+                  
+                  {/* Modelos de Layout Estrutural */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Temas Rápidos</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-theme-primary uppercase tracking-widest block flex items-center gap-1.5">
+                        <Layout size={12} /> Modelos de Layout de Design (Estrutura)
+                      </label>
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase">5 Estilos de Arte</span>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {(['slate', 'sunset', 'aurora', 'neon', 'monochrome'] as const).map(preset => (
+                      {[
+                        { id: 'tactical', label: '1. Tático Elite', desc: 'Badges Ovais & Borda Ouro' },
+                        { id: 'classic', label: '2. Grade Clássica', desc: 'Duas Colunas Clean' },
+                        { id: 'glass', label: '3. Vidro Fosco', desc: 'Efeito Glassmorphism' },
+                        { id: 'championship', label: '4. Campeonato', desc: 'Listras Zebra Esportiva' },
+                        { id: 'cyberpunk', label: '5. Néon Cyber', desc: 'Luzes Laser & Fonte Mono' }
+                      ].map(l => (
                         <button
-                          key={preset}
-                          onClick={() => applyPreset(preset)}
-                          className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${
-                            themePreset === preset 
-                              ? 'bg-zinc-800 border-theme-primary text-theme-primary font-black' 
-                              : 'bg-black border-zinc-850 text-zinc-400 hover:border-zinc-800'
-                          }`}
+                          key={l.id}
+                          type="button"
+                          onClick={() => applyLayoutPreset(l.id as any)}
+                          className={cn(
+                            "p-2.5 rounded-xl text-left border transition-all flex flex-col justify-between group",
+                            layoutPreset === l.id 
+                              ? "bg-theme-primary/15 border-theme-primary text-white ring-1 ring-theme-primary/40 shadow-lg" 
+                              : "bg-black/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                          )}
                         >
-                          {preset}
+                          <div className="flex items-center justify-between w-full">
+                            <span className="text-[9.5px] font-black uppercase tracking-tight text-white group-hover:text-theme-primary">
+                              {l.label}
+                            </span>
+                            {layoutPreset === l.id && <Check size={12} className="text-theme-primary shrink-0" />}
+                          </div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-bold mt-1 leading-tight line-clamp-2">
+                            {l.desc}
+                          </span>
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Preset Themes (9 Temas Rápidos) */}
+                  <div className="space-y-2 pt-2 border-t border-zinc-900">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block flex items-center gap-1.5">
+                      <Sparkles size={12} className="text-theme-primary" /> Temas de Cores Temáticos (9 Paletas)
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {(Object.keys(colorPresets) as Array<keyof typeof colorPresets>).map(presetKey => {
+                        const preset = colorPresets[presetKey];
+                        const isSelected = themePreset === presetKey;
+
+                        return (
+                          <button
+                            key={presetKey}
+                            type="button"
+                            onClick={() => applyPreset(presetKey)}
+                            className={cn(
+                              "p-2 rounded-xl text-[9px] font-black uppercase border transition-all flex items-center gap-2 text-left",
+                              isSelected 
+                                ? "bg-zinc-800 border-theme-primary text-white ring-1 ring-theme-primary/30" 
+                                : "bg-black border-zinc-850 text-zinc-400 hover:border-zinc-800 hover:text-zinc-300"
+                            )}
+                          >
+                            <span 
+                              className="w-3.5 h-3.5 rounded-full shrink-0 border border-white/20 shadow-sm"
+                              style={{ backgroundColor: preset.primary }}
+                            />
+                            <span className="truncate">{preset.name}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1708,23 +1815,50 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                         const num = (idx + 1).toString().padStart(2, '0');
                         const isLightCard = cardBgStyle === 'light';
                         const displayName = formatAthleteName(a.name);
+                        
+                        // Layout-specific row styling
+                        const getRowLayoutClasses = () => {
+                          if (layoutPreset === 'championship') {
+                            return idx % 2 === 0 
+                              ? "bg-black/70 border-l-2 px-2 py-1 rounded-r-lg" 
+                              : "bg-zinc-900/70 border-l-2 px-2 py-1 rounded-r-lg";
+                          }
+                          if (layoutPreset === 'glass') {
+                            return "bg-white/[0.06] backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-xl shadow-sm";
+                          }
+                          if (layoutPreset === 'tactical') {
+                            return "bg-black/80 border-b border-white/10 px-2 py-1 rounded-lg hover:border-theme-primary/50";
+                          }
+                          if (layoutPreset === 'cyberpunk') {
+                            return "bg-black/90 border border-theme-primary/30 px-2 py-1 rounded-lg shadow-[0_0_8px_rgba(234,179,8,0.15)]";
+                          }
+                          return isLightCard ? "border-b border-black/10 hover:bg-black/5 px-1 py-1 rounded-lg" : "border-b border-white/[0.08] hover:bg-white/[0.03] px-1 py-1 rounded-lg";
+                        };
+
                         return (
                           <div 
                             key={a.id} 
                             className={cn(
-                              "flex items-center justify-between border-b pb-1.5 max-w-full overflow-hidden transition-all duration-300 px-1 rounded-lg",
-                              isLightCard ? "border-black/10 hover:bg-black/5" : "border-white/[0.08] hover:bg-white/[0.03]",
+                              "flex items-center justify-between max-w-full overflow-hidden transition-all duration-300",
+                              getRowLayoutClasses(),
                               fontSizeClass
                             )}
+                            style={{
+                              ...(layoutPreset === 'championship' ? { borderLeftColor: customPrimaryColor } : {})
+                            }}
                           >
                             <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
                               {showNumbering && (
                                 <span 
-                                  className="font-mono font-black select-none mr-1 shrink-0"
+                                  className={cn(
+                                    "font-mono font-black select-none shrink-0",
+                                    layoutPreset === 'tactical' ? "px-1.5 py-0.5 rounded-full text-black bg-theme-primary text-[0.75em]" : "mr-1"
+                                  )}
                                   style={{ 
-                                    fontSize: '0.85em',
-                                    color: isLightCard ? '#3f3f46' : customPrimaryColor,
-                                    opacity: isLightCard ? 0.9 : 0.6
+                                    fontSize: layoutPreset === 'tactical' ? '0.75em' : '0.85em',
+                                    color: layoutPreset === 'tactical' ? '#000000' : (isLightCard ? '#3f3f46' : customPrimaryColor),
+                                    backgroundColor: layoutPreset === 'tactical' ? customPrimaryColor : undefined,
+                                    opacity: (isLightCard || layoutPreset === 'tactical') ? 1 : 0.75
                                   }}
                                 >
                                   {num}
@@ -1777,7 +1911,10 @@ export default function LineupFlyerGenerator({ event, allLineups, athletes, prof
                               
                               {showJersey && (
                                 <span 
-                                  className="font-mono font-black tracking-tighter shrink-0"
+                                  className={cn(
+                                    "font-mono font-black tracking-tighter shrink-0",
+                                    layoutPreset === 'cyberpunk' && "px-1 py-0.5 rounded bg-theme-primary/20 border border-theme-primary/50"
+                                  )}
                                   style={{ 
                                     color: isLightCard ? '#09090b' : customPrimaryColor, 
                                     fontSize: '0.9em',

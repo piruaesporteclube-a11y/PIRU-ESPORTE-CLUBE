@@ -17,7 +17,8 @@ import {
   History,
   Shirt,
   Megaphone,
-  Shield
+  Shield,
+  Palette
 } from 'lucide-react';
 
 export type NavItem = {
@@ -38,6 +39,7 @@ export const navItems: NavItem[] = [
   { id: 'professors', label: 'Comissão Técnica', icon: UserCheck, roles: ['admin', 'professor'], description: 'Líderes e Técnicos', color: 'text-theme-primary', category: 'command' },
   { id: 'categories', label: 'Gerir SUBs', icon: ClipboardList, roles: ['admin', 'professor'], description: 'Divisões Etárias', color: 'text-theme-primary', category: 'command' },
   { id: 'access-audit', label: 'Auditoria', icon: Shield, roles: ['admin', 'professor'], description: 'Logs de Acesso', color: 'text-amber-500', category: 'command' },
+  { id: 'system-layouts', label: 'Layouts', icon: Palette, roles: ['admin', 'professor'], description: '5 Modos do Sistema', color: 'text-theme-primary', category: 'command' },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon, roles: ['admin', 'professor'], description: 'Ajustes do Sistema', color: 'text-zinc-500', category: 'command' },
   
   // --- GRUPO: Arena & Competição (Ação nos Campos) ---
