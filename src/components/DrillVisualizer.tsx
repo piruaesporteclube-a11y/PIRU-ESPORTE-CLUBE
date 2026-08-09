@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow } from 'react-konva';
-import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout, Volume2, Sparkles, Tv, HelpCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout, Volume2, Sparkles, Tv, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrainingActivity } from '../types';
 import { cn } from '../utils';
 
@@ -93,10 +93,11 @@ const PRESET_PLAYS: Record<string, { name: string, description: string, modality
   }
 };
 
-export default function DrillVisualizer({ activity, onChange, isEditable = false, executionSteps }: DrillVisualizerProps) {
+export default function DrillVisualizer({ activity, onChange, isEditable = true, executionSteps }: DrillVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageContainerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
-  const [is3D, setIs3D] = useState(!isEditable); // Flat 2D for editing, 3D by default for viewing
+  const [is3D, setIs3D] = useState(false); // Flat 2D view by default for crisp 100% field visibility
   
   // Timeline playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,6 +105,7 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x, 1.5x, 2x
   const [isLooping, setIsLooping] = useState(true);
   const [showTrails, setShowTrails] = useState(true);
+  const [isToolbarOpen, setIsToolbarOpen] = useState(true);
 
   const [objects, setObjects] = useState<VisualObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -211,14 +213,29 @@ export default function DrillVisualizer({ activity, onChange, isEditable = false
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width } = entry.contentRect;
-        const h = Math.max(380, (width * 2) / 3.2); // Maintain nice aspect ratio
-        setDimensions({ width, height: h });
+        const { width, height } = entry.contentRect;
+        if (width <= 0) return;
+
+        const availW = Math.max(260, width - 8);
+        const availH = height > 120 ? Math.max(180, height - 8) : availW / 1.62;
+
+        const targetAspect = 1.62;
+
+        let stageW = availW;
+        let stageH = stageW / targetAspect;
+
+        if (stageH > availH) {
+          stageH = availH;
+          stageW = stageH * targetAspect;
+        }
+
+        setDimensions({ width: Math.floor(stageW), height: Math.floor(stageH) });
       }
     });
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    const targetEl = stageContainerRef.current || containerRef.current;
+    if (targetEl) {
+      observer.observe(targetEl);
     }
 
     return () => observer.disconnect();
@@ -354,11 +371,14 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
       return (objects.filter(o => o.type === 'player' && o.team === (customTeam || 'A')).length + 1).toString();
     })();
 
+    const startX = Math.round(30 + Math.random() * 30);
+    const startY = Math.round(25 + Math.random() * 45);
+
     const newObj: VisualObject = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      x: 45,
-      y: 45,
+      x: startX,
+      y: startY,
       label: defaultLabel,
       team: customTeam || 'A',
       color: type === 'arrow' ? '#3b82f6' : undefined
@@ -366,8 +386,8 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
 
     if (type === 'ball' || type === 'player' || type === 'arrow') {
       newObj.animate = true;
-      newObj.toX = 55;
-      newObj.toY = 55;
+      newObj.toX = Math.min(95, startX + 16);
+      newObj.toY = Math.min(95, startY + Math.round(Math.random() * 8 - 4));
     }
 
     const newObjects = [...objects, newObj];
@@ -414,39 +434,49 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
         </Group>
 
         {activity.modality === 'Futebol' && (
-          <Group opacity={0.45}>
+          <Group opacity={0.92}>
+            {/* Goal Posts & Nets */}
+            <Rect x={fieldBorder - 12} y={fieldBorder + fh * 0.36} width={12} height={fh * 0.28} stroke={lineStroke} strokeWidth={2.5} fill="rgba(255,255,255,0.2)" cornerRadius={[4, 0, 0, 4]} />
+            <Rect x={fieldBorder + fw} y={fieldBorder + fh * 0.36} width={12} height={fh * 0.28} stroke={lineStroke} strokeWidth={2.5} fill="rgba(255,255,255,0.2)" cornerRadius={[0, 4, 4, 0]} />
+
             {/* Center line and circle */}
-            <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} />
-            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.09} stroke={lineStroke} strokeWidth={2} />
-            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={3} fill={lineStroke} />
+            <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2.5} />
+            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.09} stroke={lineStroke} strokeWidth={2.5} />
+            <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={3.5} fill={lineStroke} />
             
             {/* Left penalty box */}
-            <Rect x={fieldBorder} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2} />
-            <Rect x={fieldBorder} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2} />
-            <Circle x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radius={3} fill={lineStroke} />
+            <Rect x={fieldBorder} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2.5} />
+            <Rect x={fieldBorder} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2.5} />
+            <Circle x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radius={3.5} fill={lineStroke} />
             
             {/* Right penalty box */}
-            <Rect x={fieldBorder + fw - fw * 0.165} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2} />
-            <Rect x={fieldBorder + fw - fw * 0.055} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2} />
-            <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={3} fill={lineStroke} />
+            <Rect x={fieldBorder + fw - fw * 0.165} y={fieldBorder + fh * 0.22} width={fw * 0.165} height={fh * 0.56} stroke={lineStroke} strokeWidth={2.5} />
+            <Rect x={fieldBorder + fw - fw * 0.055} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2.5} />
+            <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={3.5} fill={lineStroke} />
 
-            {/* Penalty arcs */}
-            <Ellipse x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radiusX={fw * 0.07} radiusY={fh * 0.12} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
-              ctx.rect(fieldBorder + fw * 0.165, fieldBorder, fw, fh);
-            }} />
-            <Ellipse x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radiusX={fw * 0.07} radiusY={fh * 0.12} stroke={lineStroke} strokeWidth={2} clipFunc={(ctx) => {
-              ctx.rect(0, fieldBorder, fieldBorder + fw - fw * 0.165, fh);
-            }} />
+            {/* Penalty arcs (Meia-lua fora da área) */}
+            <Group clipFunc={(ctx) => {
+              ctx.rect(fieldBorder + fw * 0.165, 0, fw + fieldBorder, h);
+            }}>
+              <Circle x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radius={fw * 0.08} stroke={lineStroke} strokeWidth={2.5} />
+            </Group>
+            <Group clipFunc={(ctx) => {
+              ctx.rect(0, 0, fieldBorder + fw - fw * 0.165, h);
+            }}>
+              <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={fw * 0.08} stroke={lineStroke} strokeWidth={2.5} />
+            </Group>
           </Group>
         )}
 
         {activity.modality === 'Futsal' && (
-           <Group opacity={0.45}>
-             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2} />
-             <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.12} stroke={lineStroke} strokeWidth={2} />
+           <Group opacity={0.92}>
+             <Rect x={fieldBorder - 10} y={fieldBorder + fh * 0.36} width={10} height={fh * 0.28} stroke={lineStroke} strokeWidth={2.5} fill="rgba(255,255,255,0.2)" cornerRadius={[3, 0, 0, 3]} />
+             <Rect x={fieldBorder + fw} y={fieldBorder + fh * 0.36} width={10} height={fh * 0.28} stroke={lineStroke} strokeWidth={2.5} fill="rgba(255,255,255,0.2)" cornerRadius={[0, 3, 3, 0]} />
+             <Line points={[fieldBorder + fw / 2, fieldBorder, fieldBorder + fw / 2, fieldBorder + fh]} stroke={lineStroke} strokeWidth={2.5} />
+             <Circle x={fieldBorder + fw / 2} y={fieldBorder + fh / 2} radius={fw * 0.12} stroke={lineStroke} strokeWidth={2.5} />
              {/* Six-meter lines */}
-             <Rect x={fieldBorder} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2} cornerRadius={[0, 40, 40, 0]} />
-             <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2} cornerRadius={[40, 0, 0, 40]} />
+             <Rect x={fieldBorder} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2.5} cornerRadius={[0, 40, 40, 0]} />
+             <Rect x={fieldBorder + fw - fw * 0.15} y={fieldBorder + fh * 0.28} width={fw * 0.15} height={fh * 0.44} stroke={lineStroke} strokeWidth={2.5} cornerRadius={[40, 0, 0, 40]} />
            </Group>
         )}
 
@@ -906,256 +936,245 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
   const selectedObject = objects.find(o => o.id === selectedId);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex flex-col gap-4">
+    <div ref={containerRef} className="w-full h-full min-h-[420px] bg-zinc-950 rounded-2xl border border-zinc-800/80 shadow-2xl flex flex-col p-2 gap-2 select-none overflow-hidden relative">
+      {/* Top Editing Toolbar (In Flow so it doesn't obscure the field) */}
       {isEditable && (
-        <div className="flex flex-col gap-3">
-          {/* Main Toolbar */}
-          <div className="flex items-center gap-1.5 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-x-auto no-scrollbar">
-            <button type="button" onClick={() => addObject('player', 'A')} className="p-2.5 bg-blue-600/15 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
-              <User size={14} className="fill-current" /> Azul (A)
-            </button>
-            <button type="button" onClick={() => addObject('player', 'B')} className="p-2.5 bg-red-600/15 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
-              <User size={14} className="fill-current" /> Vermelho (B)
-            </button>
-            <button type="button" onClick={() => addObject('player', 'GK_A')} className="p-2.5 bg-emerald-600/15 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
-              <Shield size={14} /> Goleiro A
-            </button>
-            <button type="button" onClick={() => addObject('player', 'GK_B')} className="p-2.5 bg-amber-600/15 text-amber-400 rounded-xl hover:bg-amber-600 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
-              <Shield size={14} /> Goleiro B
-            </button>
-            <button type="button" onClick={() => addObject('player', 'REF')} className="p-2.5 bg-zinc-700/15 text-zinc-300 rounded-xl hover:bg-zinc-700 hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-black uppercase whitespace-nowrap">
-              <User size={14} /> Árbitro
-            </button>
-            <button type="button" onClick={() => addObject('ball')} className="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
-              <Disc size={14} /> Bola
-            </button>
-            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
-            <button type="button" onClick={() => addObject('cone')} className="p-2.5 bg-orange-600/10 text-orange-400 rounded-xl hover:bg-orange-600 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
-              <Hexagon size={14} /> Cone
-            </button>
-            <button type="button" onClick={() => addObject('barrier')} className="p-2.5 bg-zinc-700/10 text-zinc-400 rounded-xl hover:bg-zinc-700 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
-              <Shield size={14} /> Barreira
-            </button>
-            <button type="button" onClick={() => addObject('arrow')} className="p-2.5 bg-indigo-600/10 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase whitespace-nowrap">
-              <ArrowRight size={14} /> Vetor
-            </button>
-            
-            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
-            
-            {/* Standard tactics schemas */}
-            <div className="flex items-center gap-1">
-              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest hidden lg:block mr-1">Táticas:</span>
-              {(['4-4-2', '4-3-3', '3-5-2'] as const).map(f => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => applyFormation(f)}
-                  className="px-2 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg text-[9px] font-black transition-all border border-transparent hover:border-zinc-600"
-                >
-                  {f}
+        <div className="w-full shrink-0 z-20 flex flex-col gap-1.5">
+          <div className="bg-zinc-900/90 border border-zinc-800/80 p-1.5 sm:p-2 rounded-xl shadow-lg flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
+              {/* Main item insertion buttons */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button type="button" onClick={() => addObject('player', 'A')} className="p-1.5 sm:p-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <User size={12} className="fill-current" /> Azul
                 </button>
-              ))}
-            </div>
+                <button type="button" onClick={() => addObject('player', 'B')} className="p-1.5 sm:p-2 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <User size={12} className="fill-current" /> Vermelho
+                </button>
+                <button type="button" onClick={() => addObject('player', 'GK_A')} className="p-1.5 sm:p-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <Shield size={12} /> Goleiro
+                </button>
+                <button type="button" onClick={() => addObject('ball')} className="p-1.5 sm:p-2 bg-white/10 text-white border border-white/20 rounded-lg hover:bg-white hover:text-black transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <Disc size={12} /> Bola
+                </button>
+                <button type="button" onClick={() => addObject('cone')} className="p-1.5 sm:p-2 bg-orange-600/15 text-orange-400 border border-orange-500/30 rounded-lg hover:bg-orange-600 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <Hexagon size={12} /> Cone
+                </button>
+                <button type="button" onClick={() => addObject('barrier')} className="p-1.5 sm:p-2 bg-zinc-700/20 text-zinc-300 border border-zinc-700/40 rounded-lg hover:bg-zinc-700 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <Shield size={12} /> Barreira
+                </button>
+                <button type="button" onClick={() => addObject('arrow')} className="p-1.5 sm:p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase whitespace-nowrap cursor-pointer">
+                  <ArrowRight size={12} /> Vetor
+                </button>
+              </div>
 
-            <div className="w-px h-6 bg-zinc-800 mx-1 shrink-0" />
+              <div className="w-px h-4 bg-zinc-800 shrink-0 mx-0.5" />
 
-            {/* Clear Board */}
-            <button 
-              type="button" 
-              onClick={() => { if(confirm("Limpar esquema tático?")) { handleUpdate([]); setSelectedId(null); } }} 
-              className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
-              title="Limpar Tudo"
-            >
-              <RotateCcw size={16} />
-            </button>
-          </div>
+              {/* Formations, Clear & Collapse */}
+              <div className="flex items-center gap-1 shrink-0">
+                {(['4-4-2', '4-3-3', '3-5-2'] as const).map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => applyFormation(f)}
+                    className="px-1.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded text-[8px] font-black transition-all border border-zinc-800 cursor-pointer"
+                  >
+                    {f}
+                  </button>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={() => { if(confirm("Limpar esquema tático?")) { handleUpdate([]); setSelectedId(null); } }} 
+                  className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer border border-transparent hover:border-red-500/30"
+                  title="Limpar Tudo"
+                >
+                  <RotateCcw size={13} />
+                </button>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            {/* Globo TV pre-loaded plays selector (Very cool!) */}
-            <div className="flex-1 flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl">
-              <Layout size={16} className="text-emerald-500 ml-1 shrink-0" />
-              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest shrink-0">Jogadas Globo:</span>
-              <div className="flex gap-1 overflow-x-auto no-scrollbar w-full">
-                {Object.keys(PRESET_PLAYS).map((key) => {
-                  const preset = PRESET_PLAYS[key];
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => loadPreset(key)}
-                      className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-[9px] font-bold whitespace-nowrap border border-zinc-700 transition-all cursor-pointer"
-                      title={preset.description}
-                    >
-                      {preset.name}
-                    </button>
-                  );
-                })}
+                <button
+                  type="button"
+                  onClick={() => setIsToolbarOpen(!isToolbarOpen)}
+                  className="p-1.5 text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 rounded-lg transition-all cursor-pointer"
+                  title={isToolbarOpen ? "Ocultar Painel de Jogadas" : "Exibir Painel de Jogadas"}
+                >
+                  {isToolbarOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
               </div>
             </div>
 
-            {/* Property Editor */}
-            <div className="flex-1 flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-2xl min-h-[52px]">
-              {selectedObject ? (
-                <div className="flex items-center gap-3 w-full animate-in fade-in slide-in-from-left-2 transition-all">
-                  <Settings2 size={16} className="text-theme-primary ml-1 shrink-0" />
-                  
-                  {selectedObject.type === 'player' && (
-                    <>
-                      <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg shrink-0 overflow-x-auto max-w-[150px] no-scrollbar">
-                        {(['A', 'B', 'GK_A', 'GK_B', 'REF'] as const).map(team => (
-                          <button
-                            key={team}
-                            type="button"
-                            onClick={() => updateObject(selectedObject.id, { team })}
-                            className={cn(
-                              "w-5 h-5 rounded-md transition-all border shrink-0",
-                              selectedObject.team === team ? "border-white scale-110" : "border-transparent opacity-40"
-                            )}
-                            title={
-                              team === 'A' ? "Time Azul" :
-                              team === 'B' ? "Time Vermelho" :
-                              team === 'GK_A' ? "Goleiro A" :
-                              team === 'GK_B' ? "Goleiro B" : "Árbitro"
-                            }
-                            style={{ backgroundColor: TEAM_COLORS[team] }}
+            {/* Extended presets & property inspector */}
+            {isToolbarOpen && (
+              <div className="flex flex-col sm:flex-row gap-1.5 pt-1 border-t border-zinc-800/80 animate-in fade-in duration-200">
+                {/* Preset plays */}
+                <div className="flex-1 flex items-center gap-1.5 p-1 bg-zinc-950/60 border border-zinc-800/80 rounded-lg min-w-0">
+                  <Layout size={13} className="text-emerald-500 ml-1 shrink-0" />
+                  <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest shrink-0">Jogadas Globo:</span>
+                  <div className="flex gap-1 overflow-x-auto no-scrollbar w-full">
+                    {Object.keys(PRESET_PLAYS).map((key) => {
+                      const preset = PRESET_PLAYS[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => loadPreset(key)}
+                          className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded text-[8px] font-bold whitespace-nowrap border border-zinc-700/60 transition-all cursor-pointer"
+                          title={preset.description}
+                        >
+                          {preset.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Selected Item Editor */}
+                <div className="flex-1 flex items-center gap-1.5 p-1 bg-zinc-950/60 border border-zinc-800/80 rounded-lg min-h-[30px] min-w-0">
+                  {selectedObject ? (
+                    <div className="flex items-center gap-2 w-full animate-in fade-in transition-all">
+                      <Settings2 size={13} className="text-theme-primary ml-1 shrink-0" />
+                      
+                      {selectedObject.type === 'player' && (
+                        <>
+                          <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg shrink-0 overflow-x-auto max-w-[130px] no-scrollbar">
+                            {(['A', 'B', 'GK_A', 'GK_B', 'REF'] as const).map(team => (
+                              <button
+                                key={team}
+                                type="button"
+                                onClick={() => updateObject(selectedObject.id, { team })}
+                                className={cn(
+                                  "w-3.5 h-3.5 rounded transition-all border shrink-0 cursor-pointer",
+                                  selectedObject.team === team ? "border-white scale-110" : "border-transparent opacity-40"
+                                )}
+                                style={{ backgroundColor: TEAM_COLORS[team] }}
+                              />
+                            ))}
+                          </div>
+                          <input 
+                            type="text" 
+                            maxLength={3}
+                            placeholder="Nº"
+                            value={selectedObject.label || ''}
+                            onChange={(e) => updateObject(selectedObject.id, { label: e.target.value.toUpperCase() })}
+                            className="w-8 h-5 bg-black/40 border border-zinc-800 rounded text-center text-[10px] font-bold text-white focus:ring-1 focus:ring-theme-primary"
                           />
-                        ))}
-                      </div>
-                      <input 
-                        type="text" 
-                        maxLength={3}
-                        placeholder="Nº"
-                        value={selectedObject.label || ''}
-                        onChange={(e) => updateObject(selectedObject.id, { label: e.target.value.toUpperCase() })}
-                        className="w-10 h-7 bg-black/40 border border-zinc-800 rounded-lg text-center text-xs font-bold text-white focus:ring-1 focus:ring-theme-primary"
-                      />
-                    </>
-                  )}
-
-                  {(selectedObject.type === 'player' || selectedObject.type === 'ball') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextAnimate = !selectedObject.animate;
-                        updateObject(selectedObject.id, { 
-                          animate: nextAnimate,
-                          toX: nextAnimate ? selectedObject.x + 10 : undefined,
-                          toY: nextAnimate ? selectedObject.y + 10 : undefined
-                        });
-                      }}
-                      className={cn(
-                        "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5",
-                        selectedObject.animate ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-500"
+                        </>
                       )}
-                    >
-                      <Play size={10} fill={selectedObject.animate ? "currentColor" : "none"} />
-                      {selectedObject.animate ? "Móvel" : "Fixo"}
-                    </button>
+
+                      {(selectedObject.type === 'player' || selectedObject.type === 'ball') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextAnimate = !selectedObject.animate;
+                            updateObject(selectedObject.id, { 
+                              animate: nextAnimate,
+                              toX: nextAnimate ? selectedObject.x + 10 : undefined,
+                              toY: nextAnimate ? selectedObject.y + 10 : undefined
+                            });
+                          }}
+                          className={cn(
+                            "px-1.5 py-0.5 rounded text-[8px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
+                            selectedObject.animate ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-500"
+                          )}
+                        >
+                          <Play size={8} fill={selectedObject.animate ? "currentColor" : "none"} />
+                          {selectedObject.animate ? "Móvel" : "Fixo"}
+                        </button>
+                      )}
+
+                      <button 
+                        type="button"
+                        onClick={removeSelected}
+                        className="ml-auto px-1.5 py-0.5 text-red-400 hover:bg-red-500/15 rounded text-[8px] font-bold transition-all cursor-pointer"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2 text-zinc-500 italic text-[8px] uppercase font-bold tracking-widest">
+                      <Info size={11} /> Clique num item para configurar
+                    </div>
                   )}
-
-                  <button 
-                    type="button"
-                    onClick={removeSelected}
-                    className="ml-auto p-1.5 text-red-400 hover:bg-red-500/15 rounded-lg transition-all cursor-pointer"
-                    title="Excluir item"
-                  >
-                    Excluir
-                  </button>
                 </div>
-              ) : (
-                <div className="flex items-center gap-1.5 px-2 text-zinc-500 italic text-[9px] uppercase font-bold tracking-widest">
-                  <Info size={13} /> Selecione um item na lousa para configurar
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* The Stage / Pitch with 3D perspective */}
-      <div className="relative group flex-1">
-        <div 
-          style={is3D ? {
-            perspective: '1200px',
-            perspectiveOrigin: '50% 100%'
-          } : undefined}
-          className="w-full flex justify-center py-4"
-        >
-          <div
-            style={is3D ? {
-              transform: 'rotateX(28deg) rotateY(0deg) rotateZ(0deg) scale(1.02)',
-              transformStyle: 'preserve-3d',
-              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: '0 30px 60px rgba(0,0,0,0.65), 0 0 40px rgba(16, 185, 129, 0.1)',
-              borderRadius: '24px'
-            } : {
-              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-              borderRadius: '24px'
-            }}
-            className="overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950 relative"
-          >
-            <Stage 
-              width={w} 
-              height={h} 
-              onClick={() => isEditable && setSelectedId(null)}
-            >
-              <Layer>
-                {renderField()}
-                {renderTrailsAndTargets()}
-                {renderDrillObjects()}
-              </Layer>
-            </Stage>
-
-            {objects.length === 0 && (
-               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[1.5px] rounded-3xl">
-                  <Zap size={36} className="text-zinc-600 mb-2 animate-bounce" />
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic text-center px-4">
-                    Lousa Tática Vazia.<br/>Adicione jogadores, cones ou clique em "Jogadas Globo"!
-                  </p>
-               </div>
+              </div>
             )}
           </div>
         </div>
-
-        {/* Field Area Container */}
-      </div>
-
-      {/* HUD de Narração Dinâmica da Simulação da IA (Auto-Explicativo) */}
-      {executionSteps && executionSteps.length > 0 && (
-        <div className="bg-zinc-900/90 border border-zinc-800/80 p-3.5 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 transition-all shadow-xl">
-          <div className="p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/25 text-theme-primary shrink-0 animate-pulse">
-            <Volume2 className="w-4 h-4" />
-          </div>
-          <div className="space-y-0.5 min-w-0 flex-1">
-            <div className="text-[9px] uppercase font-black text-theme-primary tracking-widest flex items-center gap-1.5">
-              <span>NARRADOR TÁTICO DA IA</span>
-              <span className="text-[8px] text-zinc-500 font-bold">•</span>
-              <span className="text-zinc-400">PASSO {Math.min(executionSteps.length, Math.floor(t * executionSteps.length) + 1)} DE {executionSteps.length}</span>
-            </div>
-            <p className="text-xs text-zinc-200 font-medium leading-relaxed italic">
-              "{executionSteps[Math.min(executionSteps.length - 1, Math.floor(t * executionSteps.length))] || 'Posicionamento e preparação da atividade técnica...'}"
-            </p>
-          </div>
-        </div>
       )}
 
-      {/* Globo-Style Interactive Playback Control Deck */}
-      <div className="bg-zinc-950/90 backdrop-blur-md border border-zinc-800 p-3.5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
-        {/* Left Controls: Play / Pause / Reset */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-2">
+      {/* Dedicated Unobstructed Stage Container */}
+      <div ref={stageContainerRef} className="flex-1 w-full min-h-[220px] flex items-center justify-center relative overflow-hidden bg-zinc-950/90 rounded-xl border border-zinc-800/80 p-1">
+        <div
+          style={is3D ? {
+            transform: 'rotateX(22deg) rotateY(0deg) rotateZ(0deg) scale(0.95)',
+            transformStyle: 'preserve-3d',
+            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(16, 185, 129, 0.15)',
+            borderRadius: '16px'
+          } : {
+            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            borderRadius: '16px'
+          }}
+          className="overflow-hidden border border-zinc-800/90 shadow-2xl bg-zinc-950 relative shrink-0"
+        >
+          <Stage 
+            width={w} 
+            height={h} 
+            onClick={() => isEditable && setSelectedId(null)}
+          >
+            <Layer>
+              {renderField()}
+              {renderTrailsAndTargets()}
+              {renderDrillObjects()}
+            </Layer>
+          </Stage>
+
+          {objects.length === 0 && (
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[1.5px] rounded-2xl">
+                <Zap size={28} className="text-zinc-600 mb-1.5 animate-bounce" />
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic text-center px-4">
+                  Lousa Tática Vazia.<br/>Adicione jogadores, cones ou escolha "Jogadas Globo"!
+                </p>
+             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Playback Deck (In Flow below Stage Container) */}
+      <div className="w-full shrink-0 z-20 flex flex-col gap-1.5">
+        {/* HUD Narração Tática da IA */}
+        {executionSteps && executionSteps.length > 0 && (
+          <div className="bg-zinc-900/90 border border-zinc-800/80 p-2 rounded-xl flex items-center gap-2 shadow-lg animate-in fade-in">
+            <div className="p-1.5 rounded-lg bg-theme-primary/10 border border-theme-primary/25 text-theme-primary shrink-0 animate-pulse">
+              <Volume2 className="w-3.5 h-3.5" />
+            </div>
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <div className="text-[8px] uppercase font-black text-theme-primary tracking-widest flex items-center gap-1">
+                <span>NARRADOR TÁTICO</span>
+                <span className="text-[7px] text-zinc-500 font-bold">•</span>
+                <span className="text-zinc-400">PASSO {Math.min(executionSteps.length, Math.floor(t * executionSteps.length) + 1)} / {executionSteps.length}</span>
+              </div>
+              <p className="text-[10px] text-zinc-200 font-medium leading-tight italic truncate">
+                "{executionSteps[Math.min(executionSteps.length - 1, Math.floor(t * executionSteps.length))] || 'Preparação tática...'}"
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Playback Controls Bar */}
+        <div className="bg-zinc-900/90 border border-zinc-800/80 p-2 rounded-xl flex flex-wrap md:flex-nowrap items-center justify-between gap-2 shadow-lg">
+          {/* Play / Pause / Reset & Speed */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setIsPlaying(!isPlaying)}
               className={cn(
-                "p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-lg",
+                "p-2 rounded-lg transition-all flex items-center justify-center cursor-pointer shadow-md",
                 isPlaying 
                   ? "bg-emerald-500 text-black hover:bg-emerald-400 shadow-emerald-500/20" 
                   : "bg-theme-primary text-black hover:bg-theme-primary/80 shadow-theme-primary/20"
               )}
               title={isPlaying ? "Pausar" : "Iniciar Movimentação"}
             >
-              {isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current" />}
+              {isPlaying ? <Pause size={12} className="fill-current" /> : <Play size={12} className="fill-current" />}
             </button>
             
             <button
@@ -1164,105 +1183,100 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
                 setIsPlaying(false);
                 setCurrentTime(0);
               }}
-              className="p-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+              className="p-2 bg-zinc-800 border border-zinc-700/60 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all cursor-pointer flex items-center justify-center"
               title="Reiniciar Posicionamento"
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={12} />
+            </button>
+
+            <div className="flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded border border-zinc-800">
+              {([1, 1.5, 2] as const).map(speed => (
+                <button
+                  key={speed}
+                  type="button"
+                  onClick={() => setPlaybackSpeed(speed)}
+                  className={cn(
+                    "px-1.5 py-0.5 rounded text-[8px] font-black transition-all cursor-pointer",
+                    playbackSpeed === speed 
+                      ? "bg-theme-primary text-black font-black" 
+                      : "text-zinc-500 hover:text-white"
+                  )}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Timeline Scrubber */}
+          <div className="flex-1 min-w-[120px] flex items-center gap-2">
+            <span className="text-[8px] font-mono text-zinc-500 w-6 text-right font-bold shrink-0">
+              {(currentTime / 20).toFixed(1)}s
+            </span>
+            
+            <div className="flex-1 relative group py-1">
+              <input 
+                type="range"
+                min="0"
+                max="100"
+                step="0.5"
+                value={currentTime}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setCurrentTime(parseFloat(e.target.value));
+                }}
+                className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-theme-primary focus:outline-none"
+              />
+              <div 
+                className="absolute left-0 top-[10px] h-1 bg-theme-primary/50 rounded-lg pointer-events-none" 
+                style={{ width: `${currentTime}%` }}
+              />
+            </div>
+
+            <span className="text-[8px] font-mono text-zinc-500 w-6 text-left font-bold shrink-0">
+              5.0s
+            </span>
+          </div>
+
+          {/* View Toggles */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIs3D(!is3D)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded text-[8px] font-black uppercase transition-all cursor-pointer border",
+                is3D ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-zinc-800 text-zinc-400 border-zinc-700/60"
+              )}
+              title="Alternar entre visualização 2D Plana e Perspectiva 3D"
+            >
+              <Tv size={10} />
+              {is3D ? "3D Ativo" : "2D Plano"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowTrails(!showTrails)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded text-[8px] font-black uppercase transition-all cursor-pointer border",
+                showTrails ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/40" : "bg-zinc-800 text-zinc-400 border-zinc-700/60"
+              )}
+              title="Mostrar trajetos desenhados"
+            >
+              {showTrails ? <Eye size={10} /> : <EyeOff size={10} />}
+              Linhas
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsLooping(!isLooping)}
+              className={cn(
+                "px-2 py-1 rounded text-[8px] font-black uppercase transition-all cursor-pointer border",
+                isLooping ? "bg-theme-primary/15 text-theme-primary border-theme-primary/30" : "bg-zinc-800 text-zinc-400 border-zinc-700/60"
+              )}
+            >
+              {isLooping ? "Loop" : "Manual"}
             </button>
           </div>
-
-          {/* Speed Selectors */}
-          <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-lg border border-zinc-800 ml-1">
-            {([1, 1.5, 2] as const).map(speed => (
-              <button
-                key={speed}
-                type="button"
-                onClick={() => setPlaybackSpeed(speed)}
-                className={cn(
-                  "px-2 py-1 rounded-md text-[8px] font-black transition-all cursor-pointer",
-                  playbackSpeed === speed 
-                    ? "bg-theme-primary text-black font-black" 
-                    : "text-zinc-500 hover:text-white"
-                )}
-              >
-                {speed}x
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Center Control: Scrubber (Timeline) */}
-        <div className="flex-1 w-full flex items-center gap-2.5">
-          <span className="text-[9px] font-mono text-zinc-500 w-8 text-right font-bold shrink-0">
-            {(currentTime / 20).toFixed(1)}s
-          </span>
-          
-          <div className="flex-1 relative group py-2">
-            <input 
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={currentTime}
-              onChange={(e) => {
-                setIsPlaying(false); // Pause on manual scrub
-                setCurrentTime(parseFloat(e.target.value));
-              }}
-              className="w-full h-1 bg-zinc-850 rounded-lg appearance-none cursor-pointer accent-theme-primary focus:outline-none"
-            />
-            {/* Custom glowing track progress overlay */}
-            <div 
-              className="absolute left-0 top-[14px] h-1 bg-theme-primary/50 rounded-lg pointer-events-none" 
-              style={{ width: `${currentTime}%` }}
-            />
-          </div>
-
-          <span className="text-[9px] font-mono text-zinc-500 w-8 text-left font-bold shrink-0">
-            5.0s
-          </span>
-        </div>
-
-        {/* Right Controls: Trails, 3D and Looping Toggles */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          {/* Perspectiva 3D Toggle */}
-          <button
-            type="button"
-            onClick={() => setIs3D(!is3D)}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
-              is3D ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-zinc-900 text-zinc-500 border-zinc-800"
-            )}
-            title="Alternar entre visualização 2D plana e Perspectiva 3D"
-          >
-            <Tv size={10} />
-            Perspectiva 3D
-          </button>
-
-          {/* Trails Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowTrails(!showTrails)}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
-              showTrails ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
-            )}
-            title="Mostrar trajetos desenhados"
-          >
-            {showTrails ? <Eye size={10} /> : <EyeOff size={10} />}
-            Linhas
-          </button>
-
-          {/* Looping Toggle */}
-          <button
-            type="button"
-            onClick={() => setIsLooping(!isLooping)}
-            className={cn(
-              "px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer border",
-              isLooping ? "bg-theme-primary/10 text-theme-primary border-theme-primary/30" : "bg-zinc-900 text-zinc-500 border-zinc-800"
-            )}
-          >
-            {isLooping ? "Loop" : "Manual"}
-          </button>
         </div>
       </div>
     </div>

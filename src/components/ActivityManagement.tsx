@@ -1008,7 +1008,7 @@ export default function ActivityManagement({ onSelect, isPicker = false, role }:
 
               <div className="flex-1 p-10 grid grid-cols-1 lg:grid-cols-5 gap-12 items-start overflow-y-auto custom-scrollbar">
                 <div className="lg:col-span-3 space-y-8">
-                  <DrillVisualizer activity={visualizingActivity} />
+                  <DrillVisualizer activity={visualizingActivity} isEditable={true} />
                   
                   {visualizingActivity.youtubeUrl && (
                     <div className="w-full aspect-video bg-black rounded-[2.5rem] overflow-hidden border border-zinc-800 shadow-2xl relative">
