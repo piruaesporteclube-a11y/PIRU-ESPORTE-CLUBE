@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Training, Athlete, categories } from '../types';
+import { Training, Athlete, categories, categoryAgeRanges, getSubNumber } from '../types';
 import { Plus, Calendar, Clock, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle2, X, ChevronDown, ChevronUp, FileText, Instagram, GripVertical, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -86,6 +86,34 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
       newSchedules[scheduleIndex] = { ...newSchedules[scheduleIndex], categories: nextCategories };
       return { ...prev, schedules: newSchedules };
     });
+  };
+
+  const setCategoryRange = (scheduleIndex: number, rangeCategories: string[]) => {
+    setFormData(prev => {
+      const newSchedules = [...(prev.schedules || [])];
+      const current = newSchedules[scheduleIndex].categories;
+      
+      // Check if all rangeCategories are already active
+      const allSelected = rangeCategories.every(c => current.includes(c)) && current.length === rangeCategories.length;
+      
+      newSchedules[scheduleIndex] = {
+        ...newSchedules[scheduleIndex],
+        categories: allSelected ? ['Todos'] : rangeCategories
+      };
+      return { ...prev, schedules: newSchedules };
+    });
+  };
+
+  const getScheduleCategoryLabel = (cats: string[]) => {
+    const clean = cats.filter(c => c !== 'Todos' && c !== 'Todas');
+    if (clean.length === 0) return 'Todos';
+    const subNums = clean.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+    if (subNums.length > 1) {
+      const min = Math.min(...subNums);
+      const max = Math.max(...subNums);
+      return `SUB ${min} ao SUB ${max}`;
+    }
+    return clean.join(', ');
   };
 
   useEffect(() => {
@@ -228,27 +256,31 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 </p>
                 {activeAttendanceTraining.schedules && activeAttendanceTraining.schedules.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {activeAttendanceTraining.schedules.map((s, i) => (
-                      <button 
-                        key={i} 
-                        onClick={() => setFilterCategory(s.categories[0])}
-                        className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-md font-bold uppercase transition-all",
-                          s.categories.includes(filterCategory)
-                            ? "bg-theme-primary text-black"
-                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                        )}
-                      >
-                        {s.categories.join(', ')}: {s.start_time}-{s.end_time}
-                      </button>
-                    ))}
+                    {activeAttendanceTraining.schedules.map((s, i) => {
+                      const label = getScheduleCategoryLabel(s.categories);
+                      const isSelected = filterCategory === label || (s.categories.length === 1 && filterCategory === s.categories[0]) || s.categories.includes(filterCategory);
+                      return (
+                        <button 
+                          key={i} 
+                          onClick={() => setFilterCategory(label)}
+                          className={cn(
+                            "text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-theme-primary text-black shadow-sm"
+                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                          )}
+                        >
+                          {label}: {s.start_time}-{s.end_time}
+                        </button>
+                      );
+                    })}
                     <button 
                       onClick={() => setFilterCategory('Todos')}
                       className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-md font-bold uppercase transition-all",
+                        "text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase transition-all cursor-pointer",
                         filterCategory === 'Todos'
-                          ? "bg-theme-primary text-black"
-                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          ? "bg-theme-primary text-black shadow-sm"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white"
                       )}
                     >
                       Ver Todos
@@ -715,8 +747,38 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Categorias (Subs)</label>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Faixas Etárias / Categorias (Subs)</label>
+                            <span className="text-[8px] text-zinc-500 font-bold uppercase">
+                              Selecionados: {getScheduleCategoryLabel(schedule.categories)}
+                            </span>
+                          </div>
+
+                          {/* Quick Group Preset Buttons */}
+                          <div className="flex flex-wrap gap-1.5 p-2 bg-zinc-950/60 border border-zinc-800/80 rounded-xl">
+                            <span className="text-[8px] font-black text-theme-primary uppercase tracking-wider w-full mb-0.5">⚡ Atalhos por Faixa Etária:</span>
+                            {categoryAgeRanges.map(range => {
+                              const isRangeSelected = range.categories.every(c => schedule.categories.includes(c)) && schedule.categories.length === range.categories.length;
+                              return (
+                                <button
+                                  key={range.value}
+                                  type="button"
+                                  onClick={() => setCategoryRange(idx, range.categories)}
+                                  className={cn(
+                                    "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer",
+                                    isRangeSelected
+                                      ? "bg-theme-primary border-theme-primary text-black shadow-sm"
+                                      : "bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
+                                  )}
+                                >
+                                  {range.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Individual Subs */}
+                          <div className="flex flex-wrap gap-1.5 pt-1">
                             {['Todos', ...categories].map(c => {
                               const isActive = schedule.categories.includes(c);
                               return (
@@ -725,10 +787,10 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                                   type="button"
                                   onClick={() => toggleCategory(idx, c)}
                                   className={cn(
-                                    "px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all border",
+                                    "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer",
                                     isActive 
                                       ? "bg-theme-primary border-theme-primary text-black" 
-                                      : "bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-500"
+                                      : "bg-zinc-800/80 border-zinc-700/60 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"
                                   )}
                                 >
                                   {c}
@@ -837,11 +899,7 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                 />
               </div>
               
-              <div className="p-6 bg-black/20 border-t border-zinc-800 text-center">
-                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">
-                  Você pode editar as atividades na seção "Metodologia" do menu principal
-                </p>
-              </div>
+
             </motion.div>
           </div>
         )}

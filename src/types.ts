@@ -432,7 +432,20 @@ export type SponsorBlock = {
 };
 
 export const getSubCategory = (birthDate: string) => {
-  const birthYear = parseISO(birthDate).getFullYear();
+  if (!birthDate) return "ADULTO";
+  let birthYear: number;
+  try {
+    if (birthDate.includes('/')) {
+      const parts = birthDate.split('/');
+      const y = parts[parts.length - 1];
+      birthYear = parseInt(y, 10);
+    } else {
+      birthYear = parseISO(birthDate).getFullYear();
+    }
+    if (isNaN(birthYear)) birthYear = new Date(birthDate).getFullYear();
+  } catch (_) {
+    return "ADULTO";
+  }
   const currentYear = new Date().getFullYear();
   const age = currentYear - birthYear;
   
@@ -440,20 +453,20 @@ export const getSubCategory = (birthDate: string) => {
   if (age === 4) return "SUB 4";
   if (age === 5) return "SUB 5";
   if (age === 6) return "SUB 6";
-  if (age <= 7) return "SUB 7";
-  if (age <= 8) return "SUB 8";
-  if (age <= 9) return "SUB 9";
-  if (age <= 10) return "SUB 10";
-  if (age <= 11) return "SUB 11";
-  if (age <= 12) return "SUB 12";
-  if (age <= 13) return "SUB 13";
-  if (age <= 14) return "SUB 14";
-  if (age <= 15) return "SUB 15";
-  if (age <= 16) return "SUB 16";
-  if (age <= 17) return "SUB 17";
-  if (age <= 18) return "SUB 18";
-  if (age <= 19) return "SUB 19";
-  if (age <= 20) return "SUB 20";
+  if (age === 7) return "SUB 7";
+  if (age === 8) return "SUB 8";
+  if (age === 9) return "SUB 9";
+  if (age === 10) return "SUB 10";
+  if (age === 11) return "SUB 11";
+  if (age === 12) return "SUB 12";
+  if (age === 13) return "SUB 13";
+  if (age === 14) return "SUB 14";
+  if (age === 15) return "SUB 15";
+  if (age === 16) return "SUB 16";
+  if (age === 17) return "SUB 17";
+  if (age === 18) return "SUB 18";
+  if (age === 19) return "SUB 19";
+  if (age === 20) return "SUB 20";
   return "ADULTO";
 };
 
@@ -463,6 +476,102 @@ export const categories = [
   "SUB 16", "SUB 17", "SUB 18", "SUB 19", "SUB 20", 
   "ADULTO"
 ];
+
+export const categoryAgeRanges = [
+  { label: "SUB 3 ao SUB 6 (Iniciação / Baby)", value: "SUB 3 ao SUB 6", min: 3, max: 6, categories: ["SUB 3", "SUB 4", "SUB 5", "SUB 6"] },
+  { label: "SUB 7 ao SUB 9 (Pré-Mirim / Fraldinha)", value: "SUB 7 ao SUB 9", min: 7, max: 9, categories: ["SUB 7", "SUB 8", "SUB 9"] },
+  { label: "SUB 10 ao SUB 12 (Mirim)", value: "SUB 10 ao SUB 12", min: 10, max: 12, categories: ["SUB 10", "SUB 11", "SUB 12"] },
+  { label: "SUB 13 ao SUB 15 (Infantil)", value: "SUB 13 ao SUB 15", min: 13, max: 15, categories: ["SUB 13", "SUB 14", "SUB 15"] },
+  { label: "SUB 16 ao SUB 17 (Juvenil)", value: "SUB 16 ao SUB 17", min: 16, max: 17, categories: ["SUB 16", "SUB 17"] },
+  { label: "SUB 18 ao SUB 20 (Juniores)", value: "SUB 18 ao SUB 20", min: 18, max: 20, categories: ["SUB 18", "SUB 19", "SUB 20"] },
+  { label: "SUB 3 ao SUB 8", value: "SUB 3 ao SUB 8", min: 3, max: 8, categories: ["SUB 3", "SUB 4", "SUB 5", "SUB 6", "SUB 7", "SUB 8"] },
+  { label: "SUB 9 ao SUB 14", value: "SUB 9 ao SUB 14", min: 9, max: 14, categories: ["SUB 9", "SUB 10", "SUB 11", "SUB 12", "SUB 13", "SUB 14"] },
+  { label: "SUB 15 ao SUB 20", value: "SUB 15 ao SUB 20", min: 15, max: 20, categories: ["SUB 15", "SUB 16", "SUB 17", "SUB 18", "SUB 19", "SUB 20"] },
+];
+
+export const getSubNumber = (categoryStrOrBirthDate: string): number | null => {
+  if (!categoryStrOrBirthDate) return null;
+  const str = categoryStrOrBirthDate.trim().toUpperCase();
+  if (str === 'ADULTO') return 21;
+  
+  if ((str.includes('-') && str.length >= 8) || (str.includes('/') && str.length >= 8)) {
+    const sub = getSubCategory(str);
+    if (sub === 'ADULTO') return 21;
+    const match = sub.match(/\d+/);
+    return match ? parseInt(match[0], 10) : null;
+  }
+  
+  const match = str.match(/\d+/);
+  return match ? parseInt(match[0], 10) : null;
+};
+
+export const matchesCategoryCriteria = (
+  athleteOrSubOrBirthDate: Athlete | string | null | undefined,
+  categoryFilter: string | string[] | undefined | null
+): boolean => {
+  if (!categoryFilter) return true;
+  if (!athleteOrSubOrBirthDate) return false;
+
+  // Handle array of criteria (e.g. training schedule categories: ['SUB 3', 'SUB 4', 'SUB 5', 'SUB 6'])
+  if (Array.isArray(categoryFilter)) {
+    if (categoryFilter.length === 0 || categoryFilter.includes('Todos') || categoryFilter.includes('Todas')) {
+      return true;
+    }
+    return categoryFilter.some(cat => matchesCategoryCriteria(athleteOrSubOrBirthDate, cat));
+  }
+
+  const trimmedFilter = categoryFilter.trim();
+  if (!trimmedFilter || trimmedFilter.toUpperCase() === 'TODOS' || trimmedFilter.toUpperCase() === 'TODAS') {
+    return true;
+  }
+
+  const athleteSub = typeof athleteOrSubOrBirthDate === 'string'
+    ? ((athleteOrSubOrBirthDate.includes('-') && athleteOrSubOrBirthDate.length >= 8) || (athleteOrSubOrBirthDate.includes('/') && athleteOrSubOrBirthDate.length >= 8)
+        ? getSubCategory(athleteOrSubOrBirthDate)
+        : athleteOrSubOrBirthDate.trim().toUpperCase())
+    : getSubCategory(athleteOrSubOrBirthDate.birth_date);
+
+  const athleteSubNum = getSubNumber(athleteSub);
+
+  const cleanFilter = trimmedFilter.toUpperCase();
+  const cleanAthleteSub = athleteSub.toUpperCase();
+
+  // Exact match (ignoring spaces, hyphens, and leading zeros like SUB-03 vs SUB 3)
+  const normAthlete = cleanAthleteSub.replace(/[\s\-_]/g, '').replace(/SUB0(\d)/, 'SUB$1');
+  const normFilter = cleanFilter.replace(/[\s\-_]/g, '').replace(/SUB0(\d)/, 'SUB$1');
+  if (normAthlete === normFilter) return true;
+
+  // Comma, semicolon or slash separated list of categories (e.g. "SUB 3, SUB 4, SUB 5, SUB 6" or "SUB 3 / SUB 4")
+  if (cleanFilter.includes(',') || cleanFilter.includes(';') || (cleanFilter.includes('/') && !cleanFilter.match(/\d+\/\d+\/\d+/))) {
+    const parts = cleanFilter.split(/[,;\/]+/).map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
+    }
+  }
+
+  // "SUB 3 E SUB 4"
+  if (cleanFilter.includes(' E ')) {
+    const parts = cleanFilter.split(' E ').map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
+    }
+  }
+
+  // Range detection: "SUB 3 AO SUB 6", "SUB 3 A SUB 6", "SUB 3 - SUB 6", "SUB 3 ATÉ SUB 6", "SUB 3 AO 6", "SUB 3 A 6", "SUB-03 AO SUB-06", etc.
+  const rangeMatch = cleanFilter.match(/(?:SUB\s*[-_]?\s*)?(\d+)\s*(?:AO|A|ATÉ|ATE|-|TO|\.\.)\s*(?:SUB\s*[-_]?\s*)?(\d+)/i);
+  if (rangeMatch && athleteSubNum !== null) {
+    const min = parseInt(rangeMatch[1], 10);
+    const max = parseInt(rangeMatch[2], 10);
+    const lower = Math.min(min, max);
+    const upper = Math.max(min, max);
+
+    if (athleteSubNum >= lower && athleteSubNum <= upper) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 export type PlayerProfile = {
   athlete_id: string;

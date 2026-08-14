@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Line, Text, Group, Ellipse, Arrow, Arc } from 'react-konva';
 import { Play, Pause, RotateCcw, User, Disc, Hexagon, ArrowRight, Settings2, Shield, Info, Zap, Eye, EyeOff, Layout, Volume2, Sparkles, Tv, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrainingActivity } from '../types';
 import { cn } from '../utils';
@@ -197,6 +197,17 @@ export default function DrillVisualizer({ activity, onChange, isEditable = true,
     }));
 
     const nextObjects = [...objects.filter(o => o.type !== 'player'), ...newPlayers];
+    if (!nextObjects.some(o => o.type === 'ball')) {
+      nextObjects.push({ 
+        id: Math.random().toString(36).substr(2, 9), 
+        type: 'ball', 
+        x: 48, 
+        y: 50, 
+        animate: true, 
+        toX: 68, 
+        toY: 50 
+      });
+    }
     handleUpdate(nextObjects);
     toast.success(`Esquema ${formation} com adversários aplicado!`);
   };
@@ -329,7 +340,36 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
   const fw = w - fieldBorder * 2;
   const fh = h - fieldBorder * 2;
 
-  // Mathematically correct coordinate mapping (SOLVES DRAG-JUMPING BUG)
+  // Mathematically correct coordinate mapping with real-time feedback
+  const handleDragMove = (id: string, isTarget: boolean, e: any) => {
+    if (!isEditable) return;
+    const { x, y } = e.currentTarget.position();
+    
+    const nx = Math.max(0, Math.min(100, ((x - fieldBorder) / fw) * 100));
+    const ny = Math.max(0, Math.min(100, ((y - fieldBorder) / fh) * 100));
+
+    setObjects(prev => prev.map(obj => {
+      if (obj.id === id) {
+        if (isTarget) {
+          return { ...obj, toX: nx, toY: ny, animate: true };
+        } else {
+          const dx = nx - obj.x;
+          const dy = ny - obj.y;
+          const updatedToX = obj.toX !== undefined ? Math.max(0, Math.min(100, obj.toX + dx)) : nx;
+          const updatedToY = obj.toY !== undefined ? Math.max(0, Math.min(100, obj.toY + dy)) : ny;
+          return { 
+            ...obj, 
+            x: nx, 
+            y: ny, 
+            toX: obj.toX !== undefined ? updatedToX : undefined, 
+            toY: obj.toY !== undefined ? updatedToY : undefined 
+          };
+        }
+      }
+      return obj;
+    }));
+  };
+
   const handleDragEnd = (id: string, isTarget: boolean, e: any) => {
     if (!isEditable) return;
     const { x, y } = e.currentTarget.position();
@@ -343,7 +383,6 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
         if (isTarget) {
           return { ...obj, toX: nx, toY: ny, animate: true };
         } else {
-          // If starting position moves, we shift the destination as well to maintain vector offset
           const dx = nx - obj.x;
           const dy = ny - obj.y;
           const updatedToX = obj.toX !== undefined ? Math.max(0, Math.min(100, obj.toX + dx)) : nx;
@@ -454,17 +493,27 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
             <Rect x={fieldBorder + fw - fw * 0.055} y={fieldBorder + fh * 0.35} width={fw * 0.055} height={fh * 0.3} stroke={lineStroke} strokeWidth={2.5} />
             <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={3.5} fill={lineStroke} />
 
-            {/* Penalty arcs (Meia-lua fora da área) */}
-            <Group clipFunc={(ctx) => {
-              ctx.rect(fieldBorder + fw * 0.165, 0, fw + fieldBorder, h);
-            }}>
-              <Circle x={fieldBorder + fw * 0.11} y={fieldBorder + fh * 0.5} radius={fw * 0.08} stroke={lineStroke} strokeWidth={2.5} />
-            </Group>
-            <Group clipFunc={(ctx) => {
-              ctx.rect(0, 0, fieldBorder + fw - fw * 0.165, h);
-            }}>
-              <Circle x={fieldBorder + fw - fw * 0.11} y={fieldBorder + fh * 0.5} radius={fw * 0.08} stroke={lineStroke} strokeWidth={2.5} />
-            </Group>
+            {/* Penalty arcs (Meia-lua fora da área sem invadir a grande/pequena área) */}
+            <Arc
+              x={fieldBorder + fw * 0.11}
+              y={fieldBorder + fh * 0.5}
+              innerRadius={fw * 0.08}
+              outerRadius={fw * 0.08}
+              angle={108}
+              rotation={-54}
+              stroke={lineStroke}
+              strokeWidth={2.5}
+            />
+            <Arc
+              x={fieldBorder + fw - fw * 0.11}
+              y={fieldBorder + fh * 0.5}
+              innerRadius={fw * 0.08}
+              outerRadius={fw * 0.08}
+              angle={108}
+              rotation={126}
+              stroke={lineStroke}
+              strokeWidth={2.5}
+            />
           </Group>
         )}
 
@@ -559,6 +608,7 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
               setIsPlaying(false);
               setCurrentTime(0);
             }}
+            onDragMove={(e) => handleDragMove(obj.id, true, e)}
             onDragEnd={(e) => handleDragEnd(obj.id, true, e)}
           >
             {/* Glowing target halo */}
@@ -907,6 +957,7 @@ const getDefaultDemoForModality = (modality?: string): VisualObject[] => {
             setIsPlaying(false);
             setCurrentTime(0);
           }}
+          onDragMove={(e) => handleDragMove(obj.id, false, e)}
           onDragEnd={(e) => handleDragEnd(obj.id, false, e)}
           onClick={(e) => {
             if (!isEditable) return;

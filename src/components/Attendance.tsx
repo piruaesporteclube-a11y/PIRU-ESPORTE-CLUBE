@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api';
-import { Athlete, getSubCategory, categories, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload } from 'lucide-react';
+import { Athlete, getSubCategory, categories, categoryAgeRanges, getSubNumber, matchesCategoryCriteria, Training, Event, Attendance as AttendanceRecord } from '../types';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload, Layers } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -13,6 +13,45 @@ import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+export const isTrainingEligibleForAthlete = (athlete: Athlete, t: Training): boolean => {
+  // 1. Modality check
+  if (t.modality && t.modality !== 'Todos' && t.modality !== 'Todas') {
+    const trainingMod = t.modality.trim().toLowerCase();
+    const athleteMods = (athlete.modality || '').split(',').map(m => m.trim().toLowerCase()).filter(Boolean);
+    const modalityMatches = athleteMods.length === 0 || athleteMods.some(m => 
+      m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod)
+    );
+    if (!modalityMatches) return false;
+  }
+
+  // 2. Category check (main category or schedules or range e.g. SUB 3 ao SUB 6)
+  if (!t.category || t.category === 'Todos' || t.category === 'Todas') {
+    if (t.schedules && t.schedules.length > 0) {
+      return t.schedules.some(s => 
+        s.categories.includes('Todos') || 
+        s.categories.includes('Todas') || 
+        matchesCategoryCriteria(athlete, s.categories)
+      );
+    }
+    return true;
+  }
+
+  if (matchesCategoryCriteria(athlete, t.category)) {
+    return true;
+  }
+
+  // If training has schedules, check schedules as well
+  if (t.schedules && t.schedules.length > 0) {
+    return t.schedules.some(s => 
+      s.categories.includes('Todos') || 
+      s.categories.includes('Todas') || 
+      matchesCategoryCriteria(athlete, s.categories)
+    );
+  }
+
+  return false;
+};
+
 const hasScheduledTrainingOrEventForAthlete = (
   athlete: Athlete,
   dateStr: string,
@@ -23,32 +62,11 @@ const hasScheduledTrainingOrEventForAthlete = (
     .split(',')
     .map(m => m.trim().toLowerCase())
     .filter(Boolean);
-  
-  const athleteSub = getSubCategory(athlete.birth_date);
 
   // Check if there is any training on this date matching the athlete's modality and category
   const hasMatchingTraining = allTrainings.some(t => {
     if (t.date !== dateStr) return false;
-
-    // Check Modality: if training has a modality specified, it must match one of the athlete's modalities
-    if (t.modality) {
-      const trainingMod = t.modality.trim().toLowerCase();
-      const matchesModality = athleteMods.some(m => 
-        m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod)
-      );
-      if (!matchesModality) return false;
-    }
-
-    // Check Category: if training has a category, it must match the athlete's sub-category or be "Todos"
-    const isCategoryEligible = t.category === 'Todos' || t.category === athleteSub;
-    if (isCategoryEligible) return true;
-
-    // If training has schedules, check if any schedule category matches
-    if (t.schedules && t.schedules.length > 0) {
-      return t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
-    }
-
-    return false;
+    return isTrainingEligibleForAthlete(athlete, t);
   });
 
   if (hasMatchingTraining) return true;
@@ -59,7 +77,7 @@ const hasScheduledTrainingOrEventForAthlete = (
 
     if (e.modality) {
       const eventMod = e.modality.trim().toLowerCase();
-      const matchesModality = athleteMods.some(m => 
+      const matchesModality = athleteMods.length === 0 || athleteMods.some(m => 
         m === eventMod || eventMod.includes(m) || m.includes(eventMod)
       );
       return matchesModality;
@@ -604,10 +622,26 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     if (selectedTrainingId !== 'geral') {
       const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
       if (selTraining) {
-        if (selTraining.category && selTraining.category !== 'Todos') {
+        if (selTraining.category && selTraining.category !== 'Todos' && selTraining.category !== 'Todas') {
           setFilterSub(selTraining.category);
+        } else if (selTraining.schedules && selTraining.schedules.length > 0) {
+          const schedCats = Array.from(new Set(selTraining.schedules.flatMap(s => s.categories))).filter(c => c !== 'Todos' && c !== 'Todas');
+          if (schedCats.length > 1) {
+            const subNums = schedCats.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+            if (subNums.length > 1) {
+              const min = Math.min(...subNums);
+              const max = Math.max(...subNums);
+              setFilterSub(`SUB ${min} ao SUB ${max}`);
+            } else {
+              setFilterSub(schedCats.join(', '));
+            }
+          } else if (schedCats.length === 1) {
+            setFilterSub(schedCats[0]);
+          } else {
+            setFilterSub('Todos');
+          }
         }
-        if (selTraining.modality && selTraining.modality !== 'Todos') {
+        if (selTraining.modality && selTraining.modality !== 'Todos' && selTraining.modality !== 'Todas') {
           setFilterModality(selTraining.modality);
         }
       }
@@ -949,17 +983,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
       // AUTO-SYNC: If marking general as present, also sync to matching day trainings
       if (!activeTrainingId && !eventId && availableTrainings.length > 0) {
-        const athleteSub = getSubCategory(athlete.birth_date);
-        const matchingTrainings = availableTrainings.filter(t => {
-          const categoryMatches = (t.category === 'Todos' || t.category === athleteSub);
-          if (!categoryMatches) return false;
-          if (t.modality) {
-            const trainingMod = t.modality.trim().toLowerCase();
-            const athleteMods = (athlete.modality || '').split(',').map(m => m.trim().toLowerCase());
-            return athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
-          }
-          return true;
-        });
+        const matchingTrainings = availableTrainings.filter(t => isTrainingEligibleForAthlete(athlete, t));
         
         matchingTrainings.forEach(t => {
           const trainingAttId = `${athlete.id}_training_${t.id}`;
@@ -1047,26 +1071,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
     // AUTO-SYNC: If marking general as present, sync to trainings
     if (!activeTrainingId && !eventId && status === 'Presente' && availableTrainings.length > 0 && athlete) {
-      const athleteSub = getSubCategory(athlete.birth_date);
-      const matchingTrainings = availableTrainings.filter(t => {
-        // First check modality
-        if (t.modality) {
-          const trainingMod = t.modality.trim().toLowerCase();
-          const athleteMods = (athlete.modality || '').split(',').map(m => m.trim().toLowerCase());
-          const matchesModality = athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
-          if (!matchesModality) return false;
-        }
-
-        // Check main category
-        if (t.category === 'Todos' || t.category === athleteSub) return true;
-        
-        // Check categories in schedules if main category is empty or "Todos"
-        if (t.schedules && t.schedules.length > 0) {
-          return t.schedules.some(s => s.categories.includes('Todos') || s.categories.includes(athleteSub));
-        }
-        
-        return false;
-      });
+      const matchingTrainings = availableTrainings.filter(t => isTrainingEligibleForAthlete(athlete, t));
       
       matchingTrainings.forEach(t => {
         const trainingAttId = `${athleteId}_training_${t.id}`;
@@ -1235,6 +1240,81 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     )
   ).sort((a, b) => b.localeCompare(a));
 
+  const dayTrainingCategories = useMemo(() => {
+    const list: string[] = [];
+    availableTrainings.forEach(t => {
+      if (t.category && t.category !== 'Todos' && t.category !== 'Todas') {
+        list.push(t.category);
+      }
+      if (t.schedules) {
+        t.schedules.forEach(s => {
+          if (s.categories && s.categories.length > 0) {
+            const clean = s.categories.filter(c => c !== 'Todos' && c !== 'Todas');
+            if (clean.length > 1) {
+              const subNums = clean.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+              if (subNums.length > 1) {
+                const min = Math.min(...subNums);
+                const max = Math.max(...subNums);
+                list.push(`SUB ${min} ao SUB ${max}`);
+              } else {
+                list.push(clean.join(', '));
+              }
+            } else if (clean.length === 1) {
+              list.push(clean[0]);
+            }
+          }
+        });
+      }
+    });
+    return Array.from(new Set(list));
+  }, [availableTrainings]);
+
+  const activeTrainingForChips = (selectedTrainingId !== 'geral' ? availableTrainings.find(t => t.id === selectedTrainingId) : null) || training;
+
+  const trainingScheduleChips = useMemo(() => {
+    if (!activeTrainingForChips) return [];
+    const chips: { label: string; value: string; categories: string[]; time?: string }[] = [];
+    
+    if (activeTrainingForChips.schedules && activeTrainingForChips.schedules.length > 0) {
+      activeTrainingForChips.schedules.forEach(s => {
+        if (s.categories && s.categories.length > 0) {
+          const cleanCats = s.categories.filter(c => c !== 'Todos' && c !== 'Todas');
+          if (cleanCats.length > 0) {
+            const subNums = cleanCats.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+            let label = cleanCats.join(', ');
+            let value = cleanCats.join(', ');
+            if (subNums.length > 1) {
+              const min = Math.min(...subNums);
+              const max = Math.max(...subNums);
+              label = `SUB ${min} ao SUB ${max}`;
+              value = `SUB ${min} ao SUB ${max}`;
+            } else if (cleanCats.length === 1) {
+              label = cleanCats[0];
+              value = cleanCats[0];
+            }
+            chips.push({
+              label,
+              value,
+              categories: cleanCats,
+              time: s.start_time && s.end_time ? `${s.start_time}-${s.end_time}` : undefined
+            });
+          }
+        }
+      });
+    }
+
+    if (chips.length === 0 && activeTrainingForChips.category && activeTrainingForChips.category !== 'Todos' && activeTrainingForChips.category !== 'Todas') {
+      chips.push({
+        label: activeTrainingForChips.category,
+        value: activeTrainingForChips.category,
+        categories: [activeTrainingForChips.category],
+        time: activeTrainingForChips.start_time && activeTrainingForChips.end_time ? `${activeTrainingForChips.start_time}-${activeTrainingForChips.end_time}` : undefined
+      });
+    }
+
+    return chips;
+  }, [activeTrainingForChips]);
+
   const activeAthletes = athletes.filter(a => {
     if (showOnlyActive && (a.status !== 'Ativo' || a.confirmation === 'Pendente')) return false;
     return true;
@@ -1244,12 +1324,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     .filter(a => {
       const isSearching = search.trim().length > 0;
       
-      const matchesSub = isSearching || filterSub === 'Todos' || getSubCategory(a.birth_date) === filterSub;
-      const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase());
-      const matchesModality = isSearching || filterModality === 'Todos' || athleteMods.includes(filterModality.toLowerCase());
+      const matchesSub = isSearching || filterSub === 'Todos' || matchesCategoryCriteria(a, filterSub);
+      const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase()).filter(Boolean);
+      const matchesModality = isSearching || filterModality === 'Todos' || athleteMods.length === 0 || athleteMods.some(m => 
+        m === filterModality.toLowerCase() || filterModality.toLowerCase().includes(m) || m.includes(filterModality.toLowerCase())
+      );
       const matchesGender = isSearching || filterGender === 'Todos' || a.gender === filterGender;
       const matchesBirthYear = isSearching || filterBirthYear === 'Todos' || getBirthYear(a.birth_date) === filterBirthYear;
-      const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
+      const matchesSearch = !isSearching || 
+                          a.name.toLowerCase().includes(search.toLowerCase()) || 
                           (a.nickname && a.nickname.toLowerCase().includes(search.toLowerCase())) ||
                           (a.doc && a.doc.includes(search));
       
@@ -1258,16 +1341,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       if (selectedTrainingId !== 'geral' && !isSearching) {
         const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
         if (selTraining) {
-           const athleteSub = getSubCategory(a.birth_date);
-           const isEligible = selTraining.category === 'Todos' || selTraining.category === athleteSub;
-           if (!isEligible) return false;
-
-           if (selTraining.modality) {
-             const trainingMod = selTraining.modality.trim().toLowerCase();
-             const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase());
-             const matchesModality = athleteMods.some(m => m === trainingMod || trainingMod.includes(m) || m.includes(trainingMod));
-             if (!matchesModality) return false;
-           }
+          const isEligible = isTrainingEligibleForAthlete(a, selTraining);
+          if (!isEligible) return false;
         }
       }
 
@@ -2146,6 +2221,56 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </button>
       </div>
 
+      {/* Quick Training Categories Chips Bar for 1-Click Roll Call Filter */}
+      {activeTrainingForChips && trainingScheduleChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 p-3 bg-zinc-950/80 border border-theme-primary/20 rounded-2xl">
+          <div className="flex items-center gap-1.5 text-theme-primary text-xs font-black uppercase tracking-wider pr-2 border-r border-zinc-800 shrink-0">
+            <Trophy size={14} />
+            <span>Faixa Etária do Treino:</span>
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => setFilterSub('Todos')}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border shrink-0",
+              filterSub === 'Todos'
+                ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20"
+                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+            )}
+          >
+            Ver Todos ({activeAthletes.length})
+          </button>
+
+          {trainingScheduleChips.map((chip, idx) => {
+            const isSelected = filterSub === chip.value || (chip.categories.length > 0 && filterSub === chip.categories.join(', '));
+            const count = activeAthletes.filter(a => matchesCategoryCriteria(a, chip.value) || matchesCategoryCriteria(a, chip.categories)).length;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setFilterSub(chip.value)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border flex items-center gap-1.5 shrink-0",
+                  isSelected
+                    ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20 scale-105"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-theme-primary/40"
+                )}
+              >
+                <span>{chip.label}</span>
+                <span className={cn(
+                  "px-1.5 py-0.5 text-[10px] rounded-md font-black",
+                  isSelected ? "bg-black/20 text-black" : "bg-black text-theme-primary"
+                )}>
+                  {count}
+                </span>
+                {chip.time && <span className="text-[10px] opacity-75">({chip.time})</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Filter Toolbar Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <div className="relative sm:col-span-2">
@@ -2167,7 +2292,36 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             onChange={(e) => setFilterSub(e.target.value)}
           >
             <option value="Todos">Todas as Categorias</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+
+            {dayTrainingCategories.length > 0 && (
+              <optgroup label="🎯 Treinos Cadastrados">
+                {dayTrainingCategories.map(cat => (
+                  <option key={`day-${cat}`} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+
+            <optgroup label="⚡ Faixas Etárias / Agrupamentos">
+              {categoryAgeRanges.map(r => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </optgroup>
+
+            <optgroup label="📋 Categorias Individuais">
+              {categories.map(c => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
+
+            {filterSub !== 'Todos' && !categories.includes(filterSub) && !categoryAgeRanges.some(r => r.value === filterSub) && !dayTrainingCategories.includes(filterSub) && (
+              <option value={filterSub}>{filterSub}</option>
+            )}
           </select>
         </div>
 
