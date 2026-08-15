@@ -18,7 +18,8 @@ import {
   Shirt,
   Megaphone,
   Shield,
-  Palette
+  Palette,
+  Sparkles
 } from 'lucide-react';
 
 export type NavItem = {
@@ -63,6 +64,7 @@ export const navItems: NavItem[] = [
   { id: 'membership-card', label: 'Identidade', icon: CreditCard, roles: ['admin', 'professor'], description: 'Carteirinha Oficial', color: 'text-blue-500', category: 'office' },
   
   // --- GRUPO: Social & Relacionamento (Família Piruá) ---
+  { id: 'curiosities', label: 'Curiosidades', icon: Sparkles, roles: ['admin', 'student', 'professor'], description: 'Raio-X & Fatos Curiosos', color: 'text-amber-400', category: 'community' },
   { id: 'whatsapp', label: 'Conexão Whats', icon: MessageCircle, roles: ['admin', 'professor'], description: 'Painel e Grupos', color: 'text-green-500', category: 'community' },
   { id: 'contacts', label: 'Contatos', icon: MessageCircle, roles: ['admin', 'professor'], description: 'Responsáveis (Zap)', color: 'text-green-500', category: 'community' },
   { id: 'announcements', label: 'Recados', icon: Megaphone, roles: ['admin', 'professor'], description: 'Gerar Encarte Story', color: 'text-theme-primary', category: 'community' },

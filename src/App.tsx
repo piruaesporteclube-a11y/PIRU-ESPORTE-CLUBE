@@ -40,6 +40,7 @@ import SchoolReportManagement from './components/SchoolReportManagement';
 import { AccessAudit } from './components/AccessAudit';
 import TopScorers from './components/TopScorers';
 import SystemLayouts from './components/SystemLayouts';
+import Curiosities from './components/Curiosities';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
@@ -2131,6 +2132,8 @@ export default function App() {
           return <EventsManagement athletes={athletes} events={events} role={user?.role} loggedInUserId={user?.id} />;
         case 'top-scorers':
           return <TopScorers athletes={athletes} />;
+        case 'curiosities':
+          return <Curiosities athletes={athletes} professors={professors} />;
         case 'birthdays':
           return <Birthdays athletes={athletes} professors={professors} />;
         case 'documents':
