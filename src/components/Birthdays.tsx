@@ -115,12 +115,15 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [supportPhotoXOffsets, setSupportPhotoXOffsets] = useState<number[]>([0, 0, 0, 0]);
   const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
 
+  // Editor Mode: 'classic' (traditional clean layout) vs 'ai' (AI Studio personalized)
+  const [editorMode, setEditorMode] = useState<'classic' | 'ai'>('classic');
+
   // AI Customization & Assistant States
-  const [activeControlTab, setActiveControlTab] = useState<'ai' | 'photos' | 'main_photo' | 'banner' | 'layout'>('ai');
+  const [activeControlTab, setActiveControlTab] = useState<'ai' | 'photos' | 'main_photo' | 'banner' | 'layout'>('photos');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiHeadline, setAiHeadline] = useState('PARABÉNS');
   const [aiComplimentTag, setAiComplimentTag] = useState('');
-  const [showComplimentTag, setShowComplimentTag] = useState(true);
+  const [showComplimentTag, setShowComplimentTag] = useState(false);
   const [aiInstagramCaption, setAiInstagramCaption] = useState('');
   const [aiAlternativePhrases, setAiAlternativePhrases] = useState<string[]>([]);
   const [aiThemeTone, setAiThemeTone] = useState<'campeao' | 'ouro_elite' | 'inspirador' | 'guerreiro' | 'mestre'>('campeao');
@@ -242,8 +245,9 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
     return age;
   };
 
-  const handleShare = (person: Athlete | Professor) => {
+  const handleShare = (person: Athlete | Professor, initialMode: 'classic' | 'ai' = 'classic') => {
     setSelectedPerson(person);
+    setEditorMode(initialMode);
     const isProf = !('position' in person) || ('role' in person && (person as any).role === 'professor');
     const category = (person as any).category || (person.birth_date ? getSubCategory(person.birth_date) : '');
     const position = 'position' in person ? (person as Athlete).position : '';
@@ -264,12 +268,21 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       setAiComplimentTag(tag);
       setAiThemeTone('campeao');
     }
-    setActiveControlTab('ai');
+
+    if (initialMode === 'classic') {
+      setShowComplimentTag(false);
+      setActiveControlTab('photos');
+    } else {
+      setShowComplimentTag(true);
+      setActiveControlTab('ai');
+    }
   };
 
   const handleAIGenerate = async (toneOverride?: 'campeao' | 'ouro_elite' | 'inspirador' | 'guerreiro' | 'mestre') => {
     if (!selectedPerson) return;
     setIsGeneratingAI(true);
+    setEditorMode('ai');
+    setShowComplimentTag(true);
     const toneToUse = toneOverride || aiThemeTone;
     if (toneOverride) {
       setAiThemeTone(toneOverride);
@@ -677,13 +690,22 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   {getAge(person.birth_date)} anos • {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd/MM/yyyy') : 'Data inválida'}
                 </p>
               </div>
-              <button 
-                onClick={() => handleShare(person)}
-                className="p-2 bg-theme-primary hover:opacity-90 text-black rounded-xl transition-colors"
-                title="Gerar post para Instagram"
-              >
-                <Instagram size={20} />
-              </button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button 
+                  onClick={() => handleShare(person, 'classic')}
+                  className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors border border-zinc-700 flex items-center gap-1 text-[11px] font-bold"
+                  title="Abrir Encarte Clássico (Original)"
+                >
+                  <Instagram size={18} />
+                </button>
+                <button 
+                  onClick={() => handleShare(person, 'ai')}
+                  className="p-2 bg-theme-primary hover:opacity-90 text-black rounded-xl transition-colors shadow-md shadow-theme-primary/20 flex items-center gap-1 text-[11px] font-black"
+                  title="Abrir com Modo IA Studio"
+                >
+                  <Sparkles size={18} />
+                </button>
+              </div>
             </div>
           ))}
           {todayBirthdays.length === 0 && (
@@ -717,6 +739,22 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 <p className="text-xs sm:text-sm text-zinc-500 font-medium">
                   Dia {isValidDate(person.birth_date) ? format(parseISO(person.birth_date), 'dd') : '--'} • {getAge(person.birth_date)} anos
                 </p>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button 
+                  onClick={() => handleShare(person, 'classic')}
+                  className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors border border-zinc-700"
+                  title="Abrir Encarte Clássico (Original)"
+                >
+                  <Instagram size={14} />
+                </button>
+                <button 
+                  onClick={() => handleShare(person, 'ai')}
+                  className="p-1.5 bg-theme-primary hover:opacity-90 text-black rounded-lg transition-colors shadow-sm"
+                  title="Abrir com Modo IA Studio"
+                >
+                  <Sparkles size={14} />
+                </button>
               </div>
             </div>
           ))}
@@ -982,7 +1020,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                 >
                   <div className="bg-black/90 border-4 border-theme-primary px-8 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
                     <h1 className="text-white font-black text-2xl md:text-3xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg] max-w-[280px] truncate">
-                      {aiHeadline || 'PARABÉNS'}
+                      {editorMode === 'ai' ? (aiHeadline || 'PARABÉNS') : 'PARABÉNS'}
                     </h1>
                   </div>
                   
@@ -1022,17 +1060,17 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         transform: `translate(${photoXOffset}px, ${photoYOffset}px) scale(${photoScale})`
                       }}
                     >
-                      {/* Compliment / Pro Badge tag positioned above the photo */}
-                      {showComplimentTag && aiComplimentTag && (
-                        <div className="flex justify-center -mb-2 z-30 relative">
-                          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-black/95 border-2 border-theme-primary rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.9)] backdrop-blur-md">
-                            <Sparkles size={11} className="text-theme-primary animate-pulse" />
-                            <span className="text-[9px] font-black text-theme-primary uppercase tracking-widest italic">
-                              {aiComplimentTag}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+              {/* Compliment / Pro Badge tag positioned above the photo (only in AI mode) */}
+              {editorMode === 'ai' && showComplimentTag && aiComplimentTag && (
+                <div className="flex justify-center -mb-2 z-30 relative">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-black/95 border-2 border-theme-primary rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.9)] backdrop-blur-md">
+                    <Sparkles size={11} className="text-theme-primary animate-pulse" />
+                    <span className="text-[9px] font-black text-theme-primary uppercase tracking-widest italic">
+                      {aiComplimentTag}
+                    </span>
+                  </div>
+                </div>
+              )}
 
                       {/* Glowing background effect */}
                       {showMainPhoto && (
@@ -1215,55 +1253,99 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
   {/* Right Column: Scrollable Controls Column */}
   <div className="flex-1 flex flex-col h-[62vh] lg:h-full overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
-    <div className="w-full max-w-[700px] mx-auto flex flex-col gap-6">
+    <div className="w-full max-w-[700px] mx-auto flex flex-col gap-5">
 
-            {/* AI Studio Quick Action Banner */}
-            <div className="bg-gradient-to-r from-theme-primary/20 via-zinc-900 to-black p-4 rounded-3xl border border-theme-primary/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-theme-primary/20 border border-theme-primary/50 flex items-center justify-center text-theme-primary flex-shrink-0 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                  <Sparkles size={22} className={isGeneratingAI ? "animate-spin" : "animate-pulse"} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">IA Personalizador de Encarte</h4>
-                    <span className="px-2 py-0.5 bg-theme-primary text-black text-[9px] font-black uppercase tracking-widest rounded-full">Pro</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Design automático, mensagens esportivas e legendas oficiais</p>
-                </div>
-              </div>
+            {/* Layout Mode Selector (Clássico vs IA Studio) */}
+            <div className="bg-black p-1.5 rounded-2xl border border-zinc-800 flex gap-2 shadow-2xl">
               <button
-                onClick={() => handleAIGenerate()}
-                disabled={isGeneratingAI}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-theme-primary hover:opacity-90 text-black font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_25px_rgba(234,179,8,0.35)] disabled:opacity-50"
+                type="button"
+                onClick={() => {
+                  setEditorMode('classic');
+                  if (activeControlTab === 'ai') setActiveControlTab('photos');
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                  editorMode === 'classic'
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-md ring-1 ring-white/10"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+                )}
               >
-                <Wand2 size={15} className={isGeneratingAI ? "animate-spin" : ""} />
-                {isGeneratingAI ? 'Personalizando...' : 'Auto-Estilizar com IA'}
+                <Cake size={16} className={editorMode === 'classic' ? "text-theme-primary" : "text-zinc-500"} />
+                <span>Layout Clássico (Original)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditorMode('ai');
+                  setActiveControlTab('ai');
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                  editorMode === 'ai'
+                    ? "bg-theme-primary text-black shadow-lg shadow-theme-primary/20 font-black"
+                    : "text-theme-primary/80 hover:text-theme-primary hover:bg-theme-primary/5 border border-theme-primary/20"
+                )}
+              >
+                <Sparkles size={16} className={editorMode === 'ai' ? "animate-spin" : "animate-pulse"} />
+                <span>Modo IA Studio (Pro)</span>
               </button>
             </div>
+
+            {/* AI Studio Quick Action Banner (Shown only when in IA mode) */}
+            {editorMode === 'ai' && (
+              <div className="bg-gradient-to-r from-theme-primary/20 via-zinc-900 to-black p-4 rounded-3xl border border-theme-primary/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl animate-in fade-in duration-200">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-theme-primary/20 border border-theme-primary/50 flex items-center justify-center text-theme-primary flex-shrink-0 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                    <Sparkles size={22} className={isGeneratingAI ? "animate-spin" : "animate-pulse"} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">IA Personalizador de Encarte</h4>
+                      <span className="px-2 py-0.5 bg-theme-primary text-black text-[9px] font-black uppercase tracking-widest rounded-full">Pro</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">Design automático, mensagens esportivas e legendas oficiais</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleAIGenerate()}
+                  disabled={isGeneratingAI}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-theme-primary hover:opacity-90 text-black font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_25px_rgba(234,179,8,0.35)] disabled:opacity-50"
+                >
+                  <Wand2 size={15} className={isGeneratingAI ? "animate-spin" : ""} />
+                  {isGeneratingAI ? 'Personalizando...' : 'Auto-Estilizar com IA'}
+                </button>
+              </div>
+            )}
 
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               {/* Tabs Header */}
               <div className="flex bg-black p-1.5 gap-1 overflow-x-auto scrollbar-none">
-                {[
+                {(editorMode === 'ai' ? [
                   { id: 'ai', label: 'IA Studio', icon: Sparkles, isSpecial: true },
                   { id: 'photos', label: 'Fotos', icon: Plus },
                   { id: 'main_photo', label: 'Perfil', icon: UserCircle },
                   { id: 'banner', label: 'Banner', icon: Instagram },
                   { id: 'layout', label: 'Layout', icon: Cake },
-                ].map(tab => (
+                ] : [
+                  { id: 'photos', label: 'Fotos de Apoio', icon: Plus },
+                  { id: 'main_photo', label: 'Perfil & Foto', icon: UserCircle },
+                  { id: 'banner', label: 'Faixa & Nome', icon: Instagram },
+                  { id: 'layout', label: 'Posições & Mensagem', icon: Cake },
+                ]).map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveControlTab(tab.id as any)}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                       activeControlTab === tab.id 
-                        ? "bg-theme-primary text-black shadow-lg" 
-                        : tab.isSpecial
+                        ? "bg-theme-primary text-black shadow-lg font-black" 
+                        : (tab as any).isSpecial
                           ? "text-theme-primary hover:text-white hover:bg-zinc-800 border border-theme-primary/30"
                           : "text-zinc-500 hover:text-white hover:bg-zinc-800"
                     )}
                   >
-                    <tab.icon size={14} className={tab.isSpecial && activeControlTab !== tab.id ? "animate-pulse text-theme-primary" : ""} />
+                    <tab.icon size={14} className={(tab as any).isSpecial && activeControlTab !== tab.id ? "animate-pulse text-theme-primary" : ""} />
                     <span>{tab.label}</span>
                   </button>
                 ))}
