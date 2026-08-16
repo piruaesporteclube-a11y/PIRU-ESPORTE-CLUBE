@@ -1047,7 +1047,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   
                   <div className="text-center bg-theme-primary text-black px-4 py-0.5 transform skew-x-[-12deg] shadow-[4px_4px_0_rgba(255,255,255,1)]">
                     <h2 className="font-black text-lg md:text-xl italic tracking-tighter uppercase skew-x-[12deg]">
-                      {settings.schoolName ? `${settings.schoolName.toUpperCase()}!` : 'FELIZ ANIVERSÁRIO!'}
+                      {settings.schoolName ? settings.schoolName.replace(/!+$/, '').trim().toUpperCase() : 'FELIZ ANIVERSÁRIO'}
                     </h2>
                   </div>
                 </div>
