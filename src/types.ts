@@ -435,14 +435,22 @@ export const getSubCategory = (birthDate: string) => {
   if (!birthDate) return "ADULTO";
   let birthYear: number;
   try {
-    if (birthDate.includes('/')) {
-      const parts = birthDate.split('/');
+    const trimmed = birthDate.trim();
+    if (trimmed.includes('/')) {
+      const parts = trimmed.split('/');
       const y = parts[parts.length - 1];
       birthYear = parseInt(y, 10);
+    } else if (trimmed.includes('-')) {
+      const parts = trimmed.split('-');
+      if (parts[0].length === 4) {
+        birthYear = parseInt(parts[0], 10);
+      } else {
+        birthYear = parseInt(parts[parts.length - 1], 10);
+      }
     } else {
-      birthYear = parseISO(birthDate).getFullYear();
+      birthYear = parseISO(trimmed).getFullYear();
     }
-    if (isNaN(birthYear)) birthYear = new Date(birthDate).getFullYear();
+    if (isNaN(birthYear)) birthYear = new Date(trimmed).getFullYear();
   } catch (_) {
     return "ADULTO";
   }
@@ -536,28 +544,12 @@ export const matchesCategoryCriteria = (
   const cleanFilter = trimmedFilter.toUpperCase();
   const cleanAthleteSub = athleteSub.toUpperCase();
 
-  // Exact match (ignoring spaces, hyphens, and leading zeros like SUB-03 vs SUB 3)
+  // 1. Exact match (ignoring spaces, hyphens, and leading zeros like SUB-03 vs SUB 3)
   const normAthlete = cleanAthleteSub.replace(/[\s\-_]/g, '').replace(/SUB0(\d)/, 'SUB$1');
   const normFilter = cleanFilter.replace(/[\s\-_]/g, '').replace(/SUB0(\d)/, 'SUB$1');
   if (normAthlete === normFilter) return true;
 
-  // Comma, semicolon or slash separated list of categories (e.g. "SUB 3, SUB 4, SUB 5, SUB 6" or "SUB 3 / SUB 4")
-  if (cleanFilter.includes(',') || cleanFilter.includes(';') || (cleanFilter.includes('/') && !cleanFilter.match(/\d+\/\d+\/\d+/))) {
-    const parts = cleanFilter.split(/[,;\/]+/).map(p => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
-    }
-  }
-
-  // "SUB 3 E SUB 4"
-  if (cleanFilter.includes(' E ')) {
-    const parts = cleanFilter.split(' E ').map(p => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
-    }
-  }
-
-  // Range detection: "SUB 3 AO SUB 6", "SUB 3 A SUB 6", "SUB 3 - SUB 6", "SUB 3 ATÉ SUB 6", "SUB 3 AO 6", "SUB 3 A 6", "SUB-03 AO SUB-06", etc.
+  // 2. Direct Range Detection: "SUB 3 AO SUB 6", "SUB 3 A SUB 6", "SUB 3 - SUB 6", "SUB 3 ATÉ SUB 6", "SUB 3 AO 6", "SUB 3 A 6", "SUB-03 AO SUB-06", etc.
   const rangeMatch = cleanFilter.match(/(?:SUB\s*[-_]?\s*)?(\d+)\s*(?:AO|A|ATÉ|ATE|-|TO|\.\.)\s*(?:SUB\s*[-_]?\s*)?(\d+)/i);
   if (rangeMatch && athleteSubNum !== null) {
     const min = parseInt(rangeMatch[1], 10);
@@ -567,6 +559,22 @@ export const matchesCategoryCriteria = (
 
     if (athleteSubNum >= lower && athleteSubNum <= upper) {
       return true;
+    }
+  }
+
+  // 3. Comma, semicolon or slash separated list of categories (e.g. "SUB 3, SUB 4, SUB 5, SUB 6" or "SUB 3 / SUB 4")
+  if (cleanFilter.includes(',') || cleanFilter.includes(';') || (cleanFilter.includes('/') && !cleanFilter.match(/\d+\/\d+\/\d+/))) {
+    const parts = cleanFilter.split(/[,;\/]+/).map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
+    }
+  }
+
+  // 4. "SUB 3 E SUB 4"
+  if (cleanFilter.includes(' E ')) {
+    const parts = cleanFilter.split(' E ').map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.some(part => matchesCategoryCriteria(athleteOrSubOrBirthDate, part));
     }
   }
 

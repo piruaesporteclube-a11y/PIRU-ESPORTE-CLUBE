@@ -564,6 +564,144 @@ export async function createExpressApp() {
     }
   });
 
+  // Gemini API - Generate Birthday Card Customization
+  app.post("/api/gemini/generate-birthday-customization", async (req, res) => {
+    const { personName, role, category, position, age, themeTone, schoolName = "Piruá Esporte Clube" } = req.body || {};
+    const safeName = personName ? String(personName).trim() : "Atleta";
+    const isProf = role === "professor";
+
+    // Fallback generator for instantaneous or offline results
+    const getFallbackCustomization = () => {
+      const isGoalKeeper = position && position.toLowerCase().includes("gol");
+      const isAttacker = position && (position.toLowerCase().includes("ata") || position.toLowerCase().includes("pon"));
+      const isMid = position && (position.toLowerCase().includes("mei") || position.toLowerCase().includes("vol"));
+      const isDef = position && (position.toLowerCase().includes("zag") || position.toLowerCase().includes("lat"));
+
+      let tag = isProf ? "Comissão Técnica de Elite" : "Craque do Piruá";
+      if (isGoalKeeper) tag = "Paredão Indestrutível";
+      else if (isAttacker) tag = "Goleador Nato";
+      else if (isMid) tag = "Cérebro do Meio-Campo";
+      else if (isDef) tag = "Muralha Defensiva";
+      else if (category) tag = `Destaque ${category}`;
+
+      let headline = isProf ? "PARABÉNS, PROFESSOR!" : "PARABÉNS, CRAQUE!";
+      if (themeTone === "ouro_elite") headline = "LENDÁRIO!";
+      else if (themeTone === "inspirador") headline = "PARABÉNS, CAMPEÃO!";
+
+      const footerMessage = isProf
+        ? `A família ${schoolName} tem a honra de parabenizar o professor ${safeName}! Agradecemos por sua liderança, dedicação incansável e por lapidar nossos jovens talentos todos os dias. Muita saúde e sucesso!`
+        : `A escolinha ${schoolName} parabeniza com orgulho o nosso atleta ${safeName}! Que este novo ciclo seja iluminado com saúde, vitórias, belas jogadas e a realização de todos os seus grandes sonhos. Parabéns!`;
+
+      const instagramCaption = isProf
+        ? `🎂🎉 HOJE É DIA DE FESTEJAR QUEM ENSINA E INSPIRA! 🎉🎂\n\nO ${schoolName} deseja um felicíssimo aniversário ao nosso querido Professor ${safeName}! 👏⚽️\n\nAgradecemos por toda a dedicação, ensinamento tático e paixão em formar não apenas atletas, mas grandes cidadãos para o futuro!\n\nDeixe seu abraço e parabéns nos comentários! 👇🔥\n\n#PiruáEC #ProfessorDeFutebol #ComissãoTécnica #Aniversário #FamíliaPiruá`
+        : `🎉⚽️ DIA DE COMEMORAR O NOSSO CRAQUE! 🎂⚽️\n\nHoje todos nós do ${schoolName} estamos em festa pelo aniversário de ${safeName} (${age ? `${age} anos` : 'nosso atleta'})! 🌟\n\nQue Deus abençoe seus passos dentro e fora dos gramados com muita saúde, disciplina, alegria e muitos gols! Parabéns, craque!\n\nDeixe uma mensagem de parabéns para ele(a)! 👇🔥\n\n#PiruáEC #ParabénsCraque #BaseForte #FutebolDeBase #FuturoDoFutebol`;
+
+      return {
+        headline,
+        complimentTag: tag,
+        footerMessage,
+        instagramCaption,
+        designPreset: {
+          bgUrl: isProf
+            ? "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1080&h=1920"
+            : "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1080&h=1920",
+          bgCategory: "Arena & Esporte",
+          photoBorderTheme: isProf ? "neon-yellow" : "neon-teal",
+          bannerStyle: "yellow",
+          nameFontSize: 34,
+          bannerSkew: -15,
+          footerFontSize: 10
+        },
+        alternativePhrases: [
+          `A escolinha ${schoolName} te deseja um feliz aniversário! Que Deus ilumine sempre sua vida, com muita paz, saúde e conquistas no esporte!`,
+          `Parabéns, ${safeName}! Continue vestindo nosso manto com a mesma garra, alegria e companheirismo de sempre!`,
+          `Que o seu novo ano seja repleto de dribles vitoriosos, defesas seguras e momentos inesquecíveis com a Família Piruá!`,
+          `Um brinde ao nosso craque ${safeName}! Orgulho em ter você no elenco do ${schoolName}. Feliz aniversário!`
+        ]
+      };
+    };
+
+    try {
+      const prompt = `Você é o Diretor de Comunicação e Designer Oficial da escolinha de futebol "${schoolName}".
+Gere uma personalização profissional e emocionante para o encarte oficial de aniversário de uma pessoa do clube.
+
+Dados da pessoa:
+- Nome: "${safeName}"
+- Função: "${isProf ? 'Professor / Membro da Comissão Técnica' : 'Atleta / Aluno da Escolinha'}"
+- Categoria: "${category || 'Base'}"
+- Posição: "${position || 'Geral'}"
+- Idade completada: "${age || 'Não informada'}"
+- Tom desejado: "${themeTone || 'campeao'}" (Opções: campeao, inspirador, emocionante, ouro_elite, mestre)
+
+Requisitos estritos:
+1. "headline": Um título de impacto de 1 a 3 palavras para o topo (ex: "PARABÉNS, CRAQUE!", "PARABÉNS, MESTRE!", "LENDÁRIO!", "CAMPEÃO DE OURO").
+2. "complimentTag": Um selo/apelido profissional futebolístico curto (ex: "Goleador Nato • Sub-11", "Muralha do Piruá", "Maestro do Meio-Campo", "Mestre da Base").
+3. "footerMessage": Frase comemorativa para o rodapé do encarte (máximo 150 caracteres). DEVE citar a escolinha "${schoolName}" de forma carinhosa e formal, desejando bênçãos, saúde, gols e vitórias.
+4. "instagramCaption": Uma legenda completa e envolvente para postar no Instagram/WhatsApp da escolinha, incluindo emojis de futebol/festa e hashtags oficiais do clube (#PiruáEC).
+5. "designPreset": Configurações visuais recomendadas:
+   - "photoBorderTheme": "neon-yellow" (dourado/ouro), "neon-teal" (verde-água/moderno), "neon-purple" (vip), "neon-blue" (clássico), "neon-green" (gramado) ou "neon-red" (raça).
+   - "bannerStyle": "yellow", "white", "black", "red" ou "outline".
+   - "nameFontSize": número entre 28 e 38.
+   - "bannerSkew": número entre -15 e 15.
+   - "footerFontSize": número entre 9 e 12.
+6. "alternativePhrases": Array com 4 frases alternativas inspiradoras para o rodapé da arte.
+
+Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
+
+      const ai = getAI();
+      const response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              headline: { type: Type.STRING },
+              complimentTag: { type: Type.STRING },
+              footerMessage: { type: Type.STRING },
+              instagramCaption: { type: Type.STRING },
+              designPreset: {
+                type: Type.OBJECT,
+                properties: {
+                  photoBorderTheme: { type: Type.STRING },
+                  bannerStyle: { type: Type.STRING },
+                  nameFontSize: { type: Type.NUMBER },
+                  bannerSkew: { type: Type.NUMBER },
+                  footerFontSize: { type: Type.NUMBER }
+                },
+                required: ['photoBorderTheme', 'bannerStyle', 'nameFontSize', 'bannerSkew', 'footerFontSize']
+              },
+              alternativePhrases: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              }
+            },
+            required: ['headline', 'complimentTag', 'footerMessage', 'instagramCaption', 'designPreset', 'alternativePhrases']
+          } as any
+        }
+      });
+
+      const text = response.text;
+      if (!text) {
+        throw new Error("Resposta em branco do Gemini");
+      }
+      const parsed = JSON.parse(text);
+      res.json({
+        success: true,
+        ...parsed
+      });
+    } catch (error: any) {
+      console.warn("[Gemini Birthday API Error] Falling back to procedural fallback:", error.message || error);
+      const fallback = getFallbackCustomization();
+      res.json({
+        success: true,
+        ...fallback,
+        isFallback: true
+      });
+    }
+  });
+
   // Facial recognition attendance endpoint
   app.post("/api/recognize-face", async (req, res) => {
     try {

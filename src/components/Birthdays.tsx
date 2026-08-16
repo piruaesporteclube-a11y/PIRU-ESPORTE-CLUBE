@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Athlete, Professor } from '../types';
-import { Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, Upload, X, Plus, FlipHorizontal } from 'lucide-react';
+import { Athlete, Professor, getSubCategory } from '../types';
+import { 
+  Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, 
+  Upload, X, Plus, FlipHorizontal, Sparkles, Wand2, Copy, Check, 
+  Flame, Trophy, Star, Crown, Heart, RefreshCw, MessageSquare
+} from 'lucide-react';
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTheme } from '../contexts/ThemeContext';
@@ -110,6 +114,17 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [supportPhotoScales, setSupportPhotoScales] = useState<number[]>([1, 1, 1, 1]);
   const [supportPhotoXOffsets, setSupportPhotoXOffsets] = useState<number[]>([0, 0, 0, 0]);
   const [supportPhotoYOffsets, setSupportPhotoYOffsets] = useState<number[]>([0, 0, 0, 0]);
+
+  // AI Customization & Assistant States
+  const [activeControlTab, setActiveControlTab] = useState<'ai' | 'photos' | 'main_photo' | 'banner' | 'layout'>('ai');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiHeadline, setAiHeadline] = useState('PARABÉNS');
+  const [aiComplimentTag, setAiComplimentTag] = useState('');
+  const [showComplimentTag, setShowComplimentTag] = useState(true);
+  const [aiInstagramCaption, setAiInstagramCaption] = useState('');
+  const [aiAlternativePhrases, setAiAlternativePhrases] = useState<string[]>([]);
+  const [aiThemeTone, setAiThemeTone] = useState<'campeao' | 'ouro_elite' | 'inspirador' | 'guerreiro' | 'mestre'>('campeao');
+  const [isCopiedCaption, setIsCopiedCaption] = useState(false);
 
   const [editorScale, setEditorScale] = useState(1);
   const [cardWidth, setCardWidth] = useState(450);
@@ -229,6 +244,85 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
   const handleShare = (person: Athlete | Professor) => {
     setSelectedPerson(person);
+    const isProf = !('position' in person) || ('role' in person && (person as any).role === 'professor');
+    const category = (person as any).category || (person.birth_date ? getSubCategory(person.birth_date) : '');
+    const position = 'position' in person ? (person as Athlete).position : '';
+    
+    // Set smart defaults
+    if (isProf) {
+      setAiHeadline('PARABÉNS, PROFESSOR!');
+      setAiComplimentTag('Comissão Técnica de Elite');
+      setAiThemeTone('mestre');
+    } else {
+      setAiHeadline('PARABÉNS, CRAQUE!');
+      let tag = 'Craque do Piruá';
+      if (position && position.toLowerCase().includes('gol')) tag = 'Paredão Indestrutível';
+      else if (position && (position.toLowerCase().includes('ata') || position.toLowerCase().includes('pon'))) tag = 'Goleador Nato';
+      else if (position && (position.toLowerCase().includes('mei') || position.toLowerCase().includes('vol'))) tag = 'Maestro do Meio-Campo';
+      else if (position && (position.toLowerCase().includes('zag') || position.toLowerCase().includes('lat'))) tag = 'Muralha Defensiva';
+      else if (category) tag = `Destaque ${category}`;
+      setAiComplimentTag(tag);
+      setAiThemeTone('campeao');
+    }
+    setActiveControlTab('ai');
+  };
+
+  const handleAIGenerate = async (toneOverride?: 'campeao' | 'ouro_elite' | 'inspirador' | 'guerreiro' | 'mestre') => {
+    if (!selectedPerson) return;
+    setIsGeneratingAI(true);
+    const toneToUse = toneOverride || aiThemeTone;
+    if (toneOverride) {
+      setAiThemeTone(toneOverride);
+    }
+    try {
+      const isProf = !('position' in selectedPerson) || ('role' in selectedPerson && (selectedPerson as any).role === 'professor');
+      const age = selectedPerson.birth_date ? getAge(selectedPerson.birth_date) : undefined;
+      const category = (selectedPerson as any).category || (selectedPerson.birth_date ? getSubCategory(selectedPerson.birth_date) : undefined);
+      const position = 'position' in selectedPerson ? (selectedPerson as Athlete).position : undefined;
+
+      const res = await fetch('/api/gemini/generate-birthday-customization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personName: athleteName || selectedPerson.name,
+          role: isProf ? 'professor' : 'student',
+          category,
+          position,
+          age,
+          themeTone: toneToUse,
+          schoolName: settings.schoolName || 'Piruá Esporte Clube'
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (data.headline) setAiHeadline(data.headline);
+        if (data.complimentTag) setAiComplimentTag(data.complimentTag);
+        if (data.footerMessage) setFooterMessage(data.footerMessage);
+        if (data.instagramCaption) setAiInstagramCaption(data.instagramCaption);
+        if (data.alternativePhrases && Array.isArray(data.alternativePhrases)) {
+          setAiAlternativePhrases(data.alternativePhrases);
+        }
+        
+        if (data.designPreset) {
+          if (data.designPreset.photoBorderTheme) setPhotoBorderTheme(data.designPreset.photoBorderTheme);
+          if (data.designPreset.bannerStyle) setBannerStyle(data.designPreset.bannerStyle);
+          if (data.designPreset.nameFontSize) setNameFontSize(data.designPreset.nameFontSize);
+          if (data.designPreset.bannerSkew) setBannerSkew(data.designPreset.bannerSkew);
+          if (data.designPreset.footerFontSize) setFooterFontSize(data.designPreset.footerFontSize);
+          if (data.designPreset.bgUrl) setSelectedBgUrl(data.designPreset.bgUrl);
+        }
+
+        toast.success(data.isFallback ? 'Encarte estilizado com sucesso!' : '✨ Encarte personalizado pela IA com visual Pro!');
+      } else {
+        toast.error('Erro ao gerar com IA.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Não foi possível conectar ao assistente de IA.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const downloadCard = async (share = false) => {
@@ -511,8 +605,6 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       reader.readAsDataURL(file);
     }
   };
-
-  const [activeControlTab, setActiveControlTab] = useState<'photos' | 'banner' | 'main_photo' | 'layout'>('photos');
 
   const removeOverlay = (index: number) => {
     setOverlayImages(prev => prev.filter((_, i) => i !== index));
@@ -889,8 +981,8 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   style={{ transform: `translate(${congratsXOffset}px, ${congratsYOffset}px) scale(${congratsScale})` }}
                 >
                   <div className="bg-black/90 border-4 border-theme-primary px-8 py-1 transform skew-x-[-15deg] shadow-[6px_6px_0_rgba(0,0,0,1)]">
-                    <h1 className="text-white font-black text-3xl md:text-4xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg]">
-                      PARABÉNS
+                    <h1 className="text-white font-black text-2xl md:text-3xl tracking-tighter uppercase italic drop-shadow-[2px_2px_0_rgba(0,0,0,1)] text-center skew-x-[15deg] max-w-[280px] truncate">
+                      {aiHeadline || 'PARABÉNS'}
                     </h1>
                   </div>
                   
@@ -917,7 +1009,7 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                   
                   <div className="text-center bg-theme-primary text-black px-4 py-0.5 transform skew-x-[-12deg] shadow-[4px_4px_0_rgba(255,255,255,1)]">
                     <h2 className="font-black text-lg md:text-xl italic tracking-tighter uppercase skew-x-[12deg]">
-                      FELIZ ANIVERSÁRIO!
+                      {settings.schoolName ? `${settings.schoolName.toUpperCase()}!` : 'FELIZ ANIVERSÁRIO!'}
                     </h2>
                   </div>
                 </div>
@@ -930,6 +1022,18 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                         transform: `translate(${photoXOffset}px, ${photoYOffset}px) scale(${photoScale})`
                       }}
                     >
+                      {/* Compliment / Pro Badge tag positioned above the photo */}
+                      {showComplimentTag && aiComplimentTag && (
+                        <div className="flex justify-center -mb-2 z-30 relative">
+                          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-black/95 border-2 border-theme-primary rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.9)] backdrop-blur-md">
+                            <Sparkles size={11} className="text-theme-primary animate-pulse" />
+                            <span className="text-[9px] font-black text-theme-primary uppercase tracking-widest italic">
+                              {aiComplimentTag}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Glowing background effect */}
                       {showMainPhoto && (
                         <div 
@@ -1095,14 +1199,16 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
 
       <button 
         onClick={() => {
-          const text = `A escolinha Piruá Esporte Clube deseja a você um feliz aniversário! Que Deus ilumine sempre sua vida, muita paz e saúde. 🎂⚽️ #PiruáEC #FênixDoCampo #Parabéns`;
+          const text = aiInstagramCaption || `A escolinha ${settings.schoolName || 'Piruá Esporte Clube'} deseja a ${athleteName || selectedPerson?.name} um felicíssimo aniversário! Que Deus ilumine sempre sua caminhada com muita saúde, paz, alegria e muitas vitórias nos gramados e na vida! 🎂⚽️ #PiruáEC #FênixDoCampo #ParabénsCraque`;
           navigator.clipboard.writeText(text);
-          toast.success('Legenda copiada!');
+          setIsCopiedCaption(true);
+          setTimeout(() => setIsCopiedCaption(false), 2500);
+          toast.success('Legenda do Instagram copiada!');
         }}
         className="flex items-center justify-center p-3 bg-zinc-900 border border-zinc-800 text-white font-black rounded-xl hover:bg-zinc-800 transition-colors uppercase text-xs tracking-tighter"
-        title="Copiar Legenda"
+        title="Copiar Legenda Instagram"
       >
-        <Instagram size={16} />
+        {isCopiedCaption ? <Check size={16} className="text-theme-primary" /> : <Instagram size={16} />}
       </button>
     </div>
   </div> {/* Closing of Left Column (Preview Column) */}
@@ -1110,10 +1216,36 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   {/* Right Column: Scrollable Controls Column */}
   <div className="flex-1 flex flex-col h-[62vh] lg:h-full overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
     <div className="w-full max-w-[700px] mx-auto flex flex-col gap-6">
+
+            {/* AI Studio Quick Action Banner */}
+            <div className="bg-gradient-to-r from-theme-primary/20 via-zinc-900 to-black p-4 rounded-3xl border border-theme-primary/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-theme-primary/20 border border-theme-primary/50 flex items-center justify-center text-theme-primary flex-shrink-0 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                  <Sparkles size={22} className={isGeneratingAI ? "animate-spin" : "animate-pulse"} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">IA Personalizador de Encarte</h4>
+                    <span className="px-2 py-0.5 bg-theme-primary text-black text-[9px] font-black uppercase tracking-widest rounded-full">Pro</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">Design automático, mensagens esportivas e legendas oficiais</p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleAIGenerate()}
+                disabled={isGeneratingAI}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-theme-primary hover:opacity-90 text-black font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_25px_rgba(234,179,8,0.35)] disabled:opacity-50"
+              >
+                <Wand2 size={15} className={isGeneratingAI ? "animate-spin" : ""} />
+                {isGeneratingAI ? 'Personalizando...' : 'Auto-Estilizar com IA'}
+              </button>
+            </div>
+
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
               {/* Tabs Header */}
-              <div className="flex bg-black p-1 gap-1">
+              <div className="flex bg-black p-1.5 gap-1 overflow-x-auto scrollbar-none">
                 {[
+                  { id: 'ai', label: 'IA Studio', icon: Sparkles, isSpecial: true },
                   { id: 'photos', label: 'Fotos', icon: Plus },
                   { id: 'main_photo', label: 'Perfil', icon: UserCircle },
                   { id: 'banner', label: 'Banner', icon: Instagram },
@@ -1123,19 +1255,216 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
                     key={tab.id}
                     onClick={() => setActiveControlTab(tab.id as any)}
                     className={cn(
-                      "flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      "flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                       activeControlTab === tab.id 
-                        ? "bg-theme-primary text-black" 
-                        : "text-zinc-500 hover:text-white hover:bg-zinc-800"
+                        ? "bg-theme-primary text-black shadow-lg" 
+                        : tab.isSpecial
+                          ? "text-theme-primary hover:text-white hover:bg-zinc-800 border border-theme-primary/30"
+                          : "text-zinc-500 hover:text-white hover:bg-zinc-800"
                     )}
                   >
-                    <tab.icon size={14} />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <tab.icon size={14} className={tab.isSpecial && activeControlTab !== tab.id ? "animate-pulse text-theme-primary" : ""} />
+                    <span>{tab.label}</span>
                   </button>
                 ))}
               </div>
 
               <div className="p-6">
+                {activeControlTab === 'ai' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    
+                    {/* Tone / Theme Presets */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">1. Escolha a Vibe / Estilo da Homenagem</p>
+                        <span className="text-[9px] text-zinc-500 uppercase">Gera visual e texto sob medida</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {[
+                          { id: 'campeao', label: 'Craque Campeão', icon: Trophy, desc: 'Energia alta, foco em gols, vitórias e talento na base' },
+                          { id: 'ouro_elite', label: 'Ouro & VIP Magazine', icon: Crown, desc: 'Estilo gala de ouro, destaque refinado e lendário' },
+                          { id: 'inspirador', label: 'Inspirador & Família', icon: Heart, desc: 'Bênçãos divinas, saúde, caráter e futuro brilhante' },
+                          { id: 'guerreiro', label: 'Raça & Guerreiro', icon: Flame, desc: 'Espírito de luta, determinação e amor ao manto' },
+                          { id: 'mestre', label: 'Mestre da Tática', icon: Star, desc: 'Ideal para Professores e lideranças da comissão' },
+                        ].map((tone) => (
+                          <button
+                            key={tone.id}
+                            onClick={() => {
+                              setAiThemeTone(tone.id as any);
+                              handleAIGenerate(tone.id as any);
+                            }}
+                            disabled={isGeneratingAI}
+                            className={cn(
+                              "flex items-start gap-3 p-3 rounded-2xl border text-left transition-all relative group",
+                              aiThemeTone === tone.id
+                                ? "bg-theme-primary/10 border-theme-primary shadow-[0_0_15px_rgba(234,179,8,0.15)]"
+                                : "bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+                            )}
+                          >
+                            <div className={cn(
+                              "p-2 rounded-xl border flex-shrink-0 transition-colors",
+                              aiThemeTone === tone.id ? "bg-theme-primary text-black border-theme-primary" : "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:text-theme-primary"
+                            )}>
+                              <tone.icon size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "text-[11px] font-black uppercase tracking-tight",
+                                  aiThemeTone === tone.id ? "text-theme-primary" : "text-white"
+                                )}>
+                                  {tone.label}
+                                </span>
+                                {aiThemeTone === tone.id && (
+                                  <span className="w-2 h-2 rounded-full bg-theme-primary animate-ping" />
+                                )}
+                              </div>
+                              <p className="text-[9px] text-zinc-500 line-clamp-2 mt-0.5">{tone.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Headline and Compliment Tag customization */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
+                      <div className="space-y-2 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-black uppercase text-theme-primary tracking-widest">Título Superior (Topo)</label>
+                        </div>
+                        <input
+                          type="text"
+                          value={aiHeadline}
+                          onChange={(e) => setAiHeadline(e.target.value)}
+                          placeholder="PARABÉNS, CRAQUE!"
+                          className="w-full px-3.5 py-2.5 bg-black border border-zinc-800 rounded-xl text-white text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-theme-primary/50 transition-all"
+                        />
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {['PARABÉNS', 'PARABÉNS, CRAQUE!', 'LENDÁRIO!', 'PARABÉNS, PROFESSOR!'].map(h => (
+                            <button
+                              key={h}
+                              onClick={() => setAiHeadline(h)}
+                              className="px-2 py-0.5 bg-zinc-900 hover:bg-theme-primary hover:text-black text-zinc-400 text-[8px] font-bold uppercase rounded-md transition-colors"
+                            >
+                              {h}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-black uppercase text-theme-primary tracking-widest">Selo / Apelido no Card</label>
+                          <button
+                            onClick={() => setShowComplimentTag(prev => !prev)}
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-0.5 rounded transition-all",
+                              showComplimentTag ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-500"
+                            )}
+                          >
+                            {showComplimentTag ? 'Visível' : 'Oculto'}
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={aiComplimentTag}
+                          onChange={(e) => setAiComplimentTag(e.target.value)}
+                          placeholder="Ex: Goleador Nato • Sub-13"
+                          className="w-full px-3.5 py-2.5 bg-black border border-zinc-800 rounded-xl text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-theme-primary/50 transition-all"
+                        />
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {['Craque do Piruá', 'Goleador Nato', 'Paredão Indestrutível', 'Maestro da Base'].map(t => (
+                            <button
+                              key={t}
+                              onClick={() => {
+                                setAiComplimentTag(t);
+                                setShowComplimentTag(true);
+                              }}
+                              className="px-2 py-0.5 bg-zinc-900 hover:bg-theme-primary hover:text-black text-zinc-400 text-[8px] font-bold uppercase rounded-md transition-colors"
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Phrases & AI Alternatives */}
+                    <div className="space-y-3 pt-4 border-t border-zinc-800">
+                      <div className="flex justify-between items-center">
+                        <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest">2. Frase de Rodapé Oficial</p>
+                        <button
+                          onClick={() => handleAIGenerate()}
+                          disabled={isGeneratingAI}
+                          className="text-[9px] font-bold text-zinc-400 hover:text-theme-primary flex items-center gap-1 transition-colors uppercase"
+                        >
+                          <RefreshCw size={10} className={isGeneratingAI ? "animate-spin" : ""} />
+                          Novas Sugestões
+                        </button>
+                      </div>
+
+                      <textarea
+                        rows={3}
+                        value={footerMessage}
+                        onChange={(e) => setFooterMessage(e.target.value)}
+                        placeholder="Mensagem do rodapé..."
+                        className="w-full px-4 py-3 bg-black border border-zinc-800 rounded-2xl text-white text-[11px] font-medium focus:ring-2 focus:ring-theme-primary focus:border-theme-primary transition-all resize-none shadow-inner"
+                      />
+
+                      {aiAlternativePhrases.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Clique para aplicar uma frase gerada pela IA:</p>
+                          <div className="grid grid-cols-1 gap-2">
+                            {aiAlternativePhrases.map((phrase, i) => (
+                              <button
+                                key={i}
+                                onClick={() => {
+                                  setFooterMessage(phrase);
+                                  toast.success("Frase aplicada ao encarte!");
+                                }}
+                                className="p-3 bg-black/60 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-theme-primary/60 rounded-xl text-left transition-all text-[10px] text-zinc-300 hover:text-white flex items-start gap-2 group"
+                              >
+                                <span className="text-theme-primary font-black flex-shrink-0 text-[10px] mt-0.5">#{i + 1}</span>
+                                <span className="flex-1 leading-relaxed">{phrase}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Social Media Post Caption Copy */}
+                    <div className="space-y-3 pt-4 border-t border-zinc-800 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-[10px] font-black text-theme-primary uppercase tracking-widest flex items-center gap-1.5">
+                            <Instagram size={12} />
+                            Legenda Oficial para Instagram & WhatsApp
+                          </p>
+                          <p className="text-[8px] text-zinc-500 uppercase">Texto completo com hashtags do Piruá</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = aiInstagramCaption || `A escolinha ${settings.schoolName || 'Piruá Esporte Clube'} deseja a ${athleteName || selectedPerson?.name} um felicíssimo aniversário! Que Deus ilumine sempre sua caminhada com muita saúde, paz, alegria e muitas vitórias nos gramados e na vida! 🎂⚽️ #PiruáEC #FênixDoCampo #ParabénsCraque`;
+                            navigator.clipboard.writeText(text);
+                            setIsCopiedCaption(true);
+                            setTimeout(() => setIsCopiedCaption(false), 2500);
+                            toast.success('Legenda copiada para a área de transferência!');
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-theme-primary hover:text-black text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all border border-zinc-700"
+                        >
+                          {isCopiedCaption ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                          {isCopiedCaption ? 'Copiado!' : 'Copiar Legenda'}
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-black rounded-xl border border-zinc-800 text-[10px] text-zinc-300 font-sans whitespace-pre-line leading-relaxed max-h-32 overflow-y-auto">
+                        {aiInstagramCaption || `🎉🎂 HOJE É DIA DE FESTA NO PIRUÁ! 🎂🎉\n\nDesejamos um feliz aniversário ao nosso craque ${athleteName || selectedPerson?.name}! Que o seu novo ciclo seja repleto de gols, saúde, disciplina e muitos troféus defendendo o manto do Piruá Esporte Clube! ⚽🔥\n\nDeixe seu parabéns nos comentários! 👇\n\n#PiruáEC #ParabénsCraque #BaseForte #FutebolDeBase #AniversárioNoPiruá`}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
                 {activeControlTab === 'photos' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="space-y-4">

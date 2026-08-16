@@ -289,6 +289,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [recentScans, setRecentScans] = useState<{ id: string, name: string, time: string, photo?: string }[]>([]);
   const [training, setTraining] = useState<Training | null>(null);
   const [availableTrainings, setAvailableTrainings] = useState<Training[]>([]);
+  const [allTrainingsList, setAllTrainingsList] = useState<Training[]>([]);
   const [availableEvents, setAvailableEvents] = useState<Event[]>([]);
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | 'geral'>(trainingId || 'geral');
   const [event, setEvent] = useState<Event | null>(null);
@@ -500,6 +501,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           api.getTrainings(),
           api.getEvents()
         ]);
+        setAllTrainingsList(allTrainings);
         const dayTrainings = allTrainings.filter(t => t.date === date);
         setAvailableTrainings(dayTrainings);
 
@@ -1269,51 +1271,91 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     return Array.from(new Set(list));
   }, [availableTrainings]);
 
-  const activeTrainingForChips = (selectedTrainingId !== 'geral' ? availableTrainings.find(t => t.id === selectedTrainingId) : null) || training;
+  const allClubTrainingCategories = useMemo(() => {
+    const list: string[] = [];
+    const source = allTrainingsList.length > 0 ? allTrainingsList : availableTrainings;
+    source.forEach(t => {
+      if (t.category && t.category !== 'Todos' && t.category !== 'Todas') {
+        list.push(t.category);
+      }
+      if (t.schedules) {
+        t.schedules.forEach(s => {
+          if (s.categories && s.categories.length > 0) {
+            const clean = s.categories.filter(c => c !== 'Todos' && c !== 'Todas');
+            if (clean.length > 1) {
+              const subNums = clean.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+              if (subNums.length > 1) {
+                const min = Math.min(...subNums);
+                const max = Math.max(...subNums);
+                list.push(`SUB ${min} ao SUB ${max}`);
+              } else {
+                list.push(clean.join(', '));
+              }
+            } else if (clean.length === 1) {
+              list.push(clean[0]);
+            }
+          }
+        });
+      }
+    });
+    return Array.from(new Set(list));
+  }, [allTrainingsList, availableTrainings]);
+
+  const activeTrainingForChips = (selectedTrainingId !== 'geral' ? (availableTrainings.find(t => t.id === selectedTrainingId) || allTrainingsList.find(t => t.id === selectedTrainingId)) : null) || training;
 
   const trainingScheduleChips = useMemo(() => {
-    if (!activeTrainingForChips) return [];
     const chips: { label: string; value: string; categories: string[]; time?: string }[] = [];
-    
-    if (activeTrainingForChips.schedules && activeTrainingForChips.schedules.length > 0) {
-      activeTrainingForChips.schedules.forEach(s => {
-        if (s.categories && s.categories.length > 0) {
-          const cleanCats = s.categories.filter(c => c !== 'Todos' && c !== 'Todas');
-          if (cleanCats.length > 0) {
-            const subNums = cleanCats.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
-            let label = cleanCats.join(', ');
-            let value = cleanCats.join(', ');
-            if (subNums.length > 1) {
-              const min = Math.min(...subNums);
-              const max = Math.max(...subNums);
-              label = `SUB ${min} ao SUB ${max}`;
-              value = `SUB ${min} ao SUB ${max}`;
-            } else if (cleanCats.length === 1) {
-              label = cleanCats[0];
-              value = cleanCats[0];
-            }
-            chips.push({
-              label,
-              value,
-              categories: cleanCats,
-              time: s.start_time && s.end_time ? `${s.start_time}-${s.end_time}` : undefined
-            });
-          }
-        }
-      });
-    }
 
-    if (chips.length === 0 && activeTrainingForChips.category && activeTrainingForChips.category !== 'Todos' && activeTrainingForChips.category !== 'Todas') {
-      chips.push({
-        label: activeTrainingForChips.category,
-        value: activeTrainingForChips.category,
-        categories: [activeTrainingForChips.category],
-        time: activeTrainingForChips.start_time && activeTrainingForChips.end_time ? `${activeTrainingForChips.start_time}-${activeTrainingForChips.end_time}` : undefined
+    if (activeTrainingForChips) {
+      if (activeTrainingForChips.schedules && activeTrainingForChips.schedules.length > 0) {
+        activeTrainingForChips.schedules.forEach(s => {
+          if (s.categories && s.categories.length > 0) {
+            const cleanCats = s.categories.filter(c => c !== 'Todos' && c !== 'Todas');
+            if (cleanCats.length > 0) {
+              const subNums = cleanCats.map(c => getSubNumber(c)).filter((n): n is number => n !== null);
+              let label = cleanCats.join(', ');
+              let value = cleanCats.join(', ');
+              if (subNums.length > 1) {
+                const min = Math.min(...subNums);
+                const max = Math.max(...subNums);
+                label = `SUB ${min} ao SUB ${max}`;
+                value = `SUB ${min} ao SUB ${max}`;
+              } else if (cleanCats.length === 1) {
+                label = cleanCats[0];
+                value = cleanCats[0];
+              }
+              chips.push({
+                label,
+                value,
+                categories: cleanCats,
+                time: s.start_time && s.end_time ? `${s.start_time}-${s.end_time}` : undefined
+              });
+            }
+          }
+        });
+      }
+
+      if (chips.length === 0 && activeTrainingForChips.category && activeTrainingForChips.category !== 'Todos' && activeTrainingForChips.category !== 'Todas') {
+        chips.push({
+          label: activeTrainingForChips.category,
+          value: activeTrainingForChips.category,
+          categories: [activeTrainingForChips.category],
+          time: activeTrainingForChips.start_time && activeTrainingForChips.end_time ? `${activeTrainingForChips.start_time}-${activeTrainingForChips.end_time}` : undefined
+        });
+      }
+    } else if (availableTrainings.length > 0) {
+      // In general mode, extract chips from day trainings
+      dayTrainingCategories.forEach(cat => {
+        chips.push({
+          label: cat,
+          value: cat,
+          categories: [cat]
+        });
       });
     }
 
     return chips;
-  }, [activeTrainingForChips]);
+  }, [activeTrainingForChips, availableTrainings, dayTrainingCategories]);
 
   const activeAthletes = athletes.filter(a => {
     if (showOnlyActive && (a.status !== 'Ativo' || a.confirmation === 'Pendente')) return false;
@@ -1337,10 +1379,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           (a.doc && a.doc.includes(search));
       
       // Filter by selected training category if not "geral" and not explicit trainingId prop
-      // Relax this if we are searching for someone specific
+      // Relax this if we are searching for someone specific or if user selected specific sub filter
       if (selectedTrainingId !== 'geral' && !isSearching) {
-        const selTraining = availableTrainings.find(t => t.id === selectedTrainingId);
-        if (selTraining) {
+        const selTraining = availableTrainings.find(t => t.id === selectedTrainingId) || allTrainingsList.find(t => t.id === selectedTrainingId) || training;
+        if (selTraining && filterSub === 'Todos') {
           const isEligible = isTrainingEligibleForAthlete(a, selTraining);
           if (!isEligible) return false;
         }
@@ -2222,7 +2264,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       </div>
 
       {/* Quick Training Categories Chips Bar for 1-Click Roll Call Filter */}
-      {activeTrainingForChips && trainingScheduleChips.length > 0 && (
+      {trainingScheduleChips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 p-3 bg-zinc-950/80 border border-theme-primary/20 rounded-2xl">
           <div className="flex items-center gap-1.5 text-theme-primary text-xs font-black uppercase tracking-wider pr-2 border-r border-zinc-800 shrink-0">
             <Trophy size={14} />
@@ -2291,35 +2333,57 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             value={filterSub}
             onChange={(e) => setFilterSub(e.target.value)}
           >
-            <option value="Todos">Todas as Categorias</option>
+            <option value="Todos">Todas as Categorias ({activeAthletes.length})</option>
 
             {dayTrainingCategories.length > 0 && (
-              <optgroup label="🎯 Treinos Cadastrados">
-                {dayTrainingCategories.map(cat => (
-                  <option key={`day-${cat}`} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+              <optgroup label="🎯 Treinos Cadastrados (Hoje / Data Selecionada)">
+                {dayTrainingCategories.map(cat => {
+                  const count = activeAthletes.filter(a => matchesCategoryCriteria(a, cat)).length;
+                  return (
+                    <option key={`day-${cat}`} value={cat}>
+                      {cat} ({count} alunos)
+                    </option>
+                  );
+                })}
               </optgroup>
             )}
 
-            <optgroup label="⚡ Faixas Etárias / Agrupamentos">
-              {categoryAgeRanges.map(r => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
+            {allClubTrainingCategories.filter(c => !dayTrainingCategories.includes(c)).length > 0 && (
+              <optgroup label="🏆 Faixas Etárias de Treinos do Clube">
+                {allClubTrainingCategories.filter(c => !dayTrainingCategories.includes(c)).map(cat => {
+                  const count = activeAthletes.filter(a => matchesCategoryCriteria(a, cat)).length;
+                  return (
+                    <option key={`club-${cat}`} value={cat}>
+                      {cat} ({count} alunos)
+                    </option>
+                  );
+                })}
+              </optgroup>
+            )}
+
+            <optgroup label="⚡ Faixas Etárias / Agrupamentos Padrão">
+              {categoryAgeRanges.map(r => {
+                const count = activeAthletes.filter(a => matchesCategoryCriteria(a, r.value) || matchesCategoryCriteria(a, r.categories)).length;
+                return (
+                  <option key={r.value} value={r.value}>
+                    {r.label} ({count} alunos)
+                  </option>
+                );
+              })}
             </optgroup>
 
             <optgroup label="📋 Categorias Individuais">
-              {categories.map(c => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {categories.map(c => {
+                const count = activeAthletes.filter(a => matchesCategoryCriteria(a, c)).length;
+                return (
+                  <option key={c} value={c}>
+                    {c} ({count} alunos)
+                  </option>
+                );
+              })}
             </optgroup>
 
-            {filterSub !== 'Todos' && !categories.includes(filterSub) && !categoryAgeRanges.some(r => r.value === filterSub) && !dayTrainingCategories.includes(filterSub) && (
+            {filterSub !== 'Todos' && !categories.includes(filterSub) && !categoryAgeRanges.some(r => r.value === filterSub) && !dayTrainingCategories.includes(filterSub) && !allClubTrainingCategories.includes(filterSub) && (
               <option value={filterSub}>{filterSub}</option>
             )}
           </select>
