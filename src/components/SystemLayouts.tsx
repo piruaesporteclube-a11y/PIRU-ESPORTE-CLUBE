@@ -201,25 +201,46 @@ export default function SystemLayouts() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-theme-primary/10 border border-theme-primary/30 text-theme-primary text-xs font-black uppercase tracking-widest">
-              <LayoutGrid size={14} /> 5 Estilos Visuais para o Sistema
+              <LayoutGrid size={14} /> Escolha entre Layout Antigo ou Layouts com IA
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              Layouts do Sistema
+              Alternar Layouts do Sistema
             </h2>
             <p className="text-zinc-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Personalize a arquitetura visual completa do aplicativo Piruá E.C. Escolha entre 5 modos de alta performance visual — afetando cores, cartões, bordas e sombras em todas as telas.
+              Você pode usar o <strong>Layout Antigo Tradicional</strong> (com cabeçalho clássico ouro) ou experimentar os <strong>Layouts Modernos gerados por IA</strong> (coluna tática lateral, dock flutuante, fogo carmim e gala púrpura).
             </p>
           </div>
 
-          <button
-            onClick={handleResetToDefault}
-            disabled={isSaving}
-            className="self-start md:self-center flex items-center gap-2 px-5 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl border border-zinc-700/80 transition-all text-xs font-black uppercase tracking-widest shrink-0 cursor-pointer shadow-lg active:scale-95"
-            title="Restaurar visual padrão"
-          >
-            <RotateCcw size={16} />
-            Restaurar Padrão Piruá
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleResetToDefault}
+              disabled={isSaving}
+              className={cn(
+                "flex items-center gap-2 px-5 py-3 rounded-2xl border transition-all text-xs font-black uppercase tracking-widest shrink-0 cursor-pointer shadow-lg active:scale-95",
+                activePresetId === 'gold_classic'
+                  ? "bg-amber-500 text-black border-amber-400 ring-2 ring-amber-400/40"
+                  : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700/80"
+              )}
+              title="Usar Layout Antigo Tradicional"
+            >
+              <RotateCcw size={16} />
+              Usar Layout Antigo
+            </button>
+            <button
+              onClick={() => applyPresetToSystem(SYSTEM_LAYOUT_PRESETS[1])}
+              disabled={isSaving}
+              className={cn(
+                "flex items-center gap-2 px-5 py-3 rounded-2xl border transition-all text-xs font-black uppercase tracking-widest shrink-0 cursor-pointer shadow-lg active:scale-95",
+                activePresetId !== 'gold_classic'
+                  ? "bg-sky-500 text-black border-sky-400 ring-2 ring-sky-400/40"
+                  : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700/80"
+              )}
+              title="Usar Layouts Modernos com IA"
+            >
+              <Sparkles size={16} />
+              Usar Layout IA (Tático)
+            </button>
+          </div>
         </div>
       </div>
 

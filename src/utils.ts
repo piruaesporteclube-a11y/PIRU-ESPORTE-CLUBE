@@ -92,13 +92,90 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
   elements.forEach((el) => {
     const htmlEl = el as HTMLElement;
     const style = window.getComputedStyle(htmlEl);
+    const classStr = typeof htmlEl.className === 'string' ? htmlEl.className : '';
     
     // Properties that might contain oklch/oklab or variables
     const properties = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke', 'background', 'backgroundImage'];
     
+    // Quick regex helpers for Tailwind opacity classes
+    const getAlpha = (match: RegExpMatchArray | null, defaultAlpha = 1) => {
+      if (!match) return defaultAlpha;
+      if (match[2]) return parseInt(match[2], 10) / 100;
+      return 1;
+    };
+
+    // Check dark background classes with support for opacity (e.g. bg-black, bg-black/90, bg-zinc-950/95)
+    const matchBlack = classStr.match(/\bbg-black(\/(\d+))?\b/);
+    const matchZinc950 = classStr.match(/\bbg-zinc-950(\/(\d+))?\b/);
+    const matchZinc900 = classStr.match(/\bbg-zinc-900(\/(\d+))?\b/);
+    const matchZinc850 = classStr.match(/\bbg-zinc-850(\/(\d+))?\b/);
+    const matchZinc800 = classStr.match(/\bbg-zinc-800(\/(\d+))?\b/);
+    const matchZinc700 = classStr.match(/\bbg-zinc-700(\/(\d+))?\b/);
+    const matchWhite = classStr.match(/\bbg-white(\/(\d+))?\b/);
+
+    if (matchBlack) {
+      const a = getAlpha(matchBlack);
+      htmlEl.style.backgroundColor = a === 1 ? '#000000' : `rgba(0, 0, 0, ${a})`;
+    } else if (matchZinc950) {
+      const a = getAlpha(matchZinc950);
+      htmlEl.style.backgroundColor = a === 1 ? '#09090b' : `rgba(9, 9, 11, ${a})`;
+    } else if (matchZinc900) {
+      const a = getAlpha(matchZinc900);
+      htmlEl.style.backgroundColor = a === 1 ? '#18181b' : `rgba(24, 24, 27, ${a})`;
+    } else if (matchZinc850) {
+      const a = getAlpha(matchZinc850);
+      htmlEl.style.backgroundColor = a === 1 ? '#202024' : `rgba(32, 32, 36, ${a})`;
+    } else if (matchZinc800) {
+      const a = getAlpha(matchZinc800);
+      htmlEl.style.backgroundColor = a === 1 ? '#27272a' : `rgba(39, 39, 42, ${a})`;
+    } else if (matchZinc700) {
+      const a = getAlpha(matchZinc700);
+      htmlEl.style.backgroundColor = a === 1 ? '#3f3f46' : `rgba(63, 63, 70, ${a})`;
+    } else if (matchWhite) {
+      const a = getAlpha(matchWhite);
+      htmlEl.style.backgroundColor = a === 1 ? '#ffffff' : `rgba(255, 255, 255, ${a})`;
+    }
+
+    // Check text color classes
+    if (/\btext-black\b/.test(classStr)) {
+      htmlEl.style.color = '#000000';
+    } else if (/\btext-white\b/.test(classStr)) {
+      htmlEl.style.color = '#ffffff';
+    } else if (/\btext-theme-primary\b/.test(classStr) || /\btext-yellow-400\b/.test(classStr) || /\btext-yellow-500\b/.test(classStr) || /\btext-amber-400\b/.test(classStr) || /\btext-amber-500\b/.test(classStr)) {
+      htmlEl.style.color = '#EAB308';
+    } else if (/\btext-zinc-100\b/.test(classStr)) {
+      htmlEl.style.color = '#f4f4f5';
+    } else if (/\btext-zinc-200\b/.test(classStr)) {
+      htmlEl.style.color = '#e4e4e7';
+    } else if (/\btext-zinc-300\b/.test(classStr)) {
+      htmlEl.style.color = '#d4d4d8';
+    } else if (/\btext-zinc-400\b/.test(classStr)) {
+      htmlEl.style.color = '#a1a1aa';
+    } else if (/\btext-zinc-500\b/.test(classStr)) {
+      htmlEl.style.color = '#71717a';
+    } else if (/\btext-zinc-600\b/.test(classStr)) {
+      htmlEl.style.color = '#52525b';
+    } else if (/\btext-zinc-700\b/.test(classStr)) {
+      htmlEl.style.color = '#3f3f46';
+    }
+
+    // Check border color classes
+    if (/\bborder-theme-primary\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#EAB308';
+    } else if (/\bborder-zinc-800\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#27272a';
+    } else if (/\bborder-zinc-700\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#3f3f46';
+    } else if (/\bborder-zinc-900\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#18181b';
+    } else if (/\bborder-zinc-850\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#202024';
+    } else if (/\bborder-black\b/.test(classStr)) {
+      htmlEl.style.borderColor = '#000000';
+    }
+
     properties.forEach((prop) => {
       let value = htmlEl.style[prop as any] || style.getPropertyValue(prop.replace(/[A-Z]/g, m => "-" + m.toLowerCase()));
-      
       if (!value) return;
 
       // DO NOT touch gradients, background images, or radial/linear background styles
@@ -118,47 +195,16 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
         value.includes(', 0)') ||
         value === 'none';
 
-      // FIRST: Unconditionally preserve custom black/dark backgrounds and yellow/amber text on explicit classes ONLY
-      const hasBlackBgClass = htmlEl.classList.contains('bg-black') || 
-                              htmlEl.classList.contains('bg-zinc-950') || 
-                              htmlEl.classList.contains('bg-zinc-900');
-      
-      const hasYellowTextClass = htmlEl.classList.contains('text-yellow-400') || 
-                                 htmlEl.classList.contains('text-yellow-500') || 
-                                 htmlEl.classList.contains('text-amber-400') || 
-                                 htmlEl.classList.contains('text-amber-500') ||
-                                 htmlEl.classList.contains('text-theme-primary') ||
-                                 value.includes('yellow') ||
-                                 value.includes('amber') ||
-                                 value.includes('#facc15') ||
-                                 value.includes('#eab308');
-
-      if (hasBlackBgClass && (prop === 'backgroundColor' || prop === 'background')) {
-        htmlEl.style.backgroundColor = '#000000';
-        htmlEl.style.background = '#000000';
-        return;
-      }
-      if (hasYellowTextClass && prop === 'color') {
-        htmlEl.style.color = '#facc15'; // Tailwind yellow-400
-        return;
-      }
-
-      // SECOND: Unconditionally detect and convert theme-primary / theme-secondary variables or classes
+      // Detect and convert theme-primary / theme-secondary variables or classes
       const isThemePrimary = 
         value.includes('var(--theme-primary)') || 
         value.includes('var(--color-theme-primary)') ||
         value.includes('#EAB308') ||
-        value.includes('rgb(234, 179, 8)') ||
-        htmlEl.classList.contains('text-theme-primary') && prop === 'color' ||
-        htmlEl.classList.contains('bg-theme-primary') && prop === 'backgroundColor' ||
-        htmlEl.classList.contains('border-theme-primary') && prop === 'borderColor';
+        value.includes('rgb(234, 179, 8)');
 
       const isThemeSecondary = 
         value.includes('var(--theme-secondary)') || 
-        value.includes('var(--color-theme-secondary)') ||
-        htmlEl.classList.contains('text-theme-secondary') && prop === 'color' ||
-        htmlEl.classList.contains('bg-theme-secondary') && prop === 'backgroundColor' ||
-        htmlEl.classList.contains('border-theme-secondary') && prop === 'borderColor';
+        value.includes('var(--color-theme-secondary)');
 
       if (isThemePrimary) {
         const fallback = '#EAB308';
@@ -182,58 +228,21 @@ export function fixHtml2CanvasColors(element: HTMLElement, isLightMode = false) 
         return;
       }
 
-      // THIRD: Handle oklch / oklab or general variables fallback
-      if (value.includes('oklch') || value.includes('oklab') || value.includes('var(')) {
+      // Handle oklch / oklab or general variables or modern color() fallback
+      if (value.includes('oklch') || value.includes('oklab') || value.includes('color(') || value.includes('color-mix') || value.includes('var(')) {
         if (prop === 'color') {
-          if (htmlEl.classList.contains('text-zinc-500')) {
-            htmlEl.style.color = '#71717a';
-          } else if (htmlEl.classList.contains('text-zinc-400')) {
-            htmlEl.style.color = '#a1a1aa';
-          } else if (htmlEl.classList.contains('text-zinc-300')) {
-            htmlEl.style.color = '#d4d4d8';
-          } else if (htmlEl.classList.contains('text-zinc-600')) {
-            htmlEl.style.color = '#52525b';
-          } else if (htmlEl.classList.contains('text-zinc-650')) {
-            htmlEl.style.color = '#4b5563';
-          } else if (htmlEl.classList.contains('text-zinc-700')) {
-            htmlEl.style.color = '#3f3f46';
-          } else if (htmlEl.classList.contains('text-black')) {
-            htmlEl.style.color = '#000000';
-          } else {
-            // Default text color
+          if (!htmlEl.style.color || htmlEl.style.color.includes('oklch') || htmlEl.style.color.includes('var(')) {
             htmlEl.style.color = isLightMode ? '#000000' : '#ffffff';
           }
         } else if (prop === 'backgroundColor') {
           if (isTransparentBg) {
             htmlEl.style.backgroundColor = 'transparent';
-          } else if (htmlEl.classList.contains('bg-zinc-900')) {
-            htmlEl.style.backgroundColor = isLightMode ? '#111827' : '#18181b';
-          } else if (htmlEl.classList.contains('bg-zinc-950')) {
-            htmlEl.style.backgroundColor = isLightMode ? '#030712' : '#09090b';
-          } else if (htmlEl.classList.contains('bg-zinc-800')) {
-            htmlEl.style.backgroundColor = isLightMode ? '#1f2937' : '#27272a';
-          } else if (htmlEl.classList.contains('bg-zinc-700')) {
-            htmlEl.style.backgroundColor = isLightMode ? '#374151' : '#3f3f46';
-          } else if (htmlEl.classList.contains('bg-zinc-50')) {
-            htmlEl.style.backgroundColor = '#f9fafb';
-          } else if (htmlEl.classList.contains('bg-zinc-100')) {
-            htmlEl.style.backgroundColor = '#f3f4f6';
-          } else if (htmlEl.classList.contains('bg-zinc-200')) {
-            htmlEl.style.backgroundColor = '#e5e7eb';
-          } else if (htmlEl.classList.contains('bg-white')) {
-            htmlEl.style.backgroundColor = '#ffffff';
+          } else if (!htmlEl.style.backgroundColor || htmlEl.style.backgroundColor.includes('oklch')) {
+            htmlEl.style.backgroundColor = isLightMode ? '#ffffff' : '#000000';
           }
         } else if (prop === 'borderColor') {
-          if (htmlEl.classList.contains('border-zinc-200')) {
-            htmlEl.style.borderColor = '#e5e7eb';
-          } else if (htmlEl.classList.contains('border-zinc-300')) {
-            htmlEl.style.borderColor = '#d1d5db';
-          } else if (htmlEl.classList.contains('border-zinc-400')) {
-            htmlEl.style.borderColor = '#9ca3af';
-          } else if (htmlEl.classList.contains('border-zinc-800')) {
-            htmlEl.style.borderColor = '#1f2937';
-          } else {
-            htmlEl.style.borderColor = isLightMode ? '#e5e7eb' : '#3f3f46';
+          if (!htmlEl.style.borderColor || htmlEl.style.borderColor.includes('oklch')) {
+            htmlEl.style.borderColor = isLightMode ? '#e5e7eb' : '#27272a';
           }
         } else if (prop === 'background') {
           if (!value.includes('gradient') && !value.includes('url(') && !isTransparentBg) {

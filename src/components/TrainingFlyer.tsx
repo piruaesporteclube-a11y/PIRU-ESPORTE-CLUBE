@@ -289,7 +289,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         const dataUrl = await htmlToImage.toPng(exportClone, {
           width: 360,
           height: 640,
-          pixelRatio: 2,
+          pixelRatio: 3,
           backgroundColor: '#000000',
           cacheBust: true,
           skipFonts: false
@@ -1302,7 +1302,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
             <div 
               ref={flyerRef}
               data-flyer-container="true"
-              style={{ width: '360px', height: '640px' }} // Instagram Story 9:16
+              style={{ width: '360px', height: '640px', backgroundColor: '#000000' }} // Instagram Story 9:16
               className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
             >
               {/* Main Border Overlay - Better for rendering than container border */}
@@ -1375,19 +1375,22 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     >
                       <div className="absolute inset-0 opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
                       {/* Scanline Effect */}
-                      <div className="absolute inset-x-0 h-[3px] bg-theme-primary/30 top-1/4 animate-scan-slow blur-[2px]" />
-                      <div className="absolute inset-x-0 h-[2px] bg-theme-primary/20 top-2/3 animate-scan-slow-delayed blur-[1px]" />
+                      <div className="absolute inset-x-0 h-[3px] top-1/4 animate-scan-slow blur-[2px]" style={{ backgroundColor: 'rgba(234, 179, 8, 0.3)' }} />
+                      <div className="absolute inset-x-0 h-[2px] top-2/3 animate-scan-slow-delayed blur-[1px]" style={{ backgroundColor: 'rgba(234, 179, 8, 0.2)' }} />
                       
                       {/* Tech Grid Overlay */}
                       <div className="absolute inset-0 z-[1] opacity-80 mix-blend-overlay" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
-                      <div className="absolute inset-0 z-[2] opacity-20 bg-[radial-gradient(circle_at_center,_transparent_0%,_black_100%)]" />
+                      <div className="absolute inset-0 z-[2] opacity-20" style={{ background: 'radial-gradient(circle at center, transparent 0%, #000000 100%)' }} />
                     </div>
                   )}
 
                   {/* Global Gradients */}
                   <div 
-                    className="absolute inset-0 z-[3] bg-gradient-to-t from-black via-black/40 to-black/80" 
-                    style={{ opacity: overlayOpacity }}
+                    className="absolute inset-0 z-[3]" 
+                    style={{ 
+                      background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.85) 100%)',
+                      opacity: overlayOpacity 
+                    }}
                   />
                   
                   {/* Athlete Image Layer */}
@@ -1401,10 +1404,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         <div className="absolute left-0 w-1/2 h-full flex items-center justify-center">
                           <div 
                             className={cn(
-                              "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
-                              (selectedAthlete || customImage) ? "opacity-100" : "opacity-30 border-zinc-800"
+                              "w-28 h-40 border-4 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                              (selectedAthlete || customImage) ? "opacity-100" : "opacity-30"
                             )}
-                            style={{ transform: 'skew(-6deg)' }}
+                            style={{ 
+                              transform: 'skew(-6deg)',
+                              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                              borderColor: (selectedAthlete || customImage) ? '#EAB308' : '#27272a'
+                            }}
                           >
                             {(customImage || selectedAthlete?.photo) && (
                               <img 
@@ -1423,10 +1430,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         <div className="absolute right-0 w-1/2 h-full flex items-center justify-center">
                           <div 
                             className={cn(
-                              "w-28 h-40 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
-                              (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30 border-zinc-800"
+                              "w-28 h-40 border-4 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                              (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30"
                             )}
-                            style={{ transform: 'skew(-6deg)' }}
+                            style={{ 
+                              transform: 'skew(-6deg)',
+                              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                              borderColor: (selectedAthlete2 || customImage2) ? '#EAB308' : '#27272a'
+                            }}
                           >
                             {(customImage2 || selectedAthlete2?.photo) && (
                               <img 
@@ -1444,7 +1455,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         {/* VS Centered */}
                         {showVS && (
                           <div className="absolute z-10 flex flex-col items-center">
-                            <div className="bg-black text-theme-primary font-black text-2xl italic p-2 px-4 rounded-xl border-2 border-theme-primary shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12">
+                            <div 
+                              className="font-black text-2xl italic p-2 px-4 rounded-xl border-2 shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12"
+                              style={{
+                                backgroundColor: '#000000',
+                                color: '#EAB308',
+                                borderColor: '#EAB308'
+                              }}
+                            >
                               VS
                             </div>
                           </div>
@@ -1453,7 +1471,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     </div>
                   )}
 
-                  <div className="absolute inset-x-0 bottom-0 z-[5] h-64 bg-gradient-to-t from-black to-transparent" />
+                  <div 
+                    className="absolute inset-x-0 bottom-0 z-[5] h-64" 
+                    style={{ background: 'linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.85) 50%, transparent 100%)' }}
+                  />
                 </div>
               </div>
 
@@ -1466,11 +1487,11 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   {settings?.schoolCrest ? (
                     <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
-                    <Trophy size={40} className="text-theme-primary" />
+                    <Trophy size={40} className="text-theme-primary" style={{ color: '#EAB308' }} />
                   )}
                 </div>
                 <div className="text-center px-4">
-                  <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] border-b-2 border-theme-primary/50 pb-1">
+                  <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] border-b-2 pb-1" style={{ color: '#ffffff', borderColor: 'rgba(234, 179, 8, 0.5)' }}>
                     {settings.schoolName || 'Piruá Esporte Clube'}
                   </h1>
                 </div>
@@ -1478,11 +1499,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
               {/* Date Section - Centered */}
               <div className="relative z-30 mt-4 flex justify-center">
-                <div className="bg-black/90 border border-zinc-800 rounded-xl px-3.5 py-1.5 flex items-center gap-2 shadow-2xl">
+                <div 
+                  className="border rounded-xl px-3.5 py-1.5 flex items-center gap-2 shadow-2xl"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)', borderColor: '#27272a' }}
+                >
                   <Calendar size={11} className="text-theme-primary" style={{ color: '#EAB308' }} />
                   <div className="flex flex-col leading-tight items-center">
                     <span className="text-[7px] font-black uppercase tracking-widest" style={{ color: '#EAB308' }}>{dayOfWeek}</span>
-                    <span className="text-[11px] font-black text-white uppercase tracking-tight">{formattedDate}</span>
+                    <span className="text-[11px] font-black uppercase tracking-tight" style={{ color: '#ffffff' }}>{formattedDate}</span>
                   </div>
                 </div>
               </div>
@@ -1501,10 +1525,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               >
                 {activeTrainings.map((t, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
-                    <div className={cn(
-                      "bg-black/95 px-2.5 py-1.5 border border-zinc-800 shadow-xl rounded-md",
-                      infoAlign === 'left' ? "border-l-4 border-l-theme-primary text-left" : "border-r-4 border-r-theme-primary text-right"
-                    )}>
+                    <div 
+                      className={cn(
+                        "px-2.5 py-1.5 border shadow-xl rounded-md",
+                        infoAlign === 'left' ? "border-l-4 text-left" : "border-r-4 text-right"
+                      )}
+                      style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.96)',
+                        borderColor: '#27272a',
+                        borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#27272a',
+                        borderRightColor: infoAlign === 'right' ? '#EAB308' : '#27272a'
+                      }}
+                    >
                       <h3 
                         className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
                         style={{ color: '#EAB308' }}
@@ -1516,8 +1548,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           "flex items-center gap-0.5 mt-1",
                           infoAlign === 'left' ? "justify-start" : "justify-end"
                         )}>
-                          <MapPin size={8} className="text-amber-400 shrink-0" style={{ color: '#EAB308' }} />
-                          <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                          <MapPin size={8} className="shrink-0" style={{ color: '#EAB308' }} />
+                          <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]" style={{ color: '#f4f4f5' }}>
                             {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
                           </span>
                         </div>
@@ -1527,10 +1559,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div className={cn(colsCount === 2 ? "grid grid-cols-2 gap-1.5" : "space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
                       {!t.schedules || t.schedules.length === 0 ? (
                         <div className="relative group">
-                          <div className={cn(
-                            "bg-zinc-950/95 border border-zinc-800 p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
-                            infoAlign === 'left' ? "border-l-2 border-l-amber-500" : "border-r-2 border-r-amber-500"
-                          )}>
+                          <div 
+                            className={cn(
+                              "border p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
+                              infoAlign === 'left' ? "border-l-2" : "border-r-2"
+                            )}
+                            style={{
+                              backgroundColor: 'rgba(9, 9, 11, 0.96)',
+                              borderColor: '#27272a',
+                              borderLeftColor: infoAlign === 'left' ? '#f59e0b' : '#27272a',
+                              borderRightColor: infoAlign === 'right' ? '#f59e0b' : '#27272a'
+                            }}
+                          >
                             {/* Time Slot */}
                             <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
                               {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
@@ -1561,10 +1601,18 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                       ) : (
                         t.schedules.map((s, si) => (
                           <div key={si} className="relative group">
-                            <div className={cn(
-                              "bg-zinc-950/95 border border-zinc-800 p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
-                              infoAlign === 'left' ? "border-l-2 border-l-amber-500" : "border-r-2 border-r-amber-500"
-                            )}>
+                            <div 
+                              className={cn(
+                                "border p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
+                                infoAlign === 'left' ? "border-l-2" : "border-r-2"
+                              )}
+                              style={{
+                                backgroundColor: 'rgba(9, 9, 11, 0.96)',
+                                borderColor: '#27272a',
+                                borderLeftColor: infoAlign === 'left' ? '#f59e0b' : '#27272a',
+                                borderRightColor: infoAlign === 'right' ? '#f59e0b' : '#27272a'
+                              }}
+                            >
                               {/* Time Slot */}
                               <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
                                 {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
@@ -1626,10 +1674,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div className="absolute left-0 w-1/2 h-full flex items-center justify-center -translate-x-2">
                       <div 
                         className={cn(
-                          "w-24 h-36 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
-                          (selectedAthlete || customImage) ? "opacity-100" : "opacity-30 border-zinc-800"
+                          "w-24 h-36 border-4 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete || customImage) ? "opacity-100" : "opacity-30"
                         )}
-                        style={{ transform: 'skew(-6deg)' }}
+                        style={{ 
+                          transform: 'skew(-6deg)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                          borderColor: (selectedAthlete || customImage) ? '#EAB308' : '#27272a'
+                        }}
                       >
                         {(customImage || selectedAthlete?.photo) && (
                           <img 
@@ -1647,10 +1699,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                     <div className="absolute right-0 w-1/2 h-full flex items-center justify-center translate-x-2">
                       <div 
                         className={cn(
-                          "w-24 h-36 border-4 border-theme-primary flex items-center justify-center overflow-hidden bg-black/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]",
-                          (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30 border-zinc-800"
+                          "w-24 h-36 border-4 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                          (selectedAthlete2 || customImage2) ? "opacity-100" : "opacity-30"
                         )}
-                        style={{ transform: 'skew(-6deg)' }}
+                        style={{ 
+                          transform: 'skew(-6deg)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                          borderColor: (selectedAthlete2 || customImage2) ? '#EAB308' : '#27272a'
+                        }}
                       >
                         {(customImage2 || selectedAthlete2?.photo) && (
                           <img 
@@ -1667,7 +1723,14 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
                     {showVS && (
                       <div className="absolute z-10">
-                        <div className="bg-black text-theme-primary font-black text-xl italic px-3 py-1.5 rounded-lg border-2 border-theme-primary shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12">
+                        <div 
+                          className="font-black text-xl italic px-3 py-1.5 rounded-lg border-2 shadow-[0_0_30px_rgba(234,179,8,0.5)] transform -skew-x-12"
+                          style={{
+                            backgroundColor: '#000000',
+                            color: '#EAB308',
+                            borderColor: '#EAB308'
+                          }}
+                        >
                           VS
                         </div>
                       </div>
@@ -1686,12 +1749,20 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   transform: `translate(${footerPos.x}px, ${footerPos.y}px)`
                 }}
               >
-                <div className={cn(
-                  "bg-black/90 pl-3 py-2 italic border border-zinc-800/80 rounded-md shadow-xl",
-                  infoAlign === 'left' ? "border-l-4 border-l-theme-primary text-left" : "border-r-4 border-r-theme-primary text-right pr-3 pl-0"
-                )}>
+                <div 
+                  className={cn(
+                    "pl-3 py-2 italic border rounded-md shadow-xl",
+                    infoAlign === 'left' ? "border-l-4 text-left" : "border-r-4 text-right pr-3 pl-0"
+                  )}
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    borderColor: '#27272a',
+                    borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#27272a',
+                    borderRightColor: infoAlign === 'right' ? '#EAB308' : '#27272a'
+                  }}
+                >
                   <p 
-                    className="text-theme-primary text-[10px] font-black uppercase italic tracking-tighter drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-tight"
+                    className="text-[10px] font-black uppercase italic tracking-tighter drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-tight"
                     style={{ color: '#EAB308' }}
                   >
                     FOCO DISCIPLINA E RAÇA!<br />
@@ -1709,7 +1780,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               >
                 <p 
                   className="text-[7px] font-bold uppercase tracking-widest opacity-60"
-                  style={{ color: '#71717a' }}
+                  style={{ color: '#a1a1aa' }}
                 >
                   {settings.schoolName || 'Piruá Esporte Clube'} • 2026
                 </p>

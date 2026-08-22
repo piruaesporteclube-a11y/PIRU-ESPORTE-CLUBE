@@ -27,10 +27,34 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, activeTab, setActiveTab, user, onLogout }: LayoutProps) {
-  const { settings } = useTheme();
+  const { settings, updateSettings } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const mode = settings?.systemLayoutMode || 'gold_classic';
+
+  const toggleLayoutMode = async () => {
+    if (mode === 'gold_classic') {
+      // Switch to modern IA layout (Tactical or Neon)
+      await updateSettings({
+        ...settings,
+        systemLayoutMode: 'tactical_cyan'
+      });
+    } else {
+      // Switch back to classic old layout
+      await updateSettings({
+        ...settings,
+        systemLayoutMode: 'gold_classic',
+        primaryColor: '#EAB308',
+        secondaryColor: '#000000',
+        layoutBgColor: '#000000',
+        layoutCardColor: '#18181b',
+        layoutBorderColor: '#27272a',
+        layoutBorderRadius: '3xl',
+        layoutBorderWidth: '1px',
+        layoutShadow: 'xl'
+      });
+    }
+  };
 
   // Filter items accessible by current user role
   const accessibleNavItems = navItems.filter(item => user && item.roles.includes(user.role));
@@ -267,7 +291,17 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                 )}
               </div>
 
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                {/* Layout Mode Quick Switch */}
+                <button
+                  onClick={() => setActiveTab('system-layouts')}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-zinc-900/90 hover:bg-zinc-800 text-amber-400 hover:text-amber-300 rounded-xl border border-amber-500/30 transition-all text-xs font-black uppercase tracking-wider cursor-pointer shadow-md group"
+                  title="Alterar layout do sistema (Layout Antigo ou IA)"
+                >
+                  <LayoutGrid size={16} className="group-hover:rotate-12 transition-transform" />
+                  <span className="hidden md:inline">Layouts</span>
+                </button>
+
                 {settings.instagram && (
                   <a 
                     href={settings.instagram?.startsWith('http') ? settings.instagram : `https://instagram.com/${settings.instagram?.replace('@', '')}`}
