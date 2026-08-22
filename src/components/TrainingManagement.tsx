@@ -479,44 +479,64 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                           </div>
 
                           <div className="space-y-3">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                              <Clock size={12} />
-                              Sessões
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <Clock size={13} className="text-theme-primary" />
+                                Horários das Sessões
+                              </p>
+                              <span className="text-[9px] font-black uppercase text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-full border border-zinc-700/60">
+                                {training.schedules && training.schedules.length > 0 ? `${training.schedules.length} horário(s)` : '1 horário'}
+                              </span>
+                            </div>
                             
                             {training.schedules && training.schedules.length > 0 ? (
-                              <div className="space-y-2">
+                              <div className="space-y-2.5">
                                 {training.schedules.map((s, i) => (
                                   <div key={i} className={cn(
-                                    "bg-black/30 border rounded-xl p-3 flex flex-col gap-2",
-                                    ended ? "border-red-500/10" : "border-green-500/10"
+                                    "bg-zinc-950/90 border rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-md transition-all",
+                                    ended ? "border-red-500/25" : "border-zinc-700/80 hover:border-amber-500/50"
                                   )}>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-black text-white font-mono">{s.start_time} — {s.end_time}</span>
-                                      <div className={cn("w-8 h-[1px]", ended ? "bg-red-500/20" : "bg-green-500/20")}></div>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono font-black text-xs tracking-tight shadow-inner",
+                                        ended 
+                                          ? "bg-red-500/10 text-red-400 border-red-500/30" 
+                                          : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                      )}>
+                                        <Clock size={13} className={ended ? "text-red-400" : "text-amber-400"} />
+                                        <span>{s.start_time}</span>
+                                        <span className="text-zinc-500 font-sans font-bold text-[10px]">às</span>
+                                        <span>{s.end_time}</span>
+                                      </div>
+
+                                      <span className="text-[9px] font-mono text-zinc-500 font-bold uppercase">
+                                        Slot {i + 1}
+                                      </span>
                                     </div>
-                                    <div className="flex flex-wrap gap-1">
+
+                                    <div className="flex flex-wrap gap-1.5 pt-0.5">
                                       {s.categories.map((c, ci) => (
                                         <span key={ci} className={cn(
-                                          "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase",
+                                          "text-[10px] px-2 py-0.5 rounded-lg border font-black uppercase tracking-wider shadow-sm",
                                           ended 
-                                            ? "bg-red-500/10 text-red-500 border-red-500/20" 
-                                            : "bg-green-500/10 text-green-500 border-green-500/20"
+                                            ? "bg-red-500/15 text-red-300 border-red-500/30" 
+                                            : "bg-zinc-900 text-amber-300 border-amber-500/30"
                                         )}>
                                           {c}
                                         </span>
                                       ))}
                                     </div>
+
                                     {s.notes && (
                                       <div className={cn(
-                                        "mt-2 p-2 rounded-lg border flex flex-col gap-1",
-                                        ended ? "bg-red-500/5 border-red-500/10" : "bg-green-500/5 border-green-500/10"
+                                        "mt-1 p-2 rounded-xl border flex flex-col gap-1",
+                                        ended ? "bg-red-500/5 border-red-500/15" : "bg-zinc-900/60 border-zinc-800"
                                       )}>
-                                        <div className="flex items-center gap-1 opacity-60">
-                                          <FileText size={8} />
-                                          <span className="text-[7px] font-black uppercase tracking-widest">Atividade do Horário</span>
+                                        <div className="flex items-center gap-1 opacity-70">
+                                          <FileText size={10} className="text-theme-primary" />
+                                          <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Atividade Programada</span>
                                         </div>
-                                        <p className="text-[10px] text-zinc-400 font-medium leading-tight">
+                                        <p className="text-[11px] text-zinc-300 font-medium leading-tight">
                                           {s.notes}
                                         </p>
                                       </div>
@@ -526,18 +546,30 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
                               </div>
                             ) : (
                               <div className={cn(
-                                "bg-black/30 border rounded-xl p-3",
-                                ended ? "border-red-500/10" : "border-green-500/10"
+                                "bg-zinc-950/90 border rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-md",
+                                ended ? "border-red-500/25" : "border-zinc-700/80"
                               )}>
-                                <p className="text-xs font-black text-white font-mono mb-2">{training.start_time} — {training.end_time}</p>
-                                <span className={cn(
-                                  "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase",
+                                <div className={cn(
+                                  "flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono font-black text-xs tracking-tight w-fit",
                                   ended 
-                                    ? "bg-red-500/10 text-red-500 border-red-500/20" 
-                                    : "bg-green-500/10 text-green-500 border-green-500/20"
+                                    ? "bg-red-500/10 text-red-400 border-red-500/30" 
+                                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
                                 )}>
-                                  {training.category}
-                                </span>
+                                  <Clock size={13} className={ended ? "text-red-400" : "text-amber-400"} />
+                                  <span>{training.start_time}</span>
+                                  <span className="text-zinc-500 font-sans font-bold text-[10px]">às</span>
+                                  <span>{training.end_time}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  <span className={cn(
+                                    "text-[10px] px-2 py-0.5 rounded-lg border font-black uppercase tracking-wider",
+                                    ended 
+                                      ? "bg-red-500/15 text-red-300 border-red-500/30" 
+                                      : "bg-zinc-900 text-amber-300 border-amber-500/30"
+                                  )}>
+                                    {training.category}
+                                  </span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -692,30 +724,51 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
 
                   <div className="space-y-4">
                     {(formData.schedules || []).map((schedule, idx) => (
-                      <div key={idx} className="p-4 bg-black/40 border border-zinc-800 rounded-2xl space-y-4 relative group">
-                        <button 
-                          type="button" 
-                          onClick={() => removeSchedule(idx)}
-                          className="absolute top-2 right-2 p-1 text-zinc-600 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <div key={idx} className="p-4 bg-zinc-950/90 border border-zinc-700/80 hover:border-amber-500/40 rounded-2xl space-y-4 relative group transition-all shadow-md">
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-black">
+                              {idx + 1}
+                            </span>
+                            <span className="text-xs font-black uppercase text-white tracking-wide">
+                              Horário {idx + 1}:
+                            </span>
+                            <span className="font-mono font-black text-amber-400 text-xs px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800">
+                              {schedule.start_time || '--:--'} às {schedule.end_time || '--:--'}
+                            </span>
+                          </div>
+
+                          <button 
+                            type="button" 
+                            onClick={() => removeSchedule(idx)}
+                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                            title="Remover horário"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Início</label>
+                            <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+                              <Clock size={11} className="text-amber-400" />
+                              Hora de Início
+                            </label>
                             <input 
                               type="time" 
-                              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm"
+                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white font-mono font-bold text-sm focus:border-amber-400 outline-none"
                               value={schedule.start_time}
                               onChange={e => updateSchedule(idx, 'start_time', e.target.value)}
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Fim</label>
+                            <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+                              <Clock size={11} className="text-amber-400" />
+                              Hora de Término
+                            </label>
                             <input 
                               type="time" 
-                              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm"
+                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white font-mono font-bold text-sm focus:border-amber-400 outline-none"
                               value={schedule.end_time}
                               onChange={e => updateSchedule(idx, 'end_time', e.target.value)}
                             />

@@ -101,17 +101,17 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [playerMode, setPlayerMode] = useState<'foreground' | 'background'>('foreground');
   const [playerOpacity, setPlayerOpacity] = useState(0.4);
-  const [timeFontSize, setTimeFontSize] = useState<number>(9);
+  const [timeFontSize, setTimeFontSize] = useState<number>(11);
   const [colsCount, setColsCount] = useState<1 | 2>(1);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(114);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(124);
   const [footerPos, setFooterPos] = useState({ x: 0, y: 0 });
   const [footerWidth, setFooterWidth] = useState<number>(140);
 
   useEffect(() => {
     if (colsCount === 1) {
-      setSidebarWidth(114);
+      setSidebarWidth(124);
     } else {
-      setSidebarWidth(228);
+      setSidebarWidth(236);
     }
   }, [colsCount]);
 
@@ -1561,36 +1561,45 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                         <div className="relative group">
                           <div 
                             className={cn(
-                              "border p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
-                              infoAlign === 'left' ? "border-l-2" : "border-r-2"
+                              "border p-2 space-y-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.98)] rounded-xl transition-all",
+                              infoAlign === 'left' ? "border-l-4" : "border-r-4"
                             )}
                             style={{
-                              backgroundColor: 'rgba(9, 9, 11, 0.96)',
-                              borderColor: '#27272a',
-                              borderLeftColor: infoAlign === 'left' ? '#f59e0b' : '#27272a',
-                              borderRightColor: infoAlign === 'right' ? '#f59e0b' : '#27272a'
+                              backgroundColor: 'rgba(10, 10, 12, 0.98)',
+                              borderColor: '#3f3f46',
+                              borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#3f3f46',
+                              borderRightColor: infoAlign === 'right' ? '#EAB308' : '#3f3f46'
                             }}
                           >
-                            {/* Time Slot */}
-                            <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
-                              {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
+                            {/* Time Slot with prominent badge container */}
+                            <div 
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner",
+                                infoAlign === 'right' ? "justify-end" : "justify-start"
+                              )}
+                              style={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                borderColor: 'rgba(234, 179, 8, 0.3)'
+                              }}
+                            >
+                              {infoAlign === 'left' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
                               <span 
-                                className="font-mono font-black tracking-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
-                                style={{ fontSize: `${timeFontSize}px`, color: '#EAB308' }}
+                                className="font-mono font-black tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
+                                style={{ fontSize: `${timeFontSize}px`, color: '#FACC15', lineHeight: 1.1 }}
                               >
                                 {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time)}
                               </span>
-                              {infoAlign === 'right' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
+                              {infoAlign === 'right' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
                             </div>
                             
                             {/* Categories Stacks */}
-                            <div className="flex flex-col gap-1 mt-0.5">
+                            <div className="flex flex-col gap-1 mt-1">
                               {(customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category) && (
                                 <div 
-                                  className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
-                                  style={{ backgroundColor: '#EAB308' }}
+                                  className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
+                                  style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
                                 >
-                                  <span className="text-[7.5px] font-black uppercase italic leading-none text-center tracking-tight" style={{ color: '#000000' }}>
+                                  <span className="text-[8px] font-black uppercase italic leading-none text-center tracking-wide" style={{ color: '#000000' }}>
                                     {customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category}
                                   </span>
                                 </div>
@@ -1603,37 +1612,46 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                           <div key={si} className="relative group">
                             <div 
                               className={cn(
-                                "border p-2 space-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.95)] rounded-lg transition-all",
-                                infoAlign === 'left' ? "border-l-2" : "border-r-2"
+                                "border p-2 space-y-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.98)] rounded-xl transition-all",
+                                infoAlign === 'left' ? "border-l-4" : "border-r-4"
                               )}
                               style={{
-                                backgroundColor: 'rgba(9, 9, 11, 0.96)',
-                                borderColor: '#27272a',
-                                borderLeftColor: infoAlign === 'left' ? '#f59e0b' : '#27272a',
-                                borderRightColor: infoAlign === 'right' ? '#f59e0b' : '#27272a'
+                                backgroundColor: 'rgba(10, 10, 12, 0.98)',
+                                borderColor: '#3f3f46',
+                                borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#3f3f46',
+                                borderRightColor: infoAlign === 'right' ? '#EAB308' : '#3f3f46'
                               }}
                             >
-                              {/* Time Slot */}
-                              <div className={cn("flex items-center gap-1 flex-wrap", infoAlign === 'right' && "justify-end")}>
-                                {infoAlign === 'left' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
+                              {/* Time Slot with prominent badge container */}
+                              <div 
+                                className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner",
+                                  infoAlign === 'right' ? "justify-end" : "justify-start"
+                                )}
+                                style={{
+                                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                  borderColor: 'rgba(234, 179, 8, 0.3)'
+                                }}
+                              >
+                                {infoAlign === 'left' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
                                 <span 
-                                  className="font-mono font-black tracking-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
-                                  style={{ fontSize: `${timeFontSize}px`, color: '#EAB308' }}
+                                  className="font-mono font-black tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
+                                  style={{ fontSize: `${timeFontSize}px`, color: '#FACC15', lineHeight: 1.1 }}
                                 >
                                   {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)}
                                 </span>
-                                {infoAlign === 'right' && <Clock size={Math.max(7, Math.round(timeFontSize * 0.95))} className="shrink-0" style={{ color: '#EAB308' }} />}
+                                {infoAlign === 'right' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
                               </div>
 
                               {/* Categories Stacks */}
-                              <div className="flex flex-col gap-1 mt-0.5">
+                              <div className="flex flex-col gap-1 mt-1">
                                 {customCategories[`${t.id}-${si}-cat`] !== undefined ? (
                                   customCategories[`${t.id}-${si}-cat`] && (
                                     <div 
-                                      className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
-                                      style={{ backgroundColor: '#EAB308' }}
+                                      className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
+                                      style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
                                     >
-                                      <span className="text-[7.5px] font-black uppercase italic leading-none text-center tracking-tight" style={{ color: '#000000' }}>
+                                      <span className="text-[8px] font-black uppercase italic leading-none text-center tracking-wide" style={{ color: '#000000' }}>
                                         {customCategories[`${t.id}-${si}-cat`]}
                                       </span>
                                     </div>
@@ -1642,10 +1660,10 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                                   s.categories.map((c, ci) => (
                                     <div 
                                       key={ci} 
-                                      className="px-2 py-0.5 rounded-sm flex items-center justify-center shadow-md"
-                                      style={{ backgroundColor: '#EAB308' }}
+                                      className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
+                                      style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
                                     >
-                                      <span className="text-[7.5px] font-black uppercase italic leading-none whitespace-nowrap tracking-tight" style={{ color: '#000000' }}>
+                                      <span className="text-[8px] font-black uppercase italic leading-none whitespace-nowrap tracking-wide" style={{ color: '#000000' }}>
                                         {c}
                                       </span>
                                     </div>
