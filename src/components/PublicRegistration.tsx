@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { Athlete, Anamnesis, User } from '../types';
-import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, Upload, ClipboardList, AlertCircle, MessageCircle } from 'lucide-react';
+import { CheckCircle2, ArrowRight, ClipboardCheck, UserPlus, Save, UserCircle, Upload, ClipboardList, AlertCircle, MessageCircle, Fingerprint, Check, X, Sparkles } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, compressImage as globalCompressImage, formatPhone, normalizePhone } from '../utils';
+import { generateUniqueFingerprintHash } from '../utils/biometrics';
 
 interface PublicRegistrationProps {
   onCancel: () => void;
@@ -46,11 +47,57 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
     school_shift: '' as any,
     status: 'Inativo',
     modality: '',
-    gender: 'Masculino'
+    gender: 'Masculino',
+    biometrics_fingerprint_registered: false
   });
 
   const [newAthlete, setNewAthlete] = useState<Athlete | null>(null);
   const [newUser, setNewUser] = useState<User | null>(null);
+
+  // Biometrics State for Public Registration
+  const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
+  const [fingerprintStep, setFingerprintStep] = useState(0);
+  const [fingerprintHand, setFingerprintHand] = useState<'Direito' | 'Esquerdo'>('Direito');
+  const [isScanningFinger, setIsScanningFinger] = useState(false);
+
+  const handleSimulatePublicFingerprintScan = async () => {
+    if (fingerprintStep >= 3 || isScanningFinger) return;
+    setIsScanningFinger(true);
+
+    if (typeof window !== 'undefined' && 'navigator' in window && (navigator as any).vibrate) {
+      try { (navigator as any).vibrate([40]); } catch (e) {}
+    }
+
+    setTimeout(() => {
+      const nextStep = fingerprintStep + 1;
+      setFingerprintStep(nextStep);
+      setIsScanningFinger(false);
+
+      if (typeof window !== 'undefined' && 'navigator' in window && (navigator as any).vibrate) {
+        try { (navigator as any).vibrate(nextStep === 3 ? [50, 70, 50] : [35]); } catch (e) {}
+      }
+
+      if (nextStep === 3) {
+        const cleanDoc = (athleteData.doc || '').replace(/\D/g, '');
+        const tempId = athleteData.name ? athleteData.name.toLowerCase().replace(/\s+/g, '-') : 'new-athlete';
+        const uniqueHash = generateUniqueFingerprintHash(tempId, cleanDoc, fingerprintHand);
+        const today = new Date().toLocaleDateString('pt-BR');
+
+        setAthleteData(prev => ({
+          ...prev,
+          biometrics_fingerprint_registered: true,
+          biometrics_fingerprint_date: today,
+          fingerprint_hash: uniqueHash,
+          fingerprint_credential_id: uniqueHash,
+          fingerprint_hand: fingerprintHand
+        }));
+
+        toast.success(`👆 Digital do Dedo Indicador (${fingerprintHand}) cadastrada com sucesso!`);
+      } else {
+        toast.info(`Toque ${nextStep}/3 recebido no sensor.`);
+      }
+    }, 450);
+  };
 
   const getAvailablePositions = () => {
     const selectedModalities = athleteData.modality ? athleteData.modality.split(', ').filter(Boolean) : [];
@@ -606,6 +653,64 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
                     </div>
                   </div>
                 </div>
+
+                {/* Section Biometria Digital do Aluno */}
+                <div className="md:col-span-2 space-y-4 pt-4 border-t border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-black text-emerald-400 uppercase tracking-[0.2em]">Biometria Digital (Dedo Indicador)</h3>
+                      <p className="text-[10px] text-zinc-400">Calibre a digital do aluno na tela do seu celular para chamada rápida</p>
+                    </div>
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                      athleteData.biometrics_fingerprint_registered 
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                        : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                    )}>
+                      {athleteData.biometrics_fingerprint_registered ? "Digital Cadastrada ✓" : "Opcional"}
+                    </span>
+                  </div>
+
+                  <div className="bg-zinc-800/40 border border-zinc-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center border",
+                        athleteData.biometrics_fingerprint_registered ? "bg-emerald-500/10 border-emerald-500 text-emerald-400" : "bg-zinc-800 border-zinc-700 text-zinc-500"
+                      )}>
+                        <Fingerprint size={24} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-white uppercase">
+                          {athleteData.biometrics_fingerprint_registered 
+                            ? `Dedo Indicador (${athleteData.fingerprint_hand || 'Direito'}) Calibrado` 
+                            : "Calibração de Dedo Indicador"}
+                        </p>
+                        <p className="text-[10px] text-zinc-400">
+                          {athleteData.biometrics_fingerprint_registered
+                            ? "Digital salva na ficha do aluno. Poderá ser usada na chamada."
+                            : "Toque 3 vezes no leitor para calibrar a digital no celular ou computador."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFingerprintStep(0);
+                        setIsFingerprintModalOpen(true);
+                      }}
+                      className={cn(
+                        "px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shrink-0 cursor-pointer",
+                        athleteData.biometrics_fingerprint_registered
+                          ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+                          : "bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20"
+                      )}
+                    >
+                      <Fingerprint size={16} />
+                      <span>{athleteData.biometrics_fingerprint_registered ? "Recalibrar Digital" : "Calibrar Digital Agora"}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -625,6 +730,119 @@ export default function PublicRegistration({ onCancel, onComplete }: PublicRegis
             </button>
           </div>
         </form>
+
+        {/* Modal de Calibração da Digital na Matrícula */}
+        {isFingerprintModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+            <div className="bg-zinc-950 border-2 border-emerald-500/40 rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative text-center">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3 text-left">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                    <Fingerprint size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Calibração da Digital do Aluno</h3>
+                    <p className="text-xs text-zinc-400">Dedo Indicador</p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFingerprintModalOpen(false)} 
+                  className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Hand Selection Toggle */}
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-zinc-400 uppercase block">Selecione a Mão do Dedo Indicador:</label>
+                <div className="grid grid-cols-2 gap-3 p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setFingerprintHand('Direito')}
+                    className={cn(
+                      "py-2 px-3 text-xs font-black uppercase rounded-lg transition-all cursor-pointer",
+                      fingerprintHand === 'Direito' ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Mão Direita (Indicador)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFingerprintHand('Esquerdo')}
+                    className={cn(
+                      "py-2 px-3 text-xs font-black uppercase rounded-lg transition-all cursor-pointer",
+                      fingerprintHand === 'Esquerdo' ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Mão Esquerda (Indicador)
+                  </button>
+                </div>
+              </div>
+
+              {/* Fingerprint Touch Area */}
+              <div className="flex flex-col items-center justify-center space-y-4 py-3">
+                <button
+                  type="button"
+                  onClick={handleSimulatePublicFingerprintScan}
+                  disabled={isScanningFinger || fingerprintStep >= 3}
+                  className={cn(
+                    "w-36 h-36 rounded-full flex flex-col items-center justify-center border-4 transition-all relative cursor-pointer shadow-2xl",
+                    fingerprintStep === 3
+                      ? "bg-emerald-950 border-emerald-400 text-emerald-400"
+                      : (isScanningFinger 
+                          ? "bg-emerald-900/50 border-emerald-400 text-emerald-300 animate-pulse" 
+                          : "bg-zinc-900 hover:bg-zinc-850 border-emerald-500/50 text-emerald-400 hover:border-emerald-400 hover:scale-105 active:scale-95")
+                  )}
+                >
+                  <Fingerprint size={72} className={cn(isScanningFinger && "animate-ping")} />
+                  {fingerprintStep === 3 && (
+                    <div className="absolute inset-0 bg-emerald-500/20 backdrop-blur-xs rounded-full flex items-center justify-center text-emerald-300 font-black text-xs uppercase">
+                      Leitura 100%
+                    </div>
+                  )}
+                </button>
+
+                {/* Step Indicators */}
+                <div className="space-y-2 w-full">
+                  <div className="flex items-center justify-center gap-2">
+                    {[1, 2, 3].map(stepNum => (
+                      <div 
+                        key={stepNum}
+                        className={cn(
+                          "w-8 h-8 rounded-full font-black text-xs flex items-center justify-center border-2 transition-all",
+                          fingerprintStep >= stepNum 
+                            ? "bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/30" 
+                            : "bg-zinc-900 border-zinc-800 text-zinc-600"
+                        )}
+                      >
+                        {fingerprintStep >= stepNum ? <Check size={16} /> : stepNum}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                    {fingerprintStep === 0 && "Toque o dedo indicador no sensor acima na tela"}
+                    {fingerprintStep === 1 && "1º toque registrado! Toque novamente no sensor"}
+                    {fingerprintStep === 2 && "Mais 1 toque para concluir a calibração!"}
+                    {fingerprintStep === 3 && "✅ Dedo indicador calibrado para a matrícula!"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFingerprintModalOpen(false)}
+                  className="w-full px-4 py-3 bg-emerald-500 text-black hover:bg-emerald-400 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer"
+                >
+                  {fingerprintStep === 3 ? "Concluir Calibração" : "Fechar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
