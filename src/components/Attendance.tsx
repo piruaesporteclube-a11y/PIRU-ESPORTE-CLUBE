@@ -145,6 +145,27 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [previewAthletePhoto, setPreviewAthletePhoto] = useState<Athlete | null>(null);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [search, setSearch] = useState('');
+  const [isFloatingSearchOpen, setIsFloatingSearchOpen] = useState(true);
+  const floatingSearchRef = useRef<HTMLInputElement | null>(null);
+  const inlineSearchRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === '/' || e.key === 'F2') && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        setIsFloatingSearchOpen(true);
+        setTimeout(() => {
+          floatingSearchRef.current?.focus();
+          floatingSearchRef.current?.select();
+        }, 50);
+      }
+      if (e.key === 'Escape' && search) {
+        setSearch('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [search]);
   const [isScanning, setIsScanning] = useState(false);
   const [isFacialScanning, setIsFacialScanning] = useState(false);
   const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
@@ -2316,14 +2337,28 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       {/* Filter Toolbar Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <div className="relative sm:col-span-2">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <Search className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors", search ? "text-theme-primary" : "text-zinc-500")} size={18} />
           <input 
+            ref={inlineSearchRef}
             type="text" 
-            placeholder="Buscar por nome, apelido ou documento..." 
-            className="w-full pl-10 pr-4 py-3 bg-black border border-theme-primary/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs font-medium placeholder:text-zinc-600"
+            placeholder="Buscar por nome, apelido, camisa ou documento... (ou digite /)" 
+            className="w-full pl-10 pr-10 py-3 bg-black border border-theme-primary/30 focus:border-theme-primary rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs font-medium placeholder:text-zinc-600 transition-all shadow-inner"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                inlineSearchRef.current?.focus();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-full transition-all"
+              title="Limpar busca (Esc)"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         <div className="relative">
@@ -4477,7 +4512,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             type="button"
             onClick={saveCurrentAttendance}
             className={cn(
-              "flex items-center gap-2.5 px-6 py-3.5 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-2xl border-2 border-black cursor-pointer hover:scale-105 active:scale-95",
+              "flex items-center gap-2.5 px-5 sm:px-6 py-3.5 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-2xl border-2 border-black cursor-pointer hover:scale-105 active:scale-95",
               hasChanges 
                 ? "bg-theme-primary text-black shadow-theme-primary/60 animate-bounce" 
                 : "bg-theme-primary text-black shadow-lg shadow-theme-primary/30"
@@ -4485,11 +4520,199 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             title="Salvar Chamada Manualmente"
           >
             <FileDown size={20} />
-            <span>Salvar Chamada</span>
+            <span className="hidden sm:inline">Salvar Chamada</span>
+            <span className="sm:hidden">Salvar</span>
             {hasChanges && <span className="w-2.5 h-2.5 rounded-full bg-black animate-ping" />}
           </button>
         </div>
       )}
+
+      {/* Floating Athlete Search Box */}
+      <AnimatePresence>
+        {isFloatingSearchOpen ? (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            className="fixed bottom-6 left-4 right-20 sm:right-auto sm:left-6 md:left-1/2 md:-translate-x-1/2 z-40 max-w-lg w-[calc(100vw-96px)] sm:w-[450px] md:w-[490px]"
+          >
+            <div className="bg-zinc-950/95 backdrop-blur-2xl border-2 border-theme-primary/60 rounded-3xl p-2.5 sm:p-3 shadow-[0_20px_60px_rgba(0,0,0,0.95)] flex flex-col gap-2">
+              {/* Quick Results Live Match Strip (When searching) */}
+              {search.trim() !== '' && (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin border-b border-zinc-800 pb-2">
+                  <div className="flex items-center justify-between px-1 text-[10px] font-black uppercase text-zinc-400">
+                    <span className="flex items-center gap-1">
+                      <Sparkles size={12} className="text-theme-primary animate-pulse" />
+                      Resultados Rápidos ({filteredAthletes.length})
+                    </span>
+                    <span className="text-[9px] text-zinc-500 font-mono">1 clique para marcar</span>
+                  </div>
+
+                  {filteredAthletes.length === 0 ? (
+                    <div className="p-2.5 text-center bg-zinc-900/60 rounded-2xl border border-zinc-800/80 text-zinc-400 text-xs font-semibold">
+                      Nenhum atleta encontrado para "{search}"
+                    </div>
+                  ) : (
+                    filteredAthletes.slice(0, 3).map(matchedAthlete => {
+                      const records = attendance[matchedAthlete.id] || [];
+                      const att = getResolvedAttendance(records);
+                      const isPresent = att?.status === 'Presente';
+                      const isAbsent = att?.status === 'Faltou';
+
+                      return (
+                        <div 
+                          key={matchedAthlete.id}
+                          className="flex items-center justify-between gap-2 p-2 bg-zinc-900/90 border border-zinc-700/60 hover:border-theme-primary/50 rounded-2xl transition-all"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center shrink-0 border border-zinc-700">
+                              {matchedAthlete.photo && matchedAthlete.photo.trim() !== '' ? (
+                                <img src={matchedAthlete.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <User size={14} className="text-zinc-500" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-black text-white truncate leading-tight uppercase">
+                                {matchedAthlete.name}
+                              </p>
+                              <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-bold uppercase truncate">
+                                <span className="text-theme-primary">{getSubCategory(matchedAthlete.birth_date)}</span>
+                                {matchedAthlete.jersey_number && <span>• #{matchedAthlete.jersey_number}</span>}
+                                {matchedAthlete.modality && <span className="opacity-70">• {matchedAthlete.modality}</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isPresent) {
+                                  clearAttendance(matchedAthlete.id);
+                                } else {
+                                  markAttendance(matchedAthlete.id, 'Presente');
+                                }
+                              }}
+                              disabled={isLocked}
+                              className={cn(
+                                "px-2.5 py-1.5 rounded-xl font-black text-[10px] uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm",
+                                isPresent 
+                                  ? "bg-green-500 text-black shadow-green-500/20" 
+                                  : "bg-zinc-800 text-zinc-300 hover:bg-green-500/20 hover:text-green-400 border border-zinc-700"
+                              )}
+                              title="Marcar Presença"
+                            >
+                              <CheckCircle2 size={12} />
+                              <span>{isPresent ? 'Presente' : 'Presente'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isAbsent) {
+                                  clearAttendance(matchedAthlete.id);
+                                } else {
+                                  markAttendance(matchedAthlete.id, 'Faltou');
+                                }
+                              }}
+                              disabled={isLocked}
+                              className={cn(
+                                "px-2 py-1.5 rounded-xl font-black text-[10px] uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm",
+                                isAbsent 
+                                  ? "bg-red-500 text-white shadow-red-500/20" 
+                                  : "bg-zinc-800 text-zinc-400 hover:bg-red-500/20 hover:text-red-400 border border-zinc-700"
+                              )}
+                              title="Marcar Falta"
+                            >
+                              <XCircle size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Main Floating Search Input Bar */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search 
+                    className={cn(
+                      "absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors",
+                      search ? "text-theme-primary animate-pulse" : "text-zinc-500"
+                    )} 
+                    size={16} 
+                  />
+                  <input
+                    ref={floatingSearchRef}
+                    type="text"
+                    placeholder="Buscar atleta pelo nome, apelido, camisa... ( / )"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-700 focus:border-theme-primary rounded-2xl pl-9 pr-8 py-2.5 text-white placeholder:text-zinc-500 font-bold text-xs sm:text-sm outline-none transition-all shadow-inner focus:ring-2 focus:ring-theme-primary/30"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        floatingSearchRef.current?.focus();
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-full transition-all cursor-pointer"
+                      title="Limpar busca (Esc)"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="hidden sm:inline-block px-2 py-1 bg-zinc-900 border border-zinc-700 rounded-xl text-[10px] font-black text-theme-primary font-mono shadow-sm">
+                    {filteredAthletes.length} {filteredAthletes.length === 1 ? 'aluno' : 'alunos'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsFloatingSearchOpen(false)}
+                    className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-2xl transition-all cursor-pointer"
+                    title="Minimizar barra de busca"
+                  >
+                    <ChevronLeft size={16} className="-rotate-90 sm:rotate-0" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed bottom-6 left-4 sm:left-6 z-40"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setIsFloatingSearchOpen(true);
+                setTimeout(() => {
+                  floatingSearchRef.current?.focus();
+                  floatingSearchRef.current?.select();
+                }, 50);
+              }}
+              className="flex items-center gap-2 px-4 py-3 bg-zinc-950/95 hover:bg-zinc-900 text-white font-black text-xs uppercase tracking-tight rounded-2xl border-2 border-theme-primary/60 shadow-[0_10px_35px_rgba(0,0,0,0.8)] transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-xl"
+              title="Abrir busca flutuante de atletas (ou aperte / no teclado)"
+            >
+              <Search size={16} className="text-theme-primary animate-pulse" />
+              <span>Buscar Aluno</span>
+              <span className="px-1.5 py-0.5 bg-theme-primary text-black rounded-lg text-[10px] font-black font-mono">
+                {filteredAthletes.length}
+              </span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
