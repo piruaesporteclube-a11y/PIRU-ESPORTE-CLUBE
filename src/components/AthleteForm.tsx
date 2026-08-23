@@ -8,6 +8,7 @@ import { useRef } from 'react';
 import { toast } from 'sonner';
 import { cn, fixHtml2CanvasColors, compressImage, formatPhone, normalizePhone } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
+import { generateUniqueFingerprintHash, registerNativeBiometricCredential } from '../utils/biometrics';
 
 interface AthleteFormProps {
   athlete?: Athlete | null;
@@ -136,17 +137,39 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     }
   };
 
-  const handleSimulateFingerprintScan = () => {
+  const handleSimulateFingerprintScan = async () => {
     if (fingerprintStep >= 3) return;
     setIsScanningFinger(true);
     
+    if (typeof window !== 'undefined' && 'navigator' in window && (navigator as any).vibrate) {
+      try { (navigator as any).vibrate([40]); } catch (e) {}
+    }
+
     setTimeout(async () => {
       const nextStep = fingerprintStep + 1;
       setFingerprintStep(nextStep);
       setIsScanningFinger(false);
       
+      if (typeof window !== 'undefined' && 'navigator' in window && (navigator as any).vibrate) {
+        try { (navigator as any).vibrate(nextStep === 3 ? [50, 60, 50] : [35]); } catch (e) {}
+      }
+
       if (nextStep === 3) {
-        const uniqueHash = `BIO-IND-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+        // Try native WebAuthn platform prompt if available, fallback to deterministic unique athlete hash
+        let credentialId = '';
+        try {
+          const nativeRes = await registerNativeBiometricCredential(
+            athlete?.id || formData.doc || `temp_${Date.now()}`,
+            formData.name || 'Atleta'
+          );
+          if (nativeRes.success) {
+            credentialId = nativeRes.credentialId;
+          }
+        } catch (e) {}
+
+        const cleanDoc = (formData.doc || '').replace(/\D/g, '');
+        const athleteUniqueId = athlete?.id || `ATL_${cleanDoc || Date.now()}`;
+        const uniqueHash = credentialId || generateUniqueFingerprintHash(athleteUniqueId, formData.doc || '', fingerprintHand);
         const today = new Date().toLocaleDateString('pt-BR');
 
         setFormData(prev => ({
@@ -154,6 +177,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
           biometrics_fingerprint_registered: true,
           biometrics_fingerprint_date: today,
           fingerprint_hash: uniqueHash,
+          fingerprint_credential_id: credentialId || uniqueHash,
           fingerprint_hand: fingerprintHand
         }));
 
@@ -163,19 +187,20 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               biometrics_fingerprint_registered: true,
               biometrics_fingerprint_date: today,
               fingerprint_hash: uniqueHash,
+              fingerprint_credential_id: credentialId || uniqueHash,
               fingerprint_hand: fingerprintHand
             });
-            toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) salva diretamente no banco de dados!`);
+            toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) vinculada exclusivamente a ${athlete.name}!`);
           } catch (e: any) {
             console.error("Erro ao auto-salvar biometria digital:", e);
           }
         } else {
-          toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) cadastrada com sucesso!`);
+          toast.success(`👆 Biometria do Dedo Indicador (${fingerprintHand}) cadastrada com chave única!`);
         }
       } else {
         toast.info(`Toque ${nextStep}/3 recebido no leitor biométrico.`);
       }
-    }, 700);
+    }, 500);
   };
 
   const getAvailablePositions = () => {

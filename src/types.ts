@@ -32,6 +32,7 @@ export type Athlete = {
   biometrics_fingerprint_registered?: boolean;
   biometrics_fingerprint_date?: string;
   fingerprint_hash?: string;
+  fingerprint_credential_id?: string;
   fingerprint_hand?: "Direito" | "Esquerdo";
   created_at?: any;
   updated_at?: any;
