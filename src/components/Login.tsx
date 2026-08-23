@@ -12,7 +12,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLogin, onRegisterClick, onProfessorRegisterClick }: LoginProps) {
-  const [loginType, setLoginType] = useState<'student' | 'admin'>('student');
+  const [loginType, setLoginType] = useState<'admin' | 'student'>('admin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -58,8 +58,8 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
     }
   };
 
-  const ringColor = loginType === 'student' ? 'focus:ring-theme-primary/50 focus:border-theme-primary' : 'focus:ring-yellow-500/50 focus:border-yellow-500';
-  const iconFocusColor = loginType === 'student' ? 'group-focus-within:text-theme-primary' : 'group-focus-within:text-theme-primary';
+  const ringColor = loginType === 'admin' ? 'focus:ring-theme-primary/50 focus:border-theme-primary' : 'focus:ring-theme-primary/50 focus:border-theme-primary';
+  const iconFocusColor = 'group-focus-within:text-theme-primary';
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
@@ -67,11 +67,11 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={cn(
           "absolute top-[-10%] left-[-10%] w-[40%] h-[40%] blur-[120px] rounded-full transition-all duration-700",
-          loginType === 'student' ? 'bg-theme-primary/10' : 'bg-yellow-500/10'
+          loginType === 'admin' ? 'bg-theme-primary/10' : 'bg-yellow-500/10'
         )} />
         <div className={cn(
           "absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] blur-[120px] rounded-full transition-all duration-700",
-          loginType === 'student' ? 'bg-theme-primary/5' : 'bg-yellow-500/5'
+          loginType === 'admin' ? 'bg-theme-primary/5' : 'bg-yellow-500/5'
         )} />
       </div>
 
@@ -79,14 +79,14 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
         <div className="text-center mb-10">
           <div className={cn(
             "inline-flex items-center justify-center p-4 bg-black border rounded-3xl mb-6 shadow-2xl transition-all duration-500",
-            loginType === 'student' 
-              ? 'border-theme-primary/30 shadow-theme-primary/5' 
-              : 'border-l-2 border-r-2 border-t border-b border-l-theme-primary border-r-theme-primary border-t-zinc-800 border-b-zinc-800 shadow-yellow-500/10'
+            loginType === 'admin'
+              ? 'border-theme-primary/40 shadow-theme-primary/10'
+              : 'border-theme-primary/30 shadow-theme-primary/5'
           )}>
             {settings?.schoolCrest ? (
               <img src={settings.schoolCrest} className="w-16 h-16 object-contain" referrerPolicy="no-referrer" />
             ) : (
-              <Trophy size={48} className={loginType === 'student' ? 'text-theme-primary' : 'text-theme-primary'} />
+              <Trophy size={48} className="text-theme-primary" />
             )}
           </div>
           <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">Piruá E.C.</h1>
@@ -95,37 +95,40 @@ export default function Login({ onLogin, onRegisterClick, onProfessorRegisterCli
 
         <div className={cn(
           "bg-black backdrop-blur-xl border p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500",
-          loginType === 'student' 
-            ? 'border-theme-primary/20 shadow-theme-primary/5' 
-            : 'border-l-2 border-r-2 border-t border-b border-l-theme-primary border-r-theme-primary border-t-zinc-800 border-b-zinc-800 shadow-[0_0_20px_rgba(234,179,8,0.07)]'
+          loginType === 'admin'
+            ? 'border-theme-primary/30 shadow-[0_0_25px_rgba(234,179,8,0.08)]'
+            : 'border-theme-primary/20 shadow-theme-primary/5'
         )}>
-          {/* Custom Tabs with Life and Color */}
-          <div className="grid grid-cols-2 p-1 bg-zinc-900/60 rounded-2xl mb-8 border border-zinc-800/80">
+          {/* Custom Tabs with ADM on the LEFT and Aluno on the RIGHT */}
+          <div className="grid grid-cols-2 p-1 bg-zinc-900/80 rounded-2xl mb-8 border border-zinc-800">
+            {/* Lado Esquerdo: ADM / Professor */}
+            <button
+              type="button"
+              onClick={() => setLoginType('admin')}
+              className={cn(
+                "py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer",
+                loginType === 'admin' 
+                  ? "bg-theme-primary text-black shadow-lg shadow-theme-primary/25 font-black scale-[1.02]" 
+                  : "text-zinc-400 hover:text-white"
+              )}
+            >
+              <Shield size={16} />
+              <span>Portal ADM / Prof</span>
+            </button>
+
+            {/* Lado Direito: Portal do Aluno */}
             <button
               type="button"
               onClick={() => setLoginType('student')}
               className={cn(
-                "py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2",
+                "py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer",
                 loginType === 'student' 
                   ? "bg-theme-primary text-black shadow-lg shadow-theme-primary/25 font-black scale-[1.02]" 
                   : "text-zinc-400 hover:text-white"
               )}
             >
               <Users size={16} />
-              Portal Aluno
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginType('admin')}
-              className={cn(
-                "py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2",
-                loginType === 'admin' 
-                  ? "bg-zinc-950 border border-theme-primary text-theme-primary shadow-lg shadow-theme-primary/10 font-black scale-[1.02]" 
-                  : "text-zinc-400 hover:text-white"
-              )}
-            >
-              <Shield size={16} />
-              Portal ADM / Prof
+              <span>Portal do Aluno</span>
             </button>
           </div>
 
