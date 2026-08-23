@@ -581,6 +581,37 @@ export const matchesCategoryCriteria = (
   return false;
 };
 
+export const isTrainingEligibleForAthlete = (athlete: Athlete, training: Training): boolean => {
+  // Check Modality if specified
+  if (training.modality && training.modality !== 'Todos' && training.modality !== 'Todas' && athlete.modality) {
+    const athleteMods = athlete.modality.toLowerCase();
+    const trainingMod = training.modality.toLowerCase();
+    if (!athleteMods.includes(trainingMod) && !trainingMod.includes(athleteMods)) {
+      // In case they don't match, return false
+      return false;
+    }
+  }
+
+  // Check Category / Schedules
+  if (training.category && training.category !== 'Todos' && training.category !== 'Todas') {
+    if (!matchesCategoryCriteria(athlete, training.category)) {
+      return false;
+    }
+  }
+
+  if (training.schedules && training.schedules.length > 0) {
+    const allScheduleCategories = training.schedules.flatMap(s => s.categories || []);
+    if (allScheduleCategories.length > 0 && !allScheduleCategories.includes('Todos') && !allScheduleCategories.includes('Todas')) {
+      const matchesAnySchedule = allScheduleCategories.some(cat => matchesCategoryCriteria(athlete, cat));
+      if (!matchesAnySchedule) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
 export type PlayerProfile = {
   athlete_id: string;
   nationality?: string;

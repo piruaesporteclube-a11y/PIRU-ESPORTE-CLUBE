@@ -2,6 +2,7 @@ import {
   Users, 
   UserPlus, 
   UserMinus,
+  UserX,
   Calendar, 
   ClipboardCheck, 
   Cake, 
@@ -52,6 +53,7 @@ export const navItems: NavItem[] = [
  
   // --- GRUPO: Centro de Treinamento (Preparação e Logística) ---
   { id: 'trainings', label: 'Treinos', icon: History, roles: ['admin', 'student', 'professor'], description: 'Rotina e Horários', color: 'text-zinc-400', category: 'training' },
+  { id: 'absentees', label: 'Faltosos', icon: UserX, roles: ['admin', 'professor'], description: 'Controle de Faltas Treino a Treino', color: 'text-red-500', category: 'training' },
   { id: 'events', label: 'Eventos', icon: Calendar, roles: ['admin', 'student', 'professor'], description: 'Agenda da Escola', color: 'text-blue-500', category: 'training' },
   { id: 'travel-list', label: 'Viagens', icon: ClipboardList, roles: ['admin', 'professor'], description: 'Logística de Saída', color: 'text-theme-primary', category: 'training' },
  

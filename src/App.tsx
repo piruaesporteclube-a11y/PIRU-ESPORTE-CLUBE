@@ -12,6 +12,7 @@ import Documents from './components/Documents';
 import SponsorManager from './components/SponsorManager';
 import ModalityList from './components/ModalityList';
 import TrainingManagement from './components/TrainingManagement';
+import AbsenteeManagement from './components/AbsenteeManagement';
 import SettingsComponent from './components/Settings';
 import AthleteSearchSelect from './components/AthleteSearchSelect';
 import MembershipCard from './components/MembershipCard';
@@ -2150,6 +2151,17 @@ export default function App() {
           return <ActivityManagement role={user?.role} />;
         case 'trainings':
           return <TrainingManagement athletes={athletes} role={user?.role} />;
+        case 'absentees':
+          return (
+            <AbsenteeManagement 
+              onNavigateToAttendance={(trainingId, date) => {
+                setActiveTab('attendance');
+              }}
+              onNavigateToAthlete={(athleteId) => {
+                setActiveTab('athletes');
+              }}
+            />
+          );
         case 'official-letters':
           return <OfficialLetterGenerator />;
         case 'uniforms':
