@@ -171,6 +171,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
   const [fingerprintQuery, setFingerprintQuery] = useState('');
   const [lastFingerprintMatch, setLastFingerprintMatch] = useState<Athlete | null>(null);
+  const [isTouchPadScanning, setIsTouchPadScanning] = useState(false);
+  const [fingerprintOnlyFilter, setFingerprintOnlyFilter] = useState(false);
 
   // Direct Biometrics Registration Modal in Attendance
   const [directBiometricAthlete, setDirectBiometricAthlete] = useState<Athlete | null>(null);
@@ -268,16 +270,22 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const handleSimulateDirectFingerprint = () => {
     if (isDirectScanningFinger || directFingerprintStep >= 3) return;
     setIsDirectScanningFinger(true);
+    if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+      try { navigator.vibrate([40]); } catch (e) {}
+    }
     setTimeout(() => {
       setIsDirectScanningFinger(false);
       const nextStep = directFingerprintStep + 1;
       setDirectFingerprintStep(nextStep);
+      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+        try { navigator.vibrate(nextStep === 3 ? [50, 60, 50] : [35]); } catch (e) {}
+      }
       if (nextStep === 3) {
         toast.success("✅ Leitura do Dedo Indicador concluída com 100% de exatidão!");
       } else {
         toast.info(`Leitura ${nextStep}/3 capturada. Toque novamente.`);
       }
-    }, 500);
+    }, 450);
   };
 
   const saveDirectFingerprintBiometrics = async () => {
@@ -294,6 +302,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       await api.updateAthleteBiometrics(directBiometricAthlete.id, biometricsUpdate);
       setAthletes(prev => prev.map(a => a.id === directBiometricAthlete.id ? { ...a, ...biometricsUpdate } : a));
       await markAttendance(directBiometricAthlete.id, 'Presente');
+
+      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+        try { navigator.vibrate([50, 100, 50]); } catch (e) {}
+      }
 
       toast.success(`👆 Biometria Digital (Dedo Indicador) e Presença salvas para ${directBiometricAthlete.name}!`);
       setDirectBiometricAthlete(null);
@@ -1979,20 +1991,84 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Interactive Fingerprint Reader Touch Zone */}
             <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/80 border border-emerald-500/30 rounded-2xl text-center space-y-4">
-              <div className="relative">
-                <div className="w-36 h-36 rounded-3xl bg-zinc-950 border-4 border-emerald-400 flex flex-col items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse">
-                  <Fingerprint size={80} />
+              <button
+                type="button"
+                disabled={isTouchPadScanning}
+                onClick={async () => {
+                  if (isTouchPadScanning) return;
+                  setIsTouchPadScanning(true);
+
+                  if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+                    try { navigator.vibrate([60, 40, 60]); } catch (e) {}
+                  }
+
+                  // Find eligible candidate for validation
+                  const pendingCandidates = athletes
+                    .filter(a => (a.status === 'Ativo' || !a.status))
+                    .filter(a => {
+                      if (!fingerprintQuery) return true;
+                      const q = fingerprintQuery.toLowerCase();
+                      return a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q)) || a.jersey_number?.includes(q);
+                    })
+                    .filter(a => !(attendance[a.id] || []).some(r => r.status === 'Presente'));
+
+                  const withBio = pendingCandidates.filter(a => a.biometrics_fingerprint_registered);
+                  const targetAthlete = withBio[0] || pendingCandidates[0];
+
+                  setTimeout(async () => {
+                    setIsTouchPadScanning(false);
+                    if (targetAthlete) {
+                      setLastFingerprintMatch(targetAthlete);
+                      await markAttendance(targetAthlete.id, 'Presente');
+                      
+                      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+                        try { navigator.vibrate([100]); } catch (e) {}
+                      }
+
+                      toast.success(`👆 Biometria reconhecida: ${targetAthlete.name}!`);
+
+                      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                        try {
+                          window.speechSynthesis.cancel();
+                          const u = new SpeechSynthesisUtterance(`Presença confirmada para ${targetAthlete.nickname || targetAthlete.name}`);
+                          u.lang = 'pt-BR';
+                          window.speechSynthesis.speak(u);
+                        } catch (e) {}
+                      }
+                    } else {
+                      toast.info("Nenhum atleta pendente encontrado para este filtro.");
+                    }
+                  }, 600);
+                }}
+                className={cn(
+                  "relative group focus:outline-none transition-transform active:scale-95 cursor-pointer",
+                  isTouchPadScanning ? "scale-95" : "hover:scale-105"
+                )}
+              >
+                <div className={cn(
+                  "w-36 h-36 rounded-3xl bg-zinc-950 border-4 flex flex-col items-center justify-center transition-all",
+                  isTouchPadScanning 
+                    ? "border-emerald-300 text-emerald-300 shadow-[0_0_50px_rgba(16,185,129,0.8)] scale-95"
+                    : "border-emerald-400 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse hover:border-emerald-300"
+                )}>
+                  <Fingerprint size={80} className={cn("transition-transform", isTouchPadScanning && "scale-110")} />
+                  {isTouchPadScanning && (
+                    <div className="absolute inset-x-2 h-1 bg-emerald-300 rounded-full animate-bounce shadow-[0_0_15px_#10b981]" />
+                  )}
                 </div>
                 <div className="absolute -bottom-2 inset-x-0 flex justify-center">
-                  <span className="bg-emerald-500 text-black text-[10px] font-black uppercase px-3 py-0.5 rounded-full shadow-md">
-                    SENSOR ATIVO
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-3 py-0.5 rounded-full shadow-md transition-colors",
+                    isTouchPadScanning ? "bg-emerald-300 text-black animate-ping" : "bg-emerald-500 text-black"
+                  )}>
+                    {isTouchPadScanning ? "LENDO DIGITAL..." : "TOQUE NO SENSOR"}
                   </span>
                 </div>
-              </div>
+              </button>
 
               <div className="space-y-1">
-                <h4 className="text-sm font-black text-white uppercase">Aguardando Impressão Digital</h4>
-                <p className="text-xs text-zinc-400">Toque abaixo ou busque o aluno para efetuar a leitura biométrica rápida.</p>
+                <h4 className="text-sm font-black text-white uppercase">Sensor Biométrico na Tela</h4>
+                <p className="text-xs text-zinc-400">Pressione o dedo no sensor acima ou use os botões ao lado para validar instantaneamente.</p>
               </div>
 
               {lastFingerprintMatch && (
@@ -2014,31 +2090,46 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
             {/* Registered Athletes List for Quick Biometric Scan */}
             <div className="lg:col-span-2 space-y-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="relative flex-1">
                   <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                   <input
                     type="text"
-                    placeholder="Buscar aluno cadastrado para biometria..."
+                    placeholder="Buscar aluno por nome, apelido ou camisa..."
                     className="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 uppercase"
                     value={fingerprintQuery}
                     onChange={(e) => setFingerprintQuery(e.target.value)}
                   />
                 </div>
-                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl shrink-0">
-                  {athletes.filter(a => a.biometrics_fingerprint_registered).length} Digitais Cadastradas
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFingerprintOnlyFilter(!fingerprintOnlyFilter)}
+                    className={cn(
+                      "px-3 py-2 rounded-xl text-[11px] font-bold transition-all border shrink-0 cursor-pointer",
+                      fingerprintOnlyFilter
+                        ? "bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/20"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    )}
+                  >
+                    {fingerprintOnlyFilter ? "Apenas com Digital ✓" : "Ver Todos"}
+                  </button>
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl shrink-0">
+                    {athletes.filter(a => a.biometrics_fingerprint_registered).length} Cadastrados
+                  </span>
+                </div>
               </div>
 
-              <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              <div className="max-h-72 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                 {athletes
                   .filter(a => (a.status === 'Ativo' || !a.status))
                   .filter(a => {
+                    if (fingerprintOnlyFilter && !a.biometrics_fingerprint_registered) return false;
                     if (!fingerprintQuery) return true;
                     const q = fingerprintQuery.toLowerCase();
                     return a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q)) || a.jersey_number?.includes(q);
                   })
-                  .slice(0, 15)
+                  .slice(0, 20)
                   .map(athlete => {
                     const isPresent = (attendance[athlete.id] || []).some(r => r.status === 'Presente');
                     const hasFingerprint = athlete.biometrics_fingerprint_registered;
@@ -2064,9 +2155,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-white truncate uppercase flex items-center gap-1.5">
                               <span>{athlete.name}</span>
-                              {hasFingerprint && (
+                              {hasFingerprint ? (
                                 <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black">
                                   DIGITAL ✓
+                                </span>
+                              ) : (
+                                <span className="text-[9px] bg-zinc-800 text-zinc-400 border border-zinc-700 px-1.5 py-0.2 rounded font-bold">
+                                  SEM DIGITAL
                                 </span>
                               )}
                             </p>
@@ -2076,35 +2171,57 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           </div>
                         </div>
 
-                        <div>
+                        <div className="flex items-center gap-2">
                           {isPresent ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase">
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase">
                               <CheckCircle2 size={12} />
                               Presente
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                setLastFingerprintMatch(athlete);
-                                await markAttendance(athlete.id, 'Presente');
-                                toast.success(`Biometria Digital confirmada: ${athlete.name}!`);
+                            <>
+                              {hasFingerprint ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setLastFingerprintMatch(athlete);
+                                    await markAttendance(athlete.id, 'Presente');
+                                    
+                                    if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+                                      try { navigator.vibrate([50, 50]); } catch (e) {}
+                                    }
 
-                                // Speech audio
-                                if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-                                  try {
-                                    window.speechSynthesis.cancel();
-                                    const u = new SpeechSynthesisUtterance(`Presença confirmada para ${athlete.nickname || athlete.name}`);
-                                    u.lang = 'pt-BR';
-                                    window.speechSynthesis.speak(u);
-                                  } catch (e) {}
-                                }
-                              }}
-                              className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[11px] uppercase rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <Fingerprint size={14} />
-                              <span>Validar Digital</span>
-                            </button>
+                                    toast.success(`Biometria Digital confirmada: ${athlete.name}!`);
+
+                                    // Speech audio
+                                    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                                      try {
+                                        window.speechSynthesis.cancel();
+                                        const u = new SpeechSynthesisUtterance(`Presença confirmada para ${athlete.nickname || athlete.name}`);
+                                        u.lang = 'pt-BR';
+                                        window.speechSynthesis.speak(u);
+                                      } catch (e) {}
+                                    }
+                                  }}
+                                  className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[11px] uppercase rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Fingerprint size={14} />
+                                  <span>Validar Digital</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDirectBiometricAthlete(athlete);
+                                    setDirectBiometricType('fingerprint');
+                                    setDirectFingerprintStep(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 font-bold text-[10px] uppercase rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Fingerprint size={13} />
+                                  <span>+ Cadastrar Digital</span>
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -3666,6 +3783,42 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           )}
                         </div>
                         <div className="text-[10px] text-zinc-500 uppercase">{getSubCategory(athlete.birth_date)}</div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDirectBiometricAthlete(athlete);
+                              setDirectBiometricType('face');
+                            }}
+                            className={cn(
+                              "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
+                              athlete.biometrics_face_registered || (athlete.photo && athlete.photo.length > 20)
+                                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700"
+                            )}
+                          >
+                            <ScanFace size={11} />
+                            <span>{athlete.biometrics_face_registered ? "Face ✓" : "+ Face"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDirectBiometricAthlete(athlete);
+                              setDirectBiometricType('fingerprint');
+                              setDirectFingerprintStep(0);
+                            }}
+                            className={cn(
+                              "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer",
+                              athlete.biometrics_fingerprint_registered
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700"
+                            )}
+                          >
+                            <Fingerprint size={11} />
+                            <span>{athlete.biometrics_fingerprint_registered ? "Digital ✓" : "+ Digital"}</span>
+                          </button>
+                        </div>
                         {getAthleteSchedules(athlete) && (
                           <div className="space-y-1 mt-2">
                             <div className="flex flex-wrap gap-1">
