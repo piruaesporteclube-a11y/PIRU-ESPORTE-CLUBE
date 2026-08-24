@@ -2005,24 +2005,24 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/80 border border-emerald-500/30 rounded-2xl text-center space-y-4">
               {/* Target Athlete Badge if selected */}
               {activeBiometricAthleteTarget ? (
-                <div className="w-full bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                <div className="w-full bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                     <span className="text-[11px] font-black text-emerald-300 uppercase truncate">
-                      Validando: {activeBiometricAthleteTarget.name}
+                      Atleta Selecionado: {activeBiometricAthleteTarget.name}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveBiometricAthleteTarget(null)}
-                    className="text-[10px] text-zinc-400 hover:text-white uppercase font-bold px-2 py-0.5 bg-zinc-800 rounded-md"
+                    className="text-[10px] text-zinc-400 hover:text-white uppercase font-bold px-2 py-0.5 bg-zinc-800 rounded-md cursor-pointer"
                   >
                     Trocar
                   </button>
                 </div>
               ) : (
-                <div className="w-full bg-zinc-800/60 border border-zinc-700/60 p-2 rounded-xl text-[10px] text-zinc-400 uppercase font-bold">
-                  Toque em um atleta na lista ao lado para ler o indicador
+                <div className="w-full bg-zinc-800/60 border border-zinc-700/60 p-2 rounded-xl text-[10px] text-zinc-300 uppercase font-bold">
+                  Toque no leitor abaixo ou clique em "Validar" ao lado
                 </div>
               )}
 
@@ -2037,9 +2037,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     try { (navigator as any).vibrate([60, 40, 60]); } catch (e) {}
                   }
 
-                  // Determine target athlete strictly:
+                  // Determine target athlete:
                   let targetAthlete: Athlete | null = activeBiometricAthleteTarget;
 
+                  // If search query is typed, search among active eligible athletes
                   if (!targetAthlete && fingerprintQuery.trim()) {
                     const q = fingerprintQuery.toLowerCase().trim();
                     const filtered = athletes
@@ -2047,16 +2048,43 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       .filter(a => a.name.toLowerCase().includes(q) || (a.nickname && a.nickname.toLowerCase().includes(q)) || a.jersey_number?.includes(q))
                       .filter(a => !(attendance[a.id] || []).some(r => r.status === 'Presente'));
 
-                    if (filtered.length === 1 && filtered[0].biometrics_fingerprint_registered) {
+                    if (filtered.length > 0) {
                       targetAthlete = filtered[0];
+                    }
+                  }
+
+                  // If still no athlete targeted, check pending athletes with registered digital
+                  if (!targetAthlete) {
+                    const pendingWithDigital = athletes
+                      .filter(a => (a.status === 'Ativo' || !a.status))
+                      .filter(a => a.biometrics_fingerprint_registered)
+                      .filter(a => !(attendance[a.id] || []).some(r => r.status === 'Presente'));
+
+                    if (pendingWithDigital.length === 1) {
+                      targetAthlete = pendingWithDigital[0];
+                    } else if (pendingWithDigital.length > 1) {
+                      // Prompt user with the first pending or show quick select
+                      targetAthlete = pendingWithDigital[0];
+                    } else {
+                      // Check any pending active athlete
+                      const anyPending = athletes
+                        .filter(a => (a.status === 'Ativo' || !a.status))
+                        .filter(a => !(attendance[a.id] || []).some(r => r.status === 'Presente'));
+                      if (anyPending.length > 0) {
+                        targetAthlete = anyPending[0];
+                      }
                     }
                   }
 
                   setTimeout(async () => {
                     setIsTouchPadScanning(false);
                     if (targetAthlete) {
+                      // If athlete does not have registered fingerprint, open registration modal seamlessly
                       if (!targetAthlete.biometrics_fingerprint_registered) {
-                        toast.error(`⚠️ O atleta ${targetAthlete.name} ainda não possui o dedo indicador calibrado! Cadastre a digital primeiro.`);
+                        setDirectBiometricAthlete(targetAthlete);
+                        setDirectBiometricType('fingerprint');
+                        setDirectFingerprintStep(0);
+                        toast.info(`👆 Calibre a digital de ${targetAthlete.name} em 3 toques rápidos.`);
                         return;
                       }
 
@@ -2068,7 +2096,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                         try { (navigator as any).vibrate([100]); } catch (e) {}
                       }
 
-                      toast.success(`👆 Biometria confirmada: ${targetAthlete.name}!`);
+                      toast.success(`👆 Presença confirmada via Digital: ${targetAthlete.name}!`);
 
                       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
                         try {
@@ -2079,9 +2107,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                         } catch (e) {}
                       }
                     } else {
-                      toast.error("⚠️ Nenhuma correspondência biométrica direta! Selecione o atleta na lista ao lado clicando em 'Validar Digital' para confirmar seu dedo indicador.");
+                      toast.info("👆 Selecione o atleta na lista ao lado para confirmar a presença com a digital.");
                     }
-                  }, 600);
+                  }, 500);
                 }}
                 className={cn(
                   "relative group focus:outline-none transition-transform active:scale-95 cursor-pointer",
@@ -2094,7 +2122,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     ? "border-emerald-300 text-emerald-300 shadow-[0_0_50px_rgba(16,185,129,0.8)] scale-95"
                     : activeBiometricAthleteTarget
                       ? "border-emerald-400 text-emerald-400 shadow-[0_0_35px_rgba(16,185,129,0.6)] animate-pulse"
-                      : "border-zinc-700 text-zinc-400 hover:border-emerald-400 hover:text-emerald-400"
+                      : "border-emerald-500/60 text-emerald-400 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                 )}>
                   <Fingerprint size={80} className={cn("transition-transform", isTouchPadScanning && "scale-110")} />
                   {isTouchPadScanning && (
@@ -2108,13 +2136,13 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       ? "bg-emerald-300 text-black animate-ping" 
                       : activeBiometricAthleteTarget
                         ? "bg-emerald-500 text-black"
-                        : "bg-zinc-800 text-zinc-300 border border-zinc-700"
+                        : "bg-emerald-500 text-black shadow-md shadow-emerald-500/30"
                   )}>
                     {isTouchPadScanning 
                       ? "VALIDANDO DIGITAL..." 
                       : activeBiometricAthleteTarget 
                         ? `TOQUE PARA VALIDAR` 
-                        : "SELECIONE O ATLETA"}
+                        : "TOQUE NO SENSOR"}
                   </span>
                 </div>
               </button>
@@ -2124,7 +2152,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 <p className="text-xs text-zinc-400">
                   {activeBiometricAthleteTarget
                     ? `Encoste o dedo indicador de ${activeBiometricAthleteTarget.name} no sensor`
-                    : "Cada atleta é validado exclusivamente com sua própria digital única."}
+                    : "Toque no sensor acima ou clique diretamente em 'Validar Digital' no aluno desejado."}
                 </p>
               </div>
 
