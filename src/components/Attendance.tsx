@@ -1670,19 +1670,24 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-theme-primary rounded-full animate-pulse border-2 border-black" />
           </button>
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-white flex flex-wrap items-center gap-2">
               {isLocked ? 'Consulta de Chamada' : 'Chamada de Presença'}
-              {isLocked && (
+              {isLocked ? (
                 <span className="flex items-center gap-1 px-3 py-1 bg-red-500/10 text-red-500 text-[10px] uppercase font-black rounded-xl border border-red-500/20 shadow-lg shadow-red-500/5">
                   <Lock size={12} />
                   Finalizada (Somente Leitura)
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] uppercase font-black rounded-xl border border-emerald-500/20 shadow-sm">
+                  <Clock size={12} className="text-emerald-400" />
+                  Aberta até 23h59
                 </span>
               )}
             </h2>
             <p className="text-zinc-400 text-sm">
               {isLocked 
                 ? 'Este treino foi encerrado. A lista está disponível para visualização e impressão.' 
-                : 'Registre a presença dos atletas por QR Code ou manualmente'}
+                : 'Registre a presença dos atletas até 23h59 por Biometria, QR Code, Reconhecimento Facial ou manualmente'}
             </p>
           </div>
         </div>

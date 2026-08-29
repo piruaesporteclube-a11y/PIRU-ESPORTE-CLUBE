@@ -221,19 +221,10 @@ export default function TrainingManagement({ athletes: athletesProp, role = 'adm
   const isTrainingEnded = (training: Training) => {
     const now = new Date();
     const todayString = format(now, 'yyyy-MM-dd');
-    const currentTimeStr = format(now, 'HH:mm');
 
+    // As presenças e chamadas ficam 100% disponíveis até as 23h59 da data do treino
     if (training.date < todayString) return true;
-    if (training.date > todayString) return false;
-
-    // It's today
-    let latestEnd = '00:00';
-    if (training.schedules && training.schedules.length > 0) {
-      latestEnd = training.schedules.reduce((latest, s) => s.end_time > latest ? s.end_time : latest, '00:00');
-    } else {
-      latestEnd = training.end_time || '00:00';
-    }
-    return currentTimeStr > latestEnd;
+    return false;
   };
 
   if (activeAttendanceTraining) {
