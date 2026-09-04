@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText, ChevronDown } from 'lucide-react';
+import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText, ChevronDown, Shield, Type } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport, toBase64 } from '../utils';
@@ -107,6 +107,27 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [footerPos, setFooterPos] = useState({ x: 0, y: 0 });
   const [footerWidth, setFooterWidth] = useState<number>(140);
 
+  // Escudo, Nome da Escolinha e Data do Treino
+  const [crestSize, setCrestSize] = useState<number>(80);
+  const [customCrest, setCustomCrest] = useState<string | null>(null);
+  const [schoolName, setSchoolName] = useState<string>(settings?.schoolName || 'Piruá Esporte Clube');
+  const [schoolNameFontSize, setSchoolNameFontSize] = useState<number>(24);
+  const [flyerDate, setFlyerDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
+  const [customDateText, setCustomDateText] = useState<string>('');
+  const [customDayOfWeekText, setCustomDayOfWeekText] = useState<string>('');
+
+  useEffect(() => {
+    if (settings?.schoolName) {
+      setSchoolName(prev => (!prev || prev === 'Piruá Esporte Clube' ? settings.schoolName : prev));
+    }
+  }, [settings?.schoolName]);
+
+  useEffect(() => {
+    if (date) {
+      setFlyerDate(date);
+    }
+  }, [date]);
+
   useEffect(() => {
     if (colsCount === 1) {
       setSidebarWidth(124);
@@ -135,6 +156,26 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const bgInputRef = useRef<HTMLInputElement>(null);
   const bg1InputRef = useRef<HTMLInputElement>(null);
   const bg2InputRef = useRef<HTMLInputElement>(null);
+  const crestInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCrestUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const compressed = await compressImage(base64, 400, 400, 0.85);
+          setCustomCrest(compressed);
+          toast.success('Escudo personalizado carregado!');
+        } catch {
+          setCustomCrest(base64);
+          toast.success('Escudo personalizado carregado!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -299,8 +340,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
         
         const isSingle = activeTrainings.length === 1;
         const downloadName = isSingle 
-          ? `TREINO_${activeTrainings[0].modality.replace(/\s+/g, '_').toUpperCase()}_${date}.png`
-          : `AGENDA_TREINO_${date}.png`;
+          ? `TREINO_${activeTrainings[0].modality.replace(/\s+/g, '_').toUpperCase()}_${flyerDate}.png`
+          : `AGENDA_TREINO_${flyerDate}.png`;
 
         const link = document.createElement('a');
         link.download = downloadName;
@@ -332,8 +373,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
     }
   };
 
-  const formattedDate = formatDateSafely(date, "dd 'de' MMMM");
-  const dayOfWeek = formatDateSafely(date, "EEEE");
+  const formattedDate = customDateText.trim() ? customDateText : formatDateSafely(flyerDate, "dd 'de' MMMM");
+  const dayOfWeek = customDayOfWeekText.trim() ? customDayOfWeekText : formatDateSafely(flyerDate, "EEEE");
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
@@ -373,6 +414,198 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
             </div>
           )}
+
+          {/* Customização de Escudo, Nome da Escolinha e Data */}
+          <div className="bg-black/60 p-5 rounded-[2rem] border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-3.5 bg-theme-primary rounded-full" />
+                <label className="text-[10px] font-black text-zinc-300 uppercase tracking-widest block font-sans">
+                  Escudo, Escolinha & Data
+                </label>
+              </div>
+              <span className="text-[8px] font-bold text-theme-primary uppercase bg-theme-primary/10 border border-theme-primary/20 px-2 py-0.5 rounded-md">
+                Personalização
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {/* Tamanho do Escudo */}
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase flex items-center gap-1.5">
+                    <Shield size={12} className="text-theme-primary" />
+                    Tamanho do Escudo
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-theme-primary font-black bg-black px-2 py-0.5 rounded border border-zinc-800">{crestSize}px</span>
+                    <button
+                      type="button"
+                      onClick={() => setCrestSize(80)}
+                      className="text-[8px] text-zinc-500 hover:text-white uppercase font-bold px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 transition-colors"
+                      title="Restaurar tamanho padrão (80px)"
+                    >
+                      Padrão
+                    </button>
+                  </div>
+                </div>
+                <input 
+                  type="range" 
+                  min="35" 
+                  max="160" 
+                  step="1"
+                  className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                  value={crestSize}
+                  onChange={e => setCrestSize(parseInt(e.target.value))}
+                />
+                <div className="flex items-center justify-between pt-0.5">
+                  <span className="text-[8px] text-zinc-600 font-bold uppercase">Pequeno (35px)</span>
+                  <span className="text-[8px] text-zinc-600 font-bold uppercase">Médio (80px)</span>
+                  <span className="text-[8px] text-zinc-600 font-bold uppercase">Grande (160px)</span>
+                </div>
+
+                {/* Upload opcional de escudo */}
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-900 mt-2">
+                  <span className="text-[8px] text-zinc-500 uppercase font-bold">
+                    {customCrest ? "Escudo personalizado ativo" : "Escudo da instituição"}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {customCrest && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomCrest(null)}
+                        className="text-[8px] text-zinc-400 hover:text-red-400 uppercase font-bold px-2 py-1 bg-zinc-900 rounded border border-zinc-800 transition-colors"
+                      >
+                        Restaurar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => crestInputRef.current?.click()}
+                      className="text-[8px] text-theme-primary uppercase font-bold px-2 py-1 bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-primary/30 rounded transition-colors flex items-center gap-1"
+                    >
+                      <Camera size={10} />
+                      {customCrest ? "Trocar" : "Novo Escudo"}
+                    </button>
+                    <input
+                      type="file"
+                      ref={crestInputRef}
+                      onChange={handleCrestUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Nome da Escolinha */}
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase flex items-center gap-1.5">
+                    <Type size={12} className="text-theme-primary" />
+                    Nome da Escolinha / Clube
+                  </label>
+                  {schoolName !== (settings?.schoolName || 'Piruá Esporte Clube') && (
+                    <button
+                      type="button"
+                      onClick={() => setSchoolName(settings?.schoolName || 'Piruá Esporte Clube')}
+                      className="text-[8px] text-zinc-500 hover:text-white uppercase font-bold px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 transition-colors"
+                    >
+                      Restaurar
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={schoolName}
+                  onChange={e => setSchoolName(e.target.value)}
+                  placeholder="Ex: Piruá Esporte Clube"
+                  className="w-full px-3 py-2 bg-black border border-zinc-700 rounded-xl text-white text-xs font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                />
+
+                <div className="pt-1">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[8px] font-bold text-zinc-500 uppercase">Tamanho do Texto do Nome</span>
+                    <span className="text-[8px] text-theme-primary font-bold">{schoolNameFontSize}px</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="14" 
+                    max="36" 
+                    step="1"
+                    className="w-full accent-theme-primary h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    value={schoolNameFontSize}
+                    onChange={e => setSchoolNameFontSize(parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              {/* Data do Treino */}
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase flex items-center gap-1.5">
+                    <Calendar size={12} className="text-theme-primary" />
+                    Data do Treino
+                  </label>
+                  {flyerDate !== date && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlyerDate(date);
+                        setCustomDateText('');
+                        setCustomDayOfWeekText('');
+                      }}
+                      className="text-[8px] text-zinc-500 hover:text-white uppercase font-bold px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 transition-colors"
+                    >
+                      Data Original
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Selecionar Data</label>
+                    <input
+                      type="date"
+                      value={flyerDate}
+                      onChange={e => {
+                        setFlyerDate(e.target.value);
+                        setCustomDateText('');
+                        setCustomDayOfWeekText('');
+                      }}
+                      className="w-full px-3 py-2 bg-black border border-zinc-700 rounded-xl text-white text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-theme-primary/50 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Texto Livre da Data (Opcional)</label>
+                    <input
+                      type="text"
+                      value={customDateText}
+                      onChange={e => setCustomDateText(e.target.value)}
+                      placeholder={formatDateSafely(flyerDate, "dd 'de' MMMM")}
+                      className="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-white text-xs font-bold uppercase focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Dia da Semana (Opcional)</label>
+                  <input
+                    type="text"
+                    value={customDayOfWeekText}
+                    onChange={e => setCustomDayOfWeekText(e.target.value)}
+                    placeholder={formatDateSafely(flyerDate, "EEEE")}
+                    className="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-white text-xs font-bold uppercase focus:outline-none focus:ring-1 focus:ring-theme-primary"
+                  />
+                </div>
+
+                <div className="bg-black/50 p-2 rounded-lg border border-zinc-900 flex items-center justify-between text-[8px] text-zinc-400">
+                  <span>Exibição no Encarte:</span>
+                  <span className="font-bold text-white uppercase">{dayOfWeek} • {formattedDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Background Selection */}
           <div className="space-y-4">
@@ -1483,16 +1716,31 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               
               {/* Tech Header - Centered Orientation */}
               <div className="relative z-30 pt-10 flex flex-col items-center">
-                <div className="w-20 h-20 mb-3 filter drop-shadow-[0_0_20px_rgba(234,179,8,0.4)]">
-                  {settings?.schoolCrest ? (
-                    <img src={settings.schoolCrest} className="w-full h-full object-contain" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                <div 
+                  className="mb-3 filter drop-shadow-[0_0_20px_rgba(234,179,8,0.4)] flex items-center justify-center transition-all"
+                  style={{ width: `${crestSize}px`, height: `${crestSize}px` }}
+                >
+                  {(customCrest || settings?.schoolCrest) ? (
+                    <img 
+                      src={customCrest || settings.schoolCrest} 
+                      className="w-full h-full object-contain" 
+                      referrerPolicy="no-referrer" 
+                      crossOrigin="anonymous" 
+                    />
                   ) : (
-                    <Trophy size={40} className="text-theme-primary" style={{ color: '#EAB308' }} />
+                    <Trophy size={Math.round(crestSize * 0.5)} className="text-theme-primary" style={{ color: '#EAB308' }} />
                   )}
                 </div>
-                <div className="text-center px-4">
-                  <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] border-b-2 pb-1" style={{ color: '#ffffff', borderColor: 'rgba(234, 179, 8, 0.5)' }}>
-                    {settings.schoolName || 'Piruá Esporte Clube'}
+                <div className="text-center px-4 max-w-[95%]">
+                  <h1 
+                    className="font-black italic tracking-tighter uppercase leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] border-b-2 pb-1 transition-all" 
+                    style={{ 
+                      color: '#ffffff', 
+                      borderColor: 'rgba(234, 179, 8, 0.5)',
+                      fontSize: `${schoolNameFontSize}px`
+                    }}
+                  >
+                    {schoolName || 'Piruá Esporte Clube'}
                   </h1>
                 </div>
               </div>
@@ -1800,7 +2048,7 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   className="text-[7px] font-bold uppercase tracking-widest opacity-60"
                   style={{ color: '#a1a1aa' }}
                 >
-                  {settings.schoolName || 'Piruá Esporte Clube'} • 2026
+                  {schoolName || settings.schoolName || 'Piruá Esporte Clube'} • 2026
                 </p>
               </div>
             </div>
