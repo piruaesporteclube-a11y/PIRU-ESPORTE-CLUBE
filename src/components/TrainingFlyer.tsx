@@ -4,7 +4,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, MapPin, Activity, Clock, Calendar, FileText, ChevronDown, Shield, Type } from 'lucide-react';
+import { 
+  Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, 
+  MapPin, Activity, Clock, Calendar, FileText, ChevronDown, Shield, 
+  Type, GripHorizontal, Move, Columns, Minimize2, Maximize2, 
+  ZoomIn, ZoomOut, Eye, EyeOff, Sliders, Layers 
+} from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, fixHtml2CanvasColors, compressImage, prepareElementForExport, toBase64 } from '../utils';
@@ -115,6 +120,33 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [flyerDate, setFlyerDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
   const [customDateText, setCustomDateText] = useState<string>('');
   const [customDayOfWeekText, setCustomDayOfWeekText] = useState<string>('');
+
+  // Floating Window, Zoom & Tab Layout States
+  const [isFloating, setIsFloating] = useState<boolean>(true);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [isTranslucent, setIsTranslucent] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'info' | 'layout' | 'background' | 'all'>('info');
+  const [zoomScale, setZoomScale] = useState<number>(0.92);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  const calculateFitScale = () => {
+    if (typeof window === 'undefined') return 0.9;
+    const availableHeight = window.innerHeight - 130;
+    const availableWidth = isFloating ? window.innerWidth - 40 : window.innerWidth - 520;
+    const scaleByHeight = availableHeight / 640;
+    const scaleByWidth = availableWidth / 360;
+    const optimal = Math.min(scaleByHeight, scaleByWidth, 1.15);
+    return Math.max(0.42, Number(optimal.toFixed(2)));
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setZoomScale(calculateFitScale());
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isFloating]);
 
   useEffect(() => {
     if (settings?.schoolName) {
@@ -376,19 +408,83 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const formattedDate = customDateText.trim() ? customDateText : formatDateSafely(flyerDate, "dd 'de' MMMM");
   const dayOfWeek = customDayOfWeekText.trim() ? customDayOfWeekText : formatDateSafely(flyerDate, "EEEE");
 
-  return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[70] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start my-auto">
-        
-        {/* Left: Configuration */}
-        <div className="space-y-6 bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Personalizar Encarte</h2>
-            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors">
-              <X size={24} />
-            </button>
-          </div>
+  const renderDownloadButton = () => (
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={isExporting}
+      className="w-full py-3.5 bg-theme-primary text-black font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-theme-primary/20 disabled:opacity-50 text-xs"
+    >
+      {isExporting ? (
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black"></div>
+      ) : (
+        <Download size={16} />
+      )}
+      {isExporting ? 'Gerando Imagem...' : 'Baixar Encarte PNG'}
+    </button>
+  );
 
+  const renderTabs = () => (
+    <div className="flex border-b border-zinc-800 bg-black/60 p-1.5 gap-1 flex-shrink-0 overflow-x-auto no-scrollbar">
+      <button
+        type="button"
+        onClick={() => setActiveTab('info')}
+        className={cn(
+          "flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5",
+          activeTab === 'info'
+            ? "bg-theme-primary text-black shadow-md shadow-theme-primary/20"
+            : "text-zinc-400 hover:text-white hover:bg-zinc-900"
+        )}
+      >
+        <Shield size={12} />
+        <span>Escudo & Info</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('layout')}
+        className={cn(
+          "flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5",
+          activeTab === 'layout'
+            ? "bg-theme-primary text-black shadow-md shadow-theme-primary/20"
+            : "text-zinc-400 hover:text-white hover:bg-zinc-900"
+        )}
+      >
+        <User size={12} />
+        <span>Layout & Atletas</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('background')}
+        className={cn(
+          "flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5",
+          activeTab === 'background'
+            ? "bg-theme-primary text-black shadow-md shadow-theme-primary/20"
+            : "text-zinc-400 hover:text-white hover:bg-zinc-900"
+        )}
+      >
+        <Layers size={12} />
+        <span>Fundos</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('all')}
+        className={cn(
+          "py-1.5 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1",
+          activeTab === 'all'
+            ? "bg-zinc-800 text-white border border-zinc-700"
+            : "text-zinc-500 hover:text-white hover:bg-zinc-900"
+        )}
+      >
+        <span>Todos</span>
+      </button>
+    </div>
+  );
+
+  const renderControls = () => (
+    <div className="space-y-4">
+      {/* Tab: Info & Header */}
+      {(activeTab === 'info' || activeTab === 'all') && (
+        <div className="space-y-4">
           {/* Training Display Selector (only when there is more than 1 training) */}
           {trainings.length > 1 && (
             <div className="space-y-2 bg-black/40 p-4 rounded-3xl border border-zinc-800">
@@ -606,7 +702,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
             </div>
           </div>
+        </div>
+      )}
 
+      {/* Tab: Background & Visual Styles */}
+      {(activeTab === 'background' || activeTab === 'all') && (
+        <div className="space-y-4">
           {/* Background Selection */}
           <div className="space-y-4">
             <div>
@@ -1007,7 +1108,12 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
             </div>
           )}
+        </div>
+      )}
 
+      {/* Tab: Layout, Treinos & Atletas */}
+      {(activeTab === 'layout' || activeTab === 'all') && (
+        <div className="space-y-4">
           {/* Slot Selection */}
           <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
             <button 
@@ -1509,35 +1615,168 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
 
-          <div className="pt-6 border-t border-zinc-800">
-            <button
-              onClick={handleDownload}
-              disabled={isExporting}
-              className="w-full py-4 bg-theme-primary text-black font-black uppercase tracking-tighter rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-theme-primary/20 disabled:opacity-50"
-            >
-              {isExporting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black"></div>
-              ) : (
-                <Download size={20} />
-              )}
-              {isExporting ? 'Gerando Imagem...' : 'Baixar Encarte PNG'}
-            </button>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase text-center mt-4">Formato 9:16 Instagram Story (1080x1920)</p>
+  return (
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[70] flex flex-col overflow-hidden select-none font-sans">
+      {/* Top Studio Bar */}
+      <header className="flex-shrink-0 h-14 px-3 sm:px-6 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md flex items-center justify-between z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-theme-primary animate-pulse" />
+          <div>
+            <h2 className="text-xs sm:text-base font-black text-white italic tracking-tight uppercase flex items-center gap-2">
+              Encarte de Treino
+              <span className="hidden sm:inline text-[10px] font-bold text-zinc-500 not-italic uppercase tracking-widest px-2 py-0.5 bg-zinc-900 rounded border border-zinc-800">
+                {schoolName || 'Piruá Esporte Clube'}
+              </span>
+            </h2>
           </div>
         </div>
 
-        {/* Right: Preview (Flyer Content) */}
-        <div className="flex flex-col items-center gap-4 max-w-full overflow-x-auto no-scrollbar lg:sticky lg:top-4 lg:self-start">
-          <p className="text-xs font-black text-zinc-500 uppercase tracking-widest lg:hidden">Visualização</p>
-          <div className="relative shadow-[0_0_100px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
-            {/* The actual Flyer target */}
-            <div 
-              ref={flyerRef}
-              data-flyer-container="true"
-              style={{ width: '360px', height: '640px', backgroundColor: '#000000' }} // Instagram Story 9:16
-              className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
+        <div className="flex items-center gap-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center bg-black/70 border border-zinc-800 rounded-xl p-0.5 text-xs text-zinc-400">
+            <button 
+              type="button"
+              onClick={() => setZoomScale(prev => Math.max(0.4, Number((prev - 0.05).toFixed(2))))}
+              className="p-1.5 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              title="Diminuir Zoom"
             >
+              <ZoomOut size={13} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => setZoomScale(calculateFitScale())}
+              className="px-2 py-0.5 text-[10px] font-black uppercase text-theme-primary hover:bg-zinc-800 rounded-lg transition-colors"
+              title="Ajustar ao tamanho da tela"
+            >
+              {Math.round(zoomScale * 100)}%
+            </button>
+            <button 
+              type="button"
+              onClick={() => setZoomScale(prev => Math.min(1.4, Number((prev + 0.05).toFixed(2))))}
+              className="p-1.5 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              title="Aumentar Zoom"
+            >
+              <ZoomIn size={13} />
+            </button>
+          </div>
+
+          {/* Toggle Mode: Flutuante vs Lado a Lado */}
+          <div className="flex items-center bg-black/70 border border-zinc-800 rounded-xl p-0.5">
+            <button
+              type="button"
+              onClick={() => setIsFloating(true)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                isFloating ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+              )}
+              title="Painel Flutuante (Arraste livremente e veja alterações ao vivo)"
+            >
+              <Move size={12} />
+              <span className="hidden md:inline">Flutuante</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsFloating(false);
+                setIsMinimized(false);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                !isFloating ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+              )}
+              title="Fixar painel lateralmente (Lado a Lado)"
+            >
+              <Columns size={12} />
+              <span className="hidden md:inline">Lado a Lado</span>
+            </button>
+          </div>
+
+          {/* Minimize / Expand Panel (when in floating mode) */}
+          {isFloating && (
+            <button
+              type="button"
+              onClick={() => setIsMinimized(prev => !prev)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all",
+                isMinimized 
+                  ? "bg-theme-primary/20 border-theme-primary text-theme-primary" 
+                  : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white"
+              )}
+              title={isMinimized ? "Expandir Controles" : "Minimizar Controles para ver arte inteira"}
+            >
+              {isMinimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+              <span className="hidden sm:inline">{isMinimized ? "Controles" : "Ocultar"}</span>
+            </button>
+          )}
+
+          {/* Quick Download in Header */}
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-theme-primary hover:opacity-90 text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-theme-primary/20 transition-all disabled:opacity-50"
+          >
+            <Download size={13} />
+            <span className="hidden sm:inline">{isExporting ? "Gerando..." : "Baixar PNG"}</span>
+          </button>
+
+          {/* Close button */}
+          <button 
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors"
+            title="Fechar Editor"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Workspace Area */}
+      <div ref={workspaceRef} className="flex-1 relative flex overflow-hidden">
+        {/* DOCKED SIDEBAR (Visible only when !isFloating) */}
+        {!isFloating && (
+          <aside className="w-full sm:w-[440px] lg:w-[480px] h-full overflow-y-auto border-r border-zinc-800 bg-zinc-950/95 flex-shrink-0 flex flex-col z-30 custom-scrollbar">
+            {renderTabs()}
+            <div className="p-4 space-y-4 flex-1">
+              {renderControls()}
+            </div>
+            <div className="p-3 border-t border-zinc-800 bg-black/95 sticky bottom-0 z-20">
+              {renderDownloadButton()}
+            </div>
+          </aside>
+        )}
+
+        {/* CANVAS DISPLAY (Centered & Responsive) */}
+        <main className="flex-1 h-full overflow-auto flex items-center justify-center p-4 sm:p-8 relative bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:20px_20px]">
+          <div 
+            className="relative flex items-center justify-center transition-all duration-150"
+            style={{
+              width: `${360 * zoomScale}px`,
+              height: `${640 * zoomScale}px`
+            }}
+          >
+            <div 
+              style={{
+                transform: `scale(${zoomScale})`,
+                transformOrigin: 'center center',
+                width: '360px',
+                height: '640px'
+              }}
+              className="shadow-[0_0_80px_rgba(0,0,0,0.85)] rounded-2xl overflow-hidden flex-shrink-0"
+            >
+              {/* The actual Flyer target */}
+              <div 
+                ref={flyerRef}
+                data-flyer-container="true"
+                style={{ width: '360px', height: '640px', backgroundColor: '#000000' }} // Instagram Story 9:16
+                className="bg-black relative overflow-hidden flex flex-col font-sans select-none"
+              >
               {/* Main Border Overlay - Better for rendering than container border */}
               <div 
                 className="absolute inset-0 border-[8px] pointer-events-none z-[100]"
@@ -2053,8 +2292,96 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
               </div>
             </div>
           </div>
-          <p className="text-zinc-500 text-[10px] italic font-medium uppercase tracking-widest opacity-60">Story Pro Render 2026 • High-Fidelity</p>
         </div>
+      </main>
+
+        {/* FLOATING CONTROLS PANEL */}
+        {isFloating && !isMinimized && (
+          <motion.div
+            drag
+            dragMomentum={false}
+            dragConstraints={workspaceRef}
+            initial={{ x: 20, y: 20, opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={cn(
+              "absolute top-3 left-3 z-40 w-[94vw] sm:w-[420px] max-h-[calc(100vh-5rem)] rounded-3xl border border-zinc-700/80 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden backdrop-blur-2xl transition-colors",
+              isTranslucent ? "bg-black/75" : "bg-zinc-950/95"
+            )}
+          >
+            {/* Drag Handle Bar */}
+            <div className="px-4 py-2.5 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
+              <div className="flex items-center gap-2">
+                <GripHorizontal size={15} className="text-theme-primary animate-pulse" />
+                <span className="text-[10px] font-black text-white uppercase tracking-wider">
+                  Painel Flutuante • Arraste
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsTranslucent(prev => !prev)}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors",
+                    isTranslucent ? "text-theme-primary bg-theme-primary/10" : "text-zinc-400 hover:text-white"
+                  )}
+                  title={isTranslucent ? "Tornar Opaco" : "Tornar Translúcido (ver arte por trás)"}
+                >
+                  {isTranslucent ? <Eye size={13} /> : <EyeOff size={13} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(true)}
+                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                  title="Minimizar painel (ver arte inteira)"
+                >
+                  <Minimize2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Category Tabs */}
+            {renderTabs()}
+
+            {/* Scrollable controls body */}
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+              {renderControls()}
+            </div>
+
+            {/* Floating Panel Bottom Action */}
+            <div className="p-3 bg-black/90 border-t border-zinc-800 flex-shrink-0">
+              {renderDownloadButton()}
+            </div>
+          </motion.div>
+        )}
+
+        {/* FLOATING PILL (when isFloating && isMinimized) */}
+        {isFloating && isMinimized && (
+          <motion.div
+            drag
+            dragMomentum={false}
+            dragConstraints={workspaceRef}
+            className="absolute bottom-6 left-6 z-40 flex items-center gap-2 p-2 bg-black/95 border-2 border-theme-primary/60 shadow-[0_10px_35px_rgba(234,179,8,0.35)] rounded-2xl backdrop-blur-2xl cursor-grab active:cursor-grabbing"
+          >
+            <button
+              type="button"
+              onClick={() => setIsMinimized(false)}
+              className="flex items-center gap-2 px-3.5 py-2 bg-theme-primary text-black font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-md shadow-theme-primary/20"
+            >
+              <Sliders size={14} />
+              <span>Expandir Controles</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all disabled:opacity-50"
+            >
+              <Download size={14} className="text-theme-primary" />
+              <span>Baixar PNG</span>
+            </button>
+          </motion.div>
+        )}
       </div>
 
       <style>{`

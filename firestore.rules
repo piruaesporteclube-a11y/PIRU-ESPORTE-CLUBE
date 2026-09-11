@@ -360,13 +360,9 @@ service cloud.firestore {
 
     match /attendance/{attendanceId} {
       allow read: if true;
-      allow create: if hasRequiredFields(['athlete_id', 'date', 'status']) && 
-                      request.resource.data.status in ['Presente', 'Faltou', 'Justificado'] &&
-                      (!('training_id' in request.resource.data) || request.resource.data.training_id is string);
-      allow update: if isStaff() || (
-        isAuthenticated() &&
-        isDataOwner(resource.data.athlete_id) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['justification', 'updated_at'])
+      allow create, update: if isStaff() || (
+        hasRequiredFields(['athlete_id', 'date', 'status']) && 
+        request.resource.data.status in ['Presente', 'Faltou', 'Justificado']
       );
       allow delete: if isStaff();
     }

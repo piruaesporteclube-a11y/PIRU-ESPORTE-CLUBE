@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { api } from '../api';
 import { Athlete, Professor, getSubCategory } from '../types';
 import { 
   Cake, Instagram, Share2, Download, UserCircle, Calendar, Printer, 
   Upload, X, Plus, FlipHorizontal, Sparkles, Wand2, Copy, Check, 
-  Flame, Trophy, Star, Crown, Heart, RefreshCw, MessageSquare
+  Flame, Trophy, Star, Crown, Heart, RefreshCw, MessageSquare,
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Move, Columns, Eye, EyeOff,
+  GripHorizontal, Sliders
 } from 'lucide-react';
 import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -133,42 +136,55 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
   const [cardWidth, setCardWidth] = useState(450);
   const [cardHeight, setCardHeight] = useState(800);
 
+  const [isFloating, setIsFloating] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isTranslucent, setIsTranslucent] = useState(false);
+  const [zoomScale, setZoomScale] = useState(0.85);
+  const workspaceRef = React.useRef<HTMLDivElement>(null);
+
+  const calculateFitScale = () => {
+    if (typeof window === 'undefined') return 0.85;
+    const isMobile = window.innerWidth < 640;
+    const availableHeight = window.innerHeight - (isMobile ? 120 : 160);
+    const targetHeight = isMobile ? 640 : 800;
+    const targetWidth = isMobile ? 360 : 450;
+    const availableWidth = window.innerWidth - (isFloating ? 40 : 520);
+    const scaleH = availableHeight / targetHeight;
+    const scaleW = availableWidth / targetWidth;
+    return Math.max(0.35, Math.min(1.2, Math.min(scaleH, scaleW)));
+  };
+
   const currentBorder = BORDER_THEMES.find(t => t.id === photoBorderTheme) || BORDER_THEMES[0];
 
   useEffect(() => {
     if (!selectedPerson) return;
+    const fit = calculateFitScale();
+    setZoomScale(fit);
+    setEditorScale(fit);
+    if (window.innerWidth < 640) {
+      setCardWidth(360);
+      setCardHeight(640);
+    } else {
+      setCardWidth(450);
+      setCardHeight(800);
+    }
+
     const handleResize = () => {
-      const isDesktop = window.innerWidth >= 1024;
-      const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-      
-      if (isDesktop) {
-        const availableHeight = window.innerHeight - 200;
-        const scaleFactor = Math.min(1, Math.max(0.4, availableHeight / 800));
-        setEditorScale(scaleFactor);
-        setCardWidth(450);
-        setCardHeight(800);
-      } else if (isTablet) {
-        const availableHeight = window.innerHeight - 250;
-        const scaleFactor = Math.min(1, Math.max(0.4, availableHeight / 800));
-        setEditorScale(scaleFactor);
-        setCardWidth(450);
-        setCardHeight(800);
-      } else {
-        const mobilePreviewHeight = window.innerHeight * 0.38 - 16;
-        const scaleFactor = Math.min(
-          (window.innerWidth - 32) / 360, 
-          mobilePreviewHeight / 640
-        );
-        setEditorScale(Math.max(0.35, scaleFactor));
+      const fit = calculateFitScale();
+      setZoomScale(fit);
+      setEditorScale(fit);
+      if (window.innerWidth < 640) {
         setCardWidth(360);
         setCardHeight(640);
+      } else {
+        setCardWidth(450);
+        setCardHeight(800);
       }
     };
 
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [selectedPerson]);
+  }, [selectedPerson, isFloating]);
 
   useEffect(() => {
     if (selectedPerson) {
@@ -818,25 +834,129 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
       {selectedPerson && (
         <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-[70] flex flex-col overflow-hidden font-sans">
           {/* Modal Header */}
-          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-zinc-900 bg-black/40 backdrop-blur-md">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-zinc-900 bg-black/60 backdrop-blur-md z-30">
             <div className="flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full bg-theme-primary animate-pulse" />
-              <h2 className="text-lg md:text-xl font-black text-white italic tracking-tighter uppercase">
-                Editor de Encarte <span className="hidden sm:inline text-xs font-bold text-zinc-500 not-italic uppercase tracking-widest ml-2">Piruá Esporte Clube</span>
+              <h2 className="text-sm sm:text-lg font-black text-white italic tracking-tighter uppercase">
+                Editor de Encarte <span className="hidden md:inline text-xs font-bold text-zinc-500 not-italic uppercase tracking-widest ml-2">Piruá Esporte Clube</span>
               </h2>
             </div>
-            <button 
-              onClick={() => setSelectedPerson(null)}
-              className="text-zinc-400 hover:text-theme-primary transition-colors font-black uppercase tracking-widest text-[10px] py-2 px-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-theme-primary"
-            >
-              Fechar [X]
-            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Zoom Controls */}
+              <div className="hidden sm:flex items-center bg-zinc-900/90 p-1 rounded-xl border border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditorScale(prev => Math.max(0.3, prev - 0.05))}
+                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                  title="Diminuir Zoom"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <span className="text-[10px] font-mono text-zinc-400 px-1.5 min-w-[38px] text-center select-none">
+                  {Math.round(editorScale * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEditorScale(prev => Math.min(1.4, prev + 0.05))}
+                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                  title="Aumentar Zoom"
+                >
+                  <ZoomIn size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fit = calculateFitScale();
+                    setEditorScale(fit);
+                  }}
+                  className="px-1.5 py-1 text-[9px] font-black uppercase text-zinc-400 hover:text-white rounded hover:bg-zinc-800 transition-colors"
+                  title="Ajustar à Tela"
+                >
+                  Fit
+                </button>
+              </div>
+
+              {/* Floating vs Docked Mode Toggle */}
+              <div className="flex items-center bg-zinc-900/90 p-1 rounded-xl border border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsFloating(true)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                    isFloating ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+                  )}
+                  title="Painel Flutuante (Arraste livremente e veja alterações ao vivo)"
+                >
+                  <Move size={12} />
+                  <span className="hidden md:inline">Flutuante</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFloating(false);
+                    setIsMinimized(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                    !isFloating ? "bg-theme-primary text-black" : "text-zinc-400 hover:text-white"
+                  )}
+                  title="Fixar painel lateralmente (Lado a Lado)"
+                >
+                  <Columns size={12} />
+                  <span className="hidden md:inline">Lado a Lado</span>
+                </button>
+              </div>
+
+              {/* Minimize / Expand Panel (when in floating mode) */}
+              {isFloating && (
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(prev => !prev)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all",
+                    isMinimized 
+                      ? "bg-theme-primary/20 border-theme-primary text-theme-primary" 
+                      : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white"
+                  )}
+                  title={isMinimized ? "Expandir Controles" : "Minimizar Controles"}
+                >
+                  {isMinimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+                  <span className="hidden sm:inline">{isMinimized ? "Controles" : "Ocultar"}</span>
+                </button>
+              )}
+
+              {/* Quick Download in Header */}
+              <button
+                type="button"
+                onClick={() => downloadCard(false)}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-theme-primary hover:opacity-90 text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-theme-primary/20 transition-all disabled:opacity-50"
+              >
+                <Download size={13} />
+                <span className="hidden sm:inline">{isGenerating ? "Gerando..." : "Baixar PNG"}</span>
+              </button>
+
+              {/* Close button */}
+              <button 
+                onClick={() => setSelectedPerson(null)}
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors"
+                title="Fechar Editor"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Main Editor Body */}
-          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          <div ref={workspaceRef} className="flex-1 relative flex flex-col lg:flex-row overflow-hidden">
             {/* Left Column: Fixed Preview Column */}
-            <div className="w-full lg:w-[500px] xl:w-[600px] flex-shrink-0 h-[38vh] lg:h-full flex flex-col items-center justify-center p-4 lg:p-8 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/40 relative overflow-hidden">
+            <div className={cn(
+              "flex flex-col items-center justify-center relative overflow-hidden transition-all",
+              isFloating 
+                ? "w-full h-full p-2 sm:p-4 lg:p-6" 
+                : "w-full lg:w-[500px] xl:w-[600px] flex-shrink-0 h-[40vh] lg:h-full p-4 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/40"
+            )}>
               <div className="flex flex-col items-center justify-center flex-grow w-full my-auto py-1 lg:py-4">
                 {/* Responsive Scale Container */}
                 <div 
@@ -1251,9 +1371,59 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
     </div>
   </div> {/* Closing of Left Column (Preview Column) */}
 
-  {/* Right Column: Scrollable Controls Column */}
-  <div className="flex-1 flex flex-col h-[62vh] lg:h-full overflow-y-auto p-4 lg:p-6 bg-zinc-950/20">
-    <div className="w-full max-w-[700px] mx-auto flex flex-col gap-5">
+  {/* Controls Container: Adapts dynamically to Floating Panel or Docked Sidebar */}
+  <motion.div
+    drag={isFloating}
+    dragMomentum={false}
+    dragConstraints={workspaceRef}
+    initial={isFloating ? { x: 20, y: 20, opacity: 0 } : false}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className={cn(
+      "transition-colors z-40 flex flex-col overflow-hidden",
+      isFloating 
+        ? "absolute top-3 right-3 w-[94vw] sm:w-[450px] md:w-[490px] max-h-[calc(100vh-5.5rem)] rounded-3xl border border-zinc-700/80 shadow-[0_25px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl" 
+        : "w-full sm:w-[460px] lg:w-[500px] xl:w-[540px] h-[58vh] lg:h-full flex-shrink-0 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-900",
+      isFloating && isTranslucent ? "bg-black/75" : "bg-zinc-950/95",
+      isFloating && isMinimized && "hidden"
+    )}
+  >
+    {/* Drag Handle Bar (Visible only when in floating mode) */}
+    {isFloating && (
+      <div className="px-4 py-2.5 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between cursor-grab active:cursor-grabbing select-none flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <GripHorizontal size={15} className="text-theme-primary animate-pulse" />
+          <span className="text-[10px] font-black text-white uppercase tracking-wider">
+            Painel Flutuante • Arraste
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setIsTranslucent(prev => !prev)}
+            className={cn(
+              "p-1.5 rounded-lg transition-colors",
+              isTranslucent ? "text-theme-primary bg-theme-primary/10" : "text-zinc-400 hover:text-white"
+            )}
+            title={isTranslucent ? "Tornar Opaco" : "Tornar Translúcido (ver arte por trás)"}
+          >
+            {isTranslucent ? <Eye size={13} /> : <EyeOff size={13} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMinimized(true)}
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+            title="Minimizar painel (ver arte inteira)"
+          >
+            <Minimize2 size={13} />
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Scrollable controls body */}
+    <div className="p-4 lg:p-5 overflow-y-auto flex-1 custom-scrollbar">
+      <div className="w-full max-w-[700px] mx-auto flex flex-col gap-5">
 
             {/* Layout Mode Selector (Clássico vs IA Studio) */}
             <div className="bg-black p-1.5 rounded-2xl border border-zinc-800 flex gap-2 shadow-2xl">
@@ -2276,8 +2446,59 @@ export default function Birthdays({ athletes: athletesProp, professors: professo
             </div>
           </div>
         </div>
+
+        {/* Floating Panel Bottom Action Bar */}
+            {isFloating && (
+              <div className="p-3 bg-black/90 border-t border-zinc-800 flex items-center gap-2 flex-shrink-0">
+                <button 
+                  onClick={() => downloadCard(false)}
+                  disabled={isGenerating}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-900 border border-zinc-700 text-white font-black rounded-xl hover:bg-zinc-800 transition-colors disabled:opacity-50 uppercase text-[11px] tracking-wider"
+                >
+                  <Download size={14} className={isGenerating ? "animate-bounce" : ""} />
+                  {isGenerating ? 'Gerando...' : 'Salvar PNG'}
+                </button>
+                <button 
+                  onClick={() => downloadCard(true)}
+                  disabled={isGenerating}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-theme-primary text-black font-black rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 uppercase text-[11px] tracking-wider shadow-md shadow-theme-primary/20"
+                >
+                  <Share2 size={14} />
+                  Postar
+                </button>
+              </div>
+            )}
+          </motion.div>
+
+          {/* FLOATING PILL (when isFloating && isMinimized) */}
+          {isFloating && isMinimized && (
+            <motion.div
+              drag
+              dragMomentum={false}
+              dragConstraints={workspaceRef}
+              className="absolute bottom-6 right-6 z-40 flex items-center gap-2 p-2 bg-black/95 border-2 border-theme-primary/60 shadow-[0_10px_35px_rgba(234,179,8,0.35)] rounded-2xl backdrop-blur-2xl cursor-grab active:cursor-grabbing"
+            >
+              <button
+                type="button"
+                onClick={() => setIsMinimized(false)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-theme-primary text-black font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-md shadow-theme-primary/20"
+              >
+                <Sliders size={14} />
+                <span>Expandir Controles</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadCard(false)}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all disabled:opacity-50"
+              >
+                <Download size={14} className="text-theme-primary" />
+                <span>Baixar PNG</span>
+              </button>
+            </motion.div>
+          )}
+        </div>
       </div>
-    </div>
     )}
   </div>
 );

@@ -565,9 +565,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
   useEffect(() => {
     const checkLock = async () => {
+      // Se for admin, professor ou se estiver forçado o desbloqueio, nunca bloqueia
+      if (isAdmin || role === 'professor' || forceUnlocked) {
+        setIsLocked(false);
+        return;
+      }
+
       const now = new Date();
+      const todayStr = format(now, 'yyyy-MM-dd');
       const limit = new Date(now);
-      limit.setDate(now.getDate() - 2);
+      // Concede flexibilidade para registro (aberto até 23h59 de hoje e até 3 dias retroativos)
+      limit.setDate(now.getDate() - 3);
       const limitString = format(limit, 'yyyy-MM-dd');
 
       const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
@@ -578,8 +586,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           if (found) {
             setTraining(found);
             
-            // Calculate global lock (lock if older than 2 days ago, allowing today, yesterday and day before)
-            if (found.date < limitString && !isAdmin && !forceUnlocked) {
+            // Se a data do treino é hoje ou futura, está 100% liberado até às 23h59
+            if (found.date >= todayStr) {
+              setIsLocked(false);
+            } else if (found.date < limitString) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -593,7 +603,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           const found = await api.getEvent(eventId);
           if (found) {
             setEvent(found);
-            if (found.end_date < limitString && !isAdmin && !forceUnlocked) {
+            if (found.end_date >= todayStr) {
+              setIsLocked(false);
+            } else if (found.end_date < limitString) {
               setIsLocked(true);
             } else {
               setIsLocked(false);
@@ -603,8 +615,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           console.error("Error fetching event for lock check:", err);
         }
       } else {
-        // General attendance: lock if date is older than 2 days ago
-        if (date < limitString && !isAdmin && !forceUnlocked) {
+        // Chamada geral: hoje sempre liberado até 23h59
+        if (date >= todayStr) {
+          setIsLocked(false);
+        } else if (date < limitString) {
           setIsLocked(true);
         } else {
           setIsLocked(false);
@@ -952,21 +966,21 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const isAthleteLocked = (athlete: Athlete) => {
-    if (isAdmin || forceUnlocked) return false;
+    if (isAdmin || role === 'professor' || forceUnlocked) return false;
     const now = new Date();
-    const limit = new Date(now);
-    limit.setDate(now.getDate() - 2);
-    const limitString = format(limit, 'yyyy-MM-dd');
+    const todayStr = format(now, 'yyyy-MM-dd');
+    const targetDate = (trainingId && training) ? training.date : (eventId && event) ? event.end_date : date;
 
-    if (trainingId && training) {
-      if (training.date < limitString) return true;
-      if (training.date >= limitString) return false;
-    } else if (eventId && event) {
-      if (event.end_date < limitString) return true;
-      if (event.end_date >= limitString) return false;
+    // Se o treino ou evento é hoje ou no futuro, está 100% liberado até às 23h59
+    if (targetDate >= todayStr) {
+      return false;
     }
 
-    if (date < limitString) return true;
+    const limit = new Date(now);
+    limit.setDate(now.getDate() - 3);
+    const limitString = format(limit, 'yyyy-MM-dd');
+
+    if (targetDate < limitString) return true;
     return false;
   };
 
@@ -1151,8 +1165,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     // Auto-persist directly to database for immediate persistence
     try {
       await Promise.all(newRecords.map(r => api.saveAttendance(r)));
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao auto-salvar presença no banco de dados:", err);
+      toast.error(`Aviso: falha temporária ao sincronizar com o banco: ${err?.message || 'erro de rede'}`);
     }
   };
 
