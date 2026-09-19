@@ -472,12 +472,13 @@ export default function AbsenteeManagement({ onNavigateToAttendance, onNavigateT
 
     try {
       const { athlete, attendanceRecord, training, date } = justifyingRecord;
+      const targetId = attendanceRecord?.id || (training?.id ? `${athlete.id}_training_${training.id}` : `${athlete.id}_${date || training?.date}`);
 
       const recordToSave: Partial<Attendance> = {
-        id: attendanceRecord?.id,
+        id: targetId,
         athlete_id: athlete.id,
-        training_id: training.id,
-        date: date || training.date,
+        training_id: training?.id,
+        date: date || training?.date,
         status: 'Faltou',
         justification: justificationText.trim()
       };
@@ -486,8 +487,8 @@ export default function AbsenteeManagement({ onNavigateToAttendance, onNavigateT
       
       // Update local state
       setAllAttendance(prev => {
-        const filtered = prev.filter(r => r.id !== attendanceRecord?.id);
-        return [...filtered, { ...recordToSave, id: attendanceRecord?.id || `att_${Date.now()}` } as Attendance];
+        const filtered = prev.filter(r => r.id !== targetId && r.id !== attendanceRecord?.id);
+        return [...filtered, { ...recordToSave, id: targetId } as Attendance];
       });
 
       toast.success("Justificativa registrada com sucesso!");

@@ -176,6 +176,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [fingerprintOnlyFilter, setFingerprintOnlyFilter] = useState(false);
   const [activeBiometricAthleteTarget, setActiveBiometricAthleteTarget] = useState<Athlete | null>(null);
 
+  // Dedicated Absence Justification Modal & Debounce States
+  const [justifyingAthlete, setJustifyingAthlete] = useState<{ athlete: Athlete; record?: AttendanceRecord } | null>(null);
+  const [modalJustificationText, setModalJustificationText] = useState('');
+  const [isSavingModalJustification, setIsSavingModalJustification] = useState(false);
+  const activeEditingAthleteRef = useRef<string | null>(null);
+  const debounceTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const pendingJustificationsRef = useRef<Record<string, string>>({});
+
   // Direct Biometrics Registration Modal in Attendance
   const [directBiometricAthlete, setDirectBiometricAthlete] = useState<Athlete | null>(null);
   const [directBiometricType, setDirectBiometricType] = useState<'face' | 'fingerprint' | null>(null);
@@ -662,11 +670,17 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const unsubscribe = api.subscribeToAttendance((attendanceData) => {
       const attMap: Record<string, AttendanceRecord[]> = {};
       attendanceData.forEach(a => {
+        // If athlete's justification is currently being typed or pending local save, preserve it
+        if (pendingJustificationsRef.current[a.athlete_id] !== undefined) {
+          a = { ...a, justification: pendingJustificationsRef.current[a.athlete_id] };
+        }
         if (!attMap[a.athlete_id]) attMap[a.athlete_id] = [];
         attMap[a.athlete_id].push(a);
       });
       setAttendance(attMap);
-      setHasChanges(false);
+      if (!activeEditingAthleteRef.current) {
+        setHasChanges(false);
+      }
     }, date, selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId, eventId);
 
     return () => unsubscribe();
@@ -1075,7 +1089,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     toast.success('Todas as presenças foram marcadas localmente! Não esqueça de salvar.');
   };
 
-  const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification: string = '', arrival_time?: string) => {
+  const markAttendance = async (athleteId: string, status: 'Presente' | 'Faltou', justification?: string, arrival_time?: string) => {
     const athlete = athletes.find(a => a.id === athleteId);
     if (athlete && isAthleteLocked(athlete)) {
       toast.error("Esta chamada para este atleta já foi finalizada.");
@@ -1092,6 +1106,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     const existingIdx = records.findIndex(r => r.id === attendanceId);
     
     const finalArrivalTime = arrival_time || (existingIdx >= 0 ? records[existingIdx].arrival_time : now);
+    // Preserva a justificativa existente se não foi explicitamente fornecida
+    const finalJustification = justification !== undefined 
+      ? justification 
+      : (existingIdx >= 0 ? (records[existingIdx].justification || '') : '');
 
     const newRecord: AttendanceRecord = {
       id: attendanceId,
@@ -1100,7 +1118,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       event_id: eventId,
       date,
       status,
-      justification,
+      justification: finalJustification,
       arrival_time: finalArrivalTime
     };
 
@@ -1165,9 +1183,135 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     // Auto-persist directly to database for immediate persistence
     try {
       await Promise.all(newRecords.map(r => api.saveAttendance(r)));
+      delete pendingJustificationsRef.current[athleteId];
     } catch (err: any) {
       console.error("Erro ao auto-salvar presença no banco de dados:", err);
       toast.error(`Aviso: falha temporária ao sincronizar com o banco: ${err?.message || 'erro de rede'}`);
+    }
+  };
+
+  // Atualização fluida e debounced da justificativa de falta (sem travar ou perder foco)
+  const updateJustification = (athleteId: string, justification: string) => {
+    const athlete = athletes.find(a => a.id === athleteId);
+    if (athlete && isAthleteLocked(athlete)) {
+      toast.error("Esta chamada para este atleta já foi finalizada.");
+      return;
+    }
+
+    activeEditingAthleteRef.current = athleteId;
+    pendingJustificationsRef.current[athleteId] = justification;
+
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    let attendanceId = `${athleteId}_${date}`;
+    if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
+    if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
+
+    const now = format(new Date(), 'HH:mm');
+    const records = attendance[athleteId] || [];
+    const existingIdx = records.findIndex(r => r.id === attendanceId);
+    const finalArrivalTime = existingIdx >= 0 ? records[existingIdx].arrival_time : now;
+
+    const updatedRecord: AttendanceRecord = {
+      id: attendanceId,
+      athlete_id: athleteId,
+      training_id: activeTrainingId,
+      event_id: eventId,
+      date,
+      status: 'Faltou',
+      justification,
+      arrival_time: finalArrivalTime
+    };
+
+    const newRecords = [...records];
+    if (existingIdx >= 0) {
+      newRecords[existingIdx] = updatedRecord;
+    } else {
+      newRecords.push(updatedRecord);
+    }
+
+    setAttendance(prev => ({
+      ...prev,
+      [athleteId]: newRecords
+    }));
+    setHasChanges(true);
+
+    if (debounceTimerRef.current[athleteId]) {
+      clearTimeout(debounceTimerRef.current[athleteId]);
+    }
+
+    debounceTimerRef.current[athleteId] = setTimeout(async () => {
+      try {
+        await api.saveAttendance(updatedRecord);
+        delete pendingJustificationsRef.current[athleteId];
+        if (activeEditingAthleteRef.current === athleteId) {
+          activeEditingAthleteRef.current = null;
+        }
+      } catch (err: any) {
+        console.error("Erro ao persistir justificativa no banco:", err);
+      }
+    }, 700);
+  };
+
+  const handleJustificationBlur = async (athleteId: string) => {
+    if (debounceTimerRef.current[athleteId]) {
+      clearTimeout(debounceTimerRef.current[athleteId]);
+      delete debounceTimerRef.current[athleteId];
+    }
+    activeEditingAthleteRef.current = null;
+
+    const records = attendance[athleteId] || [];
+    const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
+    let attendanceId = `${athleteId}_${date}`;
+    if (activeTrainingId) attendanceId = `${athleteId}_training_${activeTrainingId}`;
+    if (eventId) attendanceId = `${athleteId}_event_${eventId}`;
+
+    const rec = records.find(r => r.id === attendanceId);
+    if (rec) {
+      try {
+        await api.saveAttendance(rec);
+        delete pendingJustificationsRef.current[athleteId];
+      } catch (err) {
+        console.error("Erro ao salvar justificativa no blur:", err);
+      }
+    }
+  };
+
+  const openJustificationModal = (athlete: Athlete) => {
+    const athleteRecords = attendance[athlete.id] || [];
+    const att = getResolvedAttendance(athleteRecords);
+    setJustifyingAthlete({ athlete, record: att || undefined });
+    setModalJustificationText(att?.justification || '');
+  };
+
+  const handleSaveModalJustification = async () => {
+    if (!justifyingAthlete) return;
+    setIsSavingModalJustification(true);
+    try {
+      const { athlete } = justifyingAthlete;
+      await markAttendance(athlete.id, 'Faltou', modalJustificationText.trim());
+      toast.success(`Motivo da falta salvo para ${athlete.name}!`);
+      setJustifyingAthlete(null);
+      setModalJustificationText('');
+    } catch (err: any) {
+      toast.error(`Erro ao salvar justificativa: ${err?.message || 'erro desconhecido'}`);
+    } finally {
+      setIsSavingModalJustification(false);
+    }
+  };
+
+  const handleClearModalJustification = async () => {
+    if (!justifyingAthlete) return;
+    setIsSavingModalJustification(true);
+    try {
+      const { athlete } = justifyingAthlete;
+      await markAttendance(athlete.id, 'Faltou', '');
+      toast.info(`Justificativa removida para ${athlete.name}`);
+      setJustifyingAthlete(null);
+      setModalJustificationText('');
+    } catch (err: any) {
+      toast.error(`Erro ao remover: ${err?.message}`);
+    } finally {
+      setIsSavingModalJustification(false);
     }
   };
 
@@ -1201,6 +1345,14 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   };
 
   const saveCurrentAttendance = async () => {
+    // Flush pending debounce timers
+    Object.keys(debounceTimerRef.current).forEach(k => {
+      clearTimeout(debounceTimerRef.current[k]);
+      delete debounceTimerRef.current[k];
+    });
+    activeEditingAthleteRef.current = null;
+    pendingJustificationsRef.current = {};
+
     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
     const loadingToast = toast.loading('Salvando chamada...');
     try {
@@ -3360,17 +3512,45 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
                       {att?.status === 'Faltou' && (
                         <div className="space-y-1.5 pt-1">
-                          <input 
-                            type="text" 
-                            disabled={locked}
-                            placeholder="Justificar falta..."
-                            className={cn(
-                              "w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-theme-primary placeholder:text-zinc-600",
-                              locked && "opacity-50 cursor-not-allowed"
-                            )}
-                            value={att.justification || ''}
-                            onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
-                          />
+                          <div className="flex items-center gap-1.5">
+                            <input 
+                              type="text" 
+                              disabled={locked}
+                              placeholder="Descrever motivo da falta..."
+                              className={cn(
+                                "flex-1 bg-zinc-950 border border-zinc-700/80 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 placeholder:text-zinc-600 transition-colors",
+                                locked && "opacity-50 cursor-not-allowed"
+                              )}
+                              value={att.justification || ''}
+                              onChange={(e) => updateJustification(athlete.id, e.target.value)}
+                              onBlur={() => handleJustificationBlur(athlete.id)}
+                            />
+                            <button
+                              type="button"
+                              disabled={locked}
+                              onClick={() => openJustificationModal(athlete)}
+                              title="Abrir opções e descrição detalhada da falta"
+                              className={cn(
+                                "p-2 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer",
+                                att.justification 
+                                  ? "bg-amber-500 text-black shadow-md shadow-amber-500/20" 
+                                  : "bg-zinc-800 text-zinc-400 hover:text-amber-300 hover:bg-zinc-700 border border-zinc-700"
+                              )}
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
+
+                          {att.justification && (
+                            <div 
+                              onClick={() => !locked && openJustificationModal(athlete)}
+                              className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9.5px] text-amber-300 font-bold flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all text-left"
+                              title="Clique para ver ou editar o motivo"
+                            >
+                              <span className="truncate">📋 {att.justification}</span>
+                              <span className="text-[8px] uppercase tracking-wider text-amber-400 font-black ml-1.5 shrink-0">Editar</span>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                             {athlete.guardian_phone && athlete.guardian_phone.trim() !== '' ? (
@@ -3701,18 +3881,46 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {att?.status === 'Faltou' && (
-                            <input 
-                              type="text" 
+                          {att?.status === 'Faltou' ? (
+                            <div className="flex items-center gap-1.5 min-w-[210px]">
+                              <input 
+                                type="text" 
+                                disabled={isAthleteLocked(athlete)}
+                                placeholder="Descrever motivo..."
+                                className={cn(
+                                  "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 placeholder:text-zinc-500",
+                                  isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                                )}
+                                value={att.justification || ''}
+                                onChange={(e) => updateJustification(athlete.id, e.target.value)}
+                                onBlur={() => handleJustificationBlur(athlete.id)}
+                              />
+                              <button
+                                type="button"
+                                disabled={isAthleteLocked(athlete)}
+                                onClick={() => openJustificationModal(athlete)}
+                                title="Abrir opções e descrição detalhada da falta"
+                                className={cn(
+                                  "p-1.5 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer",
+                                  att.justification 
+                                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/20" 
+                                    : "bg-zinc-800 text-zinc-400 hover:text-amber-300 hover:bg-zinc-700 border border-zinc-700"
+                                )}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
                               disabled={isAthleteLocked(athlete)}
-                              placeholder="Justificar falta..."
-                              className={cn(
-                                "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                                isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                              )}
-                              value={att.justification || ''}
-                              onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
-                            />
+                              onClick={() => openJustificationModal(athlete)}
+                              className="text-[10px] font-bold text-zinc-500 hover:text-amber-400 py-1 px-2 rounded-lg hover:bg-zinc-800/80 transition-all flex items-center gap-1 cursor-pointer"
+                              title="Registrar falta com justificativa"
+                            >
+                              <Edit2 size={11} />
+                              <span>Justificar Falta</span>
+                            </button>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -3992,18 +4200,45 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   </div>
 
                   {att?.status === 'Faltou' && (
-                    <div className="pt-1 space-y-2.5">
-                      <input 
-                        type="text" 
-                        disabled={isAthleteLocked(athlete)}
-                        placeholder="Justificar falta..."
-                        className={cn(
-                          "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-theme-primary",
-                          isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
-                        )}
-                        value={att.justification || ''}
-                        onChange={(e) => markAttendance(athlete.id, 'Faltou', e.target.value)}
-                      />
+                    <div className="pt-1 space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <input 
+                          type="text" 
+                          disabled={isAthleteLocked(athlete)}
+                          placeholder="Descrever motivo da falta..."
+                          className={cn(
+                            "w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 placeholder:text-zinc-500 transition-colors",
+                            isAthleteLocked(athlete) && "opacity-50 cursor-not-allowed"
+                          )}
+                          value={att.justification || ''}
+                          onChange={(e) => updateJustification(athlete.id, e.target.value)}
+                          onBlur={() => handleJustificationBlur(athlete.id)}
+                        />
+                        <button
+                          type="button"
+                          disabled={isAthleteLocked(athlete)}
+                          onClick={() => openJustificationModal(athlete)}
+                          title="Abrir opções e descrição detalhada da falta"
+                          className={cn(
+                            "p-2 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer",
+                            att.justification 
+                              ? "bg-amber-500 text-black shadow-md shadow-amber-500/20" 
+                              : "bg-zinc-800 text-zinc-400 hover:text-amber-300 hover:bg-zinc-700 border border-zinc-700"
+                          )}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+
+                      {att.justification && (
+                        <div 
+                          onClick={() => !isAthleteLocked(athlete) && openJustificationModal(athlete)}
+                          className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9.5px] text-amber-300 font-bold flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all text-left"
+                        >
+                          <span className="truncate">📋 {att.justification}</span>
+                          <span className="text-[8px] uppercase tracking-wider text-amber-400 font-black ml-1.5 shrink-0">Editar</span>
+                        </div>
+                      )}
                       
                       <div className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl space-y-1.5">
                         <span className="text-[8.5px] font-black text-zinc-500 uppercase tracking-wider block text-left">
@@ -4762,6 +4997,141 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* JUSTIFICATION MODAL FOR ABSENT ATHLETE */}
+      <AnimatePresence>
+        {justifyingAthlete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 no-print overflow-y-auto"
+            onClick={() => setJustifyingAthlete(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 my-auto text-left"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <Edit2 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-tight">
+                      Justificar Falta
+                    </h3>
+                    <p className="text-xs text-zinc-400 flex items-center gap-1.5 font-medium">
+                      <span>{justifyingAthlete.athlete.name}</span>
+                      <span className="text-amber-400 font-bold">• {getSubCategory(justifyingAthlete.athlete.birth_date)}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setJustifyingAthlete(null)}
+                  className="p-2 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400 block mb-1.5">
+                    Motivo da Ausência / Justificativa:
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={modalJustificationText}
+                    onChange={(e) => setModalJustificationText(e.target.value)}
+                    placeholder="Ex: Consulta médica, febre/gripe, viagem escolar com autorização dos pais..."
+                    className="w-full bg-zinc-900 border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-2xl p-3.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all resize-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Motivos Rápidos */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider block">
+                    Opções / Motivos Rápidos:
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      'Atestado / Consulta Médica',
+                      'Febre / Sintomas Gripais',
+                      'Prova / Compromisso Escolar',
+                      'Viagem com a Família',
+                      'Lesão em Tratamento',
+                      'Problema de Transporte',
+                      'Compromisso Familiar',
+                      'Outros Motivos Pessoais'
+                    ].map(reason => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => {
+                          setModalJustificationText(prev => prev ? `${prev} - ${reason}` : reason);
+                        }}
+                        className="px-2.5 py-1.5 bg-zinc-900 hover:bg-amber-500/10 hover:text-amber-300 hover:border-amber-500/30 text-zinc-300 rounded-xl text-[10px] font-bold border border-zinc-800 transition-all cursor-pointer"
+                      >
+                        + {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {justifyingAthlete.record?.justification && (
+                  <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl text-left text-xs text-zinc-400">
+                    <span className="text-[9.5px] font-black uppercase text-zinc-500 block mb-0.5">Motivo Registrado Atualmente:</span>
+                    <span className="text-white italic">"{justifyingAthlete.record.justification}"</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-zinc-900">
+                <div>
+                  {justifyingAthlete.record?.justification ? (
+                    <button
+                      type="button"
+                      onClick={handleClearModalJustification}
+                      disabled={isSavingModalJustification}
+                      className="px-3 py-2 text-[11px] font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
+                    >
+                      Remover Motivo
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setJustifyingAthlete(null)}
+                    className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveModalJustification}
+                    disabled={isSavingModalJustification || !modalJustificationText.trim()}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{isSavingModalJustification ? 'Salvando...' : 'Salvar Justificativa'}</span>
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
