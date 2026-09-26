@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, categoryAgeRanges, getSubNumber, matchesCategoryCriteria, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload, Layers } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload, Layers, Mic } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import AttendanceHistory from './AttendanceHistory';
 import FacialRecognitionScanner from './FacialRecognitionScanner';
+import VoiceAttendanceScanner from './VoiceAttendanceScanner';
 import { generateUniqueFingerprintHash, registerNativeBiometricCredential, findDuplicateFingerprintAthlete, matchAthleteByFingerprint } from '../utils/biometrics';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
@@ -170,6 +171,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [isScanning, setIsScanning] = useState(false);
   const [isFacialScanning, setIsFacialScanning] = useState(false);
   const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
+  const [isVoiceScanning, setIsVoiceScanning] = useState(false);
   const [fingerprintQuery, setFingerprintQuery] = useState('');
   const [lastFingerprintMatch, setLastFingerprintMatch] = useState<Athlete | null>(null);
   const [isTouchPadScanning, setIsTouchPadScanning] = useState(false);
@@ -1384,6 +1386,9 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
       lastScannedCode.current = null;
       lastScanTime.current = 0;
       setIsScanning(true);
+      setIsVoiceScanning(false);
+      setIsFacialScanning(false);
+      setIsFingerprintScanning(false);
     }
   };
 
@@ -1854,7 +1859,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             <p className="text-zinc-400 text-sm">
               {isLocked 
                 ? 'Este treino foi encerrado. A lista está disponível para visualização e impressão.' 
-                : 'Registre a presença dos atletas até 23h59 por Biometria, QR Code, Reconhecimento Facial ou manualmente'}
+                : 'Registre a presença dos atletas até 23h59 por Comando de Voz ("Falar Nome e OK"), Biometria, Reconhecimento Facial, QR Code ou manualmente'}
             </p>
           </div>
         </div>
@@ -1895,7 +1900,30 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
           <button 
             onClick={() => {
+              setIsVoiceScanning(!isVoiceScanning);
+              if (isFingerprintScanning) setIsFingerprintScanning(false);
+              if (isFacialScanning) setIsFacialScanning(false);
+              if (isScanning) setIsScanning(false);
+            }}
+            disabled={isLocked}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg cursor-pointer",
+              isLocked 
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                : (isVoiceScanning 
+                    ? "bg-rose-500 text-white shadow-rose-500/20" 
+                    : "bg-amber-500 text-black hover:bg-amber-400 hover:scale-105 active:scale-95 shadow-amber-500/20")
+            )}
+            title="Registrar presença falando o nome do atleta e dizendo OK"
+          >
+            {isVoiceScanning ? <X size={20} /> : <Mic size={20} />}
+            {isVoiceScanning ? 'Fechar Chamada por Voz' : 'Chamada por Voz (Falar Nome e OK)'}
+          </button>
+
+          <button 
+            onClick={() => {
               setIsFingerprintScanning(!isFingerprintScanning);
+              if (isVoiceScanning) setIsVoiceScanning(false);
               if (isFacialScanning) setIsFacialScanning(false);
               if (isScanning) setIsScanning(false);
             }}
@@ -1916,6 +1944,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           <button 
             onClick={() => {
               setIsFacialScanning(!isFacialScanning);
+              if (isVoiceScanning) setIsVoiceScanning(false);
               if (isFingerprintScanning) setIsFingerprintScanning(false);
               if (isScanning) setIsScanning(false);
             }}
@@ -2491,6 +2520,31 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
               </div>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {isVoiceScanning && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="mb-6"
+        >
+          <VoiceAttendanceScanner
+            athletes={athletes}
+            attendanceRecords={attendance}
+            activeTrainingId={selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId}
+            eventId={eventId}
+            date={date}
+            isLocked={isLocked}
+            onClose={() => setIsVoiceScanning(false)}
+            onAthleteRecognized={async (athlete) => {
+              await markAttendance(athlete.id, 'Presente');
+            }}
+            onMarkAbsence={async (athlete, justification) => {
+              await markAttendance(athlete.id, 'Faltou', justification);
+            }}
+          />
         </motion.div>
       )}
 
