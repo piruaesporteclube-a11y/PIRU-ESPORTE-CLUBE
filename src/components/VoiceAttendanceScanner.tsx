@@ -45,7 +45,7 @@ function normalizePortuguese(str: string): string {
     .trim();
 }
 
-// Phonetic normalization for common Brazilian variations (e.g. Matheus/Mateus, Gabriel, etc.)
+// Phonetic normalization for common Brazilian Portuguese names and variations
 function phoneticNormalize(str: string): string {
   return normalizePortuguese(str)
     .replace(/ph/g, 'f')
@@ -54,12 +54,20 @@ function phoneticNormalize(str: string): string {
     .replace(/y/g, 'i')
     .replace(/w/g, 'v')
     .replace(/k/g, 'c')
+    .replace(/ck/g, 'c')
+    .replace(/ç/g, 's')
     .replace(/ss/g, 's')
+    .replace(/sc/g, 's')
+    .replace(/xc/g, 's')
     .replace(/rr/g, 'r')
     .replace(/tt/g, 't')
     .replace(/ll/g, 'l')
     .replace(/nn/g, 'n')
     .replace(/mm/g, 'm')
+    .replace(/lh/g, 'li')
+    .replace(/nh/g, 'ni')
+    .replace(/ao\b/g, 'an')
+    .replace(/z\b/g, 's')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -82,7 +90,17 @@ function parseSpokenNumbers(text: string): string {
   return words.map(w => map[w] || w).join(' ');
 }
 
-// Simple Levenshtein distance for fuzzy matching typos or phonetic proximity
+// Portuguese noise connectors to ignore in full name token comparison
+const CONNECTOR_WORDS = new Set(['de', 'da', 'do', 'dos', 'das', 'e', 'em']);
+
+// Extract significant name tokens (length >= 2, excluding connectors)
+function getNameTokens(str: string): string[] {
+  return normalizePortuguese(str)
+    .split(' ')
+    .filter(token => token.length >= 2 && !CONNECTOR_WORDS.has(token));
+}
+
+// Levenshtein distance for fuzzy matching typos or phonetic proximity
 function levenshteinDistance(a: string, b: string): number {
   if (a === b) return 0;
   if (!a.length) return b.length;
@@ -106,6 +124,39 @@ function levenshteinDistance(a: string, b: string): number {
     }
   }
   return matrix[b.length][a.length];
+}
+
+// High-precision individual word similarity scoring (0.0 to 1.0)
+// Tolerates slips like "luas" vs "lucas" (Levenshtein dist = 1)
+function wordSimilarity(spokenWord: string, nameWord: string): number {
+  if (spokenWord === nameWord) return 1.0;
+  if (phoneticNormalize(spokenWord) === phoneticNormalize(nameWord)) return 0.98;
+
+  const lenS = spokenWord.length;
+  const lenN = nameWord.length;
+  const minLen = Math.min(lenS, lenN);
+  const maxLen = Math.max(lenS, lenN);
+
+  // Levenshtein typo/slip tolerance: e.g. "luas" vs "lucas", "migel" vs "miguel"
+  if (minLen >= 4) {
+    const dist = levenshteinDistance(spokenWord, nameWord);
+    if (dist === 1) return 0.88; // e.g. "luas" -> "lucas"
+    if (dist === 2 && minLen >= 6) return 0.76;
+  }
+
+  // Prefix matching (e.g. "guilherm" vs "guilherme")
+  if (minLen >= 4 && (spokenWord.startsWith(nameWord) || nameWord.startsWith(spokenWord))) {
+    const ratio = minLen / maxLen;
+    if (ratio >= 0.75) return 0.82;
+  }
+
+  return 0;
+}
+
+export interface CandidateMatch {
+  athlete: Athlete;
+  score: number;
+  reason: string;
 }
 
 export default function VoiceAttendanceScanner({
@@ -132,7 +183,8 @@ export default function VoiceAttendanceScanner({
 
   // Recognition / Card states
   const [matchedAthlete, setMatchedAthlete] = useState<Athlete | null>(null);
-  const [candidateMatches, setCandidateMatches] = useState<{ athlete: Athlete; score: number }[]>([]);
+  const [matchedReason, setMatchedReason] = useState<string>('');
+  const [candidateMatches, setCandidateMatches] = useState<CandidateMatch[]>([]);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [lastActionMessage, setLastActionMessage] = useState<{ text: string; type: 'success' | 'info' | 'warn' } | null>(null);
   const [recentPresences, setRecentPresences] = useState<{ athlete: Athlete; time: string }[]>([]);
@@ -150,7 +202,7 @@ export default function VoiceAttendanceScanner({
   const confirmationCooldownRef = useRef<boolean>(false);
   const lastProcessedTranscriptRef = useRef<string>('');
   const matchedAthleteRef = useRef<Athlete | null>(null);
-  const candidateMatchesRef = useRef<{ athlete: Athlete; score: number }[]>([]);
+  const candidateMatchesRef = useRef<CandidateMatch[]>([]);
   const isConfirmingRef = useRef<boolean>(false);
 
   // Sync ref mirrors
@@ -294,6 +346,7 @@ export default function VoiceAttendanceScanner({
       // Briefly keep card visible with checkmark, then reset to listen for next
       setTimeout(() => {
         setMatchedAthlete(null);
+        setMatchedReason('');
         setCandidateMatches([]);
         setIsConfirming(false);
         confirmationCooldownRef.current = false;
@@ -334,6 +387,7 @@ export default function VoiceAttendanceScanner({
 
       setTimeout(() => {
         setMatchedAthlete(null);
+        setMatchedReason('');
         setCandidateMatches([]);
         confirmationCooldownRef.current = false;
         setTranscript('');
@@ -350,6 +404,7 @@ export default function VoiceAttendanceScanner({
   const handleCancelSelection = useCallback(() => {
     playChime('cancel');
     setMatchedAthlete(null);
+    setMatchedReason('');
     setCandidateMatches([]);
     setTranscript('');
     setInterimTranscript('');
@@ -360,88 +415,194 @@ export default function VoiceAttendanceScanner({
     });
   }, [playChime]);
 
-  // Evaluate candidate matching score for an athlete given spoken text
-  const scoreAthleteMatch = useCallback((athlete: Athlete, spokenNorm: string): number => {
+  // Evaluate candidate matching score for an athlete given spoken text with full-name precision
+  const scoreAthleteMatch = useCallback((athlete: Athlete, spokenText: string): { score: number; reason: string } => {
+    const spokenClean = normalizePortuguese(spokenText);
     const nameNorm = normalizePortuguese(athlete.name);
     const nicknameNorm = normalizePortuguese(athlete.nickname || '');
-    const spokenPhonetic = phoneticNormalize(spokenNorm);
+    const spokenPhonetic = phoneticNormalize(spokenText);
     const namePhonetic = phoneticNormalize(athlete.name);
-    const nicknamePhonetic = athlete.nickname ? phoneticNormalize(athlete.nickname) : '';
     const jersey = (athlete.jersey_number || '').trim();
 
-    // 1. Exact match on raw normalized or phonetic
-    if (spokenNorm === nameNorm || spokenPhonetic === namePhonetic) return 100;
-    if (nicknameNorm && (spokenNorm === nicknameNorm || spokenPhonetic === nicknamePhonetic)) return 99;
-
-    // 2. Check jersey number if mentioned (e.g. "camisa 10", "numero 7", "10")
-    if (jersey && (
-      spokenNorm === jersey || 
-      spokenNorm.includes(`camisa ${jersey}`) || 
-      spokenNorm.includes(`numero ${jersey}`) || 
-      spokenNorm.includes(`n ${jersey}`)
-    )) {
-      return 95;
-    }
-
-    const nameParts = nameNorm.split(' ').filter(p => p.length >= 2);
-    const spokenParts = spokenNorm.split(' ').filter(p => p.length >= 2);
-    const phoneticParts = namePhonetic.split(' ').filter(p => p.length >= 2);
-    const spokenPhoneticParts = spokenPhonetic.split(' ').filter(p => p.length >= 2);
-
-    if (nameParts.length === 0 || spokenParts.length === 0) return 0;
-
-    const firstName = nameParts[0];
-    const lastName = nameParts[nameParts.length - 1];
-    const firstPhonetic = phoneticParts[0];
-
-    // 3. Spoken contains full name
-    if (spokenNorm.includes(nameNorm) || spokenPhonetic.includes(namePhonetic)) return 94;
-
-    // 4. Full name contains spoken text as contiguous phrase (e.g. "João Pedro" in "João Pedro da Silva")
-    if (spokenNorm.length >= 4 && nameNorm.includes(spokenNorm)) return 92;
-    if (spokenPhonetic.length >= 4 && namePhonetic.includes(spokenPhonetic)) return 90;
-
-    // 5. Spoken contains both first and last name
-    if (spokenParts.includes(firstName) && spokenParts.includes(lastName)) return 88;
-
-    // 6. Nickname matched as single word
-    if (nicknameNorm && spokenParts.includes(nicknameNorm)) return 87;
-    if (nicknamePhonetic && spokenPhoneticParts.includes(nicknamePhonetic)) return 86;
-
-    // 7. Spoken matches first name exactly
-    if (spokenParts.includes(firstName) || spokenPhoneticParts.includes(firstPhonetic)) {
-      const otherMatches = nameParts.slice(1).filter(np => spokenParts.includes(np));
-      if (otherMatches.length > 0) return 85;
-      return 78; // Single first name match
-    }
-
-    // 8. Nickname as substring
-    if (nicknameNorm && nicknameNorm.length >= 3 && spokenNorm.includes(nicknameNorm)) return 75;
-
-    // 9. Spoken matches surname (last name)
-    if (spokenParts.includes(lastName) && lastName.length >= 3) return 72;
-
-    // 10. Fuzzy similarity (Levenshtein) on first name or nickname
-    if (spokenParts.length === 1) {
-      const word = spokenParts[0];
-      if (word.length >= 4) {
-        const distFirst = levenshteinDistance(word, firstName);
-        if (distFirst <= 1) return 74;
-        if (distFirst <= 2 && word.length >= 5) return 66;
-
-        if (nicknameNorm && nicknameNorm.length >= 4) {
-          const distNick = levenshteinDistance(word, nicknameNorm);
-          if (distNick <= 1) return 73;
+    // 1. Jersey number
+    if (jersey) {
+      const jerseyPatterns = [
+        `camisa ${jersey}`,
+        `numero ${jersey}`,
+        `n ${jersey}`,
+        `camisa n ${jersey}`
+      ];
+      const hasJerseyMention = spokenClean === jersey || jerseyPatterns.some(p => spokenClean.includes(p));
+      if (hasJerseyMention) {
+        const nameTokens = getNameTokens(athlete.name);
+        const spokenTokens = getNameTokens(spokenText);
+        const hasNameMention = spokenTokens.some(st => nameTokens.some(nt => nt === st));
+        if (hasNameMention) {
+          return { score: 99, reason: `Camisa #${jersey} + Nome` };
         }
+        return { score: 95, reason: `Camisa #${jersey}` };
       }
     }
 
-    // 11. Partial starts-with for longer names (e.g. "Guilherm" -> "Guilherme")
-    if (firstName.length >= 5 && spokenParts.some(sp => sp.length >= 4 && (firstName.startsWith(sp) || sp.startsWith(firstName)))) {
-      return 65;
+    // 2. Nickname matches
+    if (nicknameNorm) {
+      const nickTokens = getNameTokens(nicknameNorm);
+      const spokenTokens = getNameTokens(spokenClean);
+      if (spokenClean === nicknameNorm || spokenPhonetic === phoneticNormalize(nicknameNorm)) {
+        return { score: 99, reason: `Apelido "${athlete.nickname}"` };
+      }
+      if (spokenTokens.length >= 1 && nickTokens.some(nt => spokenTokens.includes(nt))) {
+        return { score: 94, reason: `Apelido "${athlete.nickname}"` };
+      }
     }
 
-    return 0;
+    // 3. Name tokens analysis
+    const spokenTokens = getNameTokens(spokenClean);
+    const nameTokens = getNameTokens(nameNorm);
+
+    if (spokenTokens.length === 0 || nameTokens.length === 0) {
+      return { score: 0, reason: '' };
+    }
+
+    // Exact full name match
+    if (spokenTokens.join(' ') === nameTokens.join(' ')) {
+      return { score: 100, reason: 'Nome Completo Exato' };
+    }
+    if (phoneticNormalize(spokenTokens.join(' ')) === phoneticNormalize(nameTokens.join(' '))) {
+      return { score: 99, reason: 'Nome Completo Fonético' };
+    }
+
+    // For each spoken token, find the best matching token in the athlete's name
+    let matchedSpokenCount = 0;
+    let similaritySum = 0;
+    const matchedNameIndices: number[] = [];
+    const usedNameIndices = new Set<number>();
+    let hadFuzzyMatch = false;
+
+    for (const st of spokenTokens) {
+      let bestSim = 0;
+      let bestIdx = -1;
+
+      for (let i = 0; i < nameTokens.length; i++) {
+        if (usedNameIndices.has(i)) continue;
+        const sim = wordSimilarity(st, nameTokens[i]);
+        if (sim > bestSim) {
+          bestSim = sim;
+          bestIdx = i;
+        }
+      }
+
+      if (bestSim >= 0.75 && bestIdx !== -1) {
+        matchedSpokenCount++;
+        similaritySum += bestSim;
+        matchedNameIndices.push(bestIdx);
+        usedNameIndices.add(bestIdx);
+        if (bestSim < 0.95) hadFuzzyMatch = true;
+      }
+    }
+
+    const spokenCoverage = matchedSpokenCount / spokenTokens.length;
+    const avgSimilarity = matchedSpokenCount > 0 ? similaritySum / matchedSpokenCount : 0;
+
+    // CRITICAL: Spoken Coverage Penalty
+    // If user spoke 2 or more words (e.g. "João Lucas", "Lucas Machado", "Lucas Miranda"),
+    // but the athlete only matches 1 of the spoken words (e.g. only "Lucas"),
+    // spokenCoverage is <= 50%. This athlete MUST NOT match this compound query!
+    // This strictly prevents "Lucas Machado" from ever matching "João Lucas", and vice versa!
+    if (spokenTokens.length >= 2 && spokenCoverage < 0.65) {
+      return { score: 35, reason: 'Apenas parte do nome' };
+    }
+
+    // Check which parts of the athlete's name were matched
+    const matchedFirstName = matchedNameIndices.includes(0);
+    const matchedLastName = matchedNameIndices.includes(nameTokens.length - 1);
+    const matchedMiddleName = matchedNameIndices.some(idx => idx > 0 && idx < nameTokens.length - 1);
+
+    // Check if relative word order is preserved
+    let isOrderPreserved = true;
+    for (let i = 1; i < matchedNameIndices.length; i++) {
+      if (matchedNameIndices[i] < matchedNameIndices[i - 1]) {
+        isOrderPreserved = false;
+        break;
+      }
+    }
+
+    // CASE A: User spoke 1 word (e.g. "Lucas", "Machado", "Luas")
+    if (spokenTokens.length === 1) {
+      if (matchedFirstName) {
+        // Spoken word matches FIRST NAME (e.g. "Lucas" in "Lucas Henrique Miranda Machado")
+        const base = 84;
+        const finalScore = Math.round(base * avgSimilarity);
+        return { 
+          score: finalScore, 
+          reason: hadFuzzyMatch ? 'Primeiro Nome Aprox.' : 'Primeiro Nome' 
+        };
+      }
+      if (matchedLastName) {
+        // Spoken word matches LAST NAME (e.g. "Machado")
+        const base = 78;
+        const finalScore = Math.round(base * avgSimilarity);
+        return { 
+          score: finalScore, 
+          reason: hadFuzzyMatch ? 'Sobrenome Aprox.' : 'Sobrenome' 
+        };
+      }
+      if (matchedMiddleName) {
+        // Spoken word matches MIDDLE NAME (e.g. "Lucas" in "João Lucas Silva" or "Miranda" in "Lucas Henrique Miranda Machado")
+        // 68 is intentionally lower than first name (84) and last name (78)!
+        // Thus, calling "Lucas" prioritizes "Lucas Henrique..." over "João Lucas"!
+        const base = 68;
+        const finalScore = Math.round(base * avgSimilarity);
+        return { 
+          score: finalScore, 
+          reason: hadFuzzyMatch ? 'Nome do Meio Aprox.' : 'Nome do Meio' 
+        };
+      }
+    }
+
+    // CASE B: User spoke 2 or more words (e.g. "Lucas Machado", "Lucas Miranda", "Lucas Henrique Miranda Machado", "Luas Machado", "João Lucas")
+    if (spokenTokens.length >= 2 && spokenCoverage >= 0.65) {
+      let baseScore = 88;
+      let reason = 'Nome e Sobrenome';
+
+      // All words of athlete's name matched
+      if (matchedSpokenCount === nameTokens.length && isOrderPreserved) {
+        baseScore = 98;
+        reason = hadFuzzyMatch ? 'Nome Completo Aprox.' : 'Nome Completo';
+      }
+      // First Name + Last Name (e.g. "Lucas Machado" for "Lucas Henrique Miranda Machado")
+      else if (matchedFirstName && matchedLastName) {
+        baseScore = 96;
+        reason = hadFuzzyMatch ? 'Nome + Sobrenome Aprox.' : 'Nome + Último Sobrenome';
+      }
+      // First Name + Middle Name (e.g. "Lucas Miranda" or "Lucas Henrique")
+      else if (matchedFirstName && matchedMiddleName) {
+        baseScore = 94;
+        reason = hadFuzzyMatch ? 'Nome + Sobrenome do Meio Aprox.' : 'Nome + Sobrenome do Meio';
+      }
+      // First two names in sequence (e.g. "João Lucas" or "Lucas Henrique")
+      else if (matchedNameIndices.length >= 2 && matchedNameIndices[0] === 0 && matchedNameIndices[1] === 1) {
+        baseScore = 96;
+        reason = hadFuzzyMatch ? 'Dois Primeiros Nomes Aprox.' : 'Dois Primeiros Nomes';
+      }
+      // Middle + Last name
+      else if (matchedMiddleName && matchedLastName) {
+        baseScore = 92;
+        reason = hadFuzzyMatch ? 'Sobrenomes Aprox.' : 'Sobrenomes';
+      } else {
+        baseScore = 88;
+        reason = 'Correspondência por Voz';
+      }
+
+      if (isOrderPreserved) {
+        baseScore += 2;
+      }
+
+      const finalScore = Math.min(100, Math.round(baseScore * avgSimilarity));
+      return { score: finalScore, reason };
+    }
+
+    return { score: 0, reason: '' };
   }, []);
 
   // Process any speech command (spoken or simulated)
@@ -479,7 +640,8 @@ export default function VoiceAttendanceScanner({
       }
 
       // Check cancel commands: "cancelar", "cancela", "voltar", "limpar", "trocar", "nenhum", "outro", "esquece"
-      const isCancelCmd = /\b(cancelar|cancela|voltar|limpar|nenhum|outro|trocar|esquece|apagar|nao e ele|nao)\b/i.test(cleanText);
+      // Only pure cancel command, so conversational phrases like "não, é o Lucas Machado" won't be trapped
+      const isCancelCmd = /^(cancelar|cancela|voltar|limpar|nenhum|outro|trocar|esquece|apagar|nao e ele|nao)$/i.test(cleanText);
       if (isCancelCmd) {
         handleCancelSelection();
         return;
@@ -489,45 +651,49 @@ export default function VoiceAttendanceScanner({
     // 2. If multiple candidates are shown and waiting for choice (e.g. "1", "2", "primeiro", "segundo")
     if (currentCandidates.length > 1) {
       if (/\b(1|primeiro|primeira|opcao um|o primeiro)\b/i.test(cleanText)) {
-        const chosen = currentCandidates[0].athlete;
-        setMatchedAthlete(chosen);
+        const chosen = currentCandidates[0];
+        setMatchedAthlete(chosen.athlete);
+        setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.name}. Diga OK para confirmar presença.`);
+        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
       if (/\b(2|segundo|segunda|opcao dois|o segundo)\b/i.test(cleanText) && currentCandidates[1]) {
-        const chosen = currentCandidates[1].athlete;
-        setMatchedAthlete(chosen);
+        const chosen = currentCandidates[1];
+        setMatchedAthlete(chosen.athlete);
+        setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.name}. Diga OK para confirmar presença.`);
+        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
       if (/\b(3|terceiro|terceira|opcao tres|o terceiro)\b/i.test(cleanText) && currentCandidates[2]) {
-        const chosen = currentCandidates[2].athlete;
-        setMatchedAthlete(chosen);
+        const chosen = currentCandidates[2];
+        setMatchedAthlete(chosen.athlete);
+        setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.name}. Diga OK para confirmar presença.`);
+        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
     }
 
-    // 3. Search for athlete by name / nickname / jersey
+    // 3. Search for athlete by name / nickname / jersey / full name
     // Filter out lone control words when no card is active
     const isControlWord = /^(ok|okay|sim|nao|cancelar|cancela|limpar|ajuda|teste|chamada|presenca|fala|falta)$/i.test(cleanText);
     if (isControlWord && !currentMatched) {
       return;
     }
 
-    // Strip generic filler spoken phrases: "presenca do", "marcar presenca de", "atleta", "aluno", "por favor"
+    // Strip generic conversational / filler spoken phrases:
+    // e.g. "presenca do", "marcar presenca de", "atleta", "aluno", "por favor", "não é o", "troca pra"
     let searchTarget = cleanText
-      .replace(/\b(marcar|marca|presenca|chamada|aluno|atleta|por favor|confirma|chama|coloca|bota|fala|de|da|do|dos|das|pro|pra)\b/g, ' ')
+      .replace(/\b(marcar|marca|presenca|chamada|aluno|atleta|por favor|confirma|confirmar|chama|coloca|bota|fala|troca|trocar|muda|mudar|nao e o|nao e a|e o|e a|pro|pra)\b/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    // If searchTarget became empty or single letter (unless it's a number), check original cleanText
+    // If searchTarget became empty or single letter, fallback to cleanText if valid
     if (!searchTarget || searchTarget.length < 2) {
       if (cleanText.length >= 2 && !isControlWord) {
         searchTarget = cleanText;
@@ -536,38 +702,85 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // Score all eligible athletes
+    // Score all eligible athletes with high-precision full-name engine
     const pool = eligibleAthletes.length > 0 ? eligibleAthletes : athletes;
-    const scored = pool.map(a => ({
-      athlete: a,
-      score: scoreAthleteMatch(a, searchTarget)
-    })).filter(item => item.score >= 65);
+    const scored: CandidateMatch[] = pool.map(a => {
+      const res = scoreAthleteMatch(a, searchTarget);
+      return {
+        athlete: a,
+        score: res.score,
+        reason: res.reason
+      };
+    }).filter(item => item.score >= 68);
 
     scored.sort((a, b) => b.score - a.score);
 
     if (scored.length > 0) {
       const topScore = scored[0].score;
-      // If there are multiple close matches (e.g. score >= 75 and within 12 points)
-      const closeMatches = scored.filter(s => s.score >= 70 && (topScore - s.score) <= 12);
+      // Close matches threshold: within 10 points and at least score 72
+      const closeMatches = scored.filter(s => s.score >= 72 && (topScore - s.score) <= 10);
 
+      // If a card is currently showing:
+      if (currentMatched) {
+        const best = scored[0];
+        // If the best match is a DIFFERENT athlete with high confidence (score >= 72)
+        if (best.athlete.id !== currentMatched.id && best.score >= 72) {
+          setMatchedAthlete(best.athlete);
+          setMatchedReason(best.reason);
+          setCandidateMatches(closeMatches.length > 1 ? closeMatches.slice(0, 3) : []);
+          playChime('match');
+          const displayName = best.athlete.nickname || best.athlete.name;
+          speakText(`Atleta alterado para ${displayName}! Diga OK para confirmar.`);
+          setLastActionMessage({
+            text: `Atleta alterado: ${best.athlete.name} (${best.reason})`,
+            type: 'info'
+          });
+          return;
+        }
+
+        // If it's the SAME athlete but with updated/confirmed full name
+        if (best.athlete.id === currentMatched.id) {
+          setMatchedReason(best.reason);
+          if (closeMatches.length <= 1) {
+            setCandidateMatches([]);
+          }
+          return;
+        }
+
+        // Otherwise keep current card and prompt
+        return;
+      }
+
+      // No card currently showing:
       if (closeMatches.length > 1) {
         setCandidateMatches(closeMatches.slice(0, 3));
         setMatchedAthlete(closeMatches[0].athlete);
+        setMatchedReason(closeMatches[0].reason);
         playChime('match');
-        speakText(`Encontrei ${closeMatches.length} atletas. Diga OK para ${closeMatches[0].athlete.nickname || closeMatches[0].athlete.name.split(' ')[0]}, ou diga o número.`);
+        const first = closeMatches[0].athlete;
+        speakText(`Encontrei ${closeMatches.length} atletas. Diga OK para ${first.nickname || first.name}, ou diga o sobrenome ou número.`);
+        setLastActionMessage({
+          text: `${closeMatches.length} atletas encontrados. Diga OK ou o número.`,
+          type: 'info'
+        });
       } else {
-        const best = scored[0].athlete;
-        setMatchedAthlete(best);
+        const best = scored[0];
+        setMatchedAthlete(best.athlete);
+        setMatchedReason(best.reason);
         setCandidateMatches([]);
         playChime('match');
-        const displayName = best.nickname || best.name.split(' ')[0];
+        const displayName = best.athlete.nickname || best.athlete.name;
         speakText(`${displayName}! Diga OK para confirmar.`);
+        setLastActionMessage({
+          text: `Encontrado: ${best.athlete.name} (${best.reason})`,
+          type: 'success'
+        });
       }
     } else {
       // No match found
       if (!isFromInterim && cleanText.length >= 3 && !isControlWord) {
         setLastActionMessage({
-          text: `Nenhum atleta encontrado para "${rawText}". Tente falar o primeiro nome ou apelido.`,
+          text: `Nenhum atleta encontrado para "${rawText}". Tente falar o nome completo ou apelido.`,
           type: 'warn'
         });
       }
@@ -648,9 +861,9 @@ export default function VoiceAttendanceScanner({
         setInterimTranscript(cleanInterim);
         setIsSpeechDetected(true);
 
-        // Immediate check for fast command response ("OK", "Sim", "Cancelar", "Falta", "1", "2")
+        // Immediate check for fast command response ("OK", "Sim", "Cancelar", "Falta", "1", "2", "3")
         const normInterim = normalizePortuguese(cleanInterim);
-        const isFastCmd = /\b(ok|okay|o k|sim|confirma|confirmar|falta|cancelar|cancela|trocar|1|2|primeiro|segundo)\b/i.test(normInterim);
+        const isFastCmd = /\b(ok|okay|o k|sim|confirma|confirmar|falta|cancelar|cancela|trocar|1|2|3|primeiro|segundo|terceiro)\b/i.test(normInterim);
 
         if (isFastCmd && (matchedAthleteRef.current || candidateMatchesRef.current.length > 1)) {
           processVoiceCommandRef.current(cleanInterim, false);
@@ -658,13 +871,18 @@ export default function VoiceAttendanceScanner({
           return;
         }
 
-        // Debounce interim name recognition: if user spoke a name and pauses for 500ms, process it even before Chrome fires isFinal!
+        // If user spoke 2 or more words (e.g. "Lucas Machado", "Lucas Miranda", "João Lucas"),
+        // debounce at 450ms. If only 1 word (e.g. "Lucas"), debounce at 950ms so the user
+        // has enough time to speak the middle name or surname before interim matching runs!
+        const tokens = getNameTokens(normInterim);
+        const debounceDelay = tokens.length >= 2 ? 450 : 950;
+
         if (interimDebounceRef.current) clearTimeout(interimDebounceRef.current);
         interimDebounceRef.current = setTimeout(() => {
-          if (cleanInterim && !matchedAthleteRef.current) {
+          if (cleanInterim) {
             processVoiceCommandRef.current(cleanInterim, true);
           }
-        }, 500);
+        }, debounceDelay);
       }
 
       if (cleanFinal) {
@@ -928,7 +1146,7 @@ export default function VoiceAttendanceScanner({
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
                 <strong className="text-white block font-bold mb-1">1. Falar Nome do Aluno</strong>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Ex: <span className="text-amber-300 font-bold">"Gabriel"</span>, <span className="text-amber-300 font-bold">"Lucas"</span>, <span className="text-amber-300 font-bold">"Arthur"</span>, ou pelo apelido.
+                  Fale o nome completo ou primeiro nome + sobrenome (ex: <span className="text-amber-300 font-bold">"Lucas Machado"</span>, <span className="text-amber-300 font-bold">"Lucas Miranda"</span>, <span className="text-amber-300 font-bold">"João Lucas"</span>). O sistema tolera pequenas variações ou erros de fala (ex: <span className="text-amber-300 font-bold">"Luas Machado"</span>).
                 </p>
               </div>
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
@@ -940,7 +1158,7 @@ export default function VoiceAttendanceScanner({
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
                 <strong className="text-rose-400 block font-bold mb-1">3. Cancelar ou Trocar</strong>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Diga: <span className="text-rose-300 font-bold">"Cancelar"</span>, <span className="text-rose-300 font-bold">"Trocar"</span> ou simplesmente fale o nome de outro atleta.
+                  Diga: <span className="text-rose-300 font-bold">"Cancelar"</span>, <span className="text-rose-300 font-bold">"Trocar"</span> ou simplesmente fale o nome correto do outro atleta que o card troca na hora.
                 </p>
               </div>
             </div>
@@ -1127,6 +1345,12 @@ export default function VoiceAttendanceScanner({
                             {matchedAthlete.modality}
                           </span>
                         )}
+                        {matchedReason && (
+                          <span className="px-2.5 py-0.5 bg-amber-500/20 border border-amber-400/40 rounded-lg text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
+                            <Sparkles size={11} className="text-amber-400" />
+                            {matchedReason}
+                          </span>
+                        )}
                       </div>
 
                       <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight truncate">
@@ -1264,6 +1488,7 @@ export default function VoiceAttendanceScanner({
                     type="button"
                     onClick={() => {
                       setMatchedAthlete(cand.athlete);
+                      setMatchedReason(cand.reason);
                       setCandidateMatches([]);
                       playChime('match');
                     }}
@@ -1279,8 +1504,15 @@ export default function VoiceAttendanceScanner({
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold uppercase truncate">{cand.athlete.name}</p>
-                      <p className="text-[10px] text-zinc-400">
-                        {cand.athlete.nickname ? `"${cand.athlete.nickname}" • ` : ''}{getSubCategory(cand.athlete.birth_date)}
+                      <p className="text-[10px] text-zinc-400 flex items-center gap-1.5 flex-wrap">
+                        {cand.reason && (
+                          <span className="text-amber-400 font-bold bg-amber-500/10 px-1 rounded">
+                            {cand.reason}
+                          </span>
+                        )}
+                        <span>
+                          {cand.athlete.nickname ? `"${cand.athlete.nickname}" • ` : ''}{getSubCategory(cand.athlete.birth_date)}
+                        </span>
                       </p>
                     </div>
                     {isAthletePresent(cand.athlete.id) && (
@@ -1293,34 +1525,63 @@ export default function VoiceAttendanceScanner({
           )}
 
           {/* Fallback Simulation Input Box: Enables testing and usage without mic */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0 flex items-center gap-1">
-              <Search size={12} /> Digitar / Testar Comando:
-            </span>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (simulationInput.trim()) {
-                  processVoiceCommand(simulationInput.trim());
-                  setSimulationInput('');
-                }
-              }}
-              className="flex-1 flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={simulationInput}
-                onChange={(e) => setSimulationInput(e.target.value)}
-                placeholder="Digite o nome de um atleta ou 'OK' e tecle Enter..."
-                className="flex-1 bg-black border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white uppercase focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition-all cursor-pointer shrink-0"
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-3 flex flex-col space-y-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0 flex items-center gap-1">
+                <Search size={12} /> Digitar / Testar Comando:
+              </span>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (simulationInput.trim()) {
+                    processVoiceCommand(simulationInput.trim());
+                    setSimulationInput('');
+                  }
+                }}
+                className="flex-1 flex items-center gap-2"
               >
-                Enviar
-              </button>
-            </form>
+                <input
+                  type="text"
+                  value={simulationInput}
+                  onChange={(e) => setSimulationInput(e.target.value)}
+                  placeholder="Digite o nome de um atleta ou 'OK' e tecle Enter..."
+                  className="flex-1 bg-black border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white uppercase focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition-all cursor-pointer shrink-0"
+                >
+                  Enviar
+                </button>
+              </form>
+            </div>
+
+            {/* Quick Test Chips for Coach Verification */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px]">
+              <span className="text-zinc-500 font-bold uppercase">Testar:</span>
+              {[
+                'Lucas Machado',
+                'Luas Machado',
+                'Lucas Henrique Miranda Machado',
+                'Lucas Miranda',
+                'João Lucas',
+                'Lucas',
+                'OK',
+                'Cancelar'
+              ].map((testPhrase) => (
+                <button
+                  key={testPhrase}
+                  type="button"
+                  onClick={() => {
+                    setSimulationInput(testPhrase);
+                    processVoiceCommand(testPhrase);
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-zinc-800/80 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700/80 hover:border-amber-500/40 text-[10px] font-medium transition-colors cursor-pointer"
+                >
+                  "{testPhrase}"
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
