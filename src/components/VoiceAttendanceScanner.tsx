@@ -489,24 +489,30 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // 2. Nickname exact match
-    if (nicknameNorm) {
-      const nickTokens = getNameTokens(nicknameNorm);
-      const spokenTokens = getNameTokens(spokenClean);
-      if (spokenClean === nicknameNorm || spokenPhonetic === phoneticNormalize(nicknameNorm)) {
-        return { score: 99, reason: `Apelido "${athlete.nickname}"` };
-      }
-      if (spokenTokens.length >= 1 && nickTokens.some(nt => spokenTokens.includes(nt))) {
-        return { score: 94, reason: `Apelido "${athlete.nickname}"` };
-      }
-    }
-
-    // 3. Name tokens analysis
+    // 2. Name tokens analysis
     const spokenTokens = getNameTokens(spokenClean);
     const nameTokens = getNameTokens(nameNorm);
 
     if (spokenTokens.length === 0 || nameTokens.length === 0) {
       return { score: 0, reason: '' };
+    }
+
+    // 3. Distinctive Nickname match (e.g. "Lucão", "Almeida", "Napoleão", "Simao", "Godinho", "Izu")
+    // CRITICAL SURGICAL RULE:
+    // If an athlete's nickname is merely one of their own given names or a common given name
+    // (e.g. "Lucas" for "João Lucas", or "João" for "João Lucas", or "Pedro" for "Pedro Lucas"),
+    // it is NOT a distinctive nickname and MUST NOT be used to falsely match!
+    const isNicknameDuplicateOfGivenName = nameTokens.some(nt => nt === nicknameNorm || phoneticNormalize(nt) === phoneticNormalize(nicknameNorm));
+    const isGenericNameNickname = COMPOUND_GIVEN_NAMES.has(nicknameNorm);
+    const isDistinctiveNickname = Boolean(nicknameNorm && !isNicknameDuplicateOfGivenName && !isGenericNameNickname);
+
+    if (isDistinctiveNickname) {
+      if (spokenClean === nicknameNorm || spokenPhonetic === phoneticNormalize(nicknameNorm)) {
+        return { score: 99, reason: `Apelido "${athlete.nickname}"` };
+      }
+      if (spokenTokens.length === 1 && spokenTokens[0] === nicknameNorm) {
+        return { score: 96, reason: `Apelido "${athlete.nickname}"` };
+      }
     }
 
     // Exact full name match
@@ -563,8 +569,8 @@ export default function VoiceAttendanceScanner({
         };
       }
 
-      // Check if word matches Nickname
-      if (nicknameNorm && wordSimilarity(singleWord, nicknameNorm) >= 0.75) {
+      // Check if word matches Distinctive Nickname
+      if (isDistinctiveNickname && wordSimilarity(singleWord, nicknameNorm) >= 0.75) {
         return {
           score: 92,
           reason: `Apelido "${athlete.nickname}"`
