@@ -142,6 +142,9 @@ function wordSimilarity(spokenWord: string, nameWord: string): number {
     const dist = levenshteinDistance(spokenWord, nameWord);
     if (dist === 1) return 0.88; // e.g. "luas" -> "lucas"
     if (dist === 2 && minLen >= 6) return 0.76;
+  } else if (minLen === 3) {
+    const dist = levenshteinDistance(spokenWord, nameWord);
+    if (dist === 1) return 0.82; // e.g. short nicknames or names
   }
 
   // Prefix matching (e.g. "guilherm" vs "guilherme")
@@ -178,7 +181,9 @@ export default function VoiceAttendanceScanner({
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [micPermissionDenied, setMicPermissionDenied] = useState<boolean>(false);
   const [soundFeedback, setSoundFeedback] = useState<boolean>(true);
+  const [readyChimeEnabled, setReadyChimeEnabled] = useState<boolean>(true);
   const [voiceSynthesisFeedback, setVoiceSynthesisFeedback] = useState<boolean>(true);
+  const [isSystemSpeaking, setIsSystemSpeaking] = useState<boolean>(false);
   const [showHelp, setShowHelp] = useState<boolean>(false);
 
   // Recognition / Card states
@@ -217,15 +222,42 @@ export default function VoiceAttendanceScanner({
   }, [athletes]);
 
   // Audio chimes
-  const playChime = useCallback((type: 'success' | 'match' | 'cancel' | 'error') => {
+  const playChime = useCallback((type: 'success' | 'match' | 'cancel' | 'error' | 'ready') => {
     if (!soundFeedback) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
       const now = ctx.currentTime;
 
-      if (type === 'match') {
+      if (type === 'ready') {
+        if (!readyChimeEnabled) return;
+        // Crisp, friendly, energetic dual-tone "PODE FALAR" alert: A5 (880Hz) -> D6 (1174.66Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0.18, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.12);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1174.66, now + 0.07);
+        gain2.gain.setValueAtTime(0.22, now + 0.07);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.07);
+        osc2.stop(now + 0.22);
+      } else if (type === 'match') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -279,7 +311,7 @@ export default function VoiceAttendanceScanner({
     } catch (e) {
       console.warn('Audio chime failed', e);
     }
-  }, [soundFeedback]);
+  }, [soundFeedback, readyChimeEnabled]);
 
   // Voice synthesis feedback (Portuguese)
   const speakText = useCallback((text: string) => {
@@ -287,6 +319,7 @@ export default function VoiceAttendanceScanner({
     try {
       window.speechSynthesis.cancel();
       isSystemSpeakingRef.current = true;
+      setIsSystemSpeaking(true);
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
       utterance.rate = 1.15; // natural tempo
@@ -294,17 +327,22 @@ export default function VoiceAttendanceScanner({
       utterance.onend = () => {
         setTimeout(() => {
           isSystemSpeakingRef.current = false;
-        }, 400);
+          setIsSystemSpeaking(false);
+          // Play ready alert chime so user knows mic is ready for the next command!
+          playChime('ready');
+        }, 300);
       };
       utterance.onerror = () => {
         isSystemSpeakingRef.current = false;
+        setIsSystemSpeaking(false);
       };
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       isSystemSpeakingRef.current = false;
+      setIsSystemSpeaking(false);
       console.warn('Speech synthesis failed', e);
     }
-  }, [voiceSynthesisFeedback]);
+  }, [voiceSynthesisFeedback, playChime]);
 
   // Check if athlete is already present in this training/event/date
   const isAthletePresent = useCallback((athleteId: string) => {
@@ -415,7 +453,14 @@ export default function VoiceAttendanceScanner({
     });
   }, [playChime]);
 
-  // Evaluate candidate matching score for an athlete given spoken text with full-name precision
+  // Brazilian common compound given names that should never be treated as family surnames when spoken alone
+  const COMPOUND_GIVEN_NAMES = useMemo(() => new Set([
+    'lucas', 'pedro', 'gabriel', 'henrique', 'victor', 'vitor', 'miguel', 
+    'arthur', 'artur', 'eduardo', 'felipe', 'guilherme', 'davi', 'lucca', 
+    'luca', 'mateus', 'matheus', 'clara', 'eduarda', 'maria', 'ana', 'joao'
+  ]), []);
+
+  // Surgical candidate matching score for an athlete given spoken text
   const scoreAthleteMatch = useCallback((athlete: Athlete, spokenText: string): { score: number; reason: string } => {
     const spokenClean = normalizePortuguese(spokenText);
     const nameNorm = normalizePortuguese(athlete.name);
@@ -424,7 +469,7 @@ export default function VoiceAttendanceScanner({
     const namePhonetic = phoneticNormalize(athlete.name);
     const jersey = (athlete.jersey_number || '').trim();
 
-    // 1. Jersey number
+    // 1. Jersey number mention
     if (jersey) {
       const jerseyPatterns = [
         `camisa ${jersey}`,
@@ -444,7 +489,7 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // 2. Nickname matches
+    // 2. Nickname exact match
     if (nicknameNorm) {
       const nickTokens = getNameTokens(nicknameNorm);
       const spokenTokens = getNameTokens(spokenClean);
@@ -504,98 +549,125 @@ export default function VoiceAttendanceScanner({
     const spokenCoverage = matchedSpokenCount / spokenTokens.length;
     const avgSimilarity = matchedSpokenCount > 0 ? similaritySum / matchedSpokenCount : 0;
 
-    // CRITICAL: Spoken Coverage Penalty
-    // If user spoke 2 or more words (e.g. "João Lucas", "Lucas Machado", "Lucas Miranda"),
-    // but the athlete only matches 1 of the spoken words (e.g. only "Lucas"),
-    // spokenCoverage is <= 50%. This athlete MUST NOT match this compound query!
-    // This strictly prevents "Lucas Machado" from ever matching "João Lucas", and vice versa!
-    if (spokenTokens.length >= 2 && spokenCoverage < 0.65) {
-      return { score: 35, reason: 'Apenas parte do nome' };
-    }
-
-    // Check which parts of the athlete's name were matched
-    const matchedFirstName = matchedNameIndices.includes(0);
-    const matchedLastName = matchedNameIndices.includes(nameTokens.length - 1);
-    const matchedMiddleName = matchedNameIndices.some(idx => idx > 0 && idx < nameTokens.length - 1);
-
-    // Check if relative word order is preserved
-    let isOrderPreserved = true;
-    for (let i = 1; i < matchedNameIndices.length; i++) {
-      if (matchedNameIndices[i] < matchedNameIndices[i - 1]) {
-        isOrderPreserved = false;
-        break;
-      }
-    }
-
-    // CASE A: User spoke 1 word (e.g. "Lucas", "Machado", "Luas")
+    // CASE A: User spoke only 1 word (e.g. "Lucas", "João", "Machado", "Luas")
     if (spokenTokens.length === 1) {
-      if (matchedFirstName) {
-        // Spoken word matches FIRST NAME (e.g. "Lucas" in "Lucas Henrique Miranda Machado")
-        const base = 84;
+      const singleWord = spokenTokens[0];
+
+      // Check if word matches FIRST NAME (Index 0)
+      if (matchedNameIndices.includes(0)) {
+        const base = 88;
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
           reason: hadFuzzyMatch ? 'Primeiro Nome Aprox.' : 'Primeiro Nome' 
         };
       }
-      if (matchedLastName) {
-        // Spoken word matches LAST NAME (e.g. "Machado")
-        const base = 78;
+
+      // Check if word matches Nickname
+      if (nicknameNorm && wordSimilarity(singleWord, nicknameNorm) >= 0.75) {
+        return {
+          score: 92,
+          reason: `Apelido "${athlete.nickname}"`
+        };
+      }
+
+      // If the spoken word did NOT match the first name or nickname:
+      // Could it be a family surname (e.g. "Machado", "Miranda", "Ferreira", "Silva")?
+      // CRITICAL SURGICAL RULE:
+      // If the word is a common given name (e.g. "lucas", "pedro", "gabriel", "joao"), but this athlete's
+      // first name is something else (e.g. "João Lucas", "Pedro Lucas"), this athlete MUST NOT MATCH!
+      // When a coach calls "Lucas", they are NEVER calling "João Lucas"!
+      if (COMPOUND_GIVEN_NAMES.has(singleWord)) {
+        return { score: 0, reason: '' };
+      }
+
+      // It is a genuine family surname:
+      // Check last name:
+      if (matchedNameIndices.includes(nameTokens.length - 1)) {
+        const base = 90;
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
-          reason: hadFuzzyMatch ? 'Sobrenome Aprox.' : 'Sobrenome' 
+          reason: hadFuzzyMatch ? 'Sobrenome Aprox.' : 'Sobrenome de Família' 
         };
       }
-      if (matchedMiddleName) {
-        // Spoken word matches MIDDLE NAME (e.g. "Lucas" in "João Lucas Silva" or "Miranda" in "Lucas Henrique Miranda Machado")
-        // 68 is intentionally lower than first name (84) and last name (78)!
-        // Thus, calling "Lucas" prioritizes "Lucas Henrique..." over "João Lucas"!
-        const base = 68;
+
+      // Check middle surname:
+      if (matchedNameIndices.some(idx => idx > 0 && idx < nameTokens.length - 1)) {
+        const base = 75;
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
-          reason: hadFuzzyMatch ? 'Nome do Meio Aprox.' : 'Nome do Meio' 
+          reason: hadFuzzyMatch ? 'Sobrenome do Meio Aprox.' : 'Sobrenome Intermediário' 
         };
       }
+
+      return { score: 0, reason: '' };
     }
 
     // CASE B: User spoke 2 or more words (e.g. "Lucas Machado", "Lucas Miranda", "Lucas Henrique Miranda Machado", "Luas Machado", "João Lucas")
-    if (spokenTokens.length >= 2 && spokenCoverage >= 0.65) {
-      let baseScore = 88;
-      let reason = 'Nome e Sobrenome';
+    // CRITICAL SURGICAL RULE:
+    // If the user spoke multiple words, EVERY SINGLE SPOKEN WORD MUST MATCH A DISTINCT TOKEN in the athlete's name!
+    // If ANY spoken word is missing (coverage < 1.0), this athlete is eliminated (Score: 0)!
+    // Example: user said "João Lucas". "Lucas Machado" has no "João" -> Score 0!
+    // Example: user said "Lucas Machado". "João Lucas" has no "Machado" -> Score 0!
+    if (spokenTokens.length >= 2) {
+      if (spokenCoverage < 1.0) {
+        return { score: 0, reason: '' };
+      }
 
-      // All words of athlete's name matched
+      // Check order
+      let isOrderPreserved = true;
+      for (let i = 1; i < matchedNameIndices.length; i++) {
+        if (matchedNameIndices[i] < matchedNameIndices[i - 1]) {
+          isOrderPreserved = false;
+          break;
+        }
+      }
+
+      let baseScore = 80;
+      let reason = 'Correspondência Parcial';
+
+      const matchedFirstName = matchedNameIndices.includes(0);
+      const matchedLastName = matchedNameIndices.includes(nameTokens.length - 1);
+      const matchedMiddleName = matchedNameIndices.some(idx => idx > 0 && idx < nameTokens.length - 1);
+      const athleteCoverage = matchedSpokenCount / nameTokens.length;
+
+      // 1. EXACT FULL NAME MATCH: All tokens of the athlete's name were spoken!
+      // (e.g. "João Lucas" -> João Lucas, "Lucas Miranda" -> Lucas Miranda, "Lucas Henrique Miranda Machado")
       if (matchedSpokenCount === nameTokens.length && isOrderPreserved) {
-        baseScore = 98;
-        reason = hadFuzzyMatch ? 'Nome Completo Aprox.' : 'Nome Completo';
+        baseScore = 100;
+        reason = hadFuzzyMatch ? 'Nome Completo Aprox.' : 'Nome Completo Exato';
       }
-      // First Name + Last Name (e.g. "Lucas Machado" for "Lucas Henrique Miranda Machado")
+      // 2. First Name + Primary Family Last Name (e.g. "Lucas Machado" or "Luas Machado" for "Lucas Henrique Miranda Machado")
       else if (matchedFirstName && matchedLastName) {
-        baseScore = 96;
-        reason = hadFuzzyMatch ? 'Nome + Sobrenome Aprox.' : 'Nome + Último Sobrenome';
+        baseScore = 98;
+        reason = hadFuzzyMatch ? 'Nome + Sobrenome Aprox.' : 'Nome + Sobrenome de Família';
       }
-      // First Name + Middle Name (e.g. "Lucas Miranda" or "Lucas Henrique")
-      else if (matchedFirstName && matchedMiddleName) {
-        baseScore = 94;
-        reason = hadFuzzyMatch ? 'Nome + Sobrenome do Meio Aprox.' : 'Nome + Sobrenome do Meio';
-      }
-      // First two names in sequence (e.g. "João Lucas" or "Lucas Henrique")
+      // 3. First two names in sequence when athlete has more tokens (e.g. "Lucas Henrique" for "Lucas Henrique Miranda Machado")
       else if (matchedNameIndices.length >= 2 && matchedNameIndices[0] === 0 && matchedNameIndices[1] === 1) {
-        baseScore = 96;
+        baseScore = 92;
         reason = hadFuzzyMatch ? 'Dois Primeiros Nomes Aprox.' : 'Dois Primeiros Nomes';
       }
-      // Middle + Last name
+      // 4. First Name + Middle Name (e.g. "Lucas Miranda" for "Lucas Henrique Miranda Machado")
+      // CRUCIAL: The athlete's primary family last name ("Machado") was NOT spoken.
+      // Score is kept at 82 so that an athlete whose FULL name is literally "Lucas Miranda" (Score 100)
+      // wins unambiguously without creating a false homonym tie!
+      else if (matchedFirstName && matchedMiddleName) {
+        baseScore = 82;
+        reason = hadFuzzyMatch ? 'Nome + Sobrenome Intermediário Aprox.' : 'Nome + Sobrenome do Meio';
+      }
+      // 5. Middle + Last name (e.g. "Miranda Machado")
       else if (matchedMiddleName && matchedLastName) {
-        baseScore = 92;
+        baseScore = 86;
         reason = hadFuzzyMatch ? 'Sobrenomes Aprox.' : 'Sobrenomes';
       } else {
-        baseScore = 88;
-        reason = 'Correspondência por Voz';
+        baseScore = 80;
+        reason = 'Correspondência Parcial';
       }
 
-      if (isOrderPreserved) {
-        baseScore += 2;
+      if (isOrderPreserved && baseScore < 100) {
+        baseScore = Math.min(99, baseScore + 2);
       }
 
       const finalScore = Math.min(100, Math.round(baseScore * avgSimilarity));
@@ -603,7 +675,7 @@ export default function VoiceAttendanceScanner({
     }
 
     return { score: 0, reason: '' };
-  }, []);
+  }, [COMPOUND_GIVEN_NAMES]);
 
   // Process any speech command (spoken or simulated)
   const processVoiceCommand = useCallback((rawText: string, isFromInterim = false) => {
@@ -640,7 +712,6 @@ export default function VoiceAttendanceScanner({
       }
 
       // Check cancel commands: "cancelar", "cancela", "voltar", "limpar", "trocar", "nenhum", "outro", "esquece"
-      // Only pure cancel command, so conversational phrases like "não, é o Lucas Machado" won't be trapped
       const isCancelCmd = /^(cancelar|cancela|voltar|limpar|nenhum|outro|trocar|esquece|apagar|nao e ele|nao)$/i.test(cleanText);
       if (isCancelCmd) {
         handleCancelSelection();
@@ -648,33 +719,52 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // 2. If multiple candidates are shown and waiting for choice (e.g. "1", "2", "primeiro", "segundo")
+    // 2. If multiple candidates are shown and waiting for choice
     if (currentCandidates.length > 1) {
-      if (/\b(1|primeiro|primeira|opcao um|o primeiro)\b/i.test(cleanText)) {
+      // Check number selection: "1", "2", "3", "primeiro", "segundo", "terceiro"
+      if (/\b(1|primeiro|primeira|opcao um|o primeiro|um)\b/i.test(cleanText)) {
         const chosen = currentCandidates[0];
         setMatchedAthlete(chosen.athlete);
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
-      if (/\b(2|segundo|segunda|opcao dois|o segundo)\b/i.test(cleanText) && currentCandidates[1]) {
+      if (/\b(2|segundo|segunda|opcao dois|o segundo|dois)\b/i.test(cleanText) && currentCandidates[1]) {
         const chosen = currentCandidates[1];
         setMatchedAthlete(chosen.athlete);
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
-      if (/\b(3|terceiro|terceira|opcao tres|o terceiro)\b/i.test(cleanText) && currentCandidates[2]) {
+      if (/\b(3|terceiro|terceira|opcao tres|o terceiro|tres)\b/i.test(cleanText) && currentCandidates[2]) {
         const chosen = currentCandidates[2];
         setMatchedAthlete(chosen.athlete);
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`Atleta ${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        return;
+      }
+
+      // Check if user spoke a distinguishing surname or name for one of the candidates (e.g. "Machado" or "Gabriel")
+      const candidateScored = currentCandidates.map(c => ({
+        candidate: c,
+        score: scoreAthleteMatch(c.athlete, cleanText).score
+      })).filter(cs => cs.score >= 70);
+
+      candidateScored.sort((a, b) => b.score - a.score);
+
+      if (candidateScored.length === 1 || (candidateScored.length > 1 && candidateScored[0].score > candidateScored[1].score + 10)) {
+        const chosen = candidateScored[0].candidate;
+        setMatchedAthlete(chosen.athlete);
+        setMatchedReason(chosen.reason);
+        setCandidateMatches([]);
+        playChime('match');
+        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
         return;
       }
     }
@@ -687,7 +777,6 @@ export default function VoiceAttendanceScanner({
     }
 
     // Strip generic conversational / filler spoken phrases:
-    // e.g. "presenca do", "marcar presenca de", "atleta", "aluno", "por favor", "não é o", "troca pra"
     let searchTarget = cleanText
       .replace(/\b(marcar|marca|presenca|chamada|aluno|atleta|por favor|confirma|confirmar|chama|coloca|bota|fala|troca|trocar|muda|mudar|nao e o|nao e a|e o|e a|pro|pra)\b/g, ' ')
       .replace(/\s+/g, ' ')
@@ -702,7 +791,7 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // Score all eligible athletes with high-precision full-name engine
+    // Score all eligible athletes with surgical precision
     const pool = eligibleAthletes.length > 0 ? eligibleAthletes : athletes;
     const scored: CandidateMatch[] = pool.map(a => {
       const res = scoreAthleteMatch(a, searchTarget);
@@ -711,23 +800,36 @@ export default function VoiceAttendanceScanner({
         score: res.score,
         reason: res.reason
       };
-    }).filter(item => item.score >= 68);
+    }).filter(item => item.score >= 70);
 
     scored.sort((a, b) => b.score - a.score);
 
     if (scored.length > 0) {
       const topScore = scored[0].score;
-      // Close matches threshold: within 10 points and at least score 72
-      const closeMatches = scored.filter(s => s.score >= 72 && (topScore - s.score) <= 10);
+      // Close matches threshold: if top score is high (>= 92), only consider athletes within 5 points
+      const tieThreshold = topScore >= 92 ? 5 : 8;
+      const closeMatches = scored.filter(s => s.score >= 75 && (topScore - s.score) <= tieThreshold);
 
       // If a card is currently showing:
       if (currentMatched) {
         const best = scored[0];
-        // If the best match is a DIFFERENT athlete with high confidence (score >= 72)
-        if (best.athlete.id !== currentMatched.id && best.score >= 72) {
+        // If the best match is a DIFFERENT athlete with high confidence (score >= 75)
+        if (best.athlete.id !== currentMatched.id && best.score >= 75) {
+          if (closeMatches.length > 1) {
+            setCandidateMatches(closeMatches.slice(0, 4));
+            setMatchedAthlete(null);
+            setMatchedReason('');
+            playChime('match');
+            speakText(`Encontrei ${closeMatches.length} atletas. Diga o sobrenome ou o número.`);
+            setLastActionMessage({
+              text: `${closeMatches.length} atletas encontrados. Diga o sobrenome ou o número.`,
+              type: 'warn'
+            });
+            return;
+          }
           setMatchedAthlete(best.athlete);
           setMatchedReason(best.reason);
-          setCandidateMatches(closeMatches.length > 1 ? closeMatches.slice(0, 3) : []);
+          setCandidateMatches([]);
           playChime('match');
           const displayName = best.athlete.nickname || best.athlete.name;
           speakText(`Atleta alterado para ${displayName}! Diga OK para confirmar.`);
@@ -738,7 +840,7 @@ export default function VoiceAttendanceScanner({
           return;
         }
 
-        // If it's the SAME athlete but with updated/confirmed full name
+        // If it's the SAME athlete with updated/confirmed full name
         if (best.athlete.id === currentMatched.id) {
           setMatchedReason(best.reason);
           if (closeMatches.length <= 1) {
@@ -747,23 +849,26 @@ export default function VoiceAttendanceScanner({
           return;
         }
 
-        // Otherwise keep current card and prompt
         return;
       }
 
       // No card currently showing:
+      // CRITICAL SURGICAL LOGIC:
+      // If there are multiple close matches (e.g. multiple athletes called Lucas):
+      // DO NOT arbitrarily pick one as matchedAthlete! Leave matchedAthlete null and prompt for disambiguation!
       if (closeMatches.length > 1) {
-        setCandidateMatches(closeMatches.slice(0, 3));
-        setMatchedAthlete(closeMatches[0].athlete);
-        setMatchedReason(closeMatches[0].reason);
+        setCandidateMatches(closeMatches.slice(0, 4));
+        setMatchedAthlete(null); // ZERO GUESSWORK!
+        setMatchedReason('');
         playChime('match');
-        const first = closeMatches[0].athlete;
-        speakText(`Encontrei ${closeMatches.length} atletas. Diga OK para ${first.nickname || first.name}, ou diga o sobrenome ou número.`);
+        const candidateNames = closeMatches.map((c, i) => `${i + 1}: ${c.athlete.name}`).join(', ');
+        speakText(`Existem ${closeMatches.length} atletas com esse nome. Diga o sobrenome ou o número: ${candidateNames}`);
         setLastActionMessage({
-          text: `${closeMatches.length} atletas encontrados. Diga OK ou o número.`,
-          type: 'info'
+          text: `Atenção: ${closeMatches.length} atletas encontrados. Diga o sobrenome ou número para escolher.`,
+          type: 'warn'
         });
       } else {
+        // Single unambiguous winner!
         const best = scored[0];
         setMatchedAthlete(best.athlete);
         setMatchedReason(best.reason);
@@ -820,6 +925,10 @@ export default function VoiceAttendanceScanner({
       } catch (err: any) {
         // Recognition already started or transitioning
         isStartingRef.current = false;
+        if (shouldListenRef.current && !err.message?.includes('already started')) {
+          if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+          restartTimeoutRef.current = setTimeout(safeStart, 150);
+        }
       }
     };
 
@@ -834,7 +943,9 @@ export default function VoiceAttendanceScanner({
     };
 
     recognition.onspeechstart = () => {
-      setIsSpeechDetected(true);
+      if (!isSystemSpeakingRef.current) {
+        setIsSpeechDetected(true);
+      }
     };
 
     recognition.onspeechend = () => {
@@ -842,6 +953,11 @@ export default function VoiceAttendanceScanner({
     };
 
     recognition.onresult = (event: any) => {
+      // Discard audio events while the computer is reading aloud to avoid audio feedback echoes
+      if (isSystemSpeakingRef.current) {
+        return;
+      }
+
       let interim = '';
       let final = '';
 
@@ -861,28 +977,27 @@ export default function VoiceAttendanceScanner({
         setInterimTranscript(cleanInterim);
         setIsSpeechDetected(true);
 
-        // Immediate check for fast command response ("OK", "Sim", "Cancelar", "Falta", "1", "2", "3")
+        // Immediate check ONLY for fast single-syllable commands when a card is ALREADY showing or candidates are showing!
         const normInterim = normalizePortuguese(cleanInterim);
         const isFastCmd = /\b(ok|okay|o k|sim|confirma|confirmar|falta|cancelar|cancela|trocar|1|2|3|primeiro|segundo|terceiro)\b/i.test(normInterim);
 
         if (isFastCmd && (matchedAthleteRef.current || candidateMatchesRef.current.length > 1)) {
+          if (interimDebounceRef.current) clearTimeout(interimDebounceRef.current);
           processVoiceCommandRef.current(cleanInterim, false);
           setInterimTranscript('');
           return;
         }
 
-        // If user spoke 2 or more words (e.g. "Lucas Machado", "Lucas Miranda", "João Lucas"),
-        // debounce at 450ms. If only 1 word (e.g. "Lucas"), debounce at 950ms so the user
-        // has enough time to speak the middle name or surname before interim matching runs!
-        const tokens = getNameTokens(normInterim);
-        const debounceDelay = tokens.length >= 2 ? 450 : 950;
-
+        // For athlete names: DO NOT run search on interim results!
+        // Running on interim prematurely cuts off the speaker while they are speaking full or compound names
+        // like "Lucas Machado" or "João Lucas" or "Lucas Miranda".
+        // Instead, schedule a fallback search ONLY if 1600ms elapse with no final event:
         if (interimDebounceRef.current) clearTimeout(interimDebounceRef.current);
         interimDebounceRef.current = setTimeout(() => {
-          if (cleanInterim) {
-            processVoiceCommandRef.current(cleanInterim, true);
+          if (cleanInterim && !isSystemSpeakingRef.current) {
+            processVoiceCommandRef.current(cleanInterim, false);
           }
-        }, debounceDelay);
+        }, 1600);
       }
 
       if (cleanFinal) {
@@ -904,40 +1019,49 @@ export default function VoiceAttendanceScanner({
         setIsListening(false);
         toast.error('Permissão de microfone negada. Conceda acesso nas configurações do navegador.');
       } else if (err === 'no-speech') {
-        // Normal silence event, will auto restart cleanly on onend
+        // Normal silence event in Web Speech API, will auto restart smoothly on onend
       } else if (err === 'aborted') {
-        // Normal abort on pause
+        // Normal abort on pause or transition
       } else {
         console.warn('SpeechRecognition notice:', err);
       }
     };
 
     recognition.onend = () => {
-      setIsListening(false);
       isStartingRef.current = false;
       setIsSpeechDetected(false);
 
       // If component is active and mic wasn't manually paused or blocked, restart smoothly without tight looping
+      // CRUCIAL: DO NOT call setIsListening(false) here when shouldListenRef.current is true,
+      // because Chrome calls onend every 5s of silence, and toggling isListening makes the UI flicker!
       if (shouldListenRef.current) {
         if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = setTimeout(() => {
           safeStart();
-        }, 250);
+        }, 60);
+      } else {
+        setIsListening(false);
       }
     };
 
     // Initial start
     safeStart();
 
+    // Initial ready chime cue after scanner mounts
+    const initialChimeTimer = setTimeout(() => {
+      playChime('ready');
+    }, 450);
+
     return () => {
       shouldListenRef.current = false;
+      clearTimeout(initialChimeTimer);
       if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       if (interimDebounceRef.current) clearTimeout(interimDebounceRef.current);
       try {
         recognition.stop();
       } catch (e) {}
     };
-  }, []); // Run ONLY once on mount!
+  }, [playChime]); // Run ONLY once on mount!
 
   // Toggle listening manually (Pause / Resume)
   const toggleListening = () => {
@@ -955,10 +1079,12 @@ export default function VoiceAttendanceScanner({
     } else {
       shouldListenRef.current = true;
       setMicPermissionDenied(false);
+      setIsListening(true);
       try {
         recognitionRef.current.start();
       } catch (e) {}
-      toast.success('Microfone ouvindo novamente!');
+      playChime('ready');
+      toast.success('Microfone pronto! Pode falar.');
     }
   };
 
@@ -1073,6 +1199,16 @@ export default function VoiceAttendanceScanner({
 
           <button
             type="button"
+            onClick={() => playChime('ready')}
+            className="px-2.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-amber-400 hover:text-amber-300 border border-zinc-700/80 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Ouvir som do bip (aviso quando pode falar)"
+          >
+            <Volume2 size={15} />
+            <span className="hidden sm:inline">Ouvir Bip</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSoundFeedback(!soundFeedback)}
             className={cn(
               "p-2.5 rounded-xl border transition-all cursor-pointer",
@@ -1080,7 +1216,7 @@ export default function VoiceAttendanceScanner({
                 ? "bg-zinc-900 border-zinc-700 text-amber-400 hover:text-white" 
                 : "bg-zinc-900/60 border-zinc-800 text-zinc-600"
             )}
-            title={soundFeedback ? "Sons ativados (Bipes de sucesso)" : "Sons desativados"}
+            title={soundFeedback ? "Sons ativados (Bipes de sucesso e alerta)" : "Sons desativados"}
           >
             {soundFeedback ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
@@ -1192,6 +1328,119 @@ export default function VoiceAttendanceScanner({
           <strong>Aviso de Navegador:</strong> O reconhecimento de voz Web Speech API nativo funciona com maior estabilidade no Google Chrome, Microsoft Edge ou Safari. Você também pode digitar nomes e comandos no campo abaixo.
         </div>
       )}
+
+      {/* REAL-TIME SPEAK ALERT BANNER: ALERTING EXACTLY WHEN THE COACH CAN SPEAK */}
+      <div className="mb-6 relative z-10">
+        {isSystemSpeaking ? (
+          <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10 flex items-center justify-between gap-4 transition-all">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-black flex items-center justify-center shrink-0 shadow-md">
+                <Volume2 size={26} className="animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500 text-black">
+                    Aguarde
+                  </span>
+                  <h4 className="text-base font-black text-amber-300 uppercase tracking-wide">
+                    O Sistema Está Falando...
+                  </h4>
+                </div>
+                <p className="text-xs text-zinc-300 mt-0.5">
+                  Aguarde o som do <strong>"Bip"</strong> para falar seu próximo comando. O microfone será liberado assim que o sistema terminar!
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 hidden sm:inline-block">
+              🔊 Áudio ativo
+            </span>
+          </div>
+        ) : isListening ? (
+          <div className={cn(
+            "p-4 rounded-2xl border-2 shadow-lg transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+            isSpeechDetected 
+              ? "bg-indigo-950/40 border-indigo-500/60 shadow-indigo-500/10" 
+              : matchedAthlete
+                ? "bg-emerald-950/40 border-emerald-500/60 shadow-emerald-500/10"
+                : candidateMatches.length > 1
+                  ? "bg-amber-950/40 border-amber-500/60 shadow-amber-500/10"
+                  : "bg-emerald-950/30 border-emerald-500/40 shadow-emerald-500/10"
+          )}>
+            <div className="flex items-center gap-3.5">
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md transition-all",
+                isSpeechDetected 
+                  ? "bg-indigo-500 text-white animate-pulse" 
+                  : "bg-emerald-500 text-black ring-4 ring-emerald-500/20"
+              )}>
+                <Mic size={26} className={isSpeechDetected ? "animate-bounce" : ""} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={cn(
+                    "text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1.5 font-mono",
+                    isSpeechDetected ? "bg-indigo-500 text-white" : "bg-emerald-500 text-black font-sans font-black"
+                  )}>
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    {isSpeechDetected ? "Ouvindo Sua Voz..." : "PODE FALAR AGORA!"}
+                  </span>
+                  <h4 className="text-base font-black text-white uppercase tracking-wide">
+                    {matchedAthlete 
+                      ? "Aguardando confirmação de presença" 
+                      : candidateMatches.length > 1 
+                        ? "Desempate de homônimos encontrado" 
+                        : "Microfone Aberto • Pronto para Ouvir"}
+                  </h4>
+                </div>
+                <p className="text-xs text-zinc-300 mt-1">
+                  {matchedAthlete ? (
+                    <>Diga <strong className="text-emerald-400 uppercase font-black">"OK"</strong> ou <strong className="text-emerald-400 uppercase font-black">"SIM"</strong> para confirmar {matchedAthlete.name}, ou fale outro nome para trocar.</>
+                  ) : candidateMatches.length > 1 ? (
+                    <>Diga o <strong className="text-amber-400 font-black">Sobrenome</strong> (ex: "Machado", "Miranda") ou o <strong className="text-amber-400 font-black">Número</strong> (1, 2...).</>
+                  ) : (
+                    <>Fale o nome do atleta: <span className="text-emerald-300 font-bold">"Lucas Machado"</span>, <span className="text-emerald-300 font-bold">"Lucas Miranda"</span>, <span className="text-emerald-300 font-bold">"João Lucas"</span>...</>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => playChime('ready')}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Tocar som de bip de alerta"
+              >
+                <Volume2 size={14} className="text-amber-400" />
+                <span>Ouvir Bip</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-zinc-700 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-800 text-zinc-400 flex items-center justify-center shrink-0">
+                <MicOff size={26} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-white uppercase tracking-wide">
+                  Microfone Pausado
+                </h4>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Clique no botão <strong>"Ligar Mic"</strong> acima ou aperte a barra de espaço para reativar o reconhecimento de voz.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={toggleListening}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl shadow-lg shadow-amber-500/20 cursor-pointer shrink-0"
+            >
+              Ligar Mic
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Main Grid: Card Focus + Live Transcript + Recent presences */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
