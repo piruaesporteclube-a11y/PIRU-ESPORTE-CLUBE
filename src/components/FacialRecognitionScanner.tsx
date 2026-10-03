@@ -1,6 +1,55 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Athlete, Attendance, getSubCategory } from '../types';
 import { api } from '../api';
+
+// Helper to downscale large base64 photos to compact 160x160 thumbnails for fast recognition with in-memory caching
+const thumbnailCache = new Map<string, string>();
+const getThumbnailDataUrl = (imgSrc: string): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!imgSrc || typeof imgSrc !== 'string') {
+      resolve('');
+      return;
+    }
+    if (thumbnailCache.has(imgSrc)) {
+      resolve(thumbnailCache.get(imgSrc)!);
+      return;
+    }
+    if (!imgSrc.startsWith('data:image')) {
+      thumbnailCache.set(imgSrc, imgSrc);
+      resolve(imgSrc);
+      return;
+    }
+    if (imgSrc.length < 35000) {
+      thumbnailCache.set(imgSrc, imgSrc);
+      resolve(imgSrc);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 160;
+        c.height = 160;
+        const cx = c.getContext('2d');
+        if (cx) {
+          cx.drawImage(img, 0, 0, 160, 160);
+          const dataUrl = c.toDataURL('image/jpeg', 0.75);
+          thumbnailCache.set(imgSrc, dataUrl);
+          resolve(dataUrl);
+          return;
+        }
+      } catch (e) {}
+      thumbnailCache.set(imgSrc, imgSrc);
+      resolve(imgSrc);
+    };
+    img.onerror = () => {
+      thumbnailCache.set(imgSrc, imgSrc);
+      resolve(imgSrc);
+    };
+    img.src = imgSrc;
+  });
+};
 import { 
   ScanFace, 
   Camera, 
@@ -61,6 +110,23 @@ export default function FacialRecognitionScanner({
     reasoning: string;
     scanTime: string;
   } | null>(null);
+  
+  const [possibleMatch, setPossibleMatch] = useState<{
+    athlete: Athlete;
+    confidence: number;
+    reasoning: string;
+  } | null>(null);
+
+  const [categoryFilter, setCategoryFilter] = useState<string>('Todos');
+
+  const uniqueCategories = useMemo(() => {
+    const set = new Set<string>();
+    athletes.forEach(a => {
+      const cat = getSubCategory(a.birth_date);
+      if (cat) set.add(cat);
+    });
+    return Array.from(set).sort();
+  }, [athletes]);
   
   const [recentScans, setRecentScans] = useState<Array<{
     athlete: Athlete;
@@ -127,7 +193,7 @@ export default function FacialRecognitionScanner({
     }
   };
 
-  // Start Camera Stream
+  // Start Camera Stream with universal fallback and mobile support
   const startCamera = async () => {
     try {
       if (stream) {
@@ -136,23 +202,34 @@ export default function FacialRecognitionScanner({
 
       setAnalysisStatus('Inicializando câmera do dispositivo...');
       
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
+      let mediaStream: MediaStream | null = null;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        });
+      } catch (e) {
+        // Universal fallback for webcams / single-camera devices
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        await videoRef.current.play();
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.muted = true;
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn("Video play error:", playErr);
+        }
       }
       
-      setAnalysisStatus('Pronto! Posicione o rosto do aluno no quadro');
+      setAnalysisStatus('Câmera ativa! Posicione o rosto no centro do quadro');
     } catch (err: any) {
       console.error("Error accessing camera:", err);
       if (facingMode === 'environment') {
@@ -160,7 +237,7 @@ export default function FacialRecognitionScanner({
         setFacingMode('user');
       } else {
         toast.error("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
-        setAnalysisStatus("Erro ao abrir câmera. Verifique as permissões.");
+        setAnalysisStatus("Erro ao abrir câmera. Verifique as permissões de vídeo.");
       }
     }
   };
@@ -186,28 +263,42 @@ export default function FacialRecognitionScanner({
 
     try {
       setIsAnalyzing(true);
-      setAnalysisStatus('Analisando traços faciais...');
+      setAnalysisStatus('Analisando traços faciais com IA...');
 
       const canvas = canvasRef.current || document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = 400;
+      canvas.height = 400;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Draw video frame to canvas
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const vWidth = video.videoWidth || 640;
+      const vHeight = video.videoHeight || 480;
+      const minDim = Math.min(vWidth, vHeight);
+      const startX = (vWidth - minDim) / 2;
+      const startY = (vHeight - minDim) / 2;
+
+      // Draw center-cropped square frame
+      ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, 400, 400);
+      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.75);
 
       // Filter candidates with photos (active athletes or all enrolled)
-      let eligibleAthletes = athletes.filter(a => (a.status === 'Ativo' || !a.status) && a.photo && a.photo.length > 10);
+      let eligibleAthletes = athletes.filter(a => (a.status === 'Ativo' || !a.status) && a.photo && a.photo.trim().length > 10);
       if (eligibleAthletes.length === 0) {
-        eligibleAthletes = athletes.filter(a => a.photo && a.photo.length > 10);
+        eligibleAthletes = athletes.filter(a => a.photo && a.photo.trim().length > 10);
       }
 
       if (eligibleAthletes.length === 0) {
         setAnalysisStatus('Atenção: Nenhum atleta com foto cadastrada no sistema.');
         setIsAnalyzing(false);
         return;
+      }
+
+      // Filter by selected category if specified
+      if (categoryFilter !== 'Todos') {
+        const catFiltered = eligibleAthletes.filter(a => getSubCategory(a.birth_date) === categoryFilter);
+        if (catFiltered.length > 0) {
+          eligibleAthletes = catFiltered;
+        }
       }
 
       // Prioritize athletes who do NOT have presence marked for today yet
@@ -220,31 +311,34 @@ export default function FacialRecognitionScanner({
         return records.some(r => r.status === 'Presente');
       });
 
-      // Combine unverified first, then verified, sending up to 35 candidates
+      // Send top 35 candidates with cached thumbnail data for high-speed batch matching
       const sortedCandidates = [...unverifiedAthletes, ...verifiedAthletes].slice(0, 35);
 
-      // Prepare list of candidates for API
-      const candidatesPayload = sortedCandidates.map(a => ({
-        id: a.id,
-        name: a.name,
-        photo: a.photo
-      }));
+      // Prepare list of candidates for API with thumbnail optimization
+      const candidatesPayload = await Promise.all(
+        sortedCandidates.map(async a => ({
+          id: a.id,
+          name: a.name,
+          photo: await getThumbnailDataUrl(a.photo!)
+        }))
+      );
 
       // Send to server-side Gemini Facial Recognition API
       const res = await api.recognizeFace(frameDataUrl, candidatesPayload);
 
       if (res && res.success && res.match && res.match.matchedAthleteId) {
         const matchedId = res.match.matchedAthleteId;
-        const confidence = res.match.confidence || 0.85;
+        const confidence = Number(res.match.confidence) || 0.85;
         const reasoning = res.match.reasoning || 'Reconhecimento facial verificado com sucesso por IA.';
 
         // Ensure student exists in local list
         const foundAthlete = athletes.find(a => a.id === matchedId);
 
-        if (foundAthlete && confidence >= 0.40) {
+        if (foundAthlete && confidence >= 0.38) {
           // Trigger successful recognition
           cooldownRef.current = true;
           lastRecognizedIdRef.current = foundAthlete.id;
+          setPossibleMatch(null);
           
           playSuccessChime();
           speakName(foundAthlete.nickname || foundAthlete.name);
@@ -260,24 +354,31 @@ export default function FacialRecognitionScanner({
 
           // Register presence automatically in database & local state
           await onAthleteRecognized(foundAthlete);
-          toast.success(`Presença confirmada: ${foundAthlete.name}!`);
+          toast.success(`✅ Presença confirmada: ${foundAthlete.name}!`);
 
           setRecentScans(prev => [
             { athlete: foundAthlete, time: nowStr },
             ...prev.filter(item => item.athlete.id !== foundAthlete.id)
-          ].slice(0, 5));
+          ].slice(0, 6));
 
           setAnalysisStatus(`✅ PRESENÇA REGISTRADA: ${foundAthlete.name}`);
           
-          // Pause scan for 4.5 seconds to show student details clearly
+          // Pause scan for 3.5 seconds to show student details clearly
           setTimeout(() => {
             setMatchedAthlete(null);
             cooldownRef.current = false;
             setAnalysisStatus('Pronto para o próximo aluno!');
-          }, 4500);
+          }, 3500);
 
           setIsAnalyzing(false);
           return;
+        } else if (foundAthlete && confidence >= 0.25) {
+          setPossibleMatch({
+            athlete: foundAthlete,
+            confidence: Math.round(confidence * 100),
+            reasoning
+          });
+          setAnalysisStatus(`Semelhança detectada com ${foundAthlete.name} (${Math.round(confidence * 100)}%). Toque para confirmar.`);
         }
       }
 
@@ -342,7 +443,27 @@ export default function FacialRecognitionScanner({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Category Filter Selector */}
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider focus:outline-none focus:border-emerald-500 cursor-pointer shadow-md"
+              title="Filtrar por Categoria / Faixa Etária"
+            >
+              <option value="Todos">Todas Categorias ({athletes.length})</option>
+              {uniqueCategories.map(cat => {
+                const count = athletes.filter(a => getSubCategory(a.birth_date) === cat).length;
+                return (
+                  <option key={cat} value={cat}>
+                    {cat} ({count} alunos)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           {/* Sound Toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -544,6 +665,89 @@ export default function FacialRecognitionScanner({
                           {matchedAthlete.reasoning}
                         </p>
                       </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Possible Match Card (1-Tap Confirmation) */}
+                {!matchedAthlete && possibleMatch && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="absolute inset-x-3 bottom-3 bg-gradient-to-br from-amber-950/95 via-zinc-950/98 to-black/95 border-2 border-amber-400 rounded-3xl p-3 sm:p-4 shadow-[0_15px_40px_rgba(245,158,11,0.5)] backdrop-blur-2xl pointer-events-auto z-30 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between border-b border-amber-500/30 pb-2">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-black text-xs uppercase tracking-wider">
+                        <Sparkles size={14} className="animate-spin" />
+                        <span>Semelhança Facial Detectada ({possibleMatch.confidence}%)</span>
+                      </div>
+                      <button
+                        onClick={() => setPossibleMatch(null)}
+                        className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        title="Dispensar"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="relative shrink-0">
+                          {possibleMatch.athlete.photo ? (
+                            <img
+                              src={possibleMatch.athlete.photo}
+                              alt={possibleMatch.athlete.name}
+                              className="w-14 h-14 rounded-xl object-cover border-2 border-amber-400 shadow-lg"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-zinc-800 border-2 border-amber-400 flex items-center justify-center text-zinc-400">
+                              <User size={24} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <h4 className="text-base font-black text-white truncate">
+                            {possibleMatch.athlete.name}
+                          </h4>
+                          <p className="text-[11px] text-zinc-400">
+                            {getSubCategory(possibleMatch.athlete.birth_date)} • Camisa {possibleMatch.athlete.jersey_number || 'S/N'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const athlete = possibleMatch.athlete;
+                          setPossibleMatch(null);
+                          cooldownRef.current = true;
+                          playSuccessChime();
+                          speakName(athlete.nickname || athlete.name);
+                          const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                          setMatchedAthlete({
+                            athlete,
+                            confidence: possibleMatch.confidence,
+                            reasoning: possibleMatch.reasoning,
+                            scanTime: nowStr
+                          });
+                          await onAthleteRecognized(athlete);
+                          toast.success(`✅ Presença confirmada: ${athlete.name}!`);
+                          setRecentScans(prev => [
+                            { athlete, time: nowStr },
+                            ...prev.filter(item => item.athlete.id !== athlete.id)
+                          ].slice(0, 6));
+                          setTimeout(() => {
+                            setMatchedAthlete(null);
+                            cooldownRef.current = false;
+                          }, 3500);
+                        }}
+                        className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 animate-pulse"
+                      >
+                        <CheckCircle2 size={16} />
+                        <span>Confirmar Presença (1 Toque)</span>
+                      </button>
                     </div>
                   </motion.div>
                 )}

@@ -272,7 +272,7 @@ const getFallbackAssessmentTest = (fieldName: any, fieldCategory: any, descripti
 
 export async function createExpressApp() {
   const app = express();
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '50mb' }));
 
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -306,7 +306,7 @@ export async function createExpressApp() {
 
       const ai = getAI();
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.8-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -501,7 +501,7 @@ export async function createExpressApp() {
 
       const ai = getAI();
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.8-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -650,7 +650,7 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
 
       const ai = getAI();
       const response = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
+        model: "gemini-3.8-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -702,6 +702,9 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
     }
   });
 
+  // In-memory cache for downloaded athlete photos to make facial recognition instantaneous
+  const remotePhotoCache = new Map<string, { mimeType: string; data: string }>();
+
   // Facial recognition attendance endpoint
   app.post("/api/recognize-face", async (req, res) => {
     try {
@@ -713,7 +716,7 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
         });
       }
 
-      // Filter candidates with valid photos (up to 35 candidates per request)
+      // Filter candidates with valid photos (up to 35 candidates for high accuracy and speed)
       const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 35);
 
       if (validCandidates.length === 0) {
@@ -724,79 +727,131 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
       }
 
       // Format inline data for camera frame
-      const cleanFrameBase64 = cameraFrame.replace(/^data:image\/\w+;base64,/, '');
-      const frameMimeMatch = cameraFrame.match(/^data:(image\/\w+);base64,/);
+      const cleanFrameBase64 = cameraFrame.replace(/^data:[^;]+;base64,/, '');
+      const frameMimeMatch = cameraFrame.match(/^data:([^;]+);base64,/);
       const frameMime = frameMimeMatch ? frameMimeMatch[1] : 'image/jpeg';
 
       const contentsParts: any[] = [
+        {
+          text: "Você é um perito em biometria e reconhecimento facial para controle de presença esportiva em escolinha de futebol.\n" +
+                "Abaixo está a FOTO ATUAL CAPTURADA PELA CÂMERA DO DISPOSITIVO (em tempo real):"
+        },
         {
           inlineData: {
             mimeType: frameMime,
             data: cleanFrameBase64
           }
+        },
+        {
+          text: "Abaixo estão as fotos de cadastro oficial dos atletas matriculados para comparação facial biométrica:"
         }
       ];
 
-      // Prepare candidate photos
-      const candidateInfoList: string[] = [];
-      for (let i = 0; i < validCandidates.length; i++) {
-        const cand = validCandidates[i];
-        candidateInfoList.push(`- Atleta ID: "${cand.id}" | Nome: "${cand.name}" (Imagem ${i + 2})`);
-
-        if (cand.photo.startsWith('data:image')) {
-          const candBase64 = cand.photo.replace(/^data:image\/\w+;base64,/, '');
-          const candMimeMatch = cand.photo.match(/^data:(image\/\w+);base64,/);
-          const candMime = candMimeMatch ? candMimeMatch[1] : 'image/jpeg';
-          contentsParts.push({
-            inlineData: {
-              mimeType: candMime,
-              data: candBase64
+      // Prepare candidate photos in parallel with memory caching
+      const imagePromises = validCandidates.map(async (cand: any) => {
+        try {
+          if (cand.photo.startsWith('data:image')) {
+            const candBase64 = cand.photo.replace(/^data:[^;]+;base64,/, '');
+            const candMimeMatch = cand.photo.match(/^data:([^;]+);base64,/);
+            const candMime = candMimeMatch ? candMimeMatch[1] : 'image/jpeg';
+            return {
+              id: String(cand.id),
+              name: String(cand.name),
+              part: {
+                inlineData: {
+                  mimeType: candMime,
+                  data: candBase64
+                }
+              }
+            };
+          } else if (cand.photo.startsWith('http')) {
+            // Check memory cache first
+            if (remotePhotoCache.has(cand.photo)) {
+              const cached = remotePhotoCache.get(cand.photo)!;
+              return {
+                id: String(cand.id),
+                name: String(cand.name),
+                part: {
+                  inlineData: {
+                    mimeType: cached.mimeType,
+                    data: cached.data
+                  }
+                }
+              };
             }
-          });
-        } else if (cand.photo.startsWith('http')) {
-          try {
-            const resp = await fetch(cand.photo, { signal: AbortSignal.timeout(3000) });
+
+            const resp = await fetch(cand.photo, { signal: AbortSignal.timeout(4500) });
             if (resp.ok) {
               const arrayBuffer = await resp.arrayBuffer();
               const buffer = Buffer.from(arrayBuffer);
               const fetchedBase64 = buffer.toString('base64');
               const cType = resp.headers.get('content-type') || 'image/jpeg';
-              contentsParts.push({
-                inlineData: {
-                  mimeType: cType.includes('png') ? 'image/png' : 'image/jpeg',
-                  data: fetchedBase64
+              const mimeType = cType.includes('png') ? 'image/png' : 'image/jpeg';
+              
+              if (remotePhotoCache.size > 200) {
+                remotePhotoCache.clear();
+              }
+              remotePhotoCache.set(cand.photo, { mimeType, data: fetchedBase64 });
+
+              return {
+                id: String(cand.id),
+                name: String(cand.name),
+                part: {
+                  inlineData: {
+                    mimeType,
+                    data: fetchedBase64
+                  }
                 }
-              });
-            } else {
-              contentsParts.push({ text: `[Foto do atleta ${cand.name} indisponível]` });
+              };
             }
-          } catch (e) {
-            contentsParts.push({ text: `[Foto do atleta ${cand.name} indisponível]` });
           }
-        } else {
-          contentsParts.push({ text: `[Foto do atleta ${cand.name} sem formato imagem]` });
+        } catch (e) {
+          // Ignore individual fetch failure
+        }
+        return { id: String(cand.id), name: String(cand.name), part: null };
+      });
+
+      const resolvedImages = await Promise.all(imagePromises);
+
+      let loadedImagesCount = 0;
+      for (const item of resolvedImages) {
+        if (item.part) {
+          loadedImagesCount++;
+          contentsParts.push({
+            text: `=== ATLETA CADASTRADO ===\nID: "${item.id}"\nNOME: "${item.name}"\nFOTO DE REFERÊNCIA DESTE ATLETA:`
+          });
+          contentsParts.push(item.part);
         }
       }
 
-      const promptText = `Você é um sistema especialista em RECONHECIMENTO FACIAL para chamada de escolinha de esportes.
-Sua função é comparar a imagem da CÂMERA (Primeira Imagem) com as fotos de cadastro dos atletas fornecidas a seguir.
+      if (loadedImagesCount === 0) {
+        return res.json({
+          success: true,
+          match: { matchedAthleteId: null, confidence: 0, reasoning: "As fotos de referência dos atletas não puderam ser carregadas para análise." }
+        });
+      }
 
-Lista de Atletas Cadastrados:
-${candidateInfoList.join('\n')}
+      contentsParts.push({
+        text: `INSTRUÇÕES DE COMPARAÇÃO FACIAL BIOMÉTRICA:
+1. Examine a fisionomia da pessoa na FOTO DA CÂMERA (olhos, sobrancelhas, nariz, lábios, formato do queixo/rosto, corte de cabelo, traços gerais).
+2. Compare detalhadamente com a foto de cada atleta cadastrado acima.
+3. Se a pessoa na câmera for com boa convicção a mesma de algum dos atletas cadastrados (levando em conta variações normais de ângulo, iluminação, expressão ou pequenas diferenças de idade), identifique esse atleta retornando:
+   - "matchedAthleteId": ID exato do atleta reconhecido.
+   - "athleteName": Nome do atleta reconhecido.
+   - "confidence": Nível de confiança entre 0.35 e 1.0 (ex: 0.85).
+   - "reasoning": Resumo dos traços faciais coincidentes (ex: formato dos olhos, nariz e formato facial coincidentes com cadastro).
+4. Se o rosto na câmera NÃO corresponder a nenhum atleta cadastrado, ou se não houver um rosto humano nítido e visível na câmera:
+   - "matchedAthleteId": null
+   - "athleteName": ""
+   - "confidence": 0.0
+   - "reasoning": "Rosto não reconhecido na base de atletas cadastrados."
 
-INSTRUÇÕES DE RECONHECIMENTO:
-1. Analise atentamente o rosto presente na foto da CÂMERA (Imagem 1).
-2. Compare a fisionomia (olhos, sobrancelhas, nariz, boca, linhas do rosto, tom de pele e corte de cabelo) com cada foto de cadastro fornecida.
-3. Se o rosto na câmera for da mesma pessoa de algum cadastro (mesmo com pequenas diferenças de iluminação, ângulo, sorriso ou expressão), identifique esse atleta, retorne o "matchedAthleteId" correspondente e atribua um nível de confiança realista de 0.40 a 1.0 (ex: 0.85).
-4. Se o rosto não for de nenhum dos atletas listados ou não houver rosto visível na câmera, retorne "matchedAthleteId": null e "confidence": 0.0.
-
-Responda exclusivamente em formato JSON.`;
-
-      contentsParts.push({ text: promptText });
+Responda exclusivamente em JSON seguindo o schema.`
+      });
 
       const ai = getAI();
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         contents: [
           {
             role: "user",
@@ -808,12 +863,26 @@ Responda exclusivamente em formato JSON.`;
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              matchedAthleteId: { type: Type.STRING, description: "ID do atleta correspondente se houver match com confiança >= 0.40, senão null" },
-              confidence: { type: Type.NUMBER, description: "Pontuação de confiança entre 0.0 e 1.0" },
-              athleteName: { type: Type.STRING, description: "Nome do atleta reconhecido" },
-              reasoning: { type: Type.STRING, description: "Justificativa das semelhanças faciais observadas" }
+              matchedAthleteId: { 
+                type: Type.STRING, 
+                nullable: true,
+                description: "ID do atleta correspondente se houver match com confiança >= 0.35, ou null se ninguém corresponder" 
+              },
+              confidence: { 
+                type: Type.NUMBER, 
+                description: "Pontuação de confiança entre 0.0 e 1.0" 
+              },
+              athleteName: { 
+                type: Type.STRING, 
+                nullable: true,
+                description: "Nome do atleta reconhecido ou string vazia" 
+              },
+              reasoning: { 
+                type: Type.STRING, 
+                description: "Justificativa resumida das semelhanças faciais" 
+              }
             },
-            required: ['matchedAthleteId', 'confidence', 'athleteName', 'reasoning']
+            required: ['confidence', 'reasoning']
           } as any
         }
       });
@@ -824,7 +893,20 @@ Responda exclusivamente em formato JSON.`;
       }
 
       const parsed = JSON.parse(responseText);
-      res.json({ success: true, match: parsed });
+      let matchedId = parsed.matchedAthleteId;
+      if (!matchedId || matchedId === 'none' || matchedId === 'null' || matchedId === 'NULL' || String(matchedId).trim() === '') {
+        matchedId = null;
+      }
+
+      const cleanMatch = {
+        matchedAthleteId: matchedId,
+        confidence: Number(parsed.confidence) || 0,
+        athleteName: parsed.athleteName || '',
+        reasoning: parsed.reasoning || ''
+      };
+
+      console.log(`[Server Face Recognition] Result: ${cleanMatch.athleteName || 'Nenhum match'} (Confiança: ${cleanMatch.confidence})`);
+      res.json({ success: true, match: cleanMatch });
     } catch (error: any) {
       console.warn("[Facial Recognition API Error]:", error.message || error);
       res.json({

@@ -3537,7 +3537,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => att?.status === 'Presente' ? clearAttendance(athlete.id) : markAttendance(athlete.id, 'Presente')}
+                          onClick={() => {
+                            if (att?.status === 'Presente') {
+                              clearAttendance(athlete.id);
+                            } else {
+                              markAttendance(athlete.id, 'Presente');
+                              if (search.trim()) {
+                                setSearch('');
+                                setTimeout(() => {
+                                  floatingSearchRef.current?.focus();
+                                }, 50);
+                              }
+                            }
+                          }}
                           disabled={locked}
                           className={cn(
                             "py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer",
@@ -5248,7 +5260,20 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                       return (
                         <div 
                           key={matchedAthlete.id}
-                          className="flex items-center justify-between gap-2 p-2 bg-zinc-900/90 border border-zinc-700/60 hover:border-theme-primary/50 rounded-2xl transition-all"
+                          onClick={() => {
+                            if (isLocked) return;
+                            if (isPresent) {
+                              clearAttendance(matchedAthlete.id);
+                            } else {
+                              markAttendance(matchedAthlete.id, 'Presente');
+                              toast.success(`✅ Presença de ${matchedAthlete.name} registrada!`);
+                            }
+                            setSearch('');
+                            setTimeout(() => {
+                              floatingSearchRef.current?.focus();
+                            }, 50);
+                          }}
+                          className="flex items-center justify-between gap-2 p-2 bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-700/60 hover:border-theme-primary/60 rounded-2xl transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center shrink-0 border border-zinc-700">
@@ -5259,7 +5284,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-black text-white truncate leading-tight uppercase">
+                              <p className="text-xs font-black text-white truncate leading-tight uppercase group-hover:text-theme-primary transition-colors">
                                 {matchedAthlete.name}
                               </p>
                               <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-bold uppercase truncate">
@@ -5270,7 +5295,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
                               onClick={() => {
@@ -5278,7 +5303,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                   clearAttendance(matchedAthlete.id);
                                 } else {
                                   markAttendance(matchedAthlete.id, 'Presente');
+                                  toast.success(`✅ Presença de ${matchedAthlete.name} registrada!`);
                                 }
+                                setSearch('');
+                                setTimeout(() => {
+                                  floatingSearchRef.current?.focus();
+                                }, 50);
                               }}
                               disabled={isLocked}
                               className={cn(
@@ -5287,7 +5317,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                   ? "bg-green-500 text-black shadow-green-500/20" 
                                   : "bg-zinc-800 text-zinc-300 hover:bg-green-500/20 hover:text-green-400 border border-zinc-700"
                               )}
-                              title="Marcar Presença"
+                              title="Marcar Presença e Limpar Busca"
                             >
                               <CheckCircle2 size={12} />
                               <span>{isPresent ? 'Presente' : 'Presente'}</span>
@@ -5300,7 +5330,12 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                   clearAttendance(matchedAthlete.id);
                                 } else {
                                   markAttendance(matchedAthlete.id, 'Faltou');
+                                  toast.info(`Ausência de ${matchedAthlete.name} registrada.`);
                                 }
+                                setSearch('');
+                                setTimeout(() => {
+                                  floatingSearchRef.current?.focus();
+                                }, 50);
                               }}
                               disabled={isLocked}
                               className={cn(
@@ -5309,7 +5344,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                                   ? "bg-red-500 text-white shadow-red-500/20" 
                                   : "bg-zinc-800 text-zinc-400 hover:bg-red-500/20 hover:text-red-400 border border-zinc-700"
                               )}
-                              title="Marcar Falta"
+                              title="Marcar Falta e Limpar Busca"
                             >
                               <XCircle size={12} />
                             </button>
@@ -5334,9 +5369,21 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   <input
                     ref={floatingSearchRef}
                     type="text"
-                    placeholder="Buscar atleta pelo nome, apelido, camisa... ( / )"
+                    placeholder="Buscar atleta pelo nome, apelido, camisa... (Enter para marcar)"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && search.trim() && filteredAthletes.length > 0) {
+                        e.preventDefault();
+                        const topMatch = filteredAthletes[0];
+                        markAttendance(topMatch.id, 'Presente');
+                        toast.success(`✅ Presença de ${topMatch.name} registrada!`);
+                        setSearch('');
+                        setTimeout(() => {
+                          floatingSearchRef.current?.focus();
+                        }, 50);
+                      }
+                    }}
                     className="w-full bg-zinc-900 border border-zinc-700 focus:border-theme-primary rounded-2xl pl-9 pr-8 py-2.5 text-white placeholder:text-zinc-500 font-bold text-xs sm:text-sm outline-none transition-all shadow-inner focus:ring-2 focus:ring-theme-primary/30"
                   />
                   {search && (
