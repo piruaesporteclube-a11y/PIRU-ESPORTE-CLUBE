@@ -100,6 +100,26 @@ function getNameTokens(str: string): string[] {
     .filter(token => token.length >= 2 && !CONNECTOR_WORDS.has(token));
 }
 
+// Extracts clean, properly capitalized First and Last Name for an athlete (e.g. "Lucas Machado" for "Lucas Henrique Miranda Machado", "João Lucas" for "João Lucas")
+export function getFirstAndLastName(fullName: string): string {
+  if (!fullName || !fullName.trim()) return '';
+  const rawParts = fullName.trim().split(/\s+/).filter(part => {
+    const clean = part.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return clean.length >= 2 && !CONNECTOR_WORDS.has(clean);
+  });
+  if (rawParts.length === 0) return fullName.trim();
+  const formatWord = (w: string) => {
+    if (!w) return '';
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  };
+  if (rawParts.length === 1) {
+    return formatWord(rawParts[0]);
+  }
+  const first = rawParts[0];
+  const last = rawParts[rawParts.length - 1];
+  return `${formatWord(first)} ${formatWord(last)}`;
+}
+
 // Levenshtein distance for fuzzy matching typos or phonetic proximity
 function levenshteinDistance(a: string, b: string): number {
   if (a === b) return 0;
@@ -196,6 +216,10 @@ export default function VoiceAttendanceScanner({
 
   // Simulation fallback input
   const [simulationInput, setSimulationInput] = useState<string>('');
+
+  // Roster list filtering by First + Last Name and Status
+  const [rosterSearch, setRosterSearch] = useState<string>('');
+  const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'pending' | 'present'>('all');
 
   // References to keep callbacks completely stable across renders and prevent recognition reloads
   const recognitionRef = useRef<any>(null);
@@ -354,6 +378,35 @@ export default function VoiceAttendanceScanner({
     });
   }, [attendanceRecords, activeTrainingId, eventId]);
 
+  // Counts and filtered list for the Roster Quick-Pick
+  const presentRosterCount = useMemo(() => {
+    return eligibleAthletes.filter(a => isAthletePresent(a.id)).length;
+  }, [eligibleAthletes, isAthletePresent]);
+
+  const pendingRosterCount = useMemo(() => {
+    return eligibleAthletes.length - presentRosterCount;
+  }, [eligibleAthletes, presentRosterCount]);
+
+  const filteredRosterAthletes = useMemo(() => {
+    let list = eligibleAthletes;
+    if (rosterStatusFilter === 'pending') {
+      list = list.filter(a => !isAthletePresent(a.id));
+    } else if (rosterStatusFilter === 'present') {
+      list = list.filter(a => isAthletePresent(a.id));
+    }
+    if (rosterSearch.trim()) {
+      const q = normalizePortuguese(rosterSearch);
+      list = list.filter(a => {
+        const firstLast = normalizePortuguese(getFirstAndLastName(a.name));
+        const full = normalizePortuguese(a.name);
+        const nick = normalizePortuguese(a.nickname || '');
+        const num = (a.jersey_number || '').trim();
+        return firstLast.includes(q) || full.includes(q) || nick.includes(q) || num === q;
+      });
+    }
+    return list;
+  }, [eligibleAthletes, rosterStatusFilter, rosterSearch, isAthletePresent]);
+
   // Confirm presence for the given athlete
   const handleConfirmPresence = useCallback(async (athlete: Athlete) => {
     if (isLocked) {
@@ -368,18 +421,18 @@ export default function VoiceAttendanceScanner({
       await onAthleteRecognized(athlete);
 
       playChime('success');
-      const displayName = athlete.nickname || athlete.name.split(' ')[0];
+      const displayName = getFirstAndLastName(athlete.name);
       speakText(`Presença de ${displayName} confirmada!`);
 
       const nowTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       setRecentPresences(prev => [{ athlete, time: nowTime }, ...prev.filter(p => p.athlete.id !== athlete.id)].slice(0, 8));
 
       setLastActionMessage({
-        text: `Presença confirmada: ${athlete.name}`,
+        text: `Presença confirmada: ${displayName}`,
         type: 'success'
       });
 
-      toast.success(`✅ Presença de ${athlete.name} registrada com sucesso!`);
+      toast.success(`✅ Presença de ${displayName} registrada com sucesso!`);
 
       // Briefly keep card visible with checkmark, then reset to listen for next
       setTimeout(() => {
@@ -414,14 +467,14 @@ export default function VoiceAttendanceScanner({
         await onMarkAbsence(athlete, reason);
       }
       playChime('cancel');
-      const displayName = athlete.nickname || athlete.name.split(' ')[0];
+      const displayName = getFirstAndLastName(athlete.name);
       speakText(`Falta de ${displayName} registrada.`);
 
       setLastActionMessage({
-        text: `Falta registrada: ${athlete.name}`,
+        text: `Falta registrada: ${displayName}`,
         type: 'info'
       });
-      toast.info(`Ausência de ${athlete.name} registrada.`);
+      toast.info(`Ausência de ${displayName} registrada.`);
 
       setTimeout(() => {
         setMatchedAthlete(null);
@@ -497,7 +550,20 @@ export default function VoiceAttendanceScanner({
       return { score: 0, reason: '' };
     }
 
-    // 3. Distinctive Nickname match (e.g. "Lucão", "Almeida", "Napoleão", "Simao", "Godinho", "Izu")
+    // 3. First and Last Name primary identity
+    const firstLastName = getFirstAndLastName(athlete.name);
+    const firstLastClean = normalizePortuguese(firstLastName);
+    const firstLastTokens = getNameTokens(firstLastClean);
+
+    // Exact match on First + Last Name (e.g. "Lucas Machado", "João Lucas", "Lucas Miranda")
+    if (spokenClean === firstLastClean || spokenTokens.join(' ') === firstLastTokens.join(' ')) {
+      return { score: 100, reason: '1º e Último Nome (100% Exato)' };
+    }
+    if (phoneticNormalize(spokenClean) === phoneticNormalize(firstLastClean)) {
+      return { score: 99, reason: '1º e Último Nome Fonético' };
+    }
+
+    // 4. Distinctive Nickname match (e.g. "Lucão", "Almeida", "Napoleão", "Simao", "Godinho", "Izu")
     // CRITICAL SURGICAL RULE:
     // If an athlete's nickname is merely one of their own given names or a common given name
     // (e.g. "Lucas" for "João Lucas", or "João" for "João Lucas", or "Pedro" for "Pedro Lucas"),
@@ -515,7 +581,7 @@ export default function VoiceAttendanceScanner({
       }
     }
 
-    // Exact full name match
+    // Exact full registered name match
     if (spokenTokens.join(' ') === nameTokens.join(' ')) {
       return { score: 100, reason: 'Nome Completo Exato' };
     }
@@ -559,9 +625,10 @@ export default function VoiceAttendanceScanner({
     if (spokenTokens.length === 1) {
       const singleWord = spokenTokens[0];
 
-      // Check if word matches FIRST NAME (Index 0)
+      // Check if word matches FIRST NAME (Index 0 of name tokens)
+      // (e.g. "Lucas" for "Lucas Henrique Miranda Machado" or "João" for "João Lucas")
       if (matchedNameIndices.includes(0)) {
-        const base = 88;
+        const base = 88; // Give first name strong preference!
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
@@ -577,20 +644,26 @@ export default function VoiceAttendanceScanner({
         };
       }
 
-      // If the spoken word did NOT match the first name or nickname:
-      // Could it be a family surname (e.g. "Machado", "Miranda", "Ferreira", "Silva")?
-      // CRITICAL SURGICAL RULE:
-      // If the word is a common given name (e.g. "lucas", "pedro", "gabriel", "joao"), but this athlete's
-      // first name is something else (e.g. "João Lucas", "Pedro Lucas"), this athlete MUST NOT MATCH!
-      // When a coach calls "Lucas", they are NEVER calling "João Lucas"!
-      if (COMPOUND_GIVEN_NAMES.has(singleWord)) {
-        return { score: 0, reason: '' };
-      }
-
-      // It is a genuine family surname:
-      // Check last name:
+      // Check if word matches LAST SURNAME (Last index of name tokens)
+      // (e.g. "Machado" for "Lucas Machado", or "Lucas" for "João Lucas")
       if (matchedNameIndices.includes(nameTokens.length - 1)) {
-        const base = 90;
+        // SURGICAL RULE FOR COMPOUND NAMES:
+        // If the spoken word is a common Brazilian given name (e.g. 'lucas', 'pedro', 'gabriel', 'joao'),
+        // and it only matches the non-first token of an athlete (like "Lucas" in "João Lucas"),
+        // it is a compound given name ("nome composto"), NOT a family surname.
+        // It must NOT receive an 85 score, because shouting "Lucas" is meant for someone whose FIRST name is Lucas!
+        if (COMPOUND_GIVEN_NAMES.has(singleWord)) {
+          // Downgrade heavily to 55 so an athlete whose first name is Lucas (Score 88) wins unambiguously
+          const base = 55;
+          const finalScore = Math.round(base * avgSimilarity);
+          return {
+            score: finalScore,
+            reason: hadFuzzyMatch ? '2º Nome Composto Aprox.' : '2º Nome Composto (Diga 1º e Último)'
+          };
+        }
+
+        // Real family surname like "Machado", "Silva", "Oliveira", "Ferreira"
+        const base = 85;
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
@@ -600,7 +673,7 @@ export default function VoiceAttendanceScanner({
 
       // Check middle surname:
       if (matchedNameIndices.some(idx => idx > 0 && idx < nameTokens.length - 1)) {
-        const base = 75;
+        const base = 65;
         const finalScore = Math.round(base * avgSimilarity);
         return { 
           score: finalScore, 
@@ -618,6 +691,70 @@ export default function VoiceAttendanceScanner({
     // Example: user said "João Lucas". "Lucas Machado" has no "João" -> Score 0!
     // Example: user said "Lucas Machado". "João Lucas" has no "Machado" -> Score 0!
     if (spokenTokens.length >= 2) {
+      const firstToken = nameTokens[0];
+      const lastToken = nameTokens[nameTokens.length - 1];
+
+      // --- GOLD STANDARD RULE: FIRST NAME + LAST SURNAME ---
+      // (User speaks 2 words: ex: "Lucas Machado", "João Lucas", "Lucas Miranda", "João Oliveira", "Lucas Ferreira")
+      if (spokenTokens.length === 2) {
+        const s0 = spokenTokens[0];
+        const s1 = spokenTokens[1];
+
+        // 1. Direct check against the athlete's First and Last token (nameTokens[0] and nameTokens[last])
+        const simFirst = wordSimilarity(s0, firstToken);
+        const simLast = wordSimilarity(s1, lastToken);
+
+        if (simFirst >= 0.82 && simLast >= 0.82) {
+          const avg = (simFirst + simLast) / 2;
+          const finalScore = Math.round(100 * avg);
+          return {
+            score: finalScore,
+            reason: avg < 0.98 ? '1º e Último Nome Aprox.' : '1º e Último Nome (100% Exato)'
+          };
+        }
+
+        // 2. Also check against firstLastTokens (computed via getFirstAndLastName)
+        if (firstLastTokens.length >= 2) {
+          const simF0 = wordSimilarity(s0, firstLastTokens[0]);
+          const simF1 = wordSimilarity(s1, firstLastTokens[firstLastTokens.length - 1]);
+          if (simF0 >= 0.82 && simF1 >= 0.82) {
+            const avg = (simF0 + simF1) / 2;
+            return {
+              score: Math.round(100 * avg),
+              reason: avg < 0.98 ? '1º e Último Nome Aprox.' : '1º e Último Nome (100% Exato)'
+            };
+          }
+        }
+      }
+
+      // --- COMPOUND FIRST NAME (2 words) + LAST SURNAME ---
+      // (User speaks 3 words: ex: "João Lucas Oliveira", "Lucas Henrique Machado", "Davi Lucas Silva")
+      if (spokenTokens.length === 3 && nameTokens.length >= 3) {
+        const s0 = spokenTokens[0];
+        const s1 = spokenTokens[1];
+        const s2 = spokenTokens[2];
+
+        const sim0 = wordSimilarity(s0, nameTokens[0]);
+        const sim1 = wordSimilarity(s1, nameTokens[1]);
+        const simLast = wordSimilarity(s2, lastToken);
+
+        if (sim0 >= 0.82 && sim1 >= 0.82 && simLast >= 0.82) {
+          const avg = (sim0 + sim1 + simLast) / 3;
+          return {
+            score: Math.round(100 * avg),
+            reason: avg < 0.98 ? 'Nome Composto + Último Aprox.' : 'Nome Composto + Último Sobrenome'
+          };
+        }
+      }
+
+      // Exact full registered name
+      if (spokenTokens.join(' ') === nameTokens.join(' ')) {
+        return { score: 100, reason: 'Nome Completo Exato' };
+      }
+      if (phoneticNormalize(spokenTokens.join(' ')) === phoneticNormalize(nameTokens.join(' '))) {
+        return { score: 99, reason: 'Nome Completo Fonético' };
+      }
+
       if (spokenCoverage < 1.0) {
         return { score: 0, reason: '' };
       }
@@ -734,7 +871,8 @@ export default function VoiceAttendanceScanner({
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        const shortName = getFirstAndLastName(chosen.athlete.name);
+        speakText(`${shortName}! Diga OK para confirmar presença.`);
         return;
       }
       if (/\b(2|segundo|segunda|opcao dois|o segundo|dois)\b/i.test(cleanText) && currentCandidates[1]) {
@@ -743,7 +881,8 @@ export default function VoiceAttendanceScanner({
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        const shortName = getFirstAndLastName(chosen.athlete.name);
+        speakText(`${shortName}! Diga OK para confirmar presença.`);
         return;
       }
       if (/\b(3|terceiro|terceira|opcao tres|o terceiro|tres)\b/i.test(cleanText) && currentCandidates[2]) {
@@ -752,7 +891,8 @@ export default function VoiceAttendanceScanner({
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        const shortName = getFirstAndLastName(chosen.athlete.name);
+        speakText(`${shortName}! Diga OK para confirmar presença.`);
         return;
       }
 
@@ -770,7 +910,8 @@ export default function VoiceAttendanceScanner({
         setMatchedReason(chosen.reason);
         setCandidateMatches([]);
         playChime('match');
-        speakText(`${chosen.athlete.name}. Diga OK para confirmar presença.`);
+        const shortName = getFirstAndLastName(chosen.athlete.name);
+        speakText(`${shortName}! Diga OK para confirmar presença.`);
         return;
       }
     }
@@ -837,10 +978,10 @@ export default function VoiceAttendanceScanner({
           setMatchedReason(best.reason);
           setCandidateMatches([]);
           playChime('match');
-          const displayName = best.athlete.nickname || best.athlete.name;
+          const displayName = getFirstAndLastName(best.athlete.name);
           speakText(`Atleta alterado para ${displayName}! Diga OK para confirmar.`);
           setLastActionMessage({
-            text: `Atleta alterado: ${best.athlete.name} (${best.reason})`,
+            text: `Atleta alterado: ${displayName} (${best.reason})`,
             type: 'info'
           });
           return;
@@ -867,10 +1008,10 @@ export default function VoiceAttendanceScanner({
         setMatchedAthlete(null); // ZERO GUESSWORK!
         setMatchedReason('');
         playChime('match');
-        const candidateNames = closeMatches.map((c, i) => `${i + 1}: ${c.athlete.name}`).join(', ');
-        speakText(`Existem ${closeMatches.length} atletas com esse nome. Diga o sobrenome ou o número: ${candidateNames}`);
+        const candidateNames = closeMatches.map((c, i) => `${i + 1}: ${getFirstAndLastName(c.athlete.name)}`).join(', ');
+        speakText(`Existem ${closeMatches.length} atletas. Diga o primeiro e último nome, ou o número da opção: ${candidateNames}`);
         setLastActionMessage({
-          text: `Atenção: ${closeMatches.length} atletas encontrados. Diga o sobrenome ou número para escolher.`,
+          text: `${closeMatches.length} atletas encontrados. Diga o 1º e Último Nome (ex: ${getFirstAndLastName(closeMatches[0].athlete.name)}) ou número.`,
           type: 'warn'
         });
       } else {
@@ -880,10 +1021,10 @@ export default function VoiceAttendanceScanner({
         setMatchedReason(best.reason);
         setCandidateMatches([]);
         playChime('match');
-        const displayName = best.athlete.nickname || best.athlete.name;
+        const displayName = getFirstAndLastName(best.athlete.name);
         speakText(`${displayName}! Diga OK para confirmar.`);
         setLastActionMessage({
-          text: `Encontrado: ${best.athlete.name} (${best.reason})`,
+          text: `Encontrado: ${displayName} (${best.reason})`,
           type: 'success'
         });
       }
@@ -1286,9 +1427,9 @@ export default function VoiceAttendanceScanner({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-zinc-300">
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
-                <strong className="text-white block font-bold mb-1">1. Falar Nome do Aluno</strong>
+                <strong className="text-amber-400 block font-bold mb-1">1. Falar 1º e Último Nome (Filtro Cirúrgico)</strong>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Fale o nome completo ou primeiro nome + sobrenome (ex: <span className="text-amber-300 font-bold">"Lucas Machado"</span>, <span className="text-amber-300 font-bold">"Lucas Miranda"</span>, <span className="text-amber-300 font-bold">"João Lucas"</span>). O sistema tolera pequenas variações ou erros de fala (ex: <span className="text-amber-300 font-bold">"Luas Machado"</span>).
+                  Fale o <strong className="text-white">Primeiro Nome + Último Sobrenome</strong> (ex: <span className="text-amber-300 font-bold">"Lucas Machado"</span>, <span className="text-amber-300 font-bold">"João Oliveira"</span>, <span className="text-amber-300 font-bold">"Lucas Ferreira"</span>). É a forma mais precisa e recomendada de chamada.
                 </p>
               </div>
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
@@ -1300,7 +1441,7 @@ export default function VoiceAttendanceScanner({
               <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
                 <strong className="text-rose-400 block font-bold mb-1">3. Cancelar ou Trocar</strong>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Diga: <span className="text-rose-300 font-bold">"Cancelar"</span>, <span className="text-rose-300 font-bold">"Trocar"</span> ou simplesmente fale o nome correto do outro atleta que o card troca na hora.
+                  Diga: <span className="text-rose-300 font-bold">"Cancelar"</span>, <span className="text-rose-300 font-bold">"Trocar"</span> ou simplesmente fale o 1º e último nome do outro atleta que o card troca na hora.
                 </p>
               </div>
             </div>
@@ -1400,11 +1541,11 @@ export default function VoiceAttendanceScanner({
                 </div>
                 <p className="text-xs text-zinc-300 mt-1">
                   {matchedAthlete ? (
-                    <>Diga <strong className="text-emerald-400 uppercase font-black">"OK"</strong> ou <strong className="text-emerald-400 uppercase font-black">"SIM"</strong> para confirmar {matchedAthlete.name}, ou fale outro nome para trocar.</>
+                    <>Diga <strong className="text-emerald-400 uppercase font-black">"OK"</strong> ou <strong className="text-emerald-400 uppercase font-black">"SIM"</strong> para confirmar {getFirstAndLastName(matchedAthlete.name)}, ou fale outro nome para trocar.</>
                   ) : candidateMatches.length > 1 ? (
-                    <>Diga o <strong className="text-amber-400 font-black">Sobrenome</strong> (ex: "Machado", "Miranda") ou o <strong className="text-amber-400 font-black">Número</strong> (1, 2...).</>
+                    <>Diga o <strong className="text-amber-400 font-black">1º e Último Nome</strong> (ex: "Lucas Machado", "João Lucas") ou o <strong className="text-amber-400 font-black">Número</strong> (1, 2...).</>
                   ) : (
-                    <>Fale o nome do atleta: <span className="text-emerald-300 font-bold">"Lucas Machado"</span>, <span className="text-emerald-300 font-bold">"Lucas Miranda"</span>, <span className="text-emerald-300 font-bold">"João Lucas"</span>...</>
+                    <>Filtro: Fale o 1º e último nome do atleta: <span className="text-emerald-300 font-bold">"Lucas Machado"</span>, <span className="text-emerald-300 font-bold">"João Lucas"</span>, <span className="text-emerald-300 font-bold">"Lucas Miranda"</span>...</>
                   )}
                 </p>
               </div>
@@ -1608,9 +1749,21 @@ export default function VoiceAttendanceScanner({
                         )}
                       </div>
 
-                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight truncate">
-                        {matchedAthlete.name}
+                      {/* Highlighted Badge: Primeiro e Último Nome */}
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[10px] font-black uppercase text-amber-300 mb-1">
+                        <UserCheck size={12} className="text-amber-400" />
+                        Filtro de Chamada: 1º e Último Nome
+                      </div>
+
+                      <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-tight">
+                        {getFirstAndLastName(matchedAthlete.name)}
                       </h2>
+
+                      {getFirstAndLastName(matchedAthlete.name).toLowerCase() !== matchedAthlete.name.trim().toLowerCase() && (
+                        <p className="text-xs text-zinc-400 font-medium truncate mt-0.5">
+                          Nome Completo: <span className="text-zinc-200 uppercase font-bold">{matchedAthlete.name}</span>
+                        </p>
+                      )}
 
                       {matchedAthlete.nickname && (
                         <p className="text-sm font-black text-amber-400 uppercase tracking-wider mt-0.5">
@@ -1732,49 +1885,59 @@ export default function VoiceAttendanceScanner({
             <div className="bg-zinc-900 border border-amber-500/40 rounded-2xl p-4 space-y-2 animate-in fade-in">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
-                  <Sparkles size={14} /> Mais de um atleta encontrado. Diga o número ou clique:
+                  <Sparkles size={14} /> Mais de um atleta encontrado. Fale o 1º e Último Nome, ou selecione a opção:
                 </span>
                 <span className="text-[10px] text-zinc-400">({candidateMatches.length} opções)</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {candidateMatches.map((cand, idx) => (
-                  <button
-                    key={cand.athlete.id}
-                    type="button"
-                    onClick={() => {
-                      setMatchedAthlete(cand.athlete);
-                      setMatchedReason(cand.reason);
-                      setCandidateMatches([]);
-                      playChime('match');
-                    }}
-                    className={cn(
-                      "p-3 rounded-xl border flex items-center gap-3 text-left transition-all cursor-pointer",
-                      matchedAthlete?.id === cand.athlete.id
-                        ? "bg-amber-500/20 border-amber-400 text-white"
-                        : "bg-black/50 border-zinc-800 hover:border-amber-500/50 text-zinc-300"
-                    )}
-                  >
-                    <span className="w-6 h-6 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold uppercase truncate">{cand.athlete.name}</p>
-                      <p className="text-[10px] text-zinc-400 flex items-center gap-1.5 flex-wrap">
-                        {cand.reason && (
-                          <span className="text-amber-400 font-bold bg-amber-500/10 px-1 rounded">
-                            {cand.reason}
-                          </span>
+                {candidateMatches.map((cand, idx) => {
+                  const firstLast = getFirstAndLastName(cand.athlete.name);
+                  const isLonger = firstLast.toLowerCase() !== cand.athlete.name.trim().toLowerCase();
+                  return (
+                    <button
+                      key={cand.athlete.id}
+                      type="button"
+                      onClick={() => {
+                        setMatchedAthlete(cand.athlete);
+                        setMatchedReason(cand.reason);
+                        setCandidateMatches([]);
+                        playChime('match');
+                        speakText(`${firstLast}! Diga OK para confirmar presença.`);
+                      }}
+                      className={cn(
+                        "p-3 rounded-xl border flex items-center gap-3 text-left transition-all cursor-pointer",
+                        matchedAthlete?.id === cand.athlete.id
+                          ? "bg-amber-500/20 border-amber-400 text-white"
+                          : "bg-black/50 border-zinc-800 hover:border-amber-500/50 text-zinc-300"
+                      )}
+                    >
+                      <span className="w-6 h-6 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-black uppercase text-white truncate">{firstLast}</p>
+                        {isLonger && (
+                          <p className="text-[10px] text-zinc-400 uppercase truncate">
+                            {cand.athlete.name}
+                          </p>
                         )}
-                        <span>
-                          {cand.athlete.nickname ? `"${cand.athlete.nickname}" • ` : ''}{getSubCategory(cand.athlete.birth_date)}
-                        </span>
-                      </p>
-                    </div>
-                    {isAthletePresent(cand.athlete.id) && (
-                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                    )}
-                  </button>
-                ))}
+                        <p className="text-[10px] text-zinc-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {cand.reason && (
+                            <span className="text-amber-400 font-bold bg-amber-500/10 px-1 rounded">
+                              {cand.reason}
+                            </span>
+                          )}
+                          <span>
+                            {cand.athlete.nickname ? `"${cand.athlete.nickname}" • ` : ''}#{cand.athlete.jersey_number || 'S/N'} • {getSubCategory(cand.athlete.birth_date)}
+                          </span>
+                        </p>
+                      </div>
+                      {isAthletePresent(cand.athlete.id) && (
+                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1816,11 +1979,11 @@ export default function VoiceAttendanceScanner({
               <span className="text-zinc-500 font-bold uppercase">Testar:</span>
               {[
                 'Lucas Machado',
-                'Luas Machado',
-                'Lucas Henrique Miranda Machado',
-                'Lucas Miranda',
                 'João Lucas',
                 'Lucas',
+                'João',
+                'Lucas Miranda',
+                'Luas Machado',
                 'OK',
                 'Cancelar'
               ].map((testPhrase) => (
@@ -1843,71 +2006,139 @@ export default function VoiceAttendanceScanner({
         {/* Right Column (5 cols): Roster Quick-Pick + Session Presences Log */}
         <div className="lg:col-span-5 flex flex-col space-y-4">
           
-          {/* Quick Roster Selector (Search or Tap) */}
-          <div className="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-4 flex flex-col h-72">
+          {/* Quick Roster Selector (Search or Tap) with 1º e Último Nome Filter */}
+          <div className="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-4 flex flex-col h-80">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <UserCheck size={14} className="text-amber-400" />
-                Atletas da Chamada ({eligibleAthletes.length})
+                Atletas da Chamada ({filteredRosterAthletes.length})
               </span>
-              <span className="text-[10px] text-zinc-400">Toque para selecionar</span>
+              <span className="text-[10px] text-zinc-400">1º e Último Nome</span>
+            </div>
+
+            {/* Filter Search Input */}
+            <div className="relative mb-2">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <input
+                type="text"
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+                placeholder="Filtrar por 1º e último nome..."
+                className="w-full bg-black/80 border border-zinc-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500 uppercase"
+              />
+              {rosterSearch && (
+                <button
+                  type="button"
+                  onClick={() => setRosterSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Status Tabs */}
+            <div className="flex bg-black/60 p-0.5 rounded-xl border border-zinc-800/80 mb-2 text-[10px] font-black uppercase">
+              <button
+                type="button"
+                onClick={() => setRosterStatusFilter('all')}
+                className={cn(
+                  "flex-1 py-1 rounded-lg transition-all text-center cursor-pointer",
+                  rosterStatusFilter === 'all' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                Todos ({eligibleAthletes.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRosterStatusFilter('pending')}
+                className={cn(
+                  "flex-1 py-1 rounded-lg transition-all text-center cursor-pointer",
+                  rosterStatusFilter === 'pending' ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                Pendentes ({pendingRosterCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRosterStatusFilter('present')}
+                className={cn(
+                  "flex-1 py-1 rounded-lg transition-all text-center cursor-pointer",
+                  rosterStatusFilter === 'present' ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                Presentes ({presentRosterCount})
+              </button>
             </div>
 
             <div className="overflow-y-auto space-y-1.5 pr-1 flex-1 custom-scrollbar">
-              {eligibleAthletes.slice(0, 50).map(athlete => {
-                const present = isAthletePresent(athlete.id);
-                const isSelected = matchedAthlete?.id === athlete.id;
+              {filteredRosterAthletes.length === 0 ? (
+                <div className="text-center py-6 text-xs text-zinc-500">
+                  Nenhum atleta encontrado no filtro
+                </div>
+              ) : (
+                filteredRosterAthletes.slice(0, 60).map(athlete => {
+                  const present = isAthletePresent(athlete.id);
+                  const isSelected = matchedAthlete?.id === athlete.id;
+                  const firstLast = getFirstAndLastName(athlete.name);
+                  const isLonger = firstLast.toLowerCase() !== athlete.name.trim().toLowerCase();
 
-                return (
-                  <button
-                    key={athlete.id}
-                    type="button"
-                    onClick={() => {
-                      setMatchedAthlete(athlete);
-                      setCandidateMatches([]);
-                      playChime('match');
-                    }}
-                    className={cn(
-                      "w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer",
-                      isSelected
-                        ? "bg-amber-500/20 border-amber-400 text-white"
-                        : present
-                          ? "bg-emerald-950/20 border-emerald-500/30 text-zinc-300"
-                          : "bg-black/40 border-zinc-800/80 hover:border-zinc-700 text-zinc-400 hover:text-white"
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-800 shrink-0 border border-zinc-700">
-                        {athlete.photo ? (
-                          <img src={athlete.photo} className="w-full h-full object-cover" />
+                  return (
+                    <button
+                      key={athlete.id}
+                      type="button"
+                      onClick={() => {
+                        setMatchedAthlete(athlete);
+                        setCandidateMatches([]);
+                        playChime('match');
+                      }}
+                      className={cn(
+                        "w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-amber-500/20 border-amber-400 text-white"
+                          : present
+                            ? "bg-emerald-950/20 border-emerald-500/30 text-zinc-300"
+                            : "bg-black/40 border-zinc-800/80 hover:border-zinc-700 text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-800 shrink-0 border border-zinc-700">
+                          {athlete.photo ? (
+                            <img src={athlete.photo} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs">
+                              <User size={14} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase text-white truncate">{firstLast}</p>
+                          {isLonger && (
+                            <p className="text-[10px] text-zinc-400 uppercase truncate leading-tight">
+                              {athlete.name}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-zinc-500 truncate">
+                            {athlete.nickname ? `"${athlete.nickname}" • ` : ''}#{athlete.jersey_number || 'S/N'} • {getSubCategory(athlete.birth_date)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 ml-2">
+                        {present ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                            <Check size={10} /> Presente
+                          </span>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs">
-                            <User size={14} />
-                          </div>
+                          <span className="text-[10px] font-bold uppercase text-zinc-500">
+                            Pendente
+                          </span>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold uppercase truncate">{athlete.name}</p>
-                        <p className="text-[10px] text-zinc-500">
-                          {athlete.nickname ? `"${athlete.nickname}" • ` : ''}#{athlete.jersey_number || 'S/N'} • {getSubCategory(athlete.birth_date)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 ml-2">
-                      {present ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                          <Check size={10} /> Presente
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold uppercase text-zinc-500">
-                          Pendente
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 

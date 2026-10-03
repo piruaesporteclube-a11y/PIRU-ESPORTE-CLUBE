@@ -1914,10 +1914,10 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                     ? "bg-rose-500 text-white shadow-rose-500/20" 
                     : "bg-amber-500 text-black hover:bg-amber-400 hover:scale-105 active:scale-95 shadow-amber-500/20")
             )}
-            title="Registrar presença falando o nome do atleta e dizendo OK"
+            title="Registrar presença falando o primeiro e último nome do atleta e dizendo OK"
           >
             {isVoiceScanning ? <X size={20} /> : <Mic size={20} />}
-            {isVoiceScanning ? 'Fechar Chamada por Voz' : 'Chamada por Voz (Falar Nome e OK)'}
+            {isVoiceScanning ? 'Fechar Chamada por Voz' : 'Chamada por Voz (1º e Último Nome + OK)'}
           </button>
 
           <button 
