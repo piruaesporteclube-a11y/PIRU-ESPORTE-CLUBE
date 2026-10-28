@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, isQuotaExceeded } from '../api';
 import { Athlete, getSubCategory, categories } from '../types';
-import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle, LayoutGrid, List, Maximize2, Camera, ScanFace, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Edit2, FileDown, Printer, UserCircle, Link as LinkIcon, MessageCircle, RefreshCw, Check, XCircle, Clock, AlertTriangle, LayoutGrid, List, Maximize2, Camera, ScanFace, Fingerprint, ShieldCheck, ShieldAlert, Lock, Unlock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
@@ -13,6 +13,7 @@ interface AthleteListProps {
   onEdit: (athlete: Athlete) => void;
   onAdd: () => void;
   onRefresh?: () => void;
+  onNavigateToAccessControl?: () => void;
 }
 
 // Helper functions for robust date parsing and formatting
@@ -74,11 +75,14 @@ const getBirthYear = (birthDate?: string): string => {
   return '';
 };
 
-export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: AthleteListProps) {
+export default function AthleteList({ athletes, onEdit, onAdd, onRefresh, onNavigateToAccessControl }: AthleteListProps) {
   const { settings } = useTheme();
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'active' | 'pending' | 'recent'>('active');
+  const [viewMode, setViewMode] = useState<'active' | 'pending' | 'recent' | 'suspended'>('active');
+  const [athleteToBlock, setAthleteToBlock] = useState<Athlete | null>(null);
+  const [blockReason, setBlockReason] = useState('');
+  const [isSubmittingBlock, setIsSubmittingBlock] = useState(false);
   const [displayMode, setDisplayMode] = useState<'cards' | 'table'>(() => {
     const saved = localStorage.getItem('athlete_display_mode');
     return (saved === 'table' || saved === 'cards') ? saved : 'cards';
@@ -165,6 +169,42 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
     }
   };
 
+  const handleQuickUnlock = async (athlete: Athlete) => {
+    const toastId = toast.loading(`Liberando acesso de ${athlete.name}...`);
+    try {
+      await api.saveAthlete({
+        ...athlete,
+        status: 'Ativo',
+        suspension_reason: ''
+      });
+      toast.success(`Acesso de ${athlete.name} foi LIBERADO com sucesso!`, { id: toastId });
+      if (onRefresh) await onRefresh();
+    } catch (err: any) {
+      toast.error(`Erro ao desbloquear atleta: ${err.message}`, { id: toastId });
+    }
+  };
+
+  const handleConfirmBlock = async () => {
+    if (!athleteToBlock) return;
+    setIsSubmittingBlock(true);
+    const toastId = toast.loading(`Bloqueando acesso de ${athleteToBlock.name}...`);
+    try {
+      await api.saveAthlete({
+        ...athleteToBlock,
+        status: 'Suspenso',
+        suspension_reason: blockReason.trim().toUpperCase() || 'BLOQUEIO ADMINISTRATIVO'
+      });
+      toast.success(`Acesso de ${athleteToBlock.name} foi BLOQUEADO com sucesso.`, { id: toastId });
+      setAthleteToBlock(null);
+      setBlockReason('');
+      if (onRefresh) await onRefresh();
+    } catch (err: any) {
+      toast.error(`Erro ao bloquear atleta: ${err.message}`, { id: toastId });
+    } finally {
+      setIsSubmittingBlock(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!athleteToDelete) return;
     try {
@@ -179,13 +219,17 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
   };
 
   const pendingAthletes = athletes.filter(a => a.confirmation === 'Pendente');
-  const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente');
+  const activeAthletes = athletes.filter(a => a.confirmation !== 'Pendente' && a.status !== 'Suspenso');
+  const suspendedAthletes = athletes.filter(a => a.status === 'Suspenso');
 
   const recentAthletes = [...athletes]
     .sort((a, b) => getTimestamp(b.created_at) - getTimestamp(a.created_at))
     .slice(0, 5);
 
-  const currentAthletes = viewMode === 'active' ? activeAthletes : (viewMode === 'recent' ? recentAthletes : pendingAthletes);
+  const currentAthletes = 
+    viewMode === 'active' ? activeAthletes :
+    viewMode === 'recent' ? recentAthletes :
+    viewMode === 'suspended' ? suspendedAthletes : pendingAthletes;
 
   const filteredAthletes = currentAthletes
     .filter(a => {
@@ -317,6 +361,24 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setViewMode('suspended')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5",
+                viewMode === 'suspended' ? "bg-red-600 text-white shadow-md shadow-red-600/30" : "text-zinc-500 hover:text-red-400"
+              )}
+            >
+              <ShieldAlert size={12} className={viewMode === 'suspended' ? "text-white" : "text-red-400"} />
+              Bloqueados
+              {suspendedAthletes.length > 0 && (
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                  viewMode === 'suspended' ? "bg-white text-red-600" : "bg-red-600 text-white"
+                )}>
+                  {suspendedAthletes.length}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Display Mode Toggler (Galeria de Fotos vs Tabela) */}
@@ -350,6 +412,21 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
               <span className="hidden sm:inline">Tabela</span>
             </button>
           </div>
+
+          <button 
+            onClick={() => {
+              if (onNavigateToAccessControl) {
+                onNavigateToAccessControl();
+              } else {
+                setViewMode('suspended');
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all shadow-lg shadow-red-600/25 font-black text-xs uppercase tracking-wider cursor-pointer border border-red-500 shrink-0"
+            title="Gerenciar Bloqueio e Desbloqueio de Acesso dos Alunos"
+          >
+            <ShieldAlert size={16} className="text-white shrink-0" />
+            <span>Bloquear / Desbloquear Alunos</span>
+          </button>
           <button 
             onClick={() => {
               const link = `${window.location.origin}/?register=true`;
@@ -582,16 +659,41 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-1">
-                    <button 
-                      onClick={() => handleStatusToggle(athlete)}
-                      className={cn(
-                        "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-all",
-                        athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                  <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-1 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => handleStatusToggle(athlete)}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-all",
+                          athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                        )}
+                        title={`Clique para alternar status (${athlete.status})`}
+                      >
+                        {athlete.status}
+                      </button>
+                      {athlete.status === 'Suspenso' ? (
+                        <button 
+                          onClick={() => handleQuickUnlock(athlete)}
+                          className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                          title="Desbloquear e Liberar Acesso do Aluno"
+                        >
+                          <Unlock size={10} />
+                          <span>Desbloquear</span>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            setAthleteToBlock(athlete);
+                            setBlockReason('');
+                          }}
+                          className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/25 rounded text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                          title="Bloquear Acesso do Aluno"
+                        >
+                          <Lock size={10} />
+                          <span>Bloquear</span>
+                        </button>
                       )}
-                    >
-                      {athlete.status}
-                    </button>
+                    </div>
 
                     <div className="flex items-center gap-1">
                       {athlete.confirmation === 'Pendente' && (
@@ -730,16 +832,40 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button 
-                        onClick={() => handleStatusToggle(athlete)}
-                        className={cn(
-                          "px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:ring-2 hover:ring-theme-primary/30",
-                          athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => handleStatusToggle(athlete)}
+                          className={cn(
+                            "px-2 py-1 rounded-md text-xs font-bold uppercase transition-all hover:ring-2 hover:ring-theme-primary/30",
+                            athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                          )}
+                          title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
+                        >
+                          {athlete.status}
+                        </button>
+                        {athlete.status === 'Suspenso' ? (
+                          <button 
+                            onClick={() => handleQuickUnlock(athlete)}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                            title="Desbloquear e Liberar Acesso do Aluno"
+                          >
+                            <Unlock size={12} />
+                            <span>Desbloquear</span>
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => {
+                              setAthleteToBlock(athlete);
+                              setBlockReason('');
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/25 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                            title="Bloquear Acesso do Aluno"
+                          >
+                            <Lock size={12} />
+                            <span>Bloquear</span>
+                          </button>
                         )}
-                        title={`Clique para tornar ${athlete.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
-                      >
-                        {athlete.status}
-                      </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-center">
@@ -829,15 +955,37 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
                       </div>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => handleStatusToggle(athlete)}
-                    className={cn(
-                      "px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-transparent hover:border-theme-primary/30",
-                      athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={() => handleStatusToggle(athlete)}
+                      className={cn(
+                        "px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-transparent hover:border-theme-primary/30",
+                        athlete.status === 'Ativo' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                      )}
+                    >
+                      {athlete.status}
+                    </button>
+                    {athlete.status === 'Suspenso' ? (
+                      <button 
+                        onClick={() => handleQuickUnlock(athlete)}
+                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-md text-[10px] font-black uppercase tracking-wider"
+                        title="Desbloquear e Liberar Acesso"
+                      >
+                        <Unlock size={11} /> Desbloquear
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setAthleteToBlock(athlete);
+                          setBlockReason('');
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/25 rounded-md text-[10px] font-black uppercase tracking-wider"
+                        title="Bloquear Acesso"
+                      >
+                        <Lock size={11} /> Bloquear
+                      </button>
                     )}
-                  >
-                    {athlete.status}
-                  </button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm">
@@ -1083,6 +1231,86 @@ export default function AthleteList({ athletes, onEdit, onAdd, onRefresh }: Athl
               >
                 <Edit2 size={16} />
                 Editar Dados do Atleta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Block Athlete Modal */}
+      {athleteToBlock && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-red-500/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 border-b border-zinc-900 pb-3">
+              <div className="p-3 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20">
+                <Lock size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Bloquear Acesso do Aluno</h3>
+                <p className="text-xs text-zinc-400 font-bold uppercase">{athleteToBlock.name}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Ao bloquear, o aluno ficará impedido de acessar o portal, visualizar treinos e confirmar presença até que seja desbloqueado.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                Motivo do Bloqueio:
+              </label>
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {[
+                  "INDISCIPLINA EM TREINO OU JOGO",
+                  "PENDÊNCIA DE DOCUMENTAÇÃO / MATRÍCULA",
+                  "SOLICITAÇÃO DOS PAIS / RESPONSÁVEIS",
+                  "ATRASO DE MENSALIDADE OU TAXA",
+                  "FALTAS REITERADAS SEM JUSTIFICATIVA"
+                ].map((reason, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setBlockReason(reason)}
+                    className={cn(
+                      "px-2 py-1 rounded-lg text-[9px] font-bold uppercase border transition-all text-left cursor-pointer",
+                      blockReason === reason 
+                        ? "bg-red-500/20 border-red-500 text-red-300 font-black"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                placeholder="DIGITE OU ESCOLHA O MOTIVO DO BLOQUEIO..."
+                rows={2}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-white uppercase placeholder:text-zinc-600 focus:outline-none focus:border-red-500 resize-none font-bold"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAthleteToBlock(null);
+                  setBlockReason('');
+                }}
+                disabled={isSubmittingBlock}
+                className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBlock}
+                disabled={isSubmittingBlock}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Lock size={14} />
+                <span>Confirmar Bloqueio</span>
               </button>
             </div>
           </div>

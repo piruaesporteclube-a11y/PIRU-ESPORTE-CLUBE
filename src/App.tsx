@@ -45,7 +45,7 @@ import Curiosities from './components/Curiosities';
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { Athlete, User, Professor, Event, Settings, OfficialLetter, Companion, EventMatchScore, getSubCategory } from './types';
-import { api, clearCache, getUsageStats } from './api';
+import { api, clearCache, getUsageStats, isQuotaExceeded, isQuotaError, markQuotaExceeded } from './api';
 import { Trophy, Users, Calendar, ClipboardCheck, Cake, FileText, Settings as SettingsIcon, UserCheck, Activity, CreditCard, X, UserPlus, AlertTriangle, Link as LinkIcon, QrCode, Instagram, MessageCircle, ClipboardList, Clock, History, ShieldAlert, Pause, Database, Search, ChevronRight, Flame } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
 import { Toaster, toast } from 'sonner';
@@ -156,17 +156,18 @@ const getStatConfig = (label: string, statsVal: number) => {
         glowingDot: 'bg-emerald-500',
         iconBg: 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black'
       };
+    case 'Bloqueados':
     case 'Suspensos':
       return {
-        label: 'Suspensos',
+        label: 'Bloqueados',
         value: statsVal,
-        icon: AlertTriangle,
+        icon: ShieldAlert,
         color: 'text-rose-400',
         bgGrad: 'rgba(244,63,94,0.06)',
         borderColor: 'group-hover:border-rose-500/40',
         shadow: 'hover:shadow-[0_0_30px_rgba(244,63,94,0.08)]',
         accentBorder: 'border-rose-500/10 group-hover:border-rose-500/30',
-        badge: 'Suspensões',
+        badge: 'Bloqueios',
         badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
         glowingDot: 'bg-rose-500',
         iconBg: 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-black'
@@ -994,10 +995,10 @@ const Dashboard = ({
       {/* Stats */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Atletas Totais', value: stats.athletes },
-          { label: 'Atletas Ativos', value: stats.active },
-          { label: 'Suspensos', value: stats.suspended },
-          { label: 'Eventos', value: stats.events },
+          { label: 'Atletas Totais', value: stats.athletes, tab: 'athletes' },
+          { label: 'Atletas Ativos', value: stats.active, tab: 'athletes' },
+          { label: 'Bloqueados', value: stats.suspended, tab: 'suspended-athletes' },
+          { label: 'Eventos', value: stats.events, tab: 'events' },
         ].map((item, idx) => {
           const config = getStatConfig(item.label, item.value);
           const IconComponent = config.icon;
@@ -1005,11 +1006,13 @@ const Dashboard = ({
           return (
             <div 
               key={idx} 
+              onClick={() => item.tab && setActiveTab(item.tab)}
               className={cn(
-                "group relative overflow-hidden rounded-[2rem] border bg-gradient-to-b from-zinc-900 to-zinc-950/90 p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] border-zinc-800/80 cursor-default",
+                "group relative overflow-hidden rounded-[2rem] border bg-gradient-to-b from-zinc-900 to-zinc-950/90 p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] border-zinc-800/80 cursor-pointer active:scale-95 shadow-md",
                 config.borderColor,
                 config.shadow
               )}
+              title={`Clique para abrir ${item.label}`}
             >
               {/* Background ambient radial gradient */}
               <div 
@@ -1612,17 +1615,18 @@ export default function App() {
     }
 
     try {
-      const q = query(collection(db, "school_reports"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const pending = snapshot.docs.filter(doc => doc.data().status === 'Pendente');
+      const unsubscribe = api.subscribeToSchoolReports((reports) => {
+        const pending = reports.filter(r => r.status === 'Pendente');
         setPendingReportsCount(pending.length);
-      }, (error) => {
-        console.error("Error listening to school reports:", error);
       });
 
-      return () => unsubscribe();
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
     } catch (e) {
-      console.error("Failed to setup real-time school report listener:", e);
+      console.warn("Aviso ao inicializar escuta de boletins escolares:", e);
     }
   }, [user]);
 
@@ -1735,34 +1739,47 @@ export default function App() {
   useEffect(() => {
     // Listen for login errors and notify admin
     if (user?.role === 'admin') {
-      const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"), limit(1));
-      let isFirstLoad = true;
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        if (isFirstLoad) {
-          isFirstLoad = false;
-          return;
-        }
+      if (isQuotaExceeded()) return;
+
+      try {
+        const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"), limit(1));
+        let isFirstLoad = true;
         
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const error = change.doc.data();
-            toast.error("Tentativa de login falhou!", {
-              description: `O usuário ${error.doc_attempted} não conseguiu logar: ${error.error_message}`,
-              duration: 8000,
-              icon: <ShieldAlert className="text-red-500" />,
-              action: {
-                label: 'Ver Auditoria',
-                onClick: () => setActiveTab('access-audit')
-              }
-            });
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          if (isFirstLoad) {
+            isFirstLoad = false;
+            return;
           }
+          
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const error = change.doc.data();
+              toast.error("Tentativa de login falhou!", {
+                description: `O usuário ${error.doc_attempted} não conseguiu logar: ${error.error_message}`,
+                duration: 8000,
+                icon: <ShieldAlert className="text-red-500" />,
+                action: {
+                  label: 'Ver Auditoria',
+                  onClick: () => setActiveTab('access-audit')
+                }
+              });
+            }
+          });
+        }, (error) => {
+          if (isQuotaError(error)) {
+            markQuotaExceeded();
+          }
+          console.warn("Login errors subscription quota exceeded:", error);
         });
-      }, (error) => {
-        console.warn("Login errors subscription quota exceeded:", error);
-      });
-      
-      return () => unsubscribe();
+        
+        return () => {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+        };
+      } catch (err) {
+        console.warn("Erro ao iniciar escuta de erros de login:", err);
+      }
     }
   }, [user?.role, setActiveTab]);
 
@@ -1896,6 +1913,7 @@ export default function App() {
                     suspended: data.filter(a => a.status === 'Suspenso').length
                   }));
                 }}
+                onNavigateToAccessControl={() => setActiveTab('suspended-athletes')}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
                 <div className="bg-black border border-theme-primary/20 p-6 rounded-3xl shadow-xl">
@@ -2029,6 +2047,8 @@ export default function App() {
         case 'attendance-history':
           return <StudentPresenceHistory athleteId={user.athlete_id || user.professor_id || ''} />;
         case 'suspended-athletes':
+        case 'student-access':
+        case 'block-release-students':
           return <SuspendedAthletes athletes={athletes} />;
         case 'anamnesis':
           return (

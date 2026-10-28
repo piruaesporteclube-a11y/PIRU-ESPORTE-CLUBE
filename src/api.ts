@@ -173,6 +173,44 @@ const checkQuotaExceeded = (): boolean => {
 
 let quotaExceededToday = checkQuotaExceeded();
 
+export const isQuotaError = (error: any): boolean => {
+  if (!error) return false;
+  
+  const code = error.code ? String(error.code).toLowerCase() : '';
+  const message = error.message ? String(error.message).toLowerCase() : String(error).toLowerCase();
+  
+  return (
+    code === 'resource-exhausted' || 
+    code.includes('quota') || 
+    message.includes('quota exceeded') || 
+    message.includes('quota_exceeded') || 
+    message.includes('billing tier') ||
+    message.includes('over quota') ||
+    message.includes('quota limit') ||
+    message.includes('quotalimitexceeded') ||
+    message.includes('free daily read units') ||
+    message.includes('free tier database') ||
+    message.includes('resource-exhausted') ||
+    message.includes('resource_exhausted')
+  );
+};
+
+export const markQuotaExceeded = () => {
+  quotaExceededToday = true;
+  try {
+    localStorage.setItem('quota_exceeded_today', Date.now().toString());
+  } catch (e) {}
+  window.dispatchEvent(new window.Event('pirua_usage_updated'));
+};
+
+export const clearQuotaExceeded = () => {
+  quotaExceededToday = false;
+  try {
+    localStorage.removeItem('quota_exceeded_today');
+  } catch (e) {}
+  window.dispatchEvent(new window.Event('pirua_usage_updated'));
+};
+
 export const isQuotaExceeded = () => quotaExceededToday;
 
 // Wrappers for tracking usage statistics
@@ -263,7 +301,14 @@ const onSnapshot = (ref: any, onNext: any, onError?: any): any => {
       isInitial = false;
     }
     onNext(snapshot);
-  }, onError);
+  }, (err: any) => {
+    if (isQuotaError(err)) {
+      markQuotaExceeded();
+    }
+    if (onError) {
+      onError(err);
+    }
+  });
 };
 import { auth, db } from "./firebase";
 import { Athlete, Professor, Event, Attendance, Anamnesis, Settings, AuthResponse, User, Sponsor, UniformModel, Training, TrainingActivity, Championship, ChampionshipTeam, ChampionshipMatch, OfficialLetter, Companion, EventMatch, UniformRequest, getSubCategory, SponsorBlock, SchoolReport, PlayerProfile } from "./types";
@@ -524,26 +569,6 @@ async function testConnection() {
   }
 }
 // testConnection(); // Remove unnecessary read on load
-
-const isQuotaError = (error: any): boolean => {
-  if (!error) return false;
-  
-  const code = error.code ? String(error.code).toLowerCase() : '';
-  const message = error.message ? String(error.message).toLowerCase() : String(error).toLowerCase();
-  
-  return (
-    code === 'resource-exhausted' || 
-    code.includes('quota') || 
-    message.includes('quota exceeded') || 
-    message.includes('quota_exceeded') || 
-    message.includes('billing tier') ||
-    message.includes('over quota') ||
-    message.includes('quota limit') ||
-    message.includes('quotalimitexceeded') ||
-    message.includes('resource-exhausted') ||
-    message.includes('resource_exhausted')
-  );
-};
 
 const getDocsWithCacheFallback = async (q: any, customCacheKey?: string, forceRefresh = false) => {
   const key = customCacheKey ? `docs_${customCacheKey}` : `docs_${getCacheKey(q)}`;
@@ -1385,6 +1410,9 @@ export const api = {
   subscribeToAthletes: (callback: (athletes: Athlete[]) => void) => {
     // Initial fetch from cache or server
     api.getAthletes().then(callback);
+    if (quotaExceededToday) {
+      return () => {};
+    }
     
     return onSnapshot(collection(db, "athletes"), (snapshot) => {
       const athletes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Athlete));
@@ -1403,6 +1431,9 @@ export const api = {
   subscribeToAthlete: (id: string, callback: (athlete: Athlete | null) => void) => {
     // Initial fetch
     api.getAthlete(id).then(callback);
+    if (quotaExceededToday) {
+      return () => {};
+    }
 
     return onSnapshot(doc(db, "athletes", id), (snapshot) => {
       if (snapshot.exists()) {
@@ -1745,6 +1776,9 @@ export const api = {
   subscribeToAttendance: (callback: (attendance: Attendance[]) => void, date?: string, training_id?: string, event_id?: string) => {
     // Initial fetch
     api.getAttendance(date, undefined, training_id, event_id).then(callback);
+    if (quotaExceededToday) {
+      return () => {};
+    }
 
     let q = query(collection(db, "attendance"));
     if (date) q = query(q, where("date", "==", date));
@@ -2393,6 +2427,9 @@ export const api = {
   subscribeToAthleteLineups: (athlete_id: string, callback: (events: Event[]) => void) => {
     // Initial fetch
     api.checkAthleteLineups(athlete_id).then(callback);
+    if (quotaExceededToday) {
+      return () => {};
+    }
 
     const q = query(
       collection(db, "event_lineups"), 
@@ -2417,6 +2454,9 @@ export const api = {
   },
 
   subscribeToAthleteLineupConfirmations: (athlete_id: string, callback: (confirmations: Record<string, { confirmation: string, lineup_index: number }>) => void) => {
+    if (quotaExceededToday) {
+      return () => {};
+    }
     const q = query(
       collection(db, "event_lineups"), 
       where("person_id", "==", athlete_id),
@@ -3289,12 +3329,30 @@ export const api = {
   getSchoolReports: async (): Promise<SchoolReport[]> => {
     try {
       const q = query(collection(db, "school_reports"), orderBy("created_at", "desc"));
-      const querySnapshot = await getDocsWithCacheFallback(q);
+      const querySnapshot = await getDocsWithCacheFallback(q, "school_reports");
       return querySnapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as SchoolReport));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "school_reports");
       return [];
     }
+  },
+  subscribeToSchoolReports: (callback: (reports: SchoolReport[]) => void) => {
+    api.getSchoolReports().then(callback);
+    if (quotaExceededToday) {
+      return () => {};
+    }
+    const q = query(collection(db, "school_reports"), orderBy("created_at", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const reports = snapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as SchoolReport));
+      setCachedData("school_reports", reports);
+      callback(reports);
+    }, (error) => {
+      if (!isQuotaError(error)) {
+        handleFirestoreError(error, OperationType.GET, "school_reports/subscription");
+      } else {
+        console.warn("Aviso: Limite de cota atingido na sincronização de boletins. Mantendo dados em cache.");
+      }
+    });
   },
   saveSchoolReport: async (report: Partial<SchoolReport>) => {
     try {
@@ -3382,6 +3440,10 @@ export const api = {
   },
 
   subscribeToAccessLogs: (callback: (logs: any[]) => void) => {
+    if (quotaExceededToday) {
+      callback([]);
+      return () => {};
+    }
     const q = query(collection(db, "access_logs"), orderBy("created_at", "desc"), limit(150));
     return onSnapshot(q, (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -3394,6 +3456,10 @@ export const api = {
   },
 
   subscribeToLoginErrors: (callback: (errors: any[]) => void) => {
+    if (quotaExceededToday) {
+      callback([]);
+      return () => {};
+    }
     const q = query(collection(db, "login_errors"), orderBy("created_at", "desc"), limit(50));
     return onSnapshot(q, (snapshot) => {
       const errors = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -3422,6 +3488,10 @@ export const api = {
   },
 
   subscribeToStudentDailyReads: (date: string, callback: (reads: any[]) => void) => {
+    if (quotaExceededToday) {
+      callback([]);
+      return () => {};
+    }
     const q = query(collection(db, "student_daily_reads"), where("date", "==", date));
     return onSnapshot(q, (snapshot) => {
       const reads = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -3448,6 +3518,10 @@ export const api = {
   },
 
   subscribeToAdminDailyReads: (date: string, callback: (reads: any[]) => void) => {
+    if (quotaExceededToday) {
+      callback([]);
+      return () => {};
+    }
     const q = query(collection(db, "admin_daily_reads"), where("date", "==", date));
     return onSnapshot(q, (snapshot) => {
       const reads = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -3655,4 +3729,9 @@ export const api = {
       };
     }
   },
+
+  isQuotaExceeded,
+  markQuotaExceeded,
+  clearQuotaExceeded,
+  isQuotaError,
 };

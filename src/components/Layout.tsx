@@ -11,7 +11,8 @@ import {
   Sparkles,
   ChevronRight,
   MessageCircle,
-  LayoutGrid
+  LayoutGrid,
+  ShieldAlert
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { navItems } from '../navigation';
@@ -61,7 +62,7 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
 
   // Primary dock items
   const primaryDockItems = accessibleNavItems.filter(item => 
-    ['dashboard', 'athletes', 'attendance', 'lineups', 'trainings', 'championships', 'system-layouts', 'settings'].includes(item.id)
+    ['dashboard', 'athletes', 'suspended-athletes', 'attendance', 'lineups', 'trainings', 'championships', 'system-layouts', 'settings'].includes(item.id)
   );
 
   // Nav categories definition for grouped sidebar
@@ -291,7 +292,25 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                 )}
               </div>
 
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Botão de Bloquear e Desbloquear Acesso dos Alunos */}
+                {(user?.role === 'admin' || user?.role === 'professor') && (
+                  <button
+                    onClick={() => setActiveTab('suspended-athletes')}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-black uppercase tracking-wider cursor-pointer shadow-md group",
+                      activeTab === 'suspended-athletes'
+                        ? "bg-red-600 text-white border-red-500 shadow-red-600/30 ring-2 ring-red-400"
+                        : "bg-red-500/15 hover:bg-red-500/25 text-red-400 hover:text-red-300 border-red-500/40"
+                    )}
+                    title="Bloquear e Desbloquear Acesso dos Alunos"
+                  >
+                    <ShieldAlert size={16} className="text-red-400 group-hover:scale-110 transition-transform shrink-0" />
+                    <span className="hidden sm:inline">Bloquear / Desbloquear Alunos</span>
+                    <span className="sm:hidden">Bloqueios</span>
+                  </button>
+                )}
+
                 {/* Layout Mode Quick Switch */}
                 <button
                   onClick={() => setActiveTab('system-layouts')}
@@ -351,6 +370,16 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {(user?.role === 'admin' || user?.role === 'professor') && (
+                      <button
+                        onClick={() => setActiveTab('suspended-athletes')}
+                        className="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-300 font-black text-xs uppercase rounded-xl transition-all flex items-center gap-1.5 shadow-md"
+                        title="Bloquear / Desbloquear Alunos"
+                      >
+                        <ShieldAlert size={14} className="text-red-400" />
+                        <span className="hidden sm:inline">Bloquear / Desbloquear Alunos</span>
+                      </button>
+                    )}
                     <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" /> Dock Flutuante
                     </span>
@@ -418,7 +447,18 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {(user?.role === 'admin' || user?.role === 'professor') && (
+                    <button
+                      onClick={() => setActiveTab('suspended-athletes')}
+                      className="px-3.5 py-1.5 bg-red-950 hover:bg-red-900 border border-red-600/60 text-white font-black text-xs uppercase rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                      title="Bloquear / Desbloquear Alunos"
+                    >
+                      <ShieldAlert size={14} className="text-red-400 shrink-0" />
+                      <span className="hidden sm:inline">Bloquear / Desbloquear Alunos</span>
+                      <span className="sm:hidden">Bloqueios</span>
+                    </button>
+                  )}
                   <div className="hidden sm:block text-right">
                     <p className="text-[10px] font-black text-zinc-500 uppercase">Operador</p>
                     <p className="text-sm font-black text-red-500 uppercase">{user?.name}</p>
@@ -476,7 +516,18 @@ export default function Layout({ children, activeTab, setActiveTab, user, onLogo
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {(user?.role === 'admin' || user?.role === 'professor') && (
+                    <button
+                      onClick={() => setActiveTab('suspended-athletes')}
+                      className="px-3.5 py-1.5 bg-purple-900/60 hover:bg-purple-800 border border-purple-600/50 text-amber-300 font-black text-xs uppercase rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                      title="Bloquear / Desbloquear Alunos"
+                    >
+                      <ShieldAlert size={14} className="text-amber-400 shrink-0" />
+                      <span className="hidden sm:inline">Bloquear / Desbloquear Alunos</span>
+                      <span className="sm:hidden">Bloqueios</span>
+                    </button>
+                  )}
                   <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-2xl bg-purple-950/60 border border-purple-800/60">
                     <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                     <span className="text-xs font-black text-purple-300 uppercase">{user?.name}</span>

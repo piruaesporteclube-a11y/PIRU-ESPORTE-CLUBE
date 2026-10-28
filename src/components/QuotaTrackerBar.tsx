@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, RefreshCcw, Info, CheckCircle, AlertTriangle, Cpu } from 'lucide-react';
+import { Database, RefreshCcw, Info, CheckCircle, AlertTriangle, Cpu, ExternalLink } from 'lucide-react';
 import { getUsageStats, clearCache, isQuotaExceeded, api } from '../api';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -193,6 +193,20 @@ export default function QuotaTrackerBar() {
             <p className="text-[10px] text-zinc-500 italic">
               O aplicativo continuará funcionando perfeitamente de forma segura utilizando o nosso cache offline inteligente, para que você não perca o acesso aos seus dados.
             </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+            <span className="text-[10px] text-zinc-400">
+              A cota gratuita reinicia automaticamente a cada 24 horas. Se desejar remover o limite:
+            </span>
+            <a
+              href="https://console.firebase.google.com/project/gen-lang-client-0796288532/firestore/databases/ai-studio-f6a99652-8f1f-4d40-b0f0-d1ad882fcd59/data?openUpgradeDialog=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-colors shadow-sm shrink-0"
+            >
+              <ExternalLink size={12} />
+              Aumentar Cota no Firebase
+            </a>
           </div>
         </div>
       )}

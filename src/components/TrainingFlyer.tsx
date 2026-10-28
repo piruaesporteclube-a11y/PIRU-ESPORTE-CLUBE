@@ -8,7 +8,7 @@ import {
   Trophy, Download, User, X, Camera, Search, UserCheck, Instagram, 
   MapPin, Activity, Clock, Calendar, FileText, ChevronDown, Shield, 
   Type, GripHorizontal, Move, Columns, Minimize2, Maximize2, 
-  ZoomIn, ZoomOut, Eye, EyeOff, Sliders, Layers 
+  ZoomIn, ZoomOut, Eye, EyeOff, Sliders, Layers, FlipHorizontal 
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { motion, AnimatePresence } from 'motion/react';
@@ -111,6 +111,8 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
   const [sidebarWidth, setSidebarWidth] = useState<number>(124);
   const [footerPos, setFooterPos] = useState({ x: 0, y: 0 });
   const [footerWidth, setFooterWidth] = useState<number>(140);
+  const [mirrorMode, setMirrorMode] = useState<'none' | 'columns' | 'split' | 'cards'>('none');
+  const [isMirrored, setIsMirrored] = useState<boolean>(false);
 
   // Escudo, Nome da Escolinha e Data do Treino
   const [crestSize, setCrestSize] = useState<number>(80);
@@ -407,6 +409,91 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
 
   const formattedDate = customDateText.trim() ? customDateText : formatDateSafely(flyerDate, "dd 'de' MMMM");
   const dayOfWeek = customDayOfWeekText.trim() ? customDayOfWeekText : formatDateSafely(flyerDate, "EEEE");
+
+  const renderScheduleBox = (
+    t: Training,
+    s: { start_time: string; end_time?: string; categories: string[] } | null,
+    si: number | null,
+    cardAlign: 'left' | 'right'
+  ) => {
+    const isLeft = cardAlign === 'left';
+    const timeKey = si !== null ? `${t.id}-${si}-time` : `${t.id}-time`;
+    const catKey = si !== null ? `${t.id}-${si}-cat` : `${t.id}-cat`;
+    const timeValue = customTimes[timeKey] !== undefined 
+      ? customTimes[timeKey] 
+      : s 
+      ? (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)
+      : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time);
+
+    const categories = s ? s.categories : (t.category ? [t.category] : []);
+    const customCat = customCategories[catKey];
+
+    return (
+      <div key={si !== null ? si : 'single'} className="relative group">
+        <div 
+          className={cn(
+            "border p-2 space-y-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.98)] rounded-xl transition-all",
+            isLeft ? "border-l-4 text-left" : "border-r-4 text-right"
+          )}
+          style={{
+            backgroundColor: 'rgba(10, 10, 12, 0.98)',
+            borderColor: '#3f3f46',
+            borderLeftColor: isLeft ? '#EAB308' : '#3f3f46',
+            borderRightColor: !isLeft ? '#EAB308' : '#3f3f46'
+          }}
+        >
+          {/* Time Slot with prominent badge container */}
+          <div 
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner",
+              isLeft ? "justify-start" : "justify-end"
+            )}
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              borderColor: 'rgba(234, 179, 8, 0.3)'
+            }}
+          >
+            {isLeft && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
+            <span 
+              className="font-mono font-black tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
+              style={{ fontSize: `${timeFontSize}px`, color: '#FACC15', lineHeight: 1.1 }}
+            >
+              {timeValue}
+            </span>
+            {!isLeft && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
+          </div>
+
+          {/* Categories Stacks */}
+          <div className="flex flex-col gap-1 mt-1">
+            {customCat !== undefined ? (
+              customCat && (
+                <div 
+                  className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
+                  style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
+                >
+                  <span className="text-[8px] font-black uppercase italic leading-none text-center tracking-wide" style={{ color: '#000000' }}>
+                    {customCat}
+                  </span>
+                </div>
+              )
+            ) : (
+              categories.map((c, ci) => (
+                <div 
+                  key={ci} 
+                  className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
+                  style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
+                >
+                  <span className="text-[8px] font-black uppercase italic leading-none whitespace-nowrap tracking-wide" style={{ color: '#000000' }}>
+                    {c}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderDownloadButton = () => (
     <button
@@ -1317,6 +1404,88 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                   </div>
                 </div>
 
+                {/* Espelhamento dos Horários (Layout Espelhado) */}
+                <div className="pt-2 border-t border-zinc-850 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-black text-zinc-300 uppercase flex items-center gap-1.5">
+                      <FlipHorizontal size={13} className="text-theme-primary" />
+                      Horários Espelhados
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !isMirrored;
+                        setIsMirrored(next);
+                        if (next) {
+                          if (mirrorMode === 'none') {
+                            setMirrorMode(colsCount === 2 ? 'columns' : 'split');
+                            if (sidebarWidth > 130) setSidebarWidth(114);
+                          }
+                        } else {
+                          setMirrorMode('none');
+                        }
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border",
+                        isMirrored 
+                          ? "bg-theme-primary text-black border-theme-primary shadow-sm" 
+                          : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                      )}
+                    >
+                      {isMirrored ? "Espelhado: LIGADO" : "Ativar Modo Espelho"}
+                    </button>
+                  </div>
+
+                  {isMirrored && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-3 gap-1.5 bg-black p-1 rounded-xl border border-zinc-800">
+                        <button
+                          type="button"
+                          onClick={() => setMirrorMode('columns')}
+                          className={cn(
+                            "py-1.5 px-1 rounded-lg text-[8px] font-black uppercase text-center transition-all",
+                            mirrorMode === 'columns' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-300"
+                          )}
+                          title="Colunas Simétricas (Coluna 1 à esquerda, Coluna 2 à direita)"
+                        >
+                          Colunas Simétricas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMirrorMode('split');
+                            if (sidebarWidth > 130) setSidebarWidth(114);
+                          }}
+                          className={cn(
+                            "py-1.5 px-1 rounded-lg text-[8px] font-black uppercase text-center transition-all",
+                            mirrorMode === 'split' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-300"
+                          )}
+                          title="Laterais Opostas (Metade na esquerda, metade na direita com centro livre)"
+                        >
+                          Laterais Divididas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMirrorMode('cards')}
+                          className={cn(
+                            "py-1.5 px-1 rounded-lg text-[8px] font-black uppercase text-center transition-all",
+                            mirrorMode === 'cards' ? "bg-theme-primary text-black" : "text-zinc-500 hover:text-zinc-300"
+                          )}
+                          title="Inversão Direta (Inverte borda e relógio dos cartões)"
+                        >
+                          Inverter Cards
+                        </button>
+                      </div>
+
+                      <p className="text-[8px] text-zinc-400 font-bold uppercase leading-tight px-1">
+                        {mirrorMode === 'columns' && "• 1ª coluna alinhada à esquerda e 2ª coluna espelhada à direita com relógios e bordas simétricas."}
+                        {mirrorMode === 'split' && "• Os treinos são distribuídos simetricamente nas laterais esquerda e direita, emoldurando o atleta no centro."}
+                        {mirrorMode === 'cards' && "• Os dados e relógios dos horários são invertidos e espelhados em relação à margem."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <div className="flex justify-between mb-1">
                     <label className="text-[9px] font-bold text-zinc-400 uppercase">Largura da Área de Treinos</label>
@@ -1998,181 +2167,210 @@ export default function TrainingFlyer({ date, trainings, athletes, onClose }: Tr
                 </div>
               </div>
 
-              {/* Vertical Sidebar: Schedules */}
-              <div 
-                className={cn(
-                  "absolute bottom-32 z-40 flex flex-col gap-3 py-4 transition-all duration-300",
-                  infoAlign === 'left' ? "left-2" : "right-2"
-                )}
-                style={{ 
-                  top: `${96 + infoPos.y}px`,
-                  transform: `translateX(${infoPos.x}px)`,
-                  width: `${sidebarWidth}px`
-                }}
-              >
-                {activeTrainings.map((t, idx) => (
-                  <div key={idx} className="flex flex-col gap-2">
-                    <div 
-                      className={cn(
-                        "px-2.5 py-1.5 border shadow-xl rounded-md",
-                        infoAlign === 'left' ? "border-l-4 text-left" : "border-r-4 text-right"
-                      )}
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.96)',
-                        borderColor: '#27272a',
-                        borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#27272a',
-                        borderRightColor: infoAlign === 'right' ? '#EAB308' : '#27272a'
-                      }}
-                    >
-                      <h3 
-                        className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-                        style={{ color: '#EAB308' }}
-                      >
-                        {t.modality}
-                      </h3>
-                      {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
-                        <div className={cn(
-                          "flex items-center gap-0.5 mt-1",
-                          infoAlign === 'left' ? "justify-start" : "justify-end"
-                        )}>
-                          <MapPin size={8} className="shrink-0" style={{ color: '#EAB308' }} />
-                          <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]" style={{ color: '#f4f4f5' }}>
-                            {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className={cn(colsCount === 2 ? "grid grid-cols-2 gap-1.5" : "space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
-                      {!t.schedules || t.schedules.length === 0 ? (
-                        <div className="relative group">
+              {/* Vertical Sidebar: Schedules (Mirrored and Standard) */}
+              {mirrorMode === 'split' ? (
+                <>
+                  {/* Left Mirrored Column */}
+                  <div 
+                    className="absolute bottom-32 z-40 flex flex-col gap-3 py-4 transition-all duration-300 left-2"
+                    style={{ 
+                      top: `${96 + infoPos.y}px`,
+                      transform: `translateX(${infoPos.x}px)`,
+                      width: `${sidebarWidth}px`
+                    }}
+                  >
+                    {activeTrainings.map((t, idx) => {
+                      const allScheds = t.schedules && t.schedules.length > 0 ? t.schedules : [];
+                      const isMultiTrainings = activeTrainings.length > 1;
+                      
+                      let leftScheds = allScheds;
+                      if (allScheds.length > 1) {
+                        const half = Math.ceil(allScheds.length / 2);
+                        leftScheds = allScheds.slice(0, half);
+                      } else if (allScheds.length <= 1 && isMultiTrainings) {
+                        if (idx >= Math.ceil(activeTrainings.length / 2)) return null;
+                      }
+
+                      return (
+                        <div key={idx} className="flex flex-col gap-2">
                           <div 
-                            className={cn(
-                              "border p-2 space-y-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.98)] rounded-xl transition-all",
-                              infoAlign === 'left' ? "border-l-4" : "border-r-4"
-                            )}
+                            className="px-2.5 py-1.5 border shadow-xl rounded-md border-l-4 text-left"
                             style={{
-                              backgroundColor: 'rgba(10, 10, 12, 0.98)',
-                              borderColor: '#3f3f46',
-                              borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#3f3f46',
-                              borderRightColor: infoAlign === 'right' ? '#EAB308' : '#3f3f46'
+                              backgroundColor: 'rgba(0, 0, 0, 0.96)',
+                              borderColor: '#27272a',
+                              borderLeftColor: '#EAB308',
+                              borderRightColor: '#27272a'
                             }}
                           >
-                            {/* Time Slot with prominent badge container */}
-                            <div 
-                              className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner",
-                                infoAlign === 'right' ? "justify-end" : "justify-start"
-                              )}
-                              style={{
-                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                                borderColor: 'rgba(234, 179, 8, 0.3)'
-                              }}
+                            <h3 
+                              className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                              style={{ color: '#EAB308' }}
                             >
-                              {infoAlign === 'left' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
-                              <span 
-                                className="font-mono font-black tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
-                                style={{ fontSize: `${timeFontSize}px`, color: '#FACC15', lineHeight: 1.1 }}
-                              >
-                                {customTimes[`${t.id}-time`] !== undefined ? customTimes[`${t.id}-time`] : (t.end_time ? `${t.start_time} às ${t.end_time}` : t.start_time)}
-                              </span>
-                              {infoAlign === 'right' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
-                            </div>
-                            
-                            {/* Categories Stacks */}
-                            <div className="flex flex-col gap-1 mt-1">
-                              {(customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category) && (
-                                <div 
-                                  className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
-                                  style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
-                                >
-                                  <span className="text-[8px] font-black uppercase italic leading-none text-center tracking-wide" style={{ color: '#000000' }}>
-                                    {customCategories[`${t.id}-cat`] !== undefined ? customCategories[`${t.id}-cat`] : t.category}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                              {t.modality}
+                            </h3>
+                            {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
+                              <div className="flex items-center gap-0.5 mt-1 justify-start">
+                                <MapPin size={8} className="shrink-0" style={{ color: '#EAB308' }} />
+                                <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]" style={{ color: '#f4f4f5' }}>
+                                  {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 pl-1">
+                            {leftScheds.length === 0 ? (
+                              renderScheduleBox(t, null, null, 'left')
+                            ) : (
+                              leftScheds.map((s, si) => renderScheduleBox(t, s, si, 'left'))
+                            )}
                           </div>
                         </div>
-                      ) : (
-                        t.schedules.map((s, si) => (
-                          <div key={si} className="relative group">
-                            <div 
-                              className={cn(
-                                "border p-2 space-y-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.98)] rounded-xl transition-all",
-                                infoAlign === 'left' ? "border-l-4" : "border-r-4"
-                              )}
-                              style={{
-                                backgroundColor: 'rgba(10, 10, 12, 0.98)',
-                                borderColor: '#3f3f46',
-                                borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#3f3f46',
-                                borderRightColor: infoAlign === 'right' ? '#EAB308' : '#3f3f46'
-                              }}
-                            >
-                              {/* Time Slot with prominent badge container */}
-                              <div 
-                                className={cn(
-                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner",
-                                  infoAlign === 'right' ? "justify-end" : "justify-start"
-                                )}
-                                style={{
-                                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                                  borderColor: 'rgba(234, 179, 8, 0.3)'
-                                }}
-                              >
-                                {infoAlign === 'left' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
-                                <span 
-                                  className="font-mono font-black tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,1)]"
-                                  style={{ fontSize: `${timeFontSize}px`, color: '#FACC15', lineHeight: 1.1 }}
-                                >
-                                  {customTimes[`${t.id}-${si}-time`] !== undefined ? customTimes[`${t.id}-${si}-time`] : (s.end_time ? `${s.start_time} às ${s.end_time}` : s.start_time)}
-                                </span>
-                                {infoAlign === 'right' && <Clock size={Math.max(8, Math.round(timeFontSize * 0.9))} className="shrink-0" style={{ color: '#EAB308' }} />}
-                              </div>
-
-                              {/* Categories Stacks */}
-                              <div className="flex flex-col gap-1 mt-1">
-                                {customCategories[`${t.id}-${si}-cat`] !== undefined ? (
-                                  customCategories[`${t.id}-${si}-cat`] && (
-                                    <div 
-                                      className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
-                                      style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
-                                    >
-                                      <span className="text-[8px] font-black uppercase italic leading-none text-center tracking-wide" style={{ color: '#000000' }}>
-                                        {customCategories[`${t.id}-${si}-cat`]}
-                                      </span>
-                                    </div>
-                                  )
-                                ) : (
-                                  s.categories.map((c, ci) => (
-                                    <div 
-                                      key={ci} 
-                                      className="px-2 py-1 rounded-md flex items-center justify-center shadow-md border"
-                                      style={{ backgroundColor: '#EAB308', borderColor: '#ca8a04' }}
-                                    >
-                                      <span className="text-[8px] font-black uppercase italic leading-none whitespace-nowrap tracking-wide" style={{ color: '#000000' }}>
-                                        {c}
-                                      </span>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+
+                  {/* Right Mirrored Column */}
+                  <div 
+                    className="absolute bottom-32 z-40 flex flex-col gap-3 py-4 transition-all duration-300 right-2"
+                    style={{ 
+                      top: `${96 + infoPos.y}px`,
+                      transform: `translateX(${infoPos.x}px)`,
+                      width: `${sidebarWidth}px`
+                    }}
+                  >
+                    {activeTrainings.map((t, idx) => {
+                      const allScheds = t.schedules && t.schedules.length > 0 ? t.schedules : [];
+                      const isMultiTrainings = activeTrainings.length > 1;
+                      
+                      let rightScheds = allScheds;
+                      let startIndex = 0;
+                      if (allScheds.length > 1) {
+                        const half = Math.ceil(allScheds.length / 2);
+                        rightScheds = allScheds.slice(half);
+                        startIndex = half;
+                      } else if (allScheds.length <= 1 && isMultiTrainings) {
+                        if (idx < Math.ceil(activeTrainings.length / 2)) return null;
+                      }
+
+                      return (
+                        <div key={idx} className="flex flex-col gap-2">
+                          <div 
+                            className="px-2.5 py-1.5 border shadow-xl rounded-md border-r-4 text-right"
+                            style={{
+                              backgroundColor: 'rgba(0, 0, 0, 0.96)',
+                              borderColor: '#27272a',
+                              borderLeftColor: '#27272a',
+                              borderRightColor: '#EAB308'
+                            }}
+                          >
+                            <h3 
+                              className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                              style={{ color: '#EAB308' }}
+                            >
+                              {t.modality}
+                            </h3>
+                            {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
+                              <div className="flex items-center gap-0.5 mt-1 justify-end">
+                                <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]" style={{ color: '#f4f4f5' }}>
+                                  {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
+                                </span>
+                                <MapPin size={8} className="shrink-0" style={{ color: '#EAB308' }} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 pr-1">
+                            {rightScheds.length === 0 ? (
+                              renderScheduleBox(t, null, null, 'right')
+                            ) : (
+                              rightScheds.map((s, si) => renderScheduleBox(t, s, startIndex + si, 'right'))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div 
+                  className={cn(
+                    "absolute bottom-32 z-40 flex flex-col gap-3 py-4 transition-all duration-300",
+                    infoAlign === 'left' ? "left-2" : "right-2"
+                  )}
+                  style={{ 
+                    top: `${96 + infoPos.y}px`,
+                    transform: `translateX(${infoPos.x}px)`,
+                    width: `${sidebarWidth}px`
+                  }}
+                >
+                  {activeTrainings.map((t, idx) => (
+                    <div key={idx} className="flex flex-col gap-2">
+                      <div 
+                        className={cn(
+                          "px-2.5 py-1.5 border shadow-xl rounded-md",
+                          infoAlign === 'left' ? "border-l-4 text-left" : "border-r-4 text-right"
+                        )}
+                        style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.96)',
+                          borderColor: '#27272a',
+                          borderLeftColor: infoAlign === 'left' ? '#EAB308' : '#27272a',
+                          borderRightColor: infoAlign === 'right' ? '#EAB308' : '#27272a'
+                        }}
+                      >
+                        <h3 
+                          className="text-[10px] font-black uppercase italic tracking-tighter truncate leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                          style={{ color: '#EAB308' }}
+                        >
+                          {t.modality}
+                        </h3>
+                        {(customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location) && (
+                          <div className={cn(
+                            "flex items-center gap-0.5 mt-1",
+                            infoAlign === 'left' ? "justify-start" : "justify-end"
+                          )}>
+                            <MapPin size={8} className="shrink-0" style={{ color: '#EAB308' }} />
+                            <span className="text-[8px] font-black text-zinc-100 uppercase tracking-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,1)]" style={{ color: '#f4f4f5' }}>
+                              {customLocations[`${t.id}-loc`] !== undefined ? customLocations[`${t.id}-loc`] : t.location}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className={cn(colsCount === 2 ? "grid grid-cols-2 gap-1.5" : "space-y-2", infoAlign === 'left' ? "pl-1" : "pr-1")}>
+                        {!t.schedules || t.schedules.length === 0 ? (
+                          renderScheduleBox(
+                            t, 
+                            null, 
+                            null, 
+                            mirrorMode === 'cards' 
+                              ? (infoAlign === 'left' ? 'right' : 'left') 
+                              : infoAlign
+                          )
+                        ) : (
+                          t.schedules.map((s, si) => {
+                            let cardAlign: 'left' | 'right' = infoAlign;
+                            if (mirrorMode === 'columns') {
+                              cardAlign = (si % 2 === 0) ? 'left' : 'right';
+                            } else if (mirrorMode === 'cards') {
+                              cardAlign = infoAlign === 'left' ? 'right' : 'left';
+                            }
+                            return renderScheduleBox(t, s, si, cardAlign);
+                          })
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* VS Slot Adjustment - Shifted right to account for sidebar */}
               {(customImage || selectedAthlete || customImage2 || selectedAthlete2) && (
                 <div 
                   className="absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all"
                   style={{
-                    left: infoAlign === 'left' ? `${sidebarWidth + 12}px` : '16px',
-                    right: infoAlign === 'right' ? `${sidebarWidth + 12}px` : '16px',
+                    left: mirrorMode === 'split' ? `${sidebarWidth + 4}px` : (infoAlign === 'left' ? `${sidebarWidth + 12}px` : '16px'),
+                    right: mirrorMode === 'split' ? `${sidebarWidth + 4}px` : (infoAlign === 'right' ? `${sidebarWidth + 12}px` : '16px'),
                   }}
                 >
                   <div className="relative w-full h-[280px] flex items-center justify-center">
