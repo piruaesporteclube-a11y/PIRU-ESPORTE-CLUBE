@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { OfficialLetter, Event } from '../types';
-import { Plus, Search, FileText, Printer, Trash2, Edit, Save, X, ChevronLeft, Download, Eye, Calendar, MapPin } from 'lucide-react';
+import { Plus, Search, FileText, Printer, Trash2, Edit, Save, X, ChevronLeft, Download, Eye, Calendar, MapPin, ZoomIn, ZoomOut, Maximize2, Minimize2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../utils';
@@ -25,6 +25,8 @@ export default function OfficialLetterGenerator() {
   const [marginPreset, setMarginPreset] = useState<string>('word_normal');
   const [fontSize, setFontSize] = useState<number>(11);
   const [autoDownloadPDF, setAutoDownloadPDF] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState<number>(0.65);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState<boolean>(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -150,15 +152,29 @@ export default function OfficialLetterGenerator() {
     }
   };
 
+  const getNextLetterNumberForYear = (year: number) => {
+    const lettersForYear = letters.filter(l => Number(l.year) === Number(year));
+    if (lettersForYear.length === 0) {
+      return '001';
+    }
+    const extractedNumbers = lettersForYear.map(l => {
+      const firstPart = (l.number || '').toString().split('/')[0];
+      const digits = firstPart.replace(/\D/g, '');
+      const parsed = parseInt(digits, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    });
+    const maxNum = Math.max(0, ...extractedNumbers);
+    return (maxNum + 1).toString().padStart(3, '0');
+  };
+
   const handleNew = () => {
     setSelectedEventId('');
-    const nextNumber = letters.length > 0 
-      ? (Math.max(...letters.map(l => parseInt(l.number) || 0)) + 1).toString().padStart(3, '0')
-      : '001';
+    const currentYear = new Date().getFullYear();
+    const nextNumber = getNextLetterNumberForYear(currentYear);
       
     setEditingLetter({
       number: nextNumber,
-      year: new Date().getFullYear(),
+      year: currentYear,
       date: new Date().toISOString().split('T')[0],
       recipient_name: '',
       recipient_role: '',
@@ -167,7 +183,7 @@ export default function OfficialLetterGenerator() {
       body: '',
       closing: 'Atenciosamente,',
       sender_name: 'DIRETORIA',
-      sender_role: 'PIRUÁ ESPORTE CLUBE',
+      sender_role: (settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(),
       school_info: 'Rua Exemplo, 123 - Bairro - Cidade/UF | WhatsApp: (00) 00000-0000',
       school_cnpj: '00.000.000/0000-00',
       school_cpf: '000.000.000-00',
@@ -238,10 +254,20 @@ export default function OfficialLetterGenerator() {
     toast.success('Dados do evento importados com sucesso!');
   };
 
-  const filteredLetters = letters.filter(l => 
+  const sortedLetters = [...letters].sort((a, b) => {
+    const yearA = Number(a.year) || 0;
+    const yearB = Number(b.year) || 0;
+    if (yearB !== yearA) return yearB - yearA;
+    const numA = parseInt((a.number || '').toString().replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt((b.number || '').toString().replace(/\D/g, ''), 10) || 0;
+    return numB - numA;
+  });
+
+  const filteredLetters = sortedLetters.filter(l => 
     l.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.recipient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.number.includes(searchTerm)
+    l.number.includes(searchTerm) ||
+    (l.year && l.year.toString().includes(searchTerm))
   );
 
   const applyPreset = (preset: string) => {
@@ -757,24 +783,58 @@ export default function OfficialLetterGenerator() {
               <p className="text-[10px] text-zinc-500 italic">Ao importar, o assunto e o corpo do texto serão preenchidos automaticamente com os dados do evento.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Número</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase">Número do Ofício</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const yr = editingLetter.year || new Date().getFullYear();
+                      const next = getNextLetterNumberForYear(yr);
+                      setEditingLetter({ ...editingLetter, number: next });
+                      toast.info(`Número sequencial ${next}/${yr} aplicado!`);
+                    }}
+                    className="text-[10px] text-theme-primary font-black uppercase hover:underline flex items-center gap-1 cursor-pointer"
+                    title="Calcular próximo número sequencial deste ano"
+                  >
+                    <Sparkles size={11} />
+                    Próximo de {editingLetter.year || new Date().getFullYear()}
+                  </button>
+                </div>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  placeholder="Ex: 001"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold"
                   value={editingLetter.number || ''}
                   onChange={e => setEditingLetter({...editingLetter, number: e.target.value})}
                 />
+                <p className="text-[10px] text-zinc-500 mt-1 italic">
+                  Ordem crescente por ano ({editingLetter.year || new Date().getFullYear()}).
+                </p>
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Ano</label>
+                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Ano do Ofício</label>
                 <input 
                   type="number" 
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50"
+                  min="2000"
+                  max="2100"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 font-bold"
                   value={editingLetter.year}
-                  onChange={e => setEditingLetter({...editingLetter, year: parseInt(e.target.value)})}
+                  onChange={e => {
+                    const newYear = parseInt(e.target.value) || new Date().getFullYear();
+                    const nextNum = !editingLetter.id ? getNextLetterNumberForYear(newYear) : editingLetter.number;
+                    setEditingLetter({
+                      ...editingLetter, 
+                      year: newYear,
+                      number: nextNum
+                    });
+                  }}
                 />
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Total de ofícios em {editingLetter.year || new Date().getFullYear()}: <strong className="text-zinc-300 font-mono">{letters.filter(l => Number(l.year) === Number(editingLetter.year || new Date().getFullYear())).length}</strong>
+                </p>
               </div>
             </div>
 
@@ -995,94 +1055,212 @@ export default function OfficialLetterGenerator() {
             </div>
           </form>
 
-          {/* Preview */}
-          <div className="sticky top-24 scale-[0.5] sm:scale-[0.65] lg:scale-100 origin-top overflow-hidden rounded-2xl shadow-2xl print:shadow-none print:m-0 print:static print:bg-white print:rounded-none print:overflow-visible print:block print:scale-100 print:transform-none official-letter-preview-container">
-            <style>{`
-              @media print {
-                @page {
-                  size: ${pageSize === 'A4' ? 'A4' : 'letter'};
-                  margin: 0 !important;
-                }
-                
-                * {
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                  text-shadow: none !important;
-                  box-sizing: border-box !important;
-                }
+          {/* Preview Column with Zoom Controls */}
+          <div className={cn(
+            "space-y-3",
+            isPreviewExpanded 
+              ? "fixed inset-2 sm:inset-6 z-[100] bg-zinc-950/95 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-zinc-700 shadow-2xl flex flex-col overflow-hidden" 
+              : "sticky top-20 flex flex-col"
+          )}>
+            {/* Zoom & View Controls Bar */}
+            <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-lg shrink-0 no-print">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
+                  <Eye size={13} className="text-theme-primary" />
+                  Visualização da Folha
+                </span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-zinc-800 text-theme-primary font-mono border border-zinc-700">
+                  {Math.round(previewZoom * 100)}%
+                </span>
+              </div>
 
-                html, body {
-                  background-color: white !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  overflow: visible !important;
-                }
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Zoom Out Button */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(prev => Math.max(0.35, parseFloat((prev - 0.05).toFixed(2))))}
+                  className="p-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition-all text-xs flex items-center gap-1 cursor-pointer"
+                  title="Diminuir Zoom (-)"
+                >
+                  <ZoomOut size={13} />
+                </button>
 
-                .no-print, header, nav, footer, .sidebar, button, form, .fixed, .absolute, [role="navigation"], [role="banner"], aside {
-                  display: none !important;
-                }
+                {/* Slider */}
+                <input
+                  type="range"
+                  min="0.35"
+                  max="1.25"
+                  step="0.05"
+                  value={previewZoom}
+                  onChange={e => setPreviewZoom(parseFloat(e.target.value))}
+                  className="w-16 sm:w-24 accent-theme-primary cursor-pointer"
+                  title="Controle deslizante de Zoom"
+                />
 
-                #root, .app-container, .main-content, main, .print-letter-container, .max-w-6xl, .grid {
-                  display: block !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  width: 100% !important;
-                  max-width: none !important;
-                  height: 100% !important;
-                  min-height: 0 !important;
-                  background: white !important;
-                  border: none !important;
-                  box-shadow: none !important;
-                  position: static !important;
-                  overflow: visible !important;
-                  float: none !important;
-                }
+                {/* Zoom In Button */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(prev => Math.min(1.25, parseFloat((prev + 0.05).toFixed(2))))}
+                  className="p-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition-all text-xs flex items-center gap-1 cursor-pointer"
+                  title="Aumentar Zoom (+)"
+                >
+                  <ZoomIn size={13} />
+                </button>
 
-                .official-letter-preview-container, .print-letter-container, .print-letter-content {
-                  transform: none !important;
-                  scale: none !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  max-width: none !important;
-                  max-height: none !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  position: static !important;
-                  overflow: visible !important;
-                  box-sizing: border-box !important;
-                }
+                {/* Quick Presets */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(0.60)}
+                  className={cn(
+                    "p-1.5 px-2 rounded-lg font-black text-[9px] uppercase transition-all cursor-pointer",
+                    Math.abs(previewZoom - 0.60) < 0.03 ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                  )}
+                  title="Ajustar à Tela (Cabe perfeitamente sem cortes)"
+                >
+                  Ajustar
+                </button>
 
-                .print-sheet {
-                  display: flex !important;
-                  flex-direction: column !important;
-                  width: ${pageSize === 'A4' ? '210mm' : '215.9mm'} !important;
-                  height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
-                  min-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
-                  max-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
-                  padding: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm !important;
-                  margin: 0 auto !important;
-                  background: white !important;
-                  font-size: ${fontSize}pt !important;
-                  page-break-after: always;
-                  page-break-inside: avoid;
-                  box-shadow: none !important;
-                  box-sizing: border-box !important;
-                }
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(0.80)}
+                  className={cn(
+                    "p-1.5 px-2 rounded-lg font-black text-[9px] uppercase transition-all cursor-pointer",
+                    Math.abs(previewZoom - 0.80) < 0.03 ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                  )}
+                  title="Zoom 80%"
+                >
+                  80%
+                </button>
 
-                .print-sheet * {
-                   visibility: visible !important;
-                }
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(1.0)}
+                  className={cn(
+                    "p-1.5 px-2 rounded-lg font-black text-[9px] uppercase transition-all cursor-pointer",
+                    Math.abs(previewZoom - 1.0) < 0.03 ? "bg-theme-primary text-black" : "bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                  )}
+                  title="Tamanho Real (100%)"
+                >
+                  100%
+                </button>
 
-                .print-sheet > div {
-                   width: 100% !important;
+                {/* Fullscreen Expand/Minimize */}
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewExpanded(prev => !prev)}
+                  className={cn(
+                    "p-1.5 px-2.5 rounded-lg font-black text-[9px] uppercase transition-all flex items-center gap-1 cursor-pointer",
+                    isPreviewExpanded ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700"
+                  )}
+                  title={isPreviewExpanded ? "Fechar tela cheia" : "Expandir em tela cheia"}
+                >
+                  {isPreviewExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                  <span className="hidden sm:inline">{isPreviewExpanded ? "Reduzir" : "Expandir"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Document Canvas Container */}
+            <div className={cn(
+              "w-full overflow-auto rounded-3xl bg-zinc-950/90 border border-zinc-800/80 p-3 sm:p-6 shadow-2xl flex justify-center scrollbar-thin official-letter-preview-container",
+              isPreviewExpanded ? "flex-1 max-h-none" : "max-h-[80vh]"
+            )}>
+              <style>{`
+                @media print {
+                  @page {
+                    size: ${pageSize === 'A4' ? 'A4' : 'letter'};
+                    margin: 0 !important;
+                  }
+                  
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    text-shadow: none !important;
+                    box-sizing: border-box !important;
+                  }
+
+                  html, body {
+                    background-color: white !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    overflow: visible !important;
+                  }
+
+                  .no-print, header, nav, footer, .sidebar, button, form, .fixed, .absolute, [role="navigation"], [role="banner"], aside {
+                    display: none !important;
+                  }
+
+                  #root, .app-container, .main-content, main, .print-letter-container, .max-w-6xl, .grid {
+                    display: block !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    max-width: none !important;
+                    height: 100% !important;
+                    min-height: 0 !important;
+                    background: white !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    position: static !important;
+                    overflow: visible !important;
+                    float: none !important;
+                  }
+
+                  .official-letter-preview-container, .print-letter-container, .print-letter-content {
+                    transform: none !important;
+                    scale: none !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-width: none !important;
+                    max-height: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    position: static !important;
+                    overflow: visible !important;
+                    box-sizing: border-box !important;
+                  }
+
+                  .print-sheet {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    width: ${pageSize === 'A4' ? '210mm' : '215.9mm'} !important;
+                    height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                    min-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                    max-height: ${pageSize === 'A4' ? '297mm' : '279.4mm'} !important;
+                    padding: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm !important;
+                    margin: 0 auto !important;
+                    background: white !important;
+                    font-size: ${fontSize}pt !important;
+                    page-break-after: always;
+                    page-break-inside: avoid;
+                    box-shadow: none !important;
+                    box-sizing: border-box !important;
+                  }
+
+                  .print-sheet * {
+                     visibility: visible !important;
+                  }
+
+                  .print-sheet > div {
+                     width: 100% !important;
+                  }
                 }
-              }
-            `}</style>
-            <div className="print-letter-container">
-              <div className="print-letter-content">
-                <PrintPreview letter={editingLetter} />
+              `}</style>
+              
+              <div 
+                className="print-letter-container shrink-0 transition-transform duration-150 ease-out"
+                style={{
+                  width: pageSize === 'A4' ? '210mm' : '215.9mm',
+                  transform: `scale(${previewZoom})`,
+                  transformOrigin: 'top center',
+                  marginBottom: previewZoom < 1 ? `-${(1 - previewZoom) * (pageSize === 'A4' ? 297 : 279.4)}mm` : '24px'
+                }}
+              >
+                <div className="print-letter-content">
+                  <PrintPreview letter={editingLetter} />
+                </div>
               </div>
             </div>
           </div>

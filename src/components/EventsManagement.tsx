@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Event, Athlete, Professor, getSubCategory, categories, EventMatchScore, EventMatch } from '../types';
-import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity, FileText } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, User, Save, Printer, X, ChevronRight, Trash2, MessageCircle, Search, FileDown, AlertCircle, CheckCircle2, QrCode, Edit, Instagram, Trophy, Activity, FileText, Sparkles } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -690,6 +690,103 @@ Muito obrigado!
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
     toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
+  };
+
+  const buildCombinedEventMessage = (event: Event, athlete: Athlete, target: 'parent' | 'athlete' = 'parent') => {
+    const formatDateSafe = (dateStr: string | undefined | null) => {
+      if (!dateStr) return '---';
+      try {
+        const parts = dateStr.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return `${day}/${month}/${year}`;
+        }
+      } catch (e) {}
+      return dateStr || '---';
+    };
+
+    const dateFormatted = formatDateSafe(event.start_date);
+    const timeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
+    const endTimeFormatted = event.end_time ? ` até às ${event.end_time}h` : '';
+    
+    const departureStr = event.departure_location 
+      ? `\n🚌 *Local de Embarque/Saída:* ${event.departure_location}` 
+      : '';
+    const departureTimeStr = event.departure_time 
+      ? `\n⏰ *Horário de Partida:* ${event.departure_time}h`
+      : '';
+    const arrivalStr = event.arrival_location 
+      ? `\n📌 *Destino:* ${event.arrival_location}`
+      : '';
+
+    const addressParts = [
+      event.street ? `${event.street}${event.number ? ', nº ' + event.number : ''}` : '',
+      event.neighborhood || '',
+      `${event.city || ''}${event.uf ? '-' + event.uf : ''}`
+    ].filter(Boolean).join(' - ');
+    const addressStr = addressParts ? `\n📍 *Local do Evento:* ${addressParts}` : '';
+
+    const subCategory = getSubCategory(athlete.birth_date);
+    const athleteLabel = athlete.jersey_number 
+      ? `*${athlete.name}* (#${athlete.jersey_number} - ${subCategory})` 
+      : `*${athlete.name}* (${subCategory})`;
+
+    const groupLink = event.whatsapp_group_id && event.whatsapp_group_id.trim() !== '' 
+      ? event.whatsapp_group_id.trim() 
+      : '';
+    const groupBlock = groupLink 
+      ? `\n\n📲 *CONVITE DO GRUPO OFICIAL DO WHATSAPP:*\nEntre no grupo oficial do evento/viagem para acompanhar todas as atualizações e comunicados da comissão:\n👉 ${groupLink}` 
+      : '';
+
+    const matchInfo = activeMatchId ? eventMatches.find(m => m.id === activeMatchId) : null;
+    const matchStr = matchInfo ? `\n⚽ *Partida:* ${matchInfo.team_a_name} x ${matchInfo.team_b_name} (${matchInfo.date || ''} ${matchInfo.time || ''})` : '';
+
+    return `Olá, tudo bem? ⚽
+
+📢 *COMUNICADO & CONVOCAÇÃO OFICIAL*
+Atleta Convocado: ${athleteLabel}
+Evento: *${event.name}*
+
+📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${endTimeFormatted}${addressStr}${departureStr}${departureTimeStr}${arrivalStr}${matchStr}${groupBlock}
+
+📁 *AUTORIZAÇÃO DE VIAGEM (PDF):*
+O arquivo PDF da autorização foi baixado automaticamente no aparelho. Por favor, faça a impressão, assine e nos envie a foto legível da folha assinada de volta.
+
+🌐 *Confirmação no Portal:*
+Confirme a presença acessando o portal: ${window.location.origin}
+
+Muito obrigado pela parceria e apoio de sempre!
+*${(settings?.schoolName || 'Piruá Esporte Clube').toUpperCase()}*`;
+  };
+
+  const handleSendCombinedEventWhatsApp = async (event: Event, athlete: Athlete, target: 'parent' | 'athlete' = 'parent') => {
+    // 1. Gera e faz o download automático da autorização de viagem em PDF
+    await handleGenerateTravelAuthorizationPDF(event, athlete);
+
+    // 2. Monta o texto completo com PDF + Convite do Grupo + Aviso
+    const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
+    const text = buildCombinedEventMessage(event, athlete, target);
+    const encodedText = encodeURIComponent(text);
+
+    let rawPhone = '';
+    if (target === 'parent') {
+      rawPhone = athlete.guardian_phone || '';
+    } else if (target === 'athlete') {
+      rawPhone = athlete.contact || (athlete as any).phone || '';
+    } else {
+      rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    }
+
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+
+    if (!cleanPhone) {
+      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado!`);
+      return;
+    }
+
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success(`PDF baixado e WhatsApp aberto para o ${textTargetName.toLowerCase()} com aviso + grupo + autorização em 1 clique!`, { icon: '🚀' });
   };
 
   const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
@@ -1666,18 +1763,7 @@ Muito obrigado!
       message: generalMessage,
       recipients: [
         ...athletesWithPhone.map(a => {
-          const athleteMsg = `Olá, tudo bem? ⚽
-
-Foi gerado o documento de *Autorização de Viagem* para o atleta *${a.name}* referente ao evento *${selectedEvent.name}*.
-
-📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
-
-📁 O arquivo PDF da autorização foi baixado automaticamente em seu aparelho. Por favor, faça a impressão, assine e nos envie de volta.
-
-Ah, e não se esqueça de confirmar sua participação pelo link: ${window.location.origin}
-
-Muito obrigado!
-*Piruá Esporte Clube*`;
+          const athleteMsg = buildCombinedEventMessage(selectedEvent, a, 'parent');
           return { 
             id: a.id, 
             name: a.name, 
@@ -1698,11 +1784,70 @@ Você foi escalado como membro da Comissão Técnica para o evento *${selectedEv
 Confirme sua presença no link: ${window.location.origin}
 
 Muito obrigado!
-*Piruá Esporte Clube*`;
+*${(settings?.schoolName || 'Piruá Esporte Clube').toUpperCase()}*`;
           return { 
             id: p.id, 
             name: p.name, 
             phone: p.phone!, 
+            type: 'Comissão',
+            customMessage: staffMsg
+          };
+        })
+      ]
+    });
+    setIsNotificationModalOpen(true);
+  };
+
+  const handleOpenCombinedBatchNotification = () => {
+    if (!selectedEvent) return;
+    
+    const athletesWithPhone = athletes.filter(a => selectedAthletes.includes(a.id) && (a.contact || a.guardian_phone || (a as any).phone));
+    const staffWithPhone = professors.filter(p => selectedStaff.includes(p.id) && p.phone);
+
+    if (athletesWithPhone.length === 0 && staffWithPhone.length === 0) {
+      toast.error("Nenhum atleta ou membro com telefone cadastrado para notificar.");
+      return;
+    }
+
+    const groupLink = selectedEvent.whatsapp_group_id && selectedEvent.whatsapp_group_id.trim() !== '' 
+      ? selectedEvent.whatsapp_group_id.trim() 
+      : '';
+
+    toast.info(`Iniciando pacote 3 em 1 (PDF + Grupo + Aviso) para ${athletesWithPhone.length} atletas...`);
+    setNotifiedRecipients([]);
+
+    const generalMessage = `📢 Convocação Oficial: *${selectedEvent.name}*\n📄 Autorização de Viagem em PDF + 📲 Convite do Grupo de WhatsApp + 📍 Aviso Completo do Evento`;
+
+    setNotificationBatch({
+      message: generalMessage,
+      recipients: [
+        ...athletesWithPhone.map(a => {
+          const athleteMsg = buildCombinedEventMessage(selectedEvent, a, 'parent');
+          return {
+            id: a.id,
+            name: a.name,
+            phone: a.guardian_phone || a.contact || (a as any).phone || '',
+            guardianPhone: a.guardian_phone || '',
+            contactPhone: a.contact || (a as any).phone || '',
+            type: 'Atleta',
+            customMessage: athleteMsg
+          };
+        }),
+        ...staffWithPhone.map(p => {
+          const staffMsg = `Olá, tudo bem? ⚽
+
+Você foi escalado como membro da Comissão Técnica para o evento *${selectedEvent.name}*.
+
+📅 *Data do Evento:* ${selectedEvent.start_date} às ${selectedEvent.start_time}h${selectedEvent.departure_location ? `\n🚌 *Saída:* ${selectedEvent.departure_location}` : ''}${selectedEvent.departure_time ? ` às ${selectedEvent.departure_time}h` : ''}
+${groupLink ? `\n🔗 *Grupo do WhatsApp:* ${groupLink}\n` : ''}
+Confirme sua presença no link: ${window.location.origin}
+
+Muito obrigado!
+*${(settings?.schoolName || 'Piruá Esporte Clube').toUpperCase()}*`;
+          return {
+            id: p.id,
+            name: p.name,
+            phone: p.phone!,
             type: 'Comissão',
             customMessage: staffMsg
           };
@@ -3400,6 +3545,14 @@ Muito obrigado!
                             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-widest">Confirmação</h3>
                             <div className="flex flex-wrap gap-2">
                               <button 
+                                onClick={handleOpenCombinedBatchNotification}
+                                className="p-1 px-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black flex items-center gap-1.5 text-[8.5px] font-black uppercase transition-all shadow-md shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                title="Enviar em 1 Clique para cada atleta: PDF da autorização + Convite do Grupo + Aviso do Evento juntos em uma só mensagem!"
+                              >
+                                <Sparkles size={11} className="text-black" />
+                                Tudo em 1 Clique (PDF + Grupo + Aviso)
+                              </button>
+                              <button 
                                 onClick={handleNotifyAllLineup}
                                 className="p-1 px-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all"
                                 title="Notificar todos por WhatsApp"
@@ -3608,6 +3761,55 @@ Muito obrigado!
                                     </div>
                                     
                                     <div className="flex flex-col gap-3 w-full border-t border-zinc-800/60 pt-3">
+                                      {/* BLOCO DESTAQUE: TUDO EM 1 CLIQUE (PDF + CONVITE GRUPO + AVISO DO EVENTO EM 1 SÓ MENSAGEM) */}
+                                      <div className="bg-gradient-to-r from-emerald-950/60 via-zinc-900 to-emerald-950/50 p-3 rounded-2xl border-2 border-emerald-500/40 shadow-lg shadow-emerald-950/30 space-y-2">
+                                        <div className="flex items-center justify-between gap-1.5">
+                                          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                            <Sparkles size={13} className="text-emerald-400 animate-pulse" />
+                                            Tudo em 1 Clique (PDF + Grupo + Aviso):
+                                          </span>
+                                          <span className="text-[8px] bg-emerald-500/20 text-emerald-300 font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-wider">
+                                            1 Só Mensagem
+                                          </span>
+                                        </div>
+                                        
+                                        <p className="text-[9px] text-zinc-400 leading-tight">
+                                          Baixa a Autorização em PDF e abre o WhatsApp com o <strong>Aviso Completo</strong> e o <strong>Convite do Grupo</strong> já preenchidos!
+                                        </p>
+
+                                        <div className="flex flex-wrap gap-2 pt-0.5">
+                                          {a.guardian_phone && a.guardian_phone.trim() !== '' ? (
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleSendCombinedEventWhatsApp(selectedEvent!, a, 'parent')}
+                                              className="flex-1 min-w-[130px] p-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[9.5px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                              title="Baixar PDF de Autorização e abrir WhatsApp com Aviso do Evento + Convite do Grupo para Pais em 1 clique"
+                                            >
+                                              <MessageCircle size={13} className="text-black" />
+                                              <span>Enviar Pais (1 Clique)</span>
+                                            </button>
+                                          ) : null}
+
+                                          {((a as any).contact || (a as any).phone) ? (
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleSendCombinedEventWhatsApp(selectedEvent!, a, 'athlete')}
+                                              className="flex-1 min-w-[130px] p-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-emerald-500/40 text-emerald-300 font-black text-[9.5px] uppercase flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                              title="Baixar PDF de Autorização e abrir WhatsApp com Aviso do Evento + Convite do Grupo para o Aluno em 1 clique"
+                                            >
+                                              <MessageCircle size={13} />
+                                              <span>Enviar Aluno (1 Clique)</span>
+                                            </button>
+                                          ) : null}
+
+                                          {!a.guardian_phone && !((a as any).contact || (a as any).phone) && (
+                                            <span className="text-[9px] text-red-400 font-bold uppercase italic p-1 bg-red-500/10 rounded">
+                                              Sem telefone cadastrado
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
                                       {/* Individual documents / travel buttons (Always available) */}
                                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800">
                                         <div className="flex flex-col">
