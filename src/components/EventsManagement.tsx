@@ -19,7 +19,9 @@ import {
   createTravelAuthorizationPdf, 
   createTravelAuthorizationPdfFile, 
   getTravelAuthorizationPublicUrl, 
-  drawTravelAuthorizationPage 
+  drawTravelAuthorizationPage,
+  formatWhatsAppPhone,
+  openWhatsAppDirect
 } from '../utils/travelAuthorizationPdf';
 
 // Helper parser/compiler for scorers
@@ -436,7 +438,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     }
   };
 
-  const handleSendWhatsAppTravelAuthorization = async (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
+  const handleSendWhatsAppTravelAuthorization = (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
     const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
     let rawPhone = '';
     if (target === 'parent') {
@@ -446,7 +448,12 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     } else {
       rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
     }
-    const cleanPhone = rawPhone.replace(/\D/g, '');
+    const cleanPhone = formatWhatsAppPhone(rawPhone);
+
+    if (!cleanPhone) {
+      toast.error(`Contato ou telefone do destino selecionado (${textTargetName}) não cadastrado ou inválido!`);
+      return;
+    }
 
     const formatDateSafe = (dateStr: string | undefined | null) => {
       if (!dateStr) return '---';
@@ -490,44 +497,13 @@ ${directDocUrl}
 Muito obrigado!
 *${schoolName.toUpperCase()}*`;
 
-    // 1. Cria o arquivo PDF em memória
-    let pdfFile: File | null = null;
-    try {
-      pdfFile = createTravelAuthorizationPdfFile(event, athlete, crestDataUrl, schoolName);
-    } catch (e) {
-      console.warn("Could not create PDF file in memory:", e);
-    }
+    // 1. Abre DIRETO no WhatsApp do contato imediatamente (sem atrasos de await para não ser bloqueado por popup)
+    openWhatsAppDirect(cleanPhone, text);
 
-    // 2. Se for celular ou navegador com suporte a compartilhamento de arquivo nativo:
-    if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Autorização de Viagem - ${athlete.name}`,
-          text: text
-        });
-        toast.success(`WhatsApp aberto com o arquivo PDF anexado e mensagem completa!`, { icon: '🚀', duration: 5000 });
-        return;
-      } catch (shareErr: any) {
-        if (shareErr.name === 'AbortError') return;
-      }
-    }
+    // 2. Dispara o download local do PDF no aparelho/computador
+    handleGenerateTravelAuthorizationPDF(event, athlete);
 
-    // 3. Fallback: Faz o download local do PDF e abre wa.me com link direto
-    await handleGenerateTravelAuthorizationPDF(event, athlete);
-
-    if (!cleanPhone) {
-      toast.error(`Contato ou telefone do destino selecionado (${textTargetName}) não cadastrado! PDF salvo no aparelho.`);
-      return;
-    }
-
-    const encodedText = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-    toast.success(`WhatsApp aberto! O link de acesso direto ao PDF oficial já foi enviado na mensagem para o ${textTargetName.toLowerCase()} abrir com 1 toque!`, { 
-      icon: '💬',
-      duration: 6000 
-    });
+    toast.success(`Abrindo WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
   };
 
   const handleSendWhatsAppGroupLink = (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
@@ -539,19 +515,6 @@ Muito obrigado!
     const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
     const groupLink = event.whatsapp_group_id.trim();
 
-    const text = `Olá, tudo bem? ⚽
-
-Gostaríamos de convidar você para entrar no grupo oficial da viagem/evento *${event.name}* para podermos nos comunicar e alinhar todos os detalhes!
-
-🔗 *Link do grupo:* ${groupLink}
-
-Por favor, entre no grupo clicando no link acima para ficar por dentro das informações e avisos importantes.
-
-Muito obrigado!
-*Piruá Esporte Clube*`;
-
-    const encodedText = encodeURIComponent(text);
-    
     let rawPhone = '';
     if (target === 'parent') {
       rawPhone = athlete.guardian_phone || '';
@@ -561,15 +524,25 @@ Muito obrigado!
       rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
     }
     
-    const cleanPhone = rawPhone.replace(/\D/g, '');
+    const cleanPhone = formatWhatsAppPhone(rawPhone);
 
     if (!cleanPhone) {
-      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado!`);
+      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado ou inválido!`);
       return;
     }
 
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
+    const text = `Olá, tudo bem? ⚽
+
+Gostaríamos de convidar você para entrar no grupo oficial da viagem/evento *${event.name}* para podermos nos comunicar e alinhar todos os detalhes!
+
+🔗 *Link do grupo:* ${groupLink}
+
+Por favor, entre no grupo clicando no link acima para ficar por dentro das informações e avisos importantes.
+
+Muito obrigado!
+*${(settings?.schoolName || 'Piruá Esporte Clube').toUpperCase()}*`;
+
+    openWhatsAppDirect(cleanPhone, text);
     toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
   };
 
@@ -644,7 +617,7 @@ Muito obrigado pela parceria e apoio de sempre!
 *${(settings?.schoolName || 'Piruá Esporte Clube').toUpperCase()}*`;
   };
 
-  const handleSendCombinedEventWhatsApp = async (event: Event, athlete: Athlete, target: 'parent' | 'athlete' = 'parent') => {
+  const handleSendCombinedEventWhatsApp = (event: Event, athlete: Athlete, target: 'parent' | 'athlete' = 'parent') => {
     const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
     let rawPhone = '';
     if (target === 'parent') {
@@ -655,55 +628,23 @@ Muito obrigado pela parceria e apoio de sempre!
       rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
     }
 
-    const cleanPhone = rawPhone.replace(/\D/g, '');
-    const text = buildCombinedEventMessage(event, athlete, target);
-    const schoolName = settings?.schoolName || 'Piruá Esporte Clube';
-
-    // 1. Gera o arquivo PDF em memória
-    let pdfFile: File | null = null;
-    try {
-      pdfFile = createTravelAuthorizationPdfFile(event, athlete, crestDataUrl, schoolName);
-    } catch (e) {
-      console.warn("Could not create PDF file in memory:", e);
-    }
-
-    // 2. Se o dispositivo/navegador suportar compartilhamento nativo de arquivos (Celulares Android, iOS Safari, etc.):
-    // Abre diretamente o WhatsApp com o arquivo PDF já anexado e a mensagem pronta!
-    if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Autorização de Viagem - ${athlete.name}`,
-          text: text
-        });
-        toast.success(`WhatsApp aberto com o PDF anexado e mensagem completa em 1 clique!`, { 
-          icon: '🚀', 
-          duration: 5000 
-        });
-        return;
-      } catch (shareErr: any) {
-        if (shareErr.name === 'AbortError') return;
-        console.warn('Navigator share error, falling back to wa.me with direct link:', shareErr);
-      }
-    }
-
-    // 3. Se estiver no computador (onde wa.me não permite injetar anexos locais por segurança do navegador):
-    // Faz o download automático do PDF para backup no computador
-    await handleGenerateTravelAuthorizationPDF(event, athlete);
-
+    const cleanPhone = formatWhatsAppPhone(rawPhone);
     if (!cleanPhone) {
-      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado! PDF baixado no computador.`);
+      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado ou inválido!`);
       return;
     }
 
-    // E abre o WhatsApp com a mensagem completa contendo o link direto do documento oficial em PDF!
-    // Assim o responsável acessa e baixa o PDF oficial com apenas 1 toque na conversa do WhatsApp.
-    const encodedText = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-    toast.success(`WhatsApp aberto! O link de acesso direto ao PDF oficial já foi enviado na mensagem para o ${textTargetName.toLowerCase()} abrir com 1 toque!`, { 
-      icon: '🚀',
-      duration: 6000 
+    const text = buildCombinedEventMessage(event, athlete, target);
+
+    // 1. Abre DIRETO no WhatsApp do contato IMEDIATAMENTE (sem atrasos de await para não ser bloqueado por popup)
+    openWhatsAppDirect(cleanPhone, text);
+
+    // 2. Dispara o download local do PDF no aparelho/computador para ter a via física
+    handleGenerateTravelAuthorizationPDF(event, athlete);
+
+    toast.success(`Abrindo WhatsApp do ${textTargetName.toLowerCase()} com aviso + grupo + autorização em 1 clique!`, { 
+      icon: '🚀', 
+      duration: 5000 
     });
   };
 
@@ -4391,18 +4332,17 @@ Muito obrigado!
                       
                       {hasParent && (
                         <button
-                          onClick={async () => {
+                          onClick={() => {
                             setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
-                                await handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'parent');
+                                handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'parent');
                                 return;
                               }
                             }
                             const finalMsg = r.customMessage || notificationBatch.message;
-                            const msg = encodeURIComponent(finalMsg);
-                            window.open(`https://wa.me/55${r.guardianPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                            openWhatsAppDirect(r.guardianPhone, finalMsg);
                           }}
                           className={`py-1.5 px-3 rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white' : 'bg-green-500 hover:bg-green-600 text-black'}`}
                           title="Enviar 1 Clique: PDF + Grupo + Aviso para Responsável/Pais"
@@ -4414,18 +4354,17 @@ Muito obrigado!
                       
                       {hasAthlete && (
                         <button
-                          onClick={async () => {
+                          onClick={() => {
                             setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
-                                await handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'athlete');
+                                handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'athlete');
                                 return;
                               }
                             }
                             const finalMsg = r.customMessage || notificationBatch.message;
-                            const msg = encodeURIComponent(finalMsg);
-                            window.open(`https://wa.me/55${r.contactPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                            openWhatsAppDirect(r.contactPhone, finalMsg);
                           }}
                           className={`py-1.5 px-3 border rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700' : 'bg-theme-primary/10 border-theme-primary/30 text-theme-primary hover:bg-theme-primary hover:text-black'}`}
                           title="Enviar 1 Clique: PDF + Grupo + Aviso para Atleta/Aluno"

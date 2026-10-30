@@ -191,3 +191,42 @@ export function getTravelAuthorizationPublicUrl(eventId: string, athleteId: stri
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return `${origin}/?travel-doc=true&eventId=${encodeURIComponent(eventId)}&athleteId=${encodeURIComponent(athleteId)}`;
 }
+
+export function formatWhatsAppPhone(phone: string | undefined | null): string {
+  if (!phone) return '';
+  let clean = phone.replace(/\D/g, '');
+  if (!clean) return '';
+
+  // Strip leading zeroes (e.g. 037999991234 -> 37999991234)
+  while (clean.startsWith('0')) {
+    clean = clean.substring(1);
+  }
+
+  // If already starts with 55 and has 12 or 13 digits
+  if (clean.startsWith('55') && (clean.length === 12 || clean.length === 13)) {
+    return clean;
+  }
+
+  // Standard Brazilian phone with DDD (10 or 11 digits: e.g. 37999998888)
+  if (clean.length === 10 || clean.length === 11) {
+    return `55${clean}`;
+  }
+
+  // If already starts with 55, keep it
+  if (clean.startsWith('55')) {
+    return clean;
+  }
+
+  return `55${clean}`;
+}
+
+export function openWhatsAppDirect(phone: string | undefined | null, text: string): boolean {
+  const cleanPhone = formatWhatsAppPhone(phone);
+  if (!cleanPhone) return false;
+
+  const encodedText = encodeURIComponent(text);
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+  window.open(whatsappUrl, '_blank');
+  return true;
+}
+
