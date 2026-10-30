@@ -30,6 +30,7 @@ import PublicProfessorRegistration from './components/PublicProfessorRegistratio
 import PublicAnamnesis from './components/PublicAnamnesis';
 import TeamPortal from './components/TeamPortal';
 import PublicEventCheckin from './components/PublicEventCheckin';
+import PublicTravelAuthorization from './components/PublicTravelAuthorization';
 import OfficialLetterGenerator from './components/OfficialLetterGenerator';
 import TravelList from './components/TravelList';
 import CompanionRegistration from './components/CompanionRegistration';
@@ -1564,6 +1565,18 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get('checkin') === 'true' && params.has('eventId');
   });
+  const [isTravelDoc, setIsTravelDoc] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('travel-doc') === 'true' || params.has('travel-doc')) && params.has('eventId') && params.has('athleteId');
+  });
+  const [travelDocEventId, setTravelDocEventId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('eventId');
+  });
+  const [travelDocAthleteId, setTravelDocAthleteId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('athleteId');
+  });
   const [isTravelRegistration, setIsTravelRegistration] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('travel-registration') === 'true' || window.location.pathname.startsWith('/cadastro-acompanhante/');
@@ -2358,6 +2371,23 @@ export default function App() {
           championshipId={teamChampionshipId || undefined} 
           onBack={() => {
             setIsTeamRegistration(false);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isTravelDoc && travelDocEventId && travelDocAthleteId) {
+    return (
+      <ErrorBoundary>
+        <PublicTravelAuthorization 
+          eventId={travelDocEventId} 
+          athleteId={travelDocAthleteId}
+          onBack={() => {
+            setIsTravelDoc(false);
+            setTravelDocEventId(null);
+            setTravelDocAthleteId(null);
             window.history.replaceState({}, '', window.location.pathname);
           }}
         />

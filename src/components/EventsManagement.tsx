@@ -15,6 +15,12 @@ import EventFlyer from './EventFlyer';
 import TrainingFlyer from './TrainingFlyer';
 import SimpleLineupGenerator from './SimpleLineupGenerator';
 import LineupFlyerGenerator from './LineupFlyerGenerator';
+import { 
+  createTravelAuthorizationPdf, 
+  createTravelAuthorizationPdfFile, 
+  getTravelAuthorizationPublicUrl, 
+  drawTravelAuthorizationPage 
+} from '../utils/travelAuthorizationPdf';
 
 // Helper parser/compiler for scorers
 export function parseScorersString(scorersStr: string): { name: string; goals: number }[] {
@@ -411,161 +417,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const drawSingleTravelPage = (pdf: any, event: Event, athlete: Athlete) => {
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
-
-    const formatTravelDate = (dateStr?: string) => {
-      if (!dateStr) return '___/___/_____';
-      try {
-        const parts = dateStr.split('T')[0].split('-');
-        if (parts.length === 3) {
-          const [year, month, day] = parts;
-          return `${day}/${month}/${year}`;
-        }
-        const d = new Date(dateStr);
-        if (!isNaN(d.getTime())) {
-          return d.toLocaleDateString('pt-BR');
-        }
-      } catch (e) {}
-      return dateStr;
-    };
-
-    // Crest at y=15, centered
-    if (crestDataUrl) {
-      try {
-        pdf.addImage(crestDataUrl, 'PNG', pageWidth / 2 - 12.5, 15, 25, 25);
-      } catch (e) {
-        console.warn("Could not draw crest on travel PDF:", e);
-      }
-    }
-
-    // Title / Institution
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
-    pdf.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 47, { align: 'center' });
-    
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.text('DEPARTAMENTO DE FUTEBOL E BASE', pageWidth / 2, 52, { align: 'center' });
-
-    // Divider line
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, 56, pageWidth - margin, 56);
-
-    // Document Subtitle
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
-    const subTitle = 'AUTORIZAÇÃO DE VIAGEM E PARTICIPAÇÃO EM EVENTO';
-    pdf.text(subTitle, pageWidth / 2, 66, { align: 'center' });
-
-    // Double underline under subtitle
-    pdf.setLineWidth(0.2);
-    pdf.line(pageWidth / 2 - 60, 68, pageWidth / 2 + 60, 68);
-
-    // Paragraph 1: Guardian Authorizes Candidate
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(11);
-    
-    const athleteAddress = [
-      athlete.street ? `${athlete.street}` : '',
-      athlete.number ? `nº ${athlete.number}` : '',
-      athlete.neighborhood ? `${athlete.neighborhood}` : '',
-      athlete.city ? `${athlete.city}-${athlete.uf || 'MG'}` : ''
-    ].filter(Boolean).join(', ') || '____________________________________________________';
-
-    const p1 = `Eu, ${athlete.guardian_name || '________________________'}, portador(a) do RG/CPF nº ${athlete.guardian_doc || '________________________'}, na qualidade de responsável legal pelo atleta menor ${athlete.name || '________________________'}, nascido em ${formatTravelDate(athlete.birth_date)}, inscrito sob o RG/CPF nº ${athlete.doc || '________________________'}, residente e domiciliado em ${athleteAddress}, venho por meio desta AUTORIZAR sua participação no evento denominado ${(event.name || '______').toUpperCase()}.`;
-
-    // Paragraph 2: Location and details of local event
-    const eventAddress = [
-      event.street ? `${event.street}` : '',
-      event.number ? `nº ${event.number}` : '',
-      event.neighborhood ? `${event.neighborhood}` : '',
-      event.city ? `${event.city}-${event.uf || 'MG'}` : ''
-    ].filter(Boolean).join(', ') || '____________________________________________________';
-
-    const eventStartTimeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
-    const eventEndTimeFormatted = event.end_time ? ` às ${event.end_time}h` : '';
-    const p2 = `O referido evento realizar-se-á na cidade de ${event.city ? `${event.city}-${event.uf || 'MG'}` : '__________________'}, no endereço ${eventAddress}, com início previsto para o dia ${formatTravelDate(event.start_date)}${eventStartTimeFormatted} e término em ${formatTravelDate(event.end_date)}${eventEndTimeFormatted}.`;
-
-    // Paragraph 3: Transportation Authorization with dynamic logistics coordinates
-    const hasTravelDetails = event.departure_location || event.departure_time || event.arrival_location;
-    const travelDetailsText = hasTravelDetails 
-      ? ` Ficam definidos para o deslocamento os seguintes detalhes: Viagem com partida de ${event.departure_location || '_______________'}${event.departure_time ? ` prevista para às ${event.departure_time}h` : ''}, tendo como destino ${event.arrival_location || `${event.city || '_______'}-${event.uf || '___'}`}.`
-      : '';
-    const p3 = `Autorizo ainda que o atleta seja transportado em veículo gentilmente cedido pela Prefeitura Municipal de Campos Altos, através da Secretaria de Esporte e Lazer juntamente com a Secretaria de Administração do Município, ou por outros meios de transporte designados pela coordenação ou diretoria do Piruá Esporte Clube.${travelDetailsText}`;
-
-    // Paragraph 4: Isenção text block
-    const p4 = `"Isento os organizadores do Evento de qualquer responsabilidade por danos eventualmente causados ao menor acima citado no decorrer da competição. Ressaltamos que prestaremos toda atenção necessária durante a viagem, como também durante os jogos. No caso de lesões ou até mesmo fraturas, enfatizamos que prestaremos todo apoio necessário ao atleta de acordo com as nossas condições."`;
-
-    let currentY = 80;
-    const writeParagraph = (textStr: string, isItalic = false) => {
-      pdf.setFont('helvetica', isItalic ? 'italic' : 'normal');
-      if (isItalic) {
-        pdf.setFontSize(10);
-        pdf.setTextColor(60, 60, 60);
-      } else {
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
-      }
-      // Use splitWidth slightly shorter than contentWidth (with safety padding of 8mm) to guarantee no right boundary cut off on any browser
-      const splitWidth = contentWidth - 8;
-      const lines = pdf.splitTextToSize(textStr, splitWidth);
-      pdf.text(lines, margin, currentY, { align: 'left' });
-      currentY += (lines.length * 6) + 7;
-    };
-
-    writeParagraph(p1);
-    writeParagraph(p2);
-    writeParagraph(p3);
-    writeParagraph(p4, true);
-
-    // Local & date at signature time
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    const today = new Date();
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const dateText = `Campos Altos - MG, ${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}.`;
-    pdf.text(dateText, margin, currentY);
-    currentY += 25;
-
-    // Signature templates
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0.5);
-
-    // Left Signature - Guardian
-    pdf.line(margin, currentY, margin + 70, currentY);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    const leftGuardianName = (athlete.guardian_name || 'Assinatura do Responsável').toUpperCase();
-    const splitLeftName = pdf.splitTextToSize(leftGuardianName, 70);
-    pdf.text(splitLeftName, margin, currentY + 4);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    const leftTitleY = currentY + 4 + (splitLeftName.length * 4);
-    pdf.text('Responsável Legal', margin, leftTitleY);
-
-    // Right Signature - Board / PEC
-    pdf.line(pageWidth - margin - 70, currentY, pageWidth - margin, currentY);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    const rightSchoolName = (settings?.schoolName || 'Piruá Esporte Clube').toUpperCase();
-    const splitRightName = pdf.splitTextToSize(rightSchoolName, 70);
-    pdf.text(splitRightName, pageWidth - margin - 70, currentY + 4);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    const rightTitleY = currentY + 4 + (splitRightName.length * 4);
-    pdf.text('Assinatura e Carimbo da Diretoria', pageWidth - margin - 70, rightTitleY);
-
-    // Footer lines
-    pdf.setFontSize(7);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text(`Documento gerado eletronicamente em: ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR')}`, margin, pageHeight - 15);
-    pdf.text(`Sistema de Gestão Piruá E.C. - Todos os direitos reservados.`, margin, pageHeight - 11);
+    drawTravelAuthorizationPage(pdf, event, athlete, crestDataUrl, settings?.schoolName || 'PIRUÁ ESPORTE CLUBE');
   };
 
   const handleGenerateTravelAuthorizationPDF = async (event: Event, athlete: Athlete) => {
@@ -585,8 +437,16 @@ export default function EventsManagement({ athletes: athletesProp, events: event
   };
 
   const handleSendWhatsAppTravelAuthorization = async (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
-    // Generate the PDF first so client gets it downloaded immediately
-    await handleGenerateTravelAuthorizationPDF(event, athlete);
+    const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
+    let rawPhone = '';
+    if (target === 'parent') {
+      rawPhone = athlete.guardian_phone || '';
+    } else if (target === 'athlete') {
+      rawPhone = athlete.contact || (athlete as any).phone || '';
+    } else {
+      rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    }
+    const cleanPhone = rawPhone.replace(/\D/g, '');
 
     const formatDateSafe = (dateStr: string | undefined | null) => {
       if (!dateStr) return '---';
@@ -601,8 +461,7 @@ export default function EventsManagement({ athletes: athletesProp, events: event
     };
 
     const dateFormatted = formatDateSafe(event.start_date);
-    const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
-    const timeFormatted = event.start_time ? ` àS ${event.start_time}h` : '';
+    const timeFormatted = event.start_time ? ` às ${event.start_time}h` : '';
     
     const departureStr = event.departure_location 
       ? `\n📍 *Partida:* ${event.departure_location}` 
@@ -614,39 +473,61 @@ export default function EventsManagement({ athletes: athletesProp, events: event
       ? `\n📌 *Destino:* ${event.arrival_location}`
       : '';
 
+    const directDocUrl = getTravelAuthorizationPublicUrl(event.id, athlete.id);
+    const schoolName = settings?.schoolName || 'Piruá Esporte Clube';
+
     const text = `Olá, tudo bem? ⚽
 
 Foi gerado o documento de *Autorização de Viagem* para o atleta *${athlete.name}* referente ao evento *${event.name}*.
 
 📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${departureStr}${departureTimeStr}${arrivalStr}
 
-📁 O arquivo PDF da autorização foi baixado automaticamente em seu aparelho. Por favor, faça a impressão, assine e envie uma foto legível do papel assinado de volta.
+📁 *AUTORIZAÇÃO DE VIAGEM OFICIAL (PDF):*
+👉 Acesse e baixe a folha oficial com 1 toque no link:
+${directDocUrl}
+(O documento oficial já está preenchido com todos os dados do atleta para assinatura e impressão)
 
 Muito obrigado!
-*Piruá Esporte Clube*`;
+*${schoolName.toUpperCase()}*`;
 
-    const encodedText = encodeURIComponent(text);
-    
-    // Choose phone number based on targeted selection
-    let rawPhone = '';
-    if (target === 'parent') {
-      rawPhone = athlete.guardian_phone || '';
-    } else if (target === 'athlete') {
-      rawPhone = athlete.contact || (athlete as any).phone || '';
-    } else {
-      rawPhone = athlete.guardian_phone || athlete.contact || (athlete as any).phone || '';
+    // 1. Cria o arquivo PDF em memória
+    let pdfFile: File | null = null;
+    try {
+      pdfFile = createTravelAuthorizationPdfFile(event, athlete, crestDataUrl, schoolName);
+    } catch (e) {
+      console.warn("Could not create PDF file in memory:", e);
     }
-    
-    const cleanPhone = rawPhone.replace(/\D/g, '');
+
+    // 2. Se for celular ou navegador com suporte a compartilhamento de arquivo nativo:
+    if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: `Autorização de Viagem - ${athlete.name}`,
+          text: text
+        });
+        toast.success(`WhatsApp aberto com o arquivo PDF anexado e mensagem completa!`, { icon: '🚀', duration: 5000 });
+        return;
+      } catch (shareErr: any) {
+        if (shareErr.name === 'AbortError') return;
+      }
+    }
+
+    // 3. Fallback: Faz o download local do PDF e abre wa.me com link direto
+    await handleGenerateTravelAuthorizationPDF(event, athlete);
 
     if (!cleanPhone) {
-      toast.error(`Contato ou telefone do destino selecionado (${textTargetName}) não cadastrado!`);
+      toast.error(`Contato ou telefone do destino selecionado (${textTargetName}) não cadastrado! PDF salvo no aparelho.`);
       return;
     }
 
+    const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
-    toast.success(`Direcionando para o WhatsApp do ${textTargetName.toLowerCase()}...`, { icon: '💬' });
+    toast.success(`WhatsApp aberto! O link de acesso direto ao PDF oficial já foi enviado na mensagem para o ${textTargetName.toLowerCase()} abrir com 1 toque!`, { 
+      icon: '💬',
+      duration: 6000 
+    });
   };
 
   const handleSendWhatsAppGroupLink = (event: Event, athlete: Athlete, target?: 'parent' | 'athlete') => {
@@ -741,6 +622,8 @@ Muito obrigado!
     const matchInfo = activeMatchId ? eventMatches.find(m => m.id === activeMatchId) : null;
     const matchStr = matchInfo ? `\n⚽ *Partida:* ${matchInfo.team_a_name} x ${matchInfo.team_b_name} (${matchInfo.date || ''} ${matchInfo.time || ''})` : '';
 
+    const travelDocUrl = getTravelAuthorizationPublicUrl(event.id, athlete.id);
+
     return `Olá, tudo bem? ⚽
 
 📢 *COMUNICADO & CONVOCAÇÃO OFICIAL*
@@ -749,8 +632,10 @@ Evento: *${event.name}*
 
 📅 *Data do Evento:* ${dateFormatted}${timeFormatted}${endTimeFormatted}${addressStr}${departureStr}${departureTimeStr}${arrivalStr}${matchStr}${groupBlock}
 
-📁 *AUTORIZAÇÃO DE VIAGEM (PDF):*
-O arquivo PDF da autorização foi baixado automaticamente no aparelho. Por favor, faça a impressão, assine e nos envie a foto legível da folha assinada de volta.
+📁 *AUTORIZAÇÃO DE VIAGEM OFICIAL (PDF):*
+👉 Acesse, visualize e baixe o PDF oficial em 1 toque:
+${travelDocUrl}
+(Documento oficial preenchido com todos os dados do atleta para assinatura e impressão rápida)
 
 🌐 *Confirmação no Portal:*
 Confirme a presença acessando o portal: ${window.location.origin}
@@ -760,14 +645,7 @@ Muito obrigado pela parceria e apoio de sempre!
   };
 
   const handleSendCombinedEventWhatsApp = async (event: Event, athlete: Athlete, target: 'parent' | 'athlete' = 'parent') => {
-    // 1. Gera e faz o download automático da autorização de viagem em PDF
-    await handleGenerateTravelAuthorizationPDF(event, athlete);
-
-    // 2. Monta o texto completo com PDF + Convite do Grupo + Aviso
     const textTargetName = target === 'parent' ? 'Responsável' : 'Atleta';
-    const text = buildCombinedEventMessage(event, athlete, target);
-    const encodedText = encodeURIComponent(text);
-
     let rawPhone = '';
     if (target === 'parent') {
       rawPhone = athlete.guardian_phone || '';
@@ -778,15 +656,55 @@ Muito obrigado pela parceria e apoio de sempre!
     }
 
     const cleanPhone = rawPhone.replace(/\D/g, '');
+    const text = buildCombinedEventMessage(event, athlete, target);
+    const schoolName = settings?.schoolName || 'Piruá Esporte Clube';
+
+    // 1. Gera o arquivo PDF em memória
+    let pdfFile: File | null = null;
+    try {
+      pdfFile = createTravelAuthorizationPdfFile(event, athlete, crestDataUrl, schoolName);
+    } catch (e) {
+      console.warn("Could not create PDF file in memory:", e);
+    }
+
+    // 2. Se o dispositivo/navegador suportar compartilhamento nativo de arquivos (Celulares Android, iOS Safari, etc.):
+    // Abre diretamente o WhatsApp com o arquivo PDF já anexado e a mensagem pronta!
+    if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: `Autorização de Viagem - ${athlete.name}`,
+          text: text
+        });
+        toast.success(`WhatsApp aberto com o PDF anexado e mensagem completa em 1 clique!`, { 
+          icon: '🚀', 
+          duration: 5000 
+        });
+        return;
+      } catch (shareErr: any) {
+        if (shareErr.name === 'AbortError') return;
+        console.warn('Navigator share error, falling back to wa.me with direct link:', shareErr);
+      }
+    }
+
+    // 3. Se estiver no computador (onde wa.me não permite injetar anexos locais por segurança do navegador):
+    // Faz o download automático do PDF para backup no computador
+    await handleGenerateTravelAuthorizationPDF(event, athlete);
 
     if (!cleanPhone) {
-      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado!`);
+      toast.error(`Telefone do ${textTargetName.toLowerCase()} não cadastrado! PDF baixado no computador.`);
       return;
     }
 
+    // E abre o WhatsApp com a mensagem completa contendo o link direto do documento oficial em PDF!
+    // Assim o responsável acessa e baixa o PDF oficial com apenas 1 toque na conversa do WhatsApp.
+    const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
-    toast.success(`PDF baixado e WhatsApp aberto para o ${textTargetName.toLowerCase()} com aviso + grupo + autorização em 1 clique!`, { icon: '🚀' });
+    toast.success(`WhatsApp aberto! O link de acesso direto ao PDF oficial já foi enviado na mensagem para o ${textTargetName.toLowerCase()} abrir com 1 toque!`, { 
+      icon: '🚀',
+      duration: 6000 
+    });
   };
 
   const handleGenerateBatchTravelAuthorizationsPDF = async (event: Event, list: Athlete[]) => {
@@ -3774,7 +3692,7 @@ Muito obrigado!
                                         </div>
                                         
                                         <p className="text-[9px] text-zinc-400 leading-tight">
-                                          Baixa a Autorização em PDF e abre o WhatsApp com o <strong>Aviso Completo</strong> e o <strong>Convite do Grupo</strong> já preenchidos!
+                                          No celular anexa o <strong>PDF direto</strong>. No computador o <strong>link direto do PDF oficial</strong> vai na mensagem para abrir com 1 toque!
                                         </p>
 
                                         <div className="flex flex-wrap gap-2 pt-0.5">
@@ -4411,15 +4329,18 @@ Muito obrigado!
             
             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
               {/* Informative Alert for batch sending */}
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-2xl text-[11px] font-medium leading-relaxed">
-                <p className="font-extrabold uppercase text-[10px] mb-1.5 flex items-center gap-1 text-amber-400">
-                  ⚠️ ATENÇÃO - IMPORTANTE SOBRE O ENVIO EM BLOCO (LOTE):
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl text-[11px] font-medium leading-relaxed">
+                <p className="font-extrabold uppercase text-[10px] mb-1.5 flex items-center gap-1 text-emerald-400">
+                  <Sparkles size={13} className="text-emerald-400" />
+                  ENVIO COMPLETO EM 1 CLIQUE (PDF + GRUPO + AVISO):
                 </p>
-                O WhatsApp e os navegadores de internet <strong>não permitem disparar mensagens em massa automaticamente em segundo plano</strong> por segurança (anti-spam).
+                Clique no botão de cada pessoa na lista abaixo.
+                <br />
+                📱 <strong>No celular ou tablet:</strong> O WhatsApp abre com o <strong>arquivo PDF já anexado</strong> e a mensagem preenchida!
+                <br />
+                💻 <strong>No computador:</strong> O PDF é baixado e a mensagem já vai com o <strong>link direto do PDF oficial</strong> para os pais abrirem e assinarem com 1 toque no WhatsApp!
                 <br /><br />
-                Por favor, <strong>clique no botão verde de cada pessoa na lista abaixo</strong>. Isso abrirá a tela do WhatsApp com o texto já preenchido, bastando você apertar "Enviar". 
-                <br /><br />
-                Os contatos já clicados ficarão marcados com <span className="text-green-400 font-bold">✅ ENVIADO</span> para você não se perder!
+                Os contatos já enviados ficarão marcados com <span className="text-green-400 font-bold">✅ ENVIADO</span>.
               </div>
 
               <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700 mb-6">
@@ -4471,19 +4392,20 @@ Muito obrigado!
                       {hasParent && (
                         <button
                           onClick={async () => {
-                            const finalMsg = r.customMessage || notificationBatch.message;
-                            const msg = encodeURIComponent(finalMsg);
                             setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
-                                await handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
+                                await handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'parent');
+                                return;
                               }
                             }
+                            const finalMsg = r.customMessage || notificationBatch.message;
+                            const msg = encodeURIComponent(finalMsg);
                             window.open(`https://wa.me/55${r.guardianPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
                           }}
                           className={`py-1.5 px-3 rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white' : 'bg-green-500 hover:bg-green-600 text-black'}`}
-                          title="Enviar para Responsável/Pais"
+                          title="Enviar 1 Clique: PDF + Grupo + Aviso para Responsável/Pais"
                         >
                           <MessageCircle size={12} />
                           {isSent ? 'Reenviar Pais' : 'Pais'}
@@ -4493,19 +4415,20 @@ Muito obrigado!
                       {hasAthlete && (
                         <button
                           onClick={async () => {
-                            const finalMsg = r.customMessage || notificationBatch.message;
-                            const msg = encodeURIComponent(finalMsg);
                             setNotifiedRecipients(prev => [...prev, r.id]);
                             if (selectedEvent) {
                               const athleteObj = athletes.find(ath => ath.id === r.id);
                               if (athleteObj) {
-                                await handleGenerateTravelAuthorizationPDF(selectedEvent, athleteObj);
+                                await handleSendCombinedEventWhatsApp(selectedEvent, athleteObj, 'athlete');
+                                return;
                               }
                             }
+                            const finalMsg = r.customMessage || notificationBatch.message;
+                            const msg = encodeURIComponent(finalMsg);
                             window.open(`https://wa.me/55${r.contactPhone!.replace(/\D/g, '')}?text=${msg}`, '_blank');
                           }}
                           className={`py-1.5 px-3 border rounded-xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center gap-1 cursor-pointer ${isSent ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700' : 'bg-theme-primary/10 border-theme-primary/30 text-theme-primary hover:bg-theme-primary hover:text-black'}`}
-                          title="Enviar para Atleta/Aluno"
+                          title="Enviar 1 Clique: PDF + Grupo + Aviso para Atleta/Aluno"
                         >
                           <MessageCircle size={12} />
                           {isSent ? 'Reenviar Aluno' : 'Aluno'}
