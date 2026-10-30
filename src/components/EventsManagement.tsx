@@ -636,13 +636,13 @@ Muito obrigado pela parceria e apoio de sempre!
 
     const text = buildCombinedEventMessage(event, athlete, target);
 
-    // 1. Abre DIRETO no WhatsApp do contato IMEDIATAMENTE (sem atrasos de await para não ser bloqueado por popup)
+    // 1. Abre DIRETO na conversa do WhatsApp cadastrado do contato (sem precisar procurar contato!)
     openWhatsAppDirect(cleanPhone, text);
 
     // 2. Dispara o download local do PDF no aparelho/computador para ter a via física
     handleGenerateTravelAuthorizationPDF(event, athlete);
 
-    toast.success(`Abrindo WhatsApp do ${textTargetName.toLowerCase()} com aviso + grupo + autorização em 1 clique!`, { 
+    toast.success(`Abrindo WhatsApp direto de ${athlete.name} (${textTargetName.toLowerCase()}) com aviso + grupo + autorização!`, { 
       icon: '🚀', 
       duration: 5000 
     });
@@ -3633,7 +3633,7 @@ Muito obrigado!
                                         </div>
                                         
                                         <p className="text-[9px] text-zinc-400 leading-tight">
-                                          No celular anexa o <strong>PDF direto</strong>. No computador o <strong>link direto do PDF oficial</strong> vai na mensagem para abrir com 1 toque!
+                                          Abre <strong>direto na conversa do WhatsApp cadastrado</strong> com o <strong>aviso do evento</strong>, <strong>convite do grupo</strong> e <strong>link do PDF oficial</strong> preenchido!
                                         </p>
 
                                         <div className="flex flex-wrap gap-2 pt-0.5">
@@ -4273,15 +4273,11 @@ Muito obrigado!
               <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl text-[11px] font-medium leading-relaxed">
                 <p className="font-extrabold uppercase text-[10px] mb-1.5 flex items-center gap-1 text-emerald-400">
                   <Sparkles size={13} className="text-emerald-400" />
-                  ENVIO COMPLETO EM 1 CLIQUE (PDF + GRUPO + AVISO):
+                  ENVIO DIRETO EM 1 CLIQUE (SEM PRECISAR PROCURAR CONTATO):
                 </p>
-                Clique no botão de cada pessoa na lista abaixo.
-                <br />
-                📱 <strong>No celular ou tablet:</strong> O WhatsApp abre com o <strong>arquivo PDF já anexado</strong> e a mensagem preenchida!
-                <br />
-                💻 <strong>No computador:</strong> O PDF é baixado e a mensagem já vai com o <strong>link direto do PDF oficial</strong> para os pais abrirem e assinarem com 1 toque no WhatsApp!
+                Basta clicar no botão de cada pessoa na lista abaixo. O sistema abre <strong>direto na conversa do WhatsApp do contato cadastrado</strong> com o recado completo, convite do grupo e link direto do PDF oficial preenchido com 1 toque!
                 <br /><br />
-                Os contatos já enviados ficarão marcados com <span className="text-green-400 font-bold">✅ ENVIADO</span>.
+                Os contatos já enviados ficarão marcados com <span className="text-green-400 font-bold">✅ ENVIADO</span> para você não se perder.
               </div>
 
               <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700 mb-6">
