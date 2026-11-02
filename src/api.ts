@@ -3730,6 +3730,30 @@ export const api = {
     }
   },
 
+  recognizeGroupPhoto: async (groupPhoto: string, candidates: Array<{ id: string; name: string; photo: string }>) => {
+    try {
+      const response = await fetch("/api/recognize-group-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupPhoto, candidates })
+      });
+      if (!response.ok) {
+        throw new Error(`Erro na chamada da API: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (err: any) {
+      console.error("Error recognizing group photo:", err);
+      return {
+        success: false,
+        error: err.message,
+        detectedAthletes: [],
+        totalFacesCount: 0,
+        summary: "Erro ao se conectar com a IA para analisar a foto coletiva."
+      };
+    }
+  },
+
   isQuotaExceeded,
   markQuotaExceeded,
   clearQuotaExceeded,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api';
 import { Athlete, getSubCategory, categories, categoryAgeRanges, getSubNumber, matchesCategoryCriteria, Training, Event, Attendance as AttendanceRecord } from '../types';
-import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload, Layers, Mic } from 'lucide-react';
+import { QrCode, Search, CheckCircle2, XCircle, AlertCircle, User, Printer, FileText, Filter, FileDown, ChevronLeft, ChevronRight, Calendar, Lock, RotateCcw, X, Clock, History, Trophy, MessageSquare, Send, Smartphone, Sparkles, Settings, LayoutGrid, List, Maximize2, UserCircle, Edit2, Trash2, Plus, RefreshCw, Link as LinkIcon, MessageCircle, ScanFace, Fingerprint, ShieldCheck, Camera, Upload, Layers, Mic, Users } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { format, subDays } from 'date-fns';
 import { cn, fixHtml2CanvasColors } from '../utils';
@@ -10,6 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import AttendanceHistory from './AttendanceHistory';
 import FacialRecognitionScanner from './FacialRecognitionScanner';
 import VoiceAttendanceScanner from './VoiceAttendanceScanner';
+import GroupPhotoAttendance from './GroupPhotoAttendance';
 import { generateUniqueFingerprintHash, registerNativeBiometricCredential, findDuplicateFingerprintAthlete, matchAthleteByFingerprint } from '../utils/biometrics';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
@@ -250,18 +251,30 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
   const [directBiometricAthlete, setDirectBiometricAthlete] = useState<Athlete | null>(null);
   const [directBiometricType, setDirectBiometricType] = useState<'face' | 'fingerprint' | null>(null);
   const [isDirectFaceCameraActive, setIsDirectFaceCameraActive] = useState(false);
+  const [directFaceFacingMode, setDirectFaceFacingMode] = useState<'user' | 'environment'>('user');
+  const [isGroupPhotoScannerOpen, setIsGroupPhotoScannerOpen] = useState(false);
   const [directFingerprintStep, setDirectFingerprintStep] = useState(0);
   const [directFingerprintHand, setDirectFingerprintHand] = useState<'Direito' | 'Esquerdo'>('Direito');
   const [isDirectScanningFinger, setIsDirectScanningFinger] = useState(false);
   const directFaceVideoRef = useRef<HTMLVideoElement | null>(null);
   const directVideoStreamRef = useRef<MediaStream | null>(null);
 
-  const startDirectFaceCamera = async () => {
+  const startDirectFaceCamera = async (targetMode?: 'user' | 'environment') => {
     try {
+      if (directVideoStreamRef.current) {
+        directVideoStreamRef.current.getTracks().forEach(t => t.stop());
+        directVideoStreamRef.current = null;
+      }
+      const mode = targetMode || directFaceFacingMode;
       setIsDirectFaceCameraActive(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: mode }, width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+      } catch (err) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       directVideoStreamRef.current = stream;
       if (directFaceVideoRef.current) {
         directFaceVideoRef.current.srcObject = stream;
@@ -272,12 +285,35 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     }
   };
 
+  const toggleDirectFaceFacingMode = async () => {
+    const nextMode = directFaceFacingMode === 'user' ? 'environment' : 'user';
+    setDirectFaceFacingMode(nextMode);
+    if (isDirectFaceCameraActive) {
+      await startDirectFaceCamera(nextMode);
+    }
+  };
+
   const stopDirectFaceCamera = () => {
     if (directVideoStreamRef.current) {
       directVideoStreamRef.current.getTracks().forEach(t => t.stop());
       directVideoStreamRef.current = null;
     }
     setIsDirectFaceCameraActive(false);
+  };
+
+  const handleGroupPhotoAttendanceConfirmed = async (athleteIds: string[]) => {
+    if (!athleteIds || athleteIds.length === 0) return;
+    try {
+      let count = 0;
+      for (const athleteId of athleteIds) {
+        await markAttendance(athleteId, 'Presente');
+        count++;
+      }
+      toast.success(`🎉 Presença confirmada para ${count} atletas identificados na foto da turma!`);
+      setIsGroupPhotoScannerOpen(false);
+    } catch (err: any) {
+      toast.error(`Erro ao confirmar presenças em lote: ${err.message}`);
+    }
   };
 
   const captureDirectFaceBiometrics = async () => {
@@ -2017,10 +2053,32 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
 
           <button 
             onClick={() => {
+              setIsGroupPhotoScannerOpen(true);
+              if (isFacialScanning) setIsFacialScanning(false);
+              if (isVoiceScanning) setIsVoiceScanning(false);
+              if (isFingerprintScanning) setIsFingerprintScanning(false);
+              if (isScanning) setIsScanning(false);
+            }}
+            disabled={isLocked}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3 font-black rounded-2xl transition-all uppercase tracking-tighter shadow-lg cursor-pointer",
+              isLocked
+                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-emerald-500 to-teal-400 text-black hover:from-emerald-400 hover:to-teal-300 hover:scale-105 active:scale-95 shadow-emerald-500/20"
+            )}
+            title="Tire ou envie uma foto de toda a turma para marcar presença automática com IA"
+          >
+            <Users size={20} />
+            <span>Foto da Turma (IA)</span>
+          </button>
+
+          <button 
+            onClick={() => {
               setIsFacialScanning(!isFacialScanning);
               if (isVoiceScanning) setIsVoiceScanning(false);
               if (isFingerprintScanning) setIsFingerprintScanning(false);
               if (isScanning) setIsScanning(false);
+              if (isGroupPhotoScannerOpen) setIsGroupPhotoScannerOpen(false);
             }}
             disabled={isLocked}
             className={cn(
@@ -2642,6 +2700,19 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             }}
           />
         </motion.div>
+      )}
+
+      {/* Chamada por Foto Coletiva da Turma com IA */}
+      {isGroupPhotoScannerOpen && (
+        <GroupPhotoAttendance
+          athletes={athletes}
+          attendanceRecords={attendance}
+          activeTrainingId={selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId}
+          eventId={eventId}
+          date={date}
+          onConfirmPresence={handleGroupPhotoAttendanceConfirmed}
+          onClose={() => setIsGroupPhotoScannerOpen(false)}
+        />
       )}
 
       {isScanning && (
@@ -4997,7 +5068,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                           autoPlay
                           playsInline
                           muted
-                          className="w-full h-full object-cover scale-x-[-1]"
+                          className={cn("w-full h-full object-cover", directFaceFacingMode === 'user' && "scale-x-[-1]")}
                         />
                         {/* Overlay Oval Frame */}
                         <div className="absolute inset-0 border-4 border-dashed border-theme-primary/50 rounded-[50%] m-8 pointer-events-none animate-pulse flex items-center justify-center">
@@ -5005,6 +5076,18 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                             Posicione o Rosto no Centro
                           </span>
                         </div>
+                        {/* Camera Flip Button over Video */}
+                        <button
+                          type="button"
+                          onClick={toggleDirectFaceFacingMode}
+                          className="absolute top-3 right-3 p-2 bg-black/70 hover:bg-black text-white rounded-full border border-white/20 transition-all flex items-center gap-1.5 shadow-lg backdrop-blur-sm cursor-pointer z-10"
+                          title="Alternar Câmera Frontal (Selfie) / Traseira"
+                        >
+                          <RefreshCw size={14} className="text-theme-primary" />
+                          <span className="text-[10px] font-black uppercase">
+                            {directFaceFacingMode === 'user' ? 'Selfie' : 'Traseira'}
+                          </span>
+                        </button>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
@@ -5019,30 +5102,40 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   </div>
 
                   {/* Face Camera Buttons */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {!isDirectFaceCameraActive ? (
                       <button
                         type="button"
-                        onClick={startDirectFaceCamera}
-                        className="py-3 px-4 bg-theme-primary hover:bg-theme-primary/90 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-theme-primary/20"
+                        onClick={() => startDirectFaceCamera()}
+                        className="py-3 px-3 bg-theme-primary hover:bg-theme-primary/90 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-theme-primary/20"
                       >
                         <Camera size={16} />
-                        <span>Ligar Câmera AO VIVO</span>
+                        <span>Ligar Câmera</span>
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={captureDirectFaceBiometrics}
-                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
-                      >
-                        <ScanFace size={16} />
-                        <span>Capturar Rosto e Salvar</span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={captureDirectFaceBiometrics}
+                          className="py-3 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                        >
+                          <ScanFace size={16} />
+                          <span>Capturar e Salvar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={toggleDirectFaceFacingMode}
+                          className="py-3 px-3 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-zinc-700"
+                        >
+                          <RefreshCw size={15} className="text-theme-primary" />
+                          <span>Virar ({directFaceFacingMode === 'user' ? 'Selfie' : 'Traseira'})</span>
+                        </button>
+                      </>
                     )}
 
-                    <label className="py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-white font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <label className="py-3 px-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-white font-black text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
                       <Upload size={16} className="text-theme-primary" />
-                      <span>Carregar da Galeria</span>
+                      <span>Carregar Foto</span>
                       <input
                         type="file"
                         accept="image/*"

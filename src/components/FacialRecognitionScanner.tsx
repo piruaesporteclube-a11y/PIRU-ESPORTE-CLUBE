@@ -29,12 +29,12 @@ const getThumbnailDataUrl = (imgSrc: string): Promise<string> => {
     img.onload = () => {
       try {
         const c = document.createElement('canvas');
-        c.width = 160;
-        c.height = 160;
+        c.width = 300;
+        c.height = 300;
         const cx = c.getContext('2d');
         if (cx) {
-          cx.drawImage(img, 0, 0, 160, 160);
-          const dataUrl = c.toDataURL('image/jpeg', 0.75);
+          cx.drawImage(img, 0, 0, 300, 300);
+          const dataUrl = c.toDataURL('image/jpeg', 0.85);
           thumbnailCache.set(imgSrc, dataUrl);
           resolve(dataUrl);
           return;
@@ -266,8 +266,8 @@ export default function FacialRecognitionScanner({
       setAnalysisStatus('Analisando traços faciais com IA...');
 
       const canvas = canvasRef.current || document.createElement('canvas');
-      canvas.width = 400;
-      canvas.height = 400;
+      canvas.width = 480;
+      canvas.height = 480;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
@@ -277,9 +277,9 @@ export default function FacialRecognitionScanner({
       const startX = (vWidth - minDim) / 2;
       const startY = (vHeight - minDim) / 2;
 
-      // Draw center-cropped square frame
-      ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, 400, 400);
-      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      // Draw center-cropped square frame with enhanced clarity
+      ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, 480, 480);
+      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
       // Filter candidates with photos (active athletes or all enrolled)
       let eligibleAthletes = athletes.filter(a => (a.status === 'Ativo' || !a.status) && a.photo && a.photo.trim().length > 10);
@@ -301,18 +301,21 @@ export default function FacialRecognitionScanner({
         }
       }
 
-      // Prioritize athletes who do NOT have presence marked for today yet
-      const unverifiedAthletes = eligibleAthletes.filter(a => {
-        const records = attendanceRecords[a.id] || [];
-        return !records.some(r => r.status === 'Presente');
-      });
-      const verifiedAthletes = eligibleAthletes.filter(a => {
-        const records = attendanceRecords[a.id] || [];
-        return records.some(r => r.status === 'Presente');
-      });
+      // Smart Candidate Ranking:
+      // 1. Athletes who registered facial biometrics explicitly (biometrics_face_registered: true) first!
+      // 2. Athletes who do not have presence marked for today yet
+      // 3. Alphabetical order
+      const sortedCandidates = [...eligibleAthletes].sort((a, b) => {
+        const aBio = a.biometrics_face_registered ? 1 : 0;
+        const bBio = b.biometrics_face_registered ? 1 : 0;
+        if (aBio !== bBio) return bBio - aBio; // Biometrics registered first
 
-      // Send top 35 candidates with cached thumbnail data for high-speed batch matching
-      const sortedCandidates = [...unverifiedAthletes, ...verifiedAthletes].slice(0, 35);
+        const aPresent = (attendanceRecords[a.id] || []).some(r => r.status === 'Presente') ? 1 : 0;
+        const bPresent = (attendanceRecords[b.id] || []).some(r => r.status === 'Presente') ? 1 : 0;
+        if (aPresent !== bPresent) return aPresent - bPresent; // Unmarked first
+
+        return a.name.localeCompare(b.name);
+      }).slice(0, 50);
 
       // Prepare list of candidates for API with thumbnail optimization
       const candidatesPayload = await Promise.all(
@@ -334,7 +337,7 @@ export default function FacialRecognitionScanner({
         // Ensure student exists in local list
         const foundAthlete = athletes.find(a => a.id === matchedId);
 
-        if (foundAthlete && confidence >= 0.38) {
+        if (foundAthlete && confidence >= 0.35) {
           // Trigger successful recognition
           cooldownRef.current = true;
           lastRecognizedIdRef.current = foundAthlete.id;
@@ -372,7 +375,7 @@ export default function FacialRecognitionScanner({
 
           setIsAnalyzing(false);
           return;
-        } else if (foundAthlete && confidence >= 0.25) {
+        } else if (foundAthlete && confidence >= 0.20) {
           setPossibleMatch({
             athlete: foundAthlete,
             confidence: Math.round(confidence * 100),

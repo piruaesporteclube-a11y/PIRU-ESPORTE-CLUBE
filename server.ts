@@ -716,8 +716,8 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
         });
       }
 
-      // Filter candidates with valid photos (up to 35 candidates for high accuracy and speed)
-      const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 35);
+      // Filter candidates with valid photos (up to 50 candidates for high accuracy and speed)
+      const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 50);
 
       if (validCandidates.length === 0) {
         return res.json({
@@ -913,6 +913,212 @@ Responda exclusivamente em JSON seguindo o schema.`
         success: false,
         error: error.message || "Erro durante o reconhecimento facial.",
         match: { matchedAthleteId: null, confidence: 0, reasoning: "Falha na análise da IA." }
+      });
+    }
+  });
+
+  // Group Photo Facial Recognition endpoint (Chamada por Foto da Turma)
+  app.post("/api/recognize-group-photo", async (req, res) => {
+    try {
+      const { groupPhoto, candidates } = req.body || {};
+      if (!groupPhoto || !Array.isArray(candidates) || candidates.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Parâmetros 'groupPhoto' e lista de 'candidates' são obrigatórios." 
+        });
+      }
+
+      // Filter candidates with valid photos (up to 60 candidates for group photo match)
+      const validCandidates = candidates.filter((c: any) => c && c.id && c.photo && typeof c.photo === 'string').slice(0, 60);
+
+      if (validCandidates.length === 0) {
+        return res.json({
+          success: true,
+          detectedAthletes: [],
+          totalFacesCount: 0,
+          summary: "Nenhum atleta na lista possui foto de cadastro válida para comparação."
+        });
+      }
+
+      const cleanFrameBase64 = groupPhoto.replace(/^data:[^;]+;base64,/, '');
+      const frameMimeMatch = groupPhoto.match(/^data:([^;]+);base64,/);
+      const frameMime = frameMimeMatch ? frameMimeMatch[1] : 'image/jpeg';
+
+      const contentsParts: any[] = [
+        {
+          text: "Você é um perito em biometria esportiva e visão computacional avançada para escolinhas de futebol ('Piruá Esporte Clube').\n" +
+                "Abaixo está a FOTO COLETIVA / FOTO DA TURMA enviada pelo treinador (contendo múltiplos alunos juntos no gramado/quadra ou selfie coletiva):"
+        },
+        {
+          inlineData: {
+            mimeType: frameMime,
+            data: cleanFrameBase64
+          }
+        },
+        {
+          text: "Abaixo estão as fotos de cadastro oficial individual dos atletas matriculados no clube para você comparar com as pessoas presentes na foto coletiva:"
+        }
+      ];
+
+      // Prepare candidate photos in parallel with memory caching
+      const imagePromises = validCandidates.map(async (cand: any) => {
+        try {
+          if (cand.photo.startsWith('data:image')) {
+            const candBase64 = cand.photo.replace(/^data:[^;]+;base64,/, '');
+            const candMimeMatch = cand.photo.match(/^data:([^;]+);base64,/);
+            const candMime = candMimeMatch ? candMimeMatch[1] : 'image/jpeg';
+            return {
+              id: String(cand.id),
+              name: String(cand.name),
+              part: {
+                inlineData: {
+                  mimeType: candMime,
+                  data: candBase64
+                }
+              }
+            };
+          } else if (cand.photo.startsWith('http')) {
+            if (remotePhotoCache.has(cand.photo)) {
+              const cached = remotePhotoCache.get(cand.photo)!;
+              return {
+                id: String(cand.id),
+                name: String(cand.name),
+                part: {
+                  inlineData: {
+                    mimeType: cached.mimeType,
+                    data: cached.data
+                  }
+                }
+              };
+            }
+
+            const resp = await fetch(cand.photo, { signal: AbortSignal.timeout(4500) });
+            if (resp.ok) {
+              const arrayBuffer = await resp.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              const fetchedBase64 = buffer.toString('base64');
+              const cType = resp.headers.get('content-type') || 'image/jpeg';
+              const mimeType = cType.includes('png') ? 'image/png' : 'image/jpeg';
+              
+              if (remotePhotoCache.size > 200) {
+                remotePhotoCache.clear();
+              }
+              remotePhotoCache.set(cand.photo, { mimeType, data: fetchedBase64 });
+
+              return {
+                id: String(cand.id),
+                name: String(cand.name),
+                part: {
+                  inlineData: {
+                    mimeType,
+                    data: fetchedBase64
+                  }
+                }
+              };
+            }
+          }
+        } catch (e) {
+          // Ignore
+        }
+        return { id: String(cand.id), name: String(cand.name), part: null };
+      });
+
+      const resolvedImages = await Promise.all(imagePromises);
+
+      let loadedImagesCount = 0;
+      for (const item of resolvedImages) {
+        if (item.part) {
+          loadedImagesCount++;
+          contentsParts.push({
+            text: `=== ATLETA MATRICULADO ===\nID: "${item.id}"\nNOME: "${item.name}"\nFOTO DE REFERÊNCIA:`
+          });
+          contentsParts.push(item.part);
+        }
+      }
+
+      if (loadedImagesCount === 0) {
+        return res.json({
+          success: true,
+          detectedAthletes: [],
+          totalFacesCount: 0,
+          summary: "As fotos de referência dos atletas não puderam ser carregadas para análise."
+        });
+      }
+
+      contentsParts.push({
+        text: `INSTRUÇÕES PARA CHAMADA AUTOMÁTICA POR FOTO COLETIVA:
+1. Examine a FOTO COLETIVA / FOTO DA TURMA com extremo cuidado. Identifique todas as pessoas / rostos visíveis na imagem.
+2. Para cada pessoa na foto, compare minuciosamente com os atletas matriculados cujas fotos de referência foram fornecidas.
+3. Se um atleta matriculado estiver presente na foto coletiva (mesmo que esteja sorrindo, de boné, de colete ou levemente inclinado), inclua-o na lista "detectedAthletes":
+   - "athleteId": ID exato do atleta cadastrado.
+   - "athleteName": Nome completo do atleta cadastrado.
+   - "confidence": Nível de convicção entre 0.35 e 1.0 (ex: 0.88).
+   - "locationInPhoto": Breve localização dele na foto (ex: "Em pé ao centro", "Agachado na frente à esquerda", "À direita na fileira de trás").
+4. Estime o total de rostos/pessoas visíveis na foto ("totalFacesCount").
+5. Se algum atleta cadastrado NÃO estiver na foto da turma, NÃO o inclua na lista.
+Responda exclusivamente em JSON seguindo o schema.`
+      });
+
+      const ai = getAI();
+      const response = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: [
+          {
+            role: "user",
+            parts: contentsParts
+          }
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              detectedAthletes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    athleteId: { type: Type.STRING },
+                    athleteName: { type: Type.STRING },
+                    confidence: { type: Type.NUMBER },
+                    locationInPhoto: { type: Type.STRING }
+                  },
+                  required: ["athleteId", "athleteName"]
+                }
+              },
+              totalFacesCount: { type: Type.NUMBER },
+              summary: { type: Type.STRING }
+            },
+            required: ["detectedAthletes"]
+          } as any
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) {
+        throw new Error("Resposta do Gemini em branco.");
+      }
+
+      const parsed = JSON.parse(responseText);
+      const detectedAthletes = Array.isArray(parsed.detectedAthletes) 
+        ? parsed.detectedAthletes.filter((a: any) => a && a.athleteId && a.athleteId !== 'null' && a.athleteId !== 'none')
+        : [];
+
+      console.log(`[Group Photo Roll Call] Recognized ${detectedAthletes.length} athletes from photo.`);
+      res.json({
+        success: true,
+        detectedAthletes,
+        totalFacesCount: parsed.totalFacesCount || detectedAthletes.length,
+        summary: parsed.summary || `${detectedAthletes.length} atletas reconhecidos na foto.`
+      });
+    } catch (error: any) {
+      console.warn("[Group Photo Recognition API Error]:", error.message || error);
+      res.json({
+        success: false,
+        error: error.message || "Erro durante o reconhecimento da foto coletiva.",
+        detectedAthletes: [],
+        totalFacesCount: 0,
+        summary: "Não foi possível analisar a foto coletiva com a IA."
       });
     }
   });

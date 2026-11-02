@@ -69,6 +69,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
 
   const faceVideoRef = useRef<HTMLVideoElement>(null);
   const [faceCameraStream, setFaceCameraStream] = useState<MediaStream | null>(null);
+  const [faceCameraFacingMode, setFaceCameraFacingMode] = useState<'user' | 'environment'>('user');
 
   useEffect(() => {
     if (isFaceCameraOpen && faceCameraStream && faceVideoRef.current) {
@@ -77,18 +78,39 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
     }
   }, [isFaceCameraOpen, faceCameraStream]);
 
-  const startFaceCamera = async () => {
+  const startFaceCamera = async (targetMode?: 'user' | 'environment') => {
+    const mode = targetMode || faceCameraFacingMode;
     try {
+      if (faceCameraStream) {
+        faceCameraStream.getTracks().forEach(track => track.stop());
+        setFaceCameraStream(null);
+      }
       setIsFaceCameraOpen(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-        audio: false
-      });
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } },
+          audio: false
+        });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       setFaceCameraStream(stream);
+      if (faceVideoRef.current) {
+        faceVideoRef.current.srcObject = stream;
+        faceVideoRef.current.play().catch(() => {});
+      }
     } catch (err: any) {
       toast.error('Não foi possível abrir a câmera. Verifique as permissões do navegador.');
       setIsFaceCameraOpen(false);
     }
+  };
+
+  const toggleFaceCameraFacingMode = async () => {
+    const nextMode = faceCameraFacingMode === 'user' ? 'environment' : 'user';
+    setFaceCameraFacingMode(nextMode);
+    await startFaceCamera(nextMode);
+    toast.info(`Câmera alternada para ${nextMode === 'user' ? 'Frontal (Selfie)' : 'Traseira'}.`);
   };
 
   const stopFaceCamera = () => {
@@ -664,7 +686,7 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
               <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-2">
                 <button
                   type="button"
-                  onClick={startFaceCamera}
+                  onClick={() => startFaceCamera()}
                   className="flex-1 px-4 py-2.5 bg-theme-primary text-black hover:bg-theme-primary/90 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-theme-primary/10 cursor-pointer"
                 >
                   <Camera size={16} />
@@ -760,9 +782,20 @@ export default function AthleteForm({ athlete, onClose, onSave, isRegistration, 
                     <p className="text-xs text-zinc-400">Posicione o rosto do aluno no centro da moldura</p>
                   </div>
                 </div>
-                <button type="button" onClick={stopFaceCamera} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white">
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleFaceCameraFacingMode}
+                    className="px-3 py-1.5 bg-zinc-850 hover:bg-zinc-800 text-theme-primary rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border border-zinc-700 shadow-md"
+                    title="Alternar entre câmera frontal (selfie) e traseira"
+                  >
+                    <RefreshCw size={13} />
+                    <span>{faceCameraFacingMode === 'user' ? 'Câmera Traseira' : 'Câmera Frontal (Selfie)'}</span>
+                  </button>
+                  <button type="button" onClick={stopFaceCamera} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-white cursor-pointer">
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
               <div className="relative overflow-hidden rounded-2xl bg-black border-2 border-zinc-800 aspect-4/3 flex items-center justify-center">
