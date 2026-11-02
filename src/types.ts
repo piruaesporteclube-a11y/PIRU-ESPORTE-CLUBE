@@ -24,6 +24,7 @@ export type Athlete = {
   status: "Ativo" | "Inativo" | "Suspenso";
   suspension_reason?: string;
   position?: string; // Can be comma-separated for multi-role
+  category?: string;
   modality: string; // Comma separated or single
   confirmation?: "Pendente" | "Confirmado" | "Recusado";
   presence?: "Presente" | "Ausente"; // New field

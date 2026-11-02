@@ -91,6 +91,39 @@ const hasScheduledTrainingOrEventForAthlete = (
   return hasMatchingEvent;
 };
 
+export const ATTENDANCE_ALLOWED_SUBS = ['SUB 9', 'SUB 11', 'SUB 13', 'SUB 15', 'SUB 17'] as const;
+
+export const matchesAttendanceSubCategory = (athlete: Athlete, selectedSub: string): boolean => {
+  if (!selectedSub || selectedSub === 'Todos' || selectedSub === 'Todas') {
+    return true;
+  }
+
+  // 1. Direct match on athlete.category (case/space-insensitive)
+  if (athlete.category) {
+    const cleanAthleteCat = athlete.category.toUpperCase().replace(/[\s\-_]/g, '');
+    const cleanFilter = selectedSub.toUpperCase().replace(/[\s\-_]/g, '');
+    if (cleanAthleteCat === cleanFilter) return true;
+  }
+
+  // 2. Standard category criteria match
+  if (matchesCategoryCriteria(athlete, selectedSub)) {
+    return true;
+  }
+
+  // 3. Category bracket match for standard youth categories
+  const athleteSubNum = getSubNumber(athlete.birth_date);
+  if (athleteSubNum !== null) {
+    const norm = selectedSub.toUpperCase().replace(/[\s\-_]/g, '');
+    if (norm === 'SUB9' && athleteSubNum <= 9) return true;
+    if (norm === 'SUB11' && (athleteSubNum === 10 || athleteSubNum === 11)) return true;
+    if (norm === 'SUB13' && (athleteSubNum === 12 || athleteSubNum === 13)) return true;
+    if (norm === 'SUB15' && (athleteSubNum === 14 || athleteSubNum === 15)) return true;
+    if (norm === 'SUB17' && (athleteSubNum === 16 || athleteSubNum === 17)) return true;
+  }
+
+  return false;
+};
+
 export default function Attendance({ athletes: athletesProp, trainingId, eventId, initialDate, role = 'admin', filterCategory = 'Todos' }: { athletes?: Athlete[], trainingId?: string, eventId?: string, initialDate?: string, role?: string, filterCategory?: string }) {
   const isAdmin = role === 'admin' || role === 'professor';
   const { settings } = useTheme();
@@ -1610,23 +1643,31 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
     .filter(a => {
       const isSearching = search.trim().length > 0;
       
-      const matchesSub = isSearching || filterSub === 'Todos' || matchesCategoryCriteria(a, filterSub);
+      const matchesSub = filterSub === 'Todos' || matchesAttendanceSubCategory(a, filterSub);
       const athleteMods = (a.modality || '').split(',').map(m => m.trim().toLowerCase()).filter(Boolean);
-      const matchesModality = isSearching || filterModality === 'Todos' || athleteMods.length === 0 || athleteMods.some(m => 
+      const matchesModality = filterModality === 'Todos' || athleteMods.length === 0 || athleteMods.some(m => 
         m === filterModality.toLowerCase() || filterModality.toLowerCase().includes(m) || m.includes(filterModality.toLowerCase())
       );
-      const matchesGender = isSearching || filterGender === 'Todos' || a.gender === filterGender;
-      const matchesBirthYear = isSearching || filterBirthYear === 'Todos' || getBirthYear(a.birth_date) === filterBirthYear;
-      const cleanSearch = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const nameNorm = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const nickNorm = (a.nickname || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const matchesGender = filterGender === 'Todos' || a.gender === filterGender;
+      const matchesBirthYear = filterBirthYear === 'Todos' || getBirthYear(a.birth_date) === filterBirthYear;
+
+      // Prefix-based progressive search:
+      // - Typing "gabriel" matches all athletes whose name begins with "gabriel" (e.g. Gabriel Henrique, Gabriel Silva)
+      // - Typing "gabriel henrique" refines to athletes whose name begins with "gabriel henrique"
+      // - Middle/last names with "Gabriel" (e.g. "João Gabriel") are excluded unless searching "joao"
+      const rawSearch = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const cleanSearch = rawSearch.replace(/^\s+/, '').replace(/\s+/g, ' ');
+      const nameNorm = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
+      const nickNorm = (a.nickname || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
       const jerseyStr = String(a.jersey_number || '');
+      const cleanDoc = (a.doc || '').replace(/\D/g, '');
+      const isNumeric = /^\d+$/.test(cleanSearch.trim());
+
       const matchesSearch = !isSearching || 
-                          nameNorm.includes(cleanSearch) || 
-                          nickNorm.includes(cleanSearch) ||
-                          jerseyStr === cleanSearch ||
-                          jerseyStr.includes(cleanSearch) ||
-                          (a.doc && a.doc.includes(cleanSearch));
+                          nameNorm.startsWith(cleanSearch) || 
+                          (cleanSearch.endsWith(' ') && nameNorm === cleanSearch.trim()) ||
+                          nickNorm.startsWith(cleanSearch) ||
+                          (isNumeric && (jerseyStr === cleanSearch.trim() || cleanDoc.startsWith(cleanSearch.trim()) || cleanDoc.includes(cleanSearch.trim())));
       
       // Filter by selected training category if not "geral" and not explicit trainingId prop
       // Relax this if we are searching for someone specific or if user selected specific sub filter
@@ -2749,55 +2790,52 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         </button>
       </div>
 
-      {/* Quick Training Categories Chips Bar for 1-Click Roll Call Filter */}
-      {trainingScheduleChips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 p-3 bg-zinc-950/80 border border-theme-primary/20 rounded-2xl">
-          <div className="flex items-center gap-1.5 text-theme-primary text-xs font-black uppercase tracking-wider pr-2 border-r border-zinc-800 shrink-0">
-            <Trophy size={14} />
-            <span>Faixa Etária do Treino:</span>
-          </div>
-          
-          <button
-            type="button"
-            onClick={() => setFilterSub('Todos')}
-            className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border shrink-0",
-              filterSub === 'Todos'
-                ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20"
-                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
-            )}
-          >
-            Ver Todos ({activeAthletes.length})
-          </button>
-
-          {trainingScheduleChips.map((chip, idx) => {
-            const isSelected = filterSub === chip.value || (chip.categories.length > 0 && filterSub === chip.categories.join(', '));
-            const count = activeAthletes.filter(a => matchesCategoryCriteria(a, chip.value) || matchesCategoryCriteria(a, chip.categories)).length;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setFilterSub(chip.value)}
-                className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border flex items-center gap-1.5 shrink-0",
-                  isSelected
-                    ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20 scale-105"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-theme-primary/40"
-                )}
-              >
-                <span>{chip.label}</span>
-                <span className={cn(
-                  "px-1.5 py-0.5 text-[10px] rounded-md font-black",
-                  isSelected ? "bg-black/20 text-black" : "bg-black text-theme-primary"
-                )}>
-                  {count}
-                </span>
-                {chip.time && <span className="text-[10px] opacity-75">({chip.time})</span>}
-              </button>
-            );
-          })}
+      {/* Quick Category Buttons Bar (SUB 9, SUB 11, SUB 13, SUB 15, SUB 17) */}
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-zinc-950/80 border border-theme-primary/20 rounded-2xl">
+        <div className="flex items-center gap-1.5 text-theme-primary text-xs font-black uppercase tracking-wider pr-2 border-r border-zinc-800 shrink-0">
+          <Filter size={14} />
+          <span>Categorias:</span>
         </div>
-      )}
+        
+        <button
+          type="button"
+          onClick={() => setFilterSub('Todos')}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border shrink-0",
+            filterSub === 'Todos'
+              ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20"
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+          )}
+        >
+          Todas ({activeAthletes.length})
+        </button>
+
+        {ATTENDANCE_ALLOWED_SUBS.map(sub => {
+          const isSelected = filterSub === sub;
+          const count = activeAthletes.filter(a => matchesAttendanceSubCategory(a, sub)).length;
+          return (
+            <button
+              key={sub}
+              type="button"
+              onClick={() => setFilterSub(sub)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border flex items-center gap-1.5 shrink-0",
+                isSelected
+                  ? "bg-theme-primary text-black border-theme-primary shadow-md shadow-theme-primary/20 scale-105"
+                  : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-theme-primary/40"
+              )}
+            >
+              <span>{sub}</span>
+              <span className={cn(
+                "px-1.5 py-0.5 text-[10px] rounded-md font-black",
+                isSelected ? "bg-black/20 text-black" : "bg-black text-theme-primary"
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Filter Toolbar Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -2806,7 +2844,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
           <input 
             ref={inlineSearchRef}
             type="text" 
-            placeholder="Buscar por nome, apelido, camisa ou documento... (ou digite /)" 
+            placeholder="Comece a digitar o nome (ex: Gabriel, Gabriel Henrique...) ou camisa/doc..." 
             className="w-full pl-10 pr-10 py-3 bg-black border border-theme-primary/30 focus:border-theme-primary rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-theme-primary/50 text-xs font-medium placeholder:text-zinc-600 transition-all shadow-inner cursor-text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -2853,56 +2891,15 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
             onChange={(e) => setFilterSub(e.target.value)}
           >
             <option value="Todos">Todas as Categorias ({activeAthletes.length})</option>
-
-            {dayTrainingCategories.length > 0 && (
-              <optgroup label="🎯 Treinos Cadastrados (Hoje / Data Selecionada)">
-                {dayTrainingCategories.map(cat => {
-                  const count = activeAthletes.filter(a => matchesCategoryCriteria(a, cat)).length;
-                  return (
-                    <option key={`day-${cat}`} value={cat}>
-                      {cat} ({count} alunos)
-                    </option>
-                  );
-                })}
-              </optgroup>
-            )}
-
-            {allClubTrainingCategories.filter(c => !dayTrainingCategories.includes(c)).length > 0 && (
-              <optgroup label="🏆 Faixas Etárias de Treinos do Clube">
-                {allClubTrainingCategories.filter(c => !dayTrainingCategories.includes(c)).map(cat => {
-                  const count = activeAthletes.filter(a => matchesCategoryCriteria(a, cat)).length;
-                  return (
-                    <option key={`club-${cat}`} value={cat}>
-                      {cat} ({count} alunos)
-                    </option>
-                  );
-                })}
-              </optgroup>
-            )}
-
-            <optgroup label="⚡ Faixas Etárias / Agrupamentos Padrão">
-              {categoryAgeRanges.map(r => {
-                const count = activeAthletes.filter(a => matchesCategoryCriteria(a, r.value) || matchesCategoryCriteria(a, r.categories)).length;
-                return (
-                  <option key={r.value} value={r.value}>
-                    {r.label} ({count} alunos)
-                  </option>
-                );
-              })}
-            </optgroup>
-
-            <optgroup label="📋 Categorias Individuais">
-              {categories.map(c => {
-                const count = activeAthletes.filter(a => matchesCategoryCriteria(a, c)).length;
-                return (
-                  <option key={c} value={c}>
-                    {c} ({count} alunos)
-                  </option>
-                );
-              })}
-            </optgroup>
-
-            {filterSub !== 'Todos' && !categories.includes(filterSub) && !categoryAgeRanges.some(r => r.value === filterSub) && !dayTrainingCategories.includes(filterSub) && !allClubTrainingCategories.includes(filterSub) && (
+            {ATTENDANCE_ALLOWED_SUBS.map(sub => {
+              const count = activeAthletes.filter(a => matchesAttendanceSubCategory(a, sub)).length;
+              return (
+                <option key={sub} value={sub}>
+                  {sub} ({count} alunos)
+                </option>
+              );
+            })}
+            {filterSub !== 'Todos' && !ATTENDANCE_ALLOWED_SUBS.includes(filterSub as any) && (
               <option value={filterSub}>{filterSub}</option>
             )}
           </select>
@@ -3428,7 +3425,27 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
         {displayMode === 'cards' && !(tabFilter === 'absent' && absenceSubTab === 'longTerm') ? (
           /* Galeria Mode Cards Grid */
           <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredAthletes.length === 0 ? (
+              <div className="py-16 text-center space-y-3">
+                <p className="text-zinc-400 font-bold text-sm">
+                  {search.trim() ? (
+                    <>Nenhum atleta iniciado por <strong className="text-white">"{search}"</strong> encontrado{filterSub !== 'Todos' ? ` na categoria ${filterSub}` : ''}.</>
+                  ) : (
+                    <>Nenhum atleta encontrado para a categoria <strong className="text-white">{filterSub}</strong>.</>
+                  )}
+                </p>
+                {filterSub !== 'Todos' && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterSub('Todos')}
+                    className="px-4 py-2 bg-theme-primary text-black font-black text-xs uppercase rounded-xl hover:opacity-90 transition-all cursor-pointer shadow-md shadow-theme-primary/10 inline-flex items-center gap-1.5"
+                  >
+                    <span>Ver Todas as Categorias</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filteredAthletes.map((athlete) => {
                 const records = attendance[athlete.id] || [];
                 const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
@@ -3705,6 +3722,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                 );
               })}
             </div>
+            )}
           </div>
         ) : (
           /* Table View */
@@ -3819,7 +3837,31 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
-                  {filteredAthletes.map((athlete) => {
+                  {filteredAthletes.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-zinc-400 font-bold text-xs">
+                        <div className="space-y-2">
+                          <p>
+                            {search.trim() ? (
+                              <>Nenhum atleta iniciado por <strong className="text-white">"{search}"</strong> encontrado{filterSub !== 'Todos' ? ` na categoria ${filterSub}` : ''}.</>
+                            ) : (
+                              <>Nenhum atleta encontrado para a categoria <strong className="text-white">{filterSub}</strong>.</>
+                            )}
+                          </p>
+                          {filterSub !== 'Todos' && (
+                            <button
+                              type="button"
+                              onClick={() => setFilterSub('Todos')}
+                              className="px-3 py-1.5 bg-theme-primary text-black font-black text-xs uppercase rounded-xl hover:opacity-90 transition-all cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <span>Ver Todas as Categorias</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAthletes.map((athlete) => {
                     const records = attendance[athlete.id] || [];
                     const activeTrainingId = selectedTrainingId !== 'geral' ? selectedTrainingId : trainingId;
                     
@@ -4081,7 +4123,8 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             )}
@@ -5448,7 +5491,7 @@ export default function Attendance({ athletes: athletesProp, trainingId, eventId
                   <input
                     ref={floatingSearchRef}
                     type="text"
-                    placeholder="Buscar atleta pelo nome, camisa... (Clique para limpar)"
+                    placeholder="Digite o início do nome (ex: Gabriel, Gabriel Henrique...)"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onClick={() => {
