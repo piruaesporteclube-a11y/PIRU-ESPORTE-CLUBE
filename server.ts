@@ -834,14 +834,14 @@ Escreva tudo em Português-BR com extrema qualidade editorial e esportiva.`;
       contentsParts.push({
         text: `INSTRUÇÕES DE COMPARAÇÃO FACIAL BIOMÉTRICA:
 1. Examine a fisionomia da pessoa na FOTO DA CÂMERA (olhos, sobrancelhas, nariz, lábios, formato do queixo/rosto, corte de cabelo, traços gerais).
-2. Compare detalhadamente com a foto de cada atleta cadastrado acima.
-3. Se a pessoa na câmera for com boa convicção a mesma de algum dos atletas cadastrados (levando em conta variações normais de ângulo, iluminação, expressão ou pequenas diferenças de idade), identifique esse atleta retornando:
-   - "matchedAthleteId": ID exato do atleta reconhecido.
-   - "athleteName": Nome do atleta reconhecido.
-   - "confidence": Nível de confiança entre 0.35 e 1.0 (ex: 0.85).
+2. Compare com a foto de cada atleta cadastrado acima.
+3. Se a pessoa na câmera for a mesma de algum dos atletas cadastrados (considere variações normais de ângulo, iluminação, expressão ou pequenas diferenças de idade):
+   - "matchedAthleteId": ID exato do atleta reconhecido (ex: exatamente como fornecido acima).
+   - "athleteName": Nome exato do atleta reconhecido.
+   - "confidence": Nível de confiança entre 0.30 e 1.0 (ex: 0.85).
    - "reasoning": Resumo dos traços faciais coincidentes (ex: formato dos olhos, nariz e formato facial coincidentes com cadastro).
 4. Se o rosto na câmera NÃO corresponder a nenhum atleta cadastrado, ou se não houver um rosto humano nítido e visível na câmera:
-   - "matchedAthleteId": null
+   - "matchedAthleteId": ""
    - "athleteName": ""
    - "confidence": 0.0
    - "reasoning": "Rosto não reconhecido na base de atletas cadastrados."
@@ -850,62 +850,81 @@ Responda exclusivamente em JSON seguindo o schema.`
       });
 
       const ai = getAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: [
-          {
-            role: "user",
-            parts: contentsParts
+      let responseText = "";
+      
+      // Try ultra-fast gemini-3.1-flash-lite first, fallback to gemini-3.8-flash
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite",
+          contents: [{ role: "user", parts: contentsParts }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                matchedAthleteId: { 
+                  type: Type.STRING, 
+                  description: "ID do atleta correspondente ou string vazia se nenhum" 
+                },
+                confidence: { 
+                  type: Type.NUMBER, 
+                  description: "Pontuação de confiança entre 0.0 e 1.0" 
+                },
+                athleteName: { 
+                  type: Type.STRING, 
+                  description: "Nome do atleta reconhecido ou string vazia" 
+                },
+                reasoning: { 
+                  type: Type.STRING, 
+                  description: "Justificativa resumida das semelhanças faciais" 
+                }
+              },
+              required: ['matchedAthleteId', 'confidence', 'athleteName', 'reasoning']
+            } as any
           }
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              matchedAthleteId: { 
-                type: Type.STRING, 
-                nullable: true,
-                description: "ID do atleta correspondente se houver match com confiança >= 0.35, ou null se ninguém corresponder" 
-              },
-              confidence: { 
-                type: Type.NUMBER, 
-                description: "Pontuação de confiança entre 0.0 e 1.0" 
-              },
-              athleteName: { 
-                type: Type.STRING, 
-                nullable: true,
-                description: "Nome do atleta reconhecido ou string vazia" 
-              },
-              reasoning: { 
-                type: Type.STRING, 
-                description: "Justificativa resumida das semelhanças faciais" 
-              }
-            },
-            required: ['confidence', 'reasoning']
-          } as any
-        }
-      });
+        });
+        responseText = response.text || "";
+      } catch (liteErr: any) {
+        console.warn("[Facial Recognition] gemini-3.1-flash-lite failed, falling back to gemini-3.8-flash:", liteErr.message || liteErr);
+        const fallbackResp = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: [{ role: "user", parts: contentsParts }],
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+        responseText = fallbackResp.text || "";
+      }
 
-      const responseText = response.text;
       if (!responseText) {
         throw new Error("Resposta do Gemini em branco.");
       }
 
       const parsed = JSON.parse(responseText);
-      let matchedId = parsed.matchedAthleteId;
-      if (!matchedId || matchedId === 'none' || matchedId === 'null' || matchedId === 'NULL' || String(matchedId).trim() === '') {
-        matchedId = null;
+      const rawMatchedId = String(parsed.matchedAthleteId || '').trim();
+      const rawMatchedName = String(parsed.athleteName || '').trim().toLowerCase();
+
+      // Resolve candidate by ID or by Name or by Nickname
+      let resolvedCandidate = validCandidates.find((c: any) => 
+        (rawMatchedId && rawMatchedId !== 'null' && rawMatchedId !== 'none' && String(c.id).trim().toLowerCase() === rawMatchedId.toLowerCase()) ||
+        (rawMatchedId && String(c.name).trim().toLowerCase() === rawMatchedId.toLowerCase())
+      );
+
+      if (!resolvedCandidate && rawMatchedName && rawMatchedName !== 'null' && rawMatchedName !== 'none') {
+        resolvedCandidate = validCandidates.find((c: any) => {
+          const cName = String(c.name).trim().toLowerCase();
+          return cName === rawMatchedName || cName.includes(rawMatchedName) || rawMatchedName.includes(cName);
+        });
       }
 
       const cleanMatch = {
-        matchedAthleteId: matchedId,
-        confidence: Number(parsed.confidence) || 0,
-        athleteName: parsed.athleteName || '',
-        reasoning: parsed.reasoning || ''
+        matchedAthleteId: resolvedCandidate ? String(resolvedCandidate.id) : (rawMatchedId && rawMatchedId !== 'null' && rawMatchedId !== 'none' ? rawMatchedId : null),
+        confidence: Number(parsed.confidence) || (resolvedCandidate ? 0.85 : 0),
+        athleteName: resolvedCandidate ? String(resolvedCandidate.name) : (parsed.athleteName || ''),
+        reasoning: parsed.reasoning || (resolvedCandidate ? 'Identificado por correspondência facial biométrica com cadastro.' : 'Sem correspondência facial.')
       };
 
-      console.log(`[Server Face Recognition] Result: ${cleanMatch.athleteName || 'Nenhum match'} (Confiança: ${cleanMatch.confidence})`);
+      console.log(`[Server Face Recognition] Match: ${cleanMatch.athleteName || 'Nenhum'} | ID: ${cleanMatch.matchedAthleteId} | Confiança: ${cleanMatch.confidence}`);
       res.json({ success: true, match: cleanMatch });
     } catch (error: any) {
       console.warn("[Facial Recognition API Error]:", error.message || error);
@@ -1060,56 +1079,83 @@ Responda exclusivamente em JSON seguindo o schema.`
       });
 
       const ai = getAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: [
-          {
-            role: "user",
-            parts: contentsParts
-          }
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              detectedAthletes: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    athleteId: { type: Type.STRING },
-                    athleteName: { type: Type.STRING },
-                    confidence: { type: Type.NUMBER },
-                    locationInPhoto: { type: Type.STRING }
-                  },
-                  required: ["athleteId", "athleteName"]
-                }
-              },
-              totalFacesCount: { type: Type.NUMBER },
-              summary: { type: Type.STRING }
-            },
-            required: ["detectedAthletes"]
-          } as any
-        }
-      });
+      let responseText = "";
 
-      const responseText = response.text;
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite",
+          contents: [{ role: "user", parts: contentsParts }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                detectedAthletes: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      athleteId: { type: Type.STRING },
+                      athleteName: { type: Type.STRING },
+                      confidence: { type: Type.NUMBER },
+                      locationInPhoto: { type: Type.STRING }
+                    },
+                    required: ["athleteId", "athleteName"]
+                  }
+                },
+                totalFacesCount: { type: Type.NUMBER },
+                summary: { type: Type.STRING }
+              },
+              required: ["detectedAthletes"]
+            } as any
+          }
+        });
+        responseText = response.text || "";
+      } catch (liteErr: any) {
+        console.warn("[Group Photo] gemini-3.1-flash-lite failed, falling back to gemini-3.8-flash:", liteErr.message || liteErr);
+        const fallbackResp = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: [{ role: "user", parts: contentsParts }],
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+        responseText = fallbackResp.text || "";
+      }
+
       if (!responseText) {
         throw new Error("Resposta do Gemini em branco.");
       }
 
       const parsed = JSON.parse(responseText);
-      const detectedAthletes = Array.isArray(parsed.detectedAthletes) 
-        ? parsed.detectedAthletes.filter((a: any) => a && a.athleteId && a.athleteId !== 'null' && a.athleteId !== 'none')
-        : [];
+      const rawDetected = Array.isArray(parsed.detectedAthletes) ? parsed.detectedAthletes : [];
+
+      const detectedAthletes = rawDetected.map((d: any) => {
+        const dId = String(d.athleteId || '').trim();
+        const dName = String(d.athleteName || '').trim().toLowerCase();
+
+        // Resolve against candidate list
+        const resolved = validCandidates.find((c: any) => 
+          (dId && dId !== 'null' && dId !== 'none' && String(c.id).trim().toLowerCase() === dId.toLowerCase()) ||
+          (dId && String(c.name).trim().toLowerCase() === dId.toLowerCase()) ||
+          (dName && String(c.name).trim().toLowerCase() === dName) ||
+          (dName && String(c.name).trim().toLowerCase().includes(dName))
+        );
+
+        return {
+          athleteId: resolved ? String(resolved.id) : dId,
+          athleteName: resolved ? String(resolved.name) : (d.athleteName || 'Atleta'),
+          confidence: Number(d.confidence) || 0.85,
+          locationInPhoto: d.locationInPhoto || 'Presente na foto'
+        };
+      }).filter((a: any) => a.athleteId && a.athleteId !== 'null' && a.athleteId !== 'none');
 
       console.log(`[Group Photo Roll Call] Recognized ${detectedAthletes.length} athletes from photo.`);
       res.json({
         success: true,
         detectedAthletes,
         totalFacesCount: parsed.totalFacesCount || detectedAthletes.length,
-        summary: parsed.summary || `${detectedAthletes.length} atletas reconhecidos na foto.`
+        summary: parsed.summary || `${detectedAthletes.length} atletas identificados com sucesso.`
       });
     } catch (error: any) {
       console.warn("[Group Photo Recognition API Error]:", error.message || error);

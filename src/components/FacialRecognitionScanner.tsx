@@ -98,11 +98,14 @@ export default function FacialRecognitionScanner({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
+  const [currentAthletes, setCurrentAthletes] = useState<Athlete[]>(athletes);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAutoScanning, setIsAutoScanning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isRefreshingAthletes, setIsRefreshingAthletes] = useState(false);
+  const [targetAthleteId, setTargetAthleteId] = useState<string>('all');
   
   const [matchedAthlete, setMatchedAthlete] = useState<{
     athlete: Athlete;
@@ -119,14 +122,34 @@ export default function FacialRecognitionScanner({
 
   const [categoryFilter, setCategoryFilter] = useState<string>('Todos');
 
+  // Auto-refresh athletes on mount to ensure newly added photos or biometrics are available
+  const reloadAthletesFromDb = async (notify = false) => {
+    try {
+      setIsRefreshingAthletes(true);
+      const fresh = await api.getAthletes(true);
+      if (fresh && fresh.length > 0) {
+        setCurrentAthletes(fresh);
+        if (notify) toast.success(`Lista atualizada! ${fresh.filter(a => a.photo).length} atletas possuem foto cadastrada.`);
+      }
+    } catch (e) {
+      console.warn("Could not force refresh athletes:", e);
+    } finally {
+      setIsRefreshingAthletes(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadAthletesFromDb(false);
+  }, []);
+
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
-    athletes.forEach(a => {
+    currentAthletes.forEach(a => {
       const cat = getSubCategory(a.birth_date);
       if (cat) set.add(cat);
     });
     return Array.from(set).sort();
-  }, [athletes]);
+  }, [currentAthletes]);
   
   const [recentScans, setRecentScans] = useState<Array<{
     athlete: Athlete;
@@ -136,7 +159,7 @@ export default function FacialRecognitionScanner({
   const [analysisStatus, setAnalysisStatus] = useState<string>('Posicione a câmera no rosto do aluno');
   const [candidateFilter, setCandidateFilter] = useState<string>('');
   
-  const scanTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoopRunningRef = useRef<boolean>(false);
   const cooldownRef = useRef<boolean>(false);
   const lastRecognizedIdRef = useRef<string | null>(null);
 
@@ -248,9 +271,6 @@ export default function FacialRecognitionScanner({
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
-      if (scanTimerRef.current) {
-        clearInterval(scanTimerRef.current);
-      }
     };
   }, [facingMode]);
 
@@ -281,20 +301,23 @@ export default function FacialRecognitionScanner({
       ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, 480, 480);
       const frameDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-      // Filter candidates with photos (active athletes or all enrolled)
-      let eligibleAthletes = athletes.filter(a => (a.status === 'Ativo' || !a.status) && a.photo && a.photo.trim().length > 10);
-      if (eligibleAthletes.length === 0) {
-        eligibleAthletes = athletes.filter(a => a.photo && a.photo.trim().length > 10);
-      }
+      // Filter all candidates who have a photo (including newly enrolled, pending or active)
+      let eligibleAthletes = currentAthletes.filter(a => a.photo && a.photo.trim().length > 10);
 
       if (eligibleAthletes.length === 0) {
-        setAnalysisStatus('Atenção: Nenhum atleta com foto cadastrada no sistema.');
+        setAnalysisStatus('Atenção: Nenhum atleta com foto cadastrada na base.');
         setIsAnalyzing(false);
         return;
       }
 
-      // Filter by selected category if specified
-      if (categoryFilter !== 'Todos') {
+      // 1:1 Specific Athlete Test Mode if selected
+      if (targetAthleteId !== 'all') {
+        const targeted = eligibleAthletes.filter(a => a.id === targetAthleteId);
+        if (targeted.length > 0) {
+          eligibleAthletes = targeted;
+        }
+      } else if (categoryFilter !== 'Todos') {
+        // Filter by selected category if specified
         const catFiltered = eligibleAthletes.filter(a => getSubCategory(a.birth_date) === categoryFilter);
         if (catFiltered.length > 0) {
           eligibleAthletes = catFiltered;
@@ -302,10 +325,16 @@ export default function FacialRecognitionScanner({
       }
 
       // Smart Candidate Ranking:
-      // 1. Athletes who registered facial biometrics explicitly (biometrics_face_registered: true) first!
-      // 2. Athletes who do not have presence marked for today yet
-      // 3. Alphabetical order
+      // 1. Target athlete if specified
+      // 2. Athletes who registered facial biometrics explicitly (biometrics_face_registered: true) first!
+      // 3. Athletes who do not have presence marked for today yet
+      // 4. Alphabetical order
       const sortedCandidates = [...eligibleAthletes].sort((a, b) => {
+        if (targetAthleteId !== 'all') {
+          if (a.id === targetAthleteId) return -1;
+          if (b.id === targetAthleteId) return 1;
+        }
+
         const aBio = a.biometrics_face_registered ? 1 : 0;
         const bBio = b.biometrics_face_registered ? 1 : 0;
         if (aBio !== bBio) return bBio - aBio; // Biometrics registered first
@@ -315,7 +344,7 @@ export default function FacialRecognitionScanner({
         if (aPresent !== bPresent) return aPresent - bPresent; // Unmarked first
 
         return a.name.localeCompare(b.name);
-      }).slice(0, 50);
+      }).slice(0, 35); // Optimized batch size for instant Gemini analysis
 
       // Prepare list of candidates for API with thumbnail optimization
       const candidatesPayload = await Promise.all(
@@ -329,13 +358,28 @@ export default function FacialRecognitionScanner({
       // Send to server-side Gemini Facial Recognition API
       const res = await api.recognizeFace(frameDataUrl, candidatesPayload);
 
-      if (res && res.success && res.match && res.match.matchedAthleteId) {
-        const matchedId = res.match.matchedAthleteId;
-        const confidence = Number(res.match.confidence) || 0.85;
+      if (res && res.success && res.match) {
+        const rawMatchedId = String(res.match.matchedAthleteId || '').trim();
+        const matchedName = String(res.match.athleteName || '').trim().toLowerCase();
+        const confidence = Number(res.match.confidence) || 0;
         const reasoning = res.match.reasoning || 'Reconhecimento facial verificado com sucesso por IA.';
 
-        // Ensure student exists in local list
-        const foundAthlete = athletes.find(a => a.id === matchedId);
+        // Robust matching against athlete list by ID or by Name or by Nickname
+        let foundAthlete: Athlete | undefined;
+        if (rawMatchedId && rawMatchedId !== 'none' && rawMatchedId !== 'null' && rawMatchedId !== '') {
+          foundAthlete = currentAthletes.find(a => 
+            String(a.id).trim().toLowerCase() === rawMatchedId.toLowerCase() ||
+            a.name.trim().toLowerCase() === rawMatchedId.toLowerCase()
+          );
+        }
+
+        if (!foundAthlete && matchedName && matchedName !== 'none' && matchedName !== 'null' && matchedName !== '') {
+          foundAthlete = currentAthletes.find(a => {
+            const aName = a.name.trim().toLowerCase();
+            return aName === matchedName || aName.includes(matchedName) || matchedName.includes(aName) ||
+              (a.nickname && a.nickname.trim().toLowerCase() === matchedName);
+          });
+        }
 
         if (foundAthlete && confidence >= 0.35) {
           // Trigger successful recognition
@@ -382,10 +426,16 @@ export default function FacialRecognitionScanner({
             reasoning
           });
           setAnalysisStatus(`Semelhança detectada com ${foundAthlete.name} (${Math.round(confidence * 100)}%). Toque para confirmar.`);
+          setIsAnalyzing(false);
+          return;
+        } else if (res.match.reasoning) {
+          setAnalysisStatus(`IA: ${res.match.reasoning}`);
+        } else {
+          setAnalysisStatus('Nenhum aluno reconhecido nesta captura. Alinhe o rosto no centro.');
         }
+      } else {
+        setAnalysisStatus('Nenhum aluno reconhecido nesta captura. Alinhe o rosto no centro.');
       }
-
-      setAnalysisStatus('Nenhum aluno reconhecido nesta captura. Alinhe o rosto no centro.');
     } catch (err) {
       console.warn("Facial recognition processing error:", err);
       setAnalysisStatus('Aguardando alinhamento do rosto...');
@@ -394,26 +444,33 @@ export default function FacialRecognitionScanner({
     }
   };
 
-  // Auto-scanning loop
+  // Self-scheduling auto-scanning loop: avoids stacking requests and guarantees freshness
   useEffect(() => {
-    if (isAutoScanning && !isLocked) {
-      scanTimerRef.current = setInterval(() => {
-        if (!isAnalyzing && !cooldownRef.current) {
-          captureAndRecognize();
+    let isMounted = true;
+    let timerId: NodeJS.Timeout | null = null;
+
+    const scheduleNextScan = () => {
+      if (!isMounted || !isAutoScanning || isLocked) return;
+      timerId = setTimeout(async () => {
+        if (!isMounted || !isAutoScanning || isLocked) return;
+        if (!cooldownRef.current && !isAnalyzing) {
+          await captureAndRecognize();
         }
-      }, 2000);
-    } else {
-      if (scanTimerRef.current) {
-        clearInterval(scanTimerRef.current);
-      }
+        if (isMounted && isAutoScanning && !isLocked) {
+          scheduleNextScan();
+        }
+      }, 1800);
+    };
+
+    if (isAutoScanning && !isLocked) {
+      scheduleNextScan();
     }
 
     return () => {
-      if (scanTimerRef.current) {
-        clearInterval(scanTimerRef.current);
-      }
+      isMounted = false;
+      if (timerId) clearTimeout(timerId);
     };
-  }, [isAutoScanning, isAnalyzing, athletes, isLocked]);
+  }, [isAutoScanning, isLocked, categoryFilter, targetAthleteId]);
 
   const toggleFacingMode = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
@@ -447,17 +504,46 @@ export default function FacialRecognitionScanner({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Target Athlete 1:1 Test Mode Selector */}
+          <div className="relative">
+            <select
+              value={targetAthleteId}
+              onChange={e => setTargetAthleteId(e.target.value)}
+              className={cn(
+                "rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider focus:outline-none cursor-pointer shadow-md border transition-all",
+                targetAthleteId !== 'all' 
+                  ? "bg-amber-500 text-black border-amber-400 font-black shadow-amber-500/20" 
+                  : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-white"
+              )}
+              title="Focar reconhecimento em 1 atleta específico para teste rápido"
+            >
+              <option value="all">🔍 Reconhecer Todos ({currentAthletes.filter(a => a.photo).length} fotos)</option>
+              {currentAthletes
+                .filter(a => a.photo)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(ath => (
+                  <option key={ath.id} value={ath.id}>
+                    🎯 Testar Rosto 1:1: {ath.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
           {/* Category Filter Selector */}
           <div className="relative">
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider focus:outline-none focus:border-emerald-500 cursor-pointer shadow-md"
+              disabled={targetAthleteId !== 'all'}
+              className={cn(
+                "border text-white rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider focus:outline-none cursor-pointer shadow-md",
+                targetAthleteId !== 'all' ? "bg-zinc-950 text-zinc-600 border-zinc-850 cursor-not-allowed" : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 focus:border-emerald-500"
+              )}
               title="Filtrar por Categoria / Faixa Etária"
             >
-              <option value="Todos">Todas Categorias ({athletes.length})</option>
+              <option value="Todos">Todas Categorias ({currentAthletes.length})</option>
               {uniqueCategories.map(cat => {
-                const count = athletes.filter(a => getSubCategory(a.birth_date) === cat).length;
+                const count = currentAthletes.filter(a => getSubCategory(a.birth_date) === cat).length;
                 return (
                   <option key={cat} value={cat}>
                     {cat} ({count} alunos)
@@ -486,7 +572,7 @@ export default function FacialRecognitionScanner({
             className="px-3.5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-md"
           >
             <RefreshCw size={16} className="text-theme-primary" />
-            <span className="hidden sm:inline">{facingMode === 'environment' ? 'Câmera Traseira' : 'Câmera Frontal'}</span>
+            <span className="hidden sm:inline">{facingMode === 'environment' ? 'Câmera Traseira' : 'Câmera Frontal (Selfie)'}</span>
           </button>
 
           {/* Close button */}
@@ -513,7 +599,7 @@ export default function FacialRecognitionScanner({
               ref={videoRef}
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className={cn("w-full h-full object-cover", facingMode === 'user' && "scale-x-[-1]")}
             />
             
             {/* Hidden Canvas for Capture */}
@@ -784,8 +870,21 @@ export default function FacialRecognitionScanner({
               </button>
             </div>
 
-            <div className="text-xs text-zinc-400 font-medium">
-              Atletas com Foto: <strong className="text-white">{athletes.filter(a => a.status === 'Ativo' && a.photo).length}</strong> de {athletes.length}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => reloadAthletesFromDb(true)}
+                disabled={isRefreshingAthletes}
+                className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                title="Buscar fotos recém-cadastradas no banco de dados"
+              >
+                <RefreshCw size={13} className={cn(isRefreshingAthletes && "animate-spin text-theme-primary")} />
+                <span>Atualizar Base</span>
+              </button>
+
+              <div className="text-xs text-zinc-400 font-medium">
+                Atletas com Foto: <strong className="text-emerald-400 font-bold">{currentAthletes.filter(a => a.photo).length}</strong> de {currentAthletes.length}
+              </div>
             </div>
           </div>
         </div>
@@ -879,8 +978,8 @@ export default function FacialRecognitionScanner({
 
             {candidateFilter.trim().length > 0 && (
               <div className="max-h-48 overflow-y-auto space-y-1.5 pt-1">
-                {athletes
-                  .filter(a => a.status === 'Ativo' && (
+                {currentAthletes
+                  .filter(a => (a.status !== 'Inativo' || !a.status) && (
                     a.name.toLowerCase().includes(candidateFilter.toLowerCase()) ||
                     (a.jersey_number && a.jersey_number.includes(candidateFilter))
                   ))

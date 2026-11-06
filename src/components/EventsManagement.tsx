@@ -909,8 +909,45 @@ Muito obrigado pela parceria e apoio de sempre!
       return;
     }
 
+    // Resolve the SUB / Category for this specific lineup list
+    const explicitCat = (lineupCategory || '').trim();
+    const customName = (lineupName || lineupIndicesWithNames[activeLineupIndex] || '').trim();
+    const tabData = (lineupIndicesWithData[activeLineupIndex] || '').trim();
+
+    // Automatically detect SUBs from the athletes' birth dates
+    const athleteSubsList = Array.from(
+      new Set(
+        currentAthletes
+          .map(a => {
+            const fullAth = athletes.find(ath => ath.id === a.id) || a;
+            return fullAth.birth_date ? getSubCategory(fullAth.birth_date) : '';
+          })
+          .filter(Boolean)
+      )
+    ).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''), 10) || 999;
+      const numB = parseInt(b.replace(/\D/g, ''), 10) || 999;
+      return numA - numB;
+    });
+    const detectedSubs = athleteSubsList.join(', ');
+
+    let resolvedSub = '';
+    if (explicitCat && explicitCat !== 'Com Dados') {
+      resolvedSub = explicitCat.toUpperCase();
+    } else if (tabData && tabData !== 'Com Dados') {
+      resolvedSub = tabData.toUpperCase();
+    } else if (customName && /SUB/i.test(customName)) {
+      resolvedSub = customName.toUpperCase();
+    } else if (detectedSubs) {
+      resolvedSub = detectedSubs.toUpperCase();
+    } else if (customName) {
+      resolvedSub = customName.toUpperCase();
+    } else {
+      resolvedSub = `SUB ${activeLineupIndex + 1}`;
+    }
+
     setIsGeneratingPDF(true);
-    const loadingToast = toast.loading('Gerando PDF simplificado (Quant. + Nomes)...');
+    const loadingToast = toast.loading(`Gerando PDF simplificado (${resolvedSub})...`);
 
     try {
       const doc = new jsPDF('p', 'mm', 'a4');
@@ -931,9 +968,9 @@ Muito obrigado pela parceria e apoio de sempre!
       doc.setFont('helvetica', 'bold');
       doc.text((settings?.schoolName || 'PIRUÁ ESPORTE CLUBE').toUpperCase(), pageWidth / 2, 15 + offsetY, { align: 'center' });
       
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text('LISTA DE ATLETAS ESCALADOS (NOME COMPLETO)', pageWidth / 2, 21 + offsetY, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`LISTA DE ATLETAS ESCALADOS • ${resolvedSub}`, pageWidth / 2, 21 + offsetY, { align: 'center' });
       
       doc.setDrawColor(0);
       doc.setLineWidth(0.5);
@@ -947,42 +984,64 @@ Muito obrigado pela parceria e apoio de sempre!
       doc.setFontSize(11);
       doc.text(`EVENTO: ${selectedEvent.name.toUpperCase()}`, pageWidth / 2, 33 + offsetY, { align: 'center' });
 
-      // Total Count Highlight Box
-      doc.setFillColor(240, 240, 240);
-      doc.rect(15, 39 + offsetY, pageWidth - 30, 10, 'F');
-      doc.setDrawColor(200, 200, 200);
-      doc.rect(15, 39 + offsetY, pageWidth - 30, 10, 'S');
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`QUANTIDADE TOTAL DE ATLETAS: ${currentAthletes.length}`, pageWidth / 2, 45.5 + offsetY, { align: 'center' });
+      // Sub / Category Highlight Box
+      doc.setFillColor(240, 244, 248);
+      doc.rect(15, 38 + offsetY, pageWidth - 30, 9.5, 'F');
+      doc.setDrawColor(180, 195, 210);
+      doc.setLineWidth(0.5);
+      doc.rect(15, 38 + offsetY, pageWidth - 30, 9.5, 'S');
 
-      // Simple Table with only Number (#) and Full Name (NOME COMPLETO)
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      const subDisplayText = `CATEGORIA: ${resolvedSub}${customName && customName.toUpperCase() !== resolvedSub ? ` (${customName.toUpperCase()})` : ''}`;
+      doc.text(subDisplayText, pageWidth / 2, 44.5 + offsetY, { align: 'center' });
+
+      // Total Count Highlight Box
+      doc.setFillColor(245, 245, 245);
+      doc.rect(15, 49.5 + offsetY, pageWidth - 30, 9, 'F');
+      doc.setDrawColor(210, 210, 210);
+      doc.setLineWidth(0.5);
+      doc.rect(15, 49.5 + offsetY, pageWidth - 30, 9, 'S');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`QUANTIDADE TOTAL DE ATLETAS: ${currentAthletes.length}`, pageWidth / 2, 55.5 + offsetY, { align: 'center' });
+
+      // Simple Table with Number (#), Full Name and SUB
       autoTable(doc, {
-        startY: 53 + offsetY,
-        head: [['#', 'NOME COMPLETO DO ATLETA']],
-        body: currentAthletes.map((a, idx) => [
-          (idx + 1).toString().padStart(2, '0'),
-          (a.name || '').toUpperCase()
-        ]),
-        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10, minCellHeight: 6 },
-        styles: { fontSize: 9.5, cellPadding: 2.5, fontStyle: 'bold' },
+        startY: 61.5 + offsetY,
+        head: [['#', 'NOME COMPLETO DO ATLETA', 'SUB / CATEGORIA']],
+        body: currentAthletes.map((a, idx) => {
+          const fullAth = athletes.find(ath => ath.id === a.id) || a;
+          const athSub = fullAth.birth_date ? getSubCategory(fullAth.birth_date) : (resolvedSub || '-');
+          return [
+            (idx + 1).toString().padStart(2, '0'),
+            (fullAth.name || a.name || '').toUpperCase(),
+            athSub.toUpperCase()
+          ];
+        }),
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10, minCellHeight: 6.5 },
+        styles: { fontSize: 9.5, cellPadding: 2.8, fontStyle: 'bold' },
         columnStyles: {
-          0: { cellWidth: 18, halign: 'center' },
-          1: { cellWidth: 'auto' }
+          0: { cellWidth: 16, halign: 'center' },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 35, halign: 'center' }
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         margin: { left: 15, right: 15 }
       });
 
-      const finalY = (doc as any).lastAutoTable.finalY + 12;
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(120, 120, 120);
-      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} | Total: ${currentAthletes.length} atletas`, pageWidth / 2, finalY, { align: 'center' });
+      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} | Categoria: ${resolvedSub} | Total: ${currentAthletes.length} atletas`, pageWidth / 2, finalY, { align: 'center' });
 
-      doc.save(`lista-simplificada-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
-      toast.success('PDF Simplificado gerado com sucesso!', { id: loadingToast });
+      const subSlug = (resolvedSub || 'sub').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const eventSlug = (selectedEvent.name || 'evento').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      doc.save(`lista-simplificada-${subSlug}-${eventSlug}.pdf`);
+      toast.success(`PDF Simplificado (${resolvedSub}) gerado com sucesso!`, { id: loadingToast });
     } catch (error) {
       console.error('Simple PDF Generation Error:', error);
       toast.error('Erro ao gerar PDF simplificado', { id: loadingToast });
@@ -1000,7 +1059,42 @@ Muito obrigado pela parceria e apoio de sempre!
       return;
     }
 
-    const loadingToast = toast.loading('Gerando Story (1080x1920) caprichado...');
+    // Resolve the SUB / Category for this specific lineup list
+    const explicitCat = (lineupCategory || '').trim();
+    const customName = (lineupName || lineupIndicesWithNames[activeLineupIndex] || '').trim();
+    const tabData = (lineupIndicesWithData[activeLineupIndex] || '').trim();
+    const athleteSubsList = Array.from(
+      new Set(
+        currentAthletes
+          .map(a => {
+            const fullAth = athletes.find(ath => ath.id === a.id) || a;
+            return fullAth.birth_date ? getSubCategory(fullAth.birth_date) : '';
+          })
+          .filter(Boolean)
+      )
+    ).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''), 10) || 999;
+      const numB = parseInt(b.replace(/\D/g, ''), 10) || 999;
+      return numA - numB;
+    });
+    const detectedSubs = athleteSubsList.join(', ');
+
+    let resolvedSub = '';
+    if (explicitCat && explicitCat !== 'Com Dados') {
+      resolvedSub = explicitCat.toUpperCase();
+    } else if (tabData && tabData !== 'Com Dados') {
+      resolvedSub = tabData.toUpperCase();
+    } else if (customName && /SUB/i.test(customName)) {
+      resolvedSub = customName.toUpperCase();
+    } else if (detectedSubs) {
+      resolvedSub = detectedSubs.toUpperCase();
+    } else if (customName) {
+      resolvedSub = customName.toUpperCase();
+    } else {
+      resolvedSub = `SUB ${activeLineupIndex + 1}`;
+    }
+
+    const loadingToast = toast.loading(`Gerando Story (${resolvedSub})...`);
 
     try {
       const canvas = document.createElement('canvas');
@@ -1152,7 +1246,7 @@ Muito obrigado pela parceria e apoio de sempre!
       ctx.fillStyle = '#22c55e';
       ctx.font = '900 14px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('🏆 EVENTO', bannerX + 26, currentCursorY + bannerPaddingV + 10);
+      ctx.fillText(`🏆 EVENTO • CATEGORIA ${resolvedSub}`, bannerX + 26, currentCursorY + bannerPaddingV + 10);
 
       // Render Event Name Lines
       ctx.fillStyle = '#ffffff';
@@ -1258,9 +1352,10 @@ Muito obrigado pela parceria e apoio de sempre!
       ctx.fillRect((width / 2) - 60, 1875, 120, 4); // bottom accent pill bar
 
       // Download PNG
+      const subSlug = (resolvedSub || 'sub').toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `story-convocados-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.download = `story-convocados-${subSlug}-${selectedEvent.name.toLowerCase().replace(/\s+/g, '-')}.png`;
       link.href = dataUrl;
       link.click();
 
@@ -3445,7 +3540,7 @@ Muito obrigado!
                                 onClick={handleDownloadSimplePDF}
                                 disabled={isGeneratingPDF}
                                 className="p-1 px-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 flex items-center gap-1 text-[8px] font-bold uppercase transition-all disabled:opacity-50"
-                                title="Gerar PDF simplificado com apenas quantidade e nomes dos atletas"
+                                title="Gerar PDF simplificado com SUB, quantidade e nomes dos atletas"
                               >
                                 <FileText size={10} />
                                 PDF Simplificado
@@ -3981,7 +4076,7 @@ Muito obrigado!
                   onClick={handleDownloadSimplePDF}
                   disabled={isGeneratingPDF}
                   className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-black rounded-xl transition-all font-bold text-xs disabled:opacity-50 cursor-pointer"
-                  title="Gerar PDF Simplificado (Apenas Quantidade de Atletas e Nome Completo)"
+                  title="Gerar PDF Simplificado (com SUB, Quantidade e Nomes dos Atletas)"
                 >
                   <FileText size={16} />
                   PDF Simplificado
