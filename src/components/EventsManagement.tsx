@@ -830,6 +830,27 @@ Muito obrigado pela parceria e apoio de sempre!
           ]),
           headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
           styles: { fontSize: 7, cellPadding: 1 },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 'auto', fontStyle: 'bold' },
+            2: { cellWidth: 26, halign: 'center' },
+            3: { cellWidth: 26, halign: 'center' },
+            4: { cellWidth: 24, halign: 'center' }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 1) {
+              const text = String(data.cell.raw || '').trim();
+              let fs = 7.0;
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(fs);
+              const maxAvailableWidth = 75;
+              while (doc.getTextWidth(text) > maxAvailableWidth && fs > 4.5) {
+                fs -= 0.2;
+                doc.setFontSize(fs);
+              }
+              data.cell.styles.fontSize = fs;
+            }
+          },
           alternateRowStyles: { fillColor: [250, 250, 250] },
           margin: { left: 15, right: 15 }
         });
@@ -876,14 +897,29 @@ Muito obrigado pela parceria e apoio de sempre!
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 7, cellPadding: 1 },
         columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
+          0: { cellWidth: 7, halign: 'center' },
           1: { cellWidth: 'auto', fontStyle: 'bold' },
-          2: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-          3: { cellWidth: 26, halign: 'center' },
-          4: { cellWidth: 18, halign: 'center' },
-          5: { cellWidth: 18, halign: 'center' },
-          6: { cellWidth: 20, halign: 'center' },
-          7: { cellWidth: 22, halign: 'center' }
+          2: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+          3: { cellWidth: 24, halign: 'center' },
+          4: { cellWidth: 16, halign: 'center' },
+          5: { cellWidth: 16, halign: 'center' },
+          6: { cellWidth: 17, halign: 'center' },
+          7: { cellWidth: 18, halign: 'center' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const text = String(data.cell.raw || '').trim();
+            // Maximum width available for name text within column 1 (~65mm)
+            const maxAvailableWidth = 64;
+            let fs = 7.0;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(fs);
+            while (doc.getTextWidth(text) > maxAvailableWidth && fs > 4.5) {
+              fs -= 0.2;
+              doc.setFontSize(fs);
+            }
+            data.cell.styles.fontSize = fs;
+          }
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         margin: { left: 15, right: 15 }
@@ -1053,10 +1089,24 @@ Muito obrigado pela parceria e apoio de sempre!
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10, minCellHeight: 6.5 },
         styles: { fontSize: 9.5, cellPadding: 2.8, fontStyle: 'bold' },
         columnStyles: {
-          0: { cellWidth: 14, halign: 'center' },
-          1: { cellWidth: 'auto' },
-          2: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
-          3: { cellWidth: 35, halign: 'center' }
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 'auto', fontStyle: 'bold' },
+          2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          3: { cellWidth: 32, halign: 'center' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const text = String(data.cell.raw || '').trim();
+            const maxAvailableWidth = 105;
+            let fs = 9.5;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(fs);
+            while (doc.getTextWidth(text) > maxAvailableWidth && fs > 5.5) {
+              fs -= 0.3;
+              doc.setFontSize(fs);
+            }
+            data.cell.styles.fontSize = fs;
+          }
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         margin: { left: 15, right: 15 }
@@ -4278,7 +4328,12 @@ Muito obrigado!
                       {lineupStaff.map((s, idx) => (
                         <tr key={s.id}>
                           <td className="border border-black p-1 text-center">{idx + 1}</td>
-                          <td className="border border-black p-1 font-bold uppercase">{s.name}</td>
+                          <td className={cn(
+                            "border border-black p-1 font-bold uppercase whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]",
+                            (s.name || '').length > 30 ? "text-[8px]" : ((s.name || '').length > 24 ? "text-[8.5px]" : "text-[9.5px]")
+                          )} title={s.name}>
+                            {s.name}
+                          </td>
                           <td className="border border-black p-1 text-center">{s.birth_date}</td>
                           <td className="border border-black p-1 text-center">{s.doc}</td>
                         </tr>
@@ -4312,7 +4367,12 @@ Muito obrigado!
                       {lineupAthletes.map((a, idx) => (
                         <tr key={a.id}>
                           <td className="border border-black p-1 text-center">{idx + 1}</td>
-                          <td className="border border-black p-1 font-bold uppercase">{a.name}</td>
+                          <td className={cn(
+                            "border border-black p-1 font-bold uppercase whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]",
+                            (a.name || '').length > 30 ? "text-[8px]" : ((a.name || '').length > 24 ? "text-[8.5px]" : "text-[9.5px]")
+                          )} title={a.name}>
+                            {a.name}
+                          </td>
                           <td className="border border-black p-1 text-center">{a.birth_date}</td>
                           <td className="border border-black p-1 text-center">{a.doc}</td>
                           <td className="border border-black p-1 text-center font-bold uppercase">{getSubCategory(a.birth_date)}</td>
