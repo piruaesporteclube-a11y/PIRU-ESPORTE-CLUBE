@@ -837,11 +837,15 @@ Muito obrigado pela parceria e apoio de sempre!
       }
 
       // Table - Athletes
+      const athletesListForPdf = (lineupAthletes && lineupAthletes.length > 0) 
+        ? lineupAthletes 
+        : athletes.filter(a => (selectedAthletes || []).includes(a.id));
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`ATLETAS CONVOCADOS (${(lineupAthletes || []).length})`, 15, startY);
+      doc.text(`ATLETAS CONVOCADOS (${athletesListForPdf.length})`, 15, startY);
       
-      const sortedAthletes = [...(lineupAthletes || [])].sort((a, b) => {
+      const sortedAthletes = [...athletesListForPdf].sort((a, b) => {
         const nameA = a.name || '';
         const nameB = b.name || '';
         return nameA.localeCompare(nameB);
@@ -849,18 +853,38 @@ Muito obrigado pela parceria e apoio de sempre!
 
       autoTable(doc, {
         startY: startY + 2,
-        head: [['#', 'NOME COMPLETO', 'RG / CPF', 'NASC.', 'CATEGORIA', 'STATUS', 'CONFIRMAÇÃO']],
-        body: sortedAthletes.map((a, idx) => [
-          idx + 1,
-          (a.name || '').toUpperCase(),
-          a.doc || '---',
-          formatDateSafe(a.birth_date),
-          getSubCategory(a.birth_date),
-          (typeof (a as any).lineup_status === 'string' ? (a as any).lineup_status : '---').toUpperCase(),
-          (a.confirmation || 'PENDENTE').toUpperCase()
-        ]),
+        head: [['#', 'NOME COMPLETO', 'UNIFORME', 'RG / CPF', 'NASC.', 'CATEGORIA', 'STATUS', 'CONFIRMAÇÃO']],
+        body: sortedAthletes.map((a, idx) => {
+          const fullAth = athletes.find(ath => ath.id === a.id) || a;
+          const uniformNum = fullAth.jersey_number || (fullAth as any).uniform_number || a.jersey_number || (a as any).uniform_number;
+          const uniformDisplay = uniformNum && String(uniformNum).trim() !== ''
+            ? (String(uniformNum).trim().startsWith('#') ? String(uniformNum).trim() : `#${String(uniformNum).trim()}`)
+            : 'S/N';
+          const athleteSub = fullAth.birth_date ? getSubCategory(fullAth.birth_date) : (a.birth_date ? getSubCategory(a.birth_date) : '---');
+
+          return [
+            idx + 1,
+            (fullAth.name || a.name || '').toUpperCase(),
+            uniformDisplay,
+            fullAth.doc || a.doc || '---',
+            formatDateSafe(fullAth.birth_date || a.birth_date),
+            athleteSub,
+            (typeof (a as any).lineup_status === 'string' ? (a as any).lineup_status : '---').toUpperCase(),
+            (a.confirmation || 'PENDENTE').toUpperCase()
+          ];
+        }),
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', minCellHeight: 4 },
         styles: { fontSize: 7, cellPadding: 1 },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 'auto', fontStyle: 'bold' },
+          2: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+          3: { cellWidth: 26, halign: 'center' },
+          4: { cellWidth: 18, halign: 'center' },
+          5: { cellWidth: 18, halign: 'center' },
+          6: { cellWidth: 20, halign: 'center' },
+          7: { cellWidth: 22, halign: 'center' }
+        },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         margin: { left: 15, right: 15 }
       });
@@ -1008,25 +1032,31 @@ Muito obrigado pela parceria e apoio de sempre!
       doc.setFont('helvetica', 'bold');
       doc.text(`QUANTIDADE TOTAL DE ATLETAS: ${currentAthletes.length}`, pageWidth / 2, 55.5 + offsetY, { align: 'center' });
 
-      // Simple Table with Number (#), Full Name and SUB
+      // Simple Table with Number (#), Full Name, Uniform Number and SUB
       autoTable(doc, {
         startY: 61.5 + offsetY,
-        head: [['#', 'NOME COMPLETO DO ATLETA', 'SUB / CATEGORIA']],
+        head: [['#', 'NOME COMPLETO DO ATLETA', 'UNIFORME', 'SUB / CATEGORIA']],
         body: currentAthletes.map((a, idx) => {
           const fullAth = athletes.find(ath => ath.id === a.id) || a;
+          const uniformNum = fullAth.jersey_number || (fullAth as any).uniform_number || a.jersey_number || (a as any).uniform_number;
+          const uniformDisplay = uniformNum && String(uniformNum).trim() !== ''
+            ? (String(uniformNum).trim().startsWith('#') ? String(uniformNum).trim() : `#${String(uniformNum).trim()}`)
+            : 'S/N';
           const athSub = fullAth.birth_date ? getSubCategory(fullAth.birth_date) : (resolvedSub || '-');
           return [
             (idx + 1).toString().padStart(2, '0'),
             (fullAth.name || a.name || '').toUpperCase(),
+            uniformDisplay,
             athSub.toUpperCase()
           ];
         }),
         headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10, minCellHeight: 6.5 },
         styles: { fontSize: 9.5, cellPadding: 2.8, fontStyle: 'bold' },
         columnStyles: {
-          0: { cellWidth: 16, halign: 'center' },
+          0: { cellWidth: 14, halign: 'center' },
           1: { cellWidth: 'auto' },
-          2: { cellWidth: 35, halign: 'center' }
+          2: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+          3: { cellWidth: 35, halign: 'center' }
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         margin: { left: 15, right: 15 }
